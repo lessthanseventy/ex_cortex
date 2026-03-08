@@ -10,18 +10,16 @@ defmodule ExCellenceServerWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/", ExCellenceServerWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", DashboardLive, :index
+    live "/roles", RolesLive, :index
+    live "/roles/new", RolesLive, :new
+    live "/roles/:id/edit", RolesLive, :edit
+    live "/pipelines", PipelinesLive, :index
+    live "/pipelines/new", PipelinesLive, :new
+    live "/evaluate", EvaluateLive, :index
+    live "/dashboard", DashboardLive, :index
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", ExCellenceServerWeb do
-  #   pipe_through :api
-  # end
 end
