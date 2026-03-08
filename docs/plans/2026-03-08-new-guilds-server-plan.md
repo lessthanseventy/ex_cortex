@@ -1,4 +1,4 @@
-# New Guilds Server Integration Plan (ex_cellence_server)
+# New Guilds Server Integration Plan (ex_calibur)
 
 **Design doc:** `docs/plans/2026-03-08-new-guilds-design.md`
 **Depends on:** `ex_cellence` charters plan (must be executed first)
@@ -9,7 +9,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 1: Add new charters to Evaluator
 
-**File:** `lib/ex_cellence_server/evaluator.ex`
+**File:** `lib/ex_calibur/evaluator.ex`
 
 **Steps:**
 1. Add the 5 new charter modules to the `@charters` map:
@@ -32,7 +32,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 2: Add new charters to EvaluateLive
 
-**File:** `lib/ex_cellence_server_web/live/evaluate_live.ex`
+**File:** `lib/ex_calibur_web/live/evaluate_live.ex`
 
 **Steps:**
 1. Add the 5 new entries to the `@charter_keys` map:
@@ -55,7 +55,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 3: Add new charters to GuildHallLive and QuestsLive
 
-**File:** `lib/ex_cellence_server_web/live/guild_hall_live.ex`
+**File:** `lib/ex_calibur_web/live/guild_hall_live.ex`
 
 **Steps:**
 1. Add the 5 new entries to the `@charters` map:
@@ -72,7 +72,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
    }
    ```
 
-**File:** `lib/ex_cellence_server_web/live/quests_live.ex`
+**File:** `lib/ex_calibur_web/live/quests_live.ex`
 
 2. Add the same 5 new entries to the `@charters` map (identical to GuildHallLive).
 
@@ -82,7 +82,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 4: Add Accessibility Review books to Library
 
-**File:** `lib/ex_cellence_server/sources/book.ex`
+**File:** `lib/ex_calibur/sources/book.ex`
 
 **Steps:**
 1. Add 4 books to `all/0` for the Accessibility Review guild:
@@ -127,7 +127,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 5: Add Performance Audit books to Library
 
-**File:** `lib/ex_cellence_server/sources/book.ex`
+**File:** `lib/ex_calibur/sources/book.ex`
 
 **Steps:**
 1. Add 4 books to `all/0` for the Performance Audit guild:
@@ -172,7 +172,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 6: Add Incident Triage books to Library
 
-**File:** `lib/ex_cellence_server/sources/book.ex`
+**File:** `lib/ex_calibur/sources/book.ex`
 
 **Steps:**
 1. Add 4 books to `all/0` for the Incident Triage guild:
@@ -217,7 +217,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 7: Add Contract Review books to Library
 
-**File:** `lib/ex_cellence_server/sources/book.ex`
+**File:** `lib/ex_calibur/sources/book.ex`
 
 **Steps:**
 1. Add 3 books to `all/0` for the Contract Review guild:
@@ -254,7 +254,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 8: Add Dependency Audit books to Library
 
-**File:** `lib/ex_cellence_server/sources/book.ex`
+**File:** `lib/ex_calibur/sources/book.ex`
 
 **Steps:**
 1. Add 4 books to `all/0` for the Dependency Audit guild:
@@ -299,7 +299,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
 
 ## Task 9: Update tests
 
-**File:** `test/ex_cellence_server_web/live/library_live_test.exs`
+**File:** `test/ex_calibur_web/live/library_live_test.exs`
 
 **Steps:**
 1. Update the test to assert all new book names are rendered. The existing test checks for the 6 generic books. Add assertions for the new guild-specific books:
@@ -334,7 +334,7 @@ Add 5 new guilds to the server: register charter modules in Evaluator/EvaluateLi
    assert html =~ "Hex.pm Package Updates"
    ```
 
-**Verify:** `mix test test/ex_cellence_server_web/live/library_live_test.exs`
+**Verify:** `mix test test/ex_calibur_web/live/library_live_test.exs`
 
 ---
 

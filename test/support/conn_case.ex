@@ -1,4 +1,4 @@
-defmodule ExCellenceServerWeb.ConnCase do
+defmodule ExCaliburWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -11,7 +11,7 @@ defmodule ExCellenceServerWeb.ConnCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use ExCellenceServerWeb.ConnCase, async: true`, although
+  by setting `use ExCaliburWeb.ConnCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -19,20 +19,20 @@ defmodule ExCellenceServerWeb.ConnCase do
 
   using do
     quote do
-      use ExCellenceServerWeb, :verified_routes
+      use ExCaliburWeb, :verified_routes
 
-      import ExCellenceServerWeb.ConnCase
+      import ExCaliburWeb.ConnCase
       import Phoenix.ConnTest
       import Plug.Conn
       # The default endpoint for testing
-      @endpoint ExCellenceServerWeb.Endpoint
+      @endpoint ExCaliburWeb.Endpoint
 
       # Import conveniences for testing with connections
     end
   end
 
   setup tags do
-    ExCellenceServer.DataCase.setup_sandbox(tags)
+    ExCalibur.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

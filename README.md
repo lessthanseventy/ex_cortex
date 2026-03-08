@@ -99,7 +99,7 @@ sandbox: %{mode: :container, image: "elixir:1.17", cmd: "mix credo", timeout: 12
 
 ```
 lib/
-  ex_cellence_server/
+  ex_calibur/
     evaluator.ex          # Orchestrates guild evaluation via Excellence
     sandbox.ex            # Host/container tool execution
     members/member.ex     # Member catalogue (18 roles, 4 categories, 3 ranks)
@@ -107,7 +107,7 @@ lib/
       book.ex             # Book & Scroll catalogue
       source.ex           # Ecto schema for active sources
       source_worker.ex    # GenServer that fetches + evaluates
-  ex_cellence_server_web/
+  ex_calibur_web/
     live/                 # LiveView pages
     components/           # Shared components and layouts
 docker-compose.yml        # Dev stack (db + ollama + app with live reload)

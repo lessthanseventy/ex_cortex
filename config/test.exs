@@ -6,7 +6,7 @@ alias Ecto.Adapters.SQL.Sandbox
 config :ex_cellence, Excellence.Repo,
   username: "andrew",
   hostname: "localhost",
-  database: "ex_cellence_server_test#{System.get_env("MIX_TEST_PARTITION")}",
+  database: "ex_calibur_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Sandbox,
   pool_size: 5
 
@@ -17,22 +17,22 @@ config :ex_cellence, Oban, testing: :manual
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :ex_cellence_server, ExCellenceServer.Repo,
+config :ex_calibur, ExCalibur.Repo,
   username: "andrew",
   hostname: "localhost",
-  database: "ex_cellence_server_test#{System.get_env("MIX_TEST_PARTITION")}",
+  database: "ex_calibur_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Sandbox,
   pool_size: 5
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
+config :ex_calibur, ExCaliburWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "KY64T6XteuWzRYjr2XCLj1kG0olZI3nQ91FCAv0Ky5SVo187Hj3GvvchhKEzFRWY",
   server: false
 
 config :excessibility,
-  endpoint: ExCellenceServerWeb.Endpoint,
+  endpoint: ExCaliburWeb.Endpoint,
   head_render_path: "/guild-hall",
   browser_mod: Wallaby.Browser,
   live_view_mod: Excessibility.LiveView,

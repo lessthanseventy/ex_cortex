@@ -5,4 +5,4 @@ if System.get_env("EXCESSIBILITY_TELEMETRY_CAPTURE") == "true" do
 end
 
 ExUnit.start(max_cases: 10)
-Ecto.Adapters.SQL.Sandbox.mode(ExCellenceServer.Repo, :manual)
+Ecto.Adapters.SQL.Sandbox.mode(ExCalibur.Repo, :manual)

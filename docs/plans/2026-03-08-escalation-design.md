@@ -31,7 +31,7 @@ Each roster step gets an optional `escalate_on` field:
 `:claude_haiku`, `:claude_sonnet`, `:claude_opus` are not DB members — they are resolved at evaluation time by the Evaluator. Config:
 
 ```elixir
-config :ex_cellence_server, :anthropic,
+config :ex_calibur, :anthropic,
   api_key: System.get_env("ANTHROPIC_API_KEY"),
   base_url: "https://api.anthropic.com"
 ```

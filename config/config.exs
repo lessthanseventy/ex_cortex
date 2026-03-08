@@ -10,7 +10,7 @@ import Config
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
-  ex_cellence_server: [
+  ex_calibur: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
@@ -25,21 +25,21 @@ config :ex_cellence, Oban,
 
 # Excellence core config
 config :ex_cellence,
-  ecto_repos: [ExCellenceServer.Repo]
+  ecto_repos: [ExCalibur.Repo]
 
 # Configure the endpoint
-config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
+config :ex_calibur, ExCaliburWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: ExCellenceServerWeb.ErrorHTML, json: ExCellenceServerWeb.ErrorJSON],
+    formats: [html: ExCaliburWeb.ErrorHTML, json: ExCaliburWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: ExCellenceServer.PubSub,
+  pubsub_server: ExCalibur.PubSub,
   live_view: [signing_salt: "dE89EITe"]
 
-config :ex_cellence_server,
-  ecto_repos: [ExCellenceServer.Repo],
+config :ex_calibur,
+  ecto_repos: [ExCalibur.Repo],
   generators: [timestamp_type: :utc_datetime]
 
 # Configure Elixir's Logger
@@ -53,7 +53,7 @@ config :phoenix, :json_library, Jason
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "4.1.12",
-  ex_cellence_server: [
+  ex_calibur: [
     args: ~w(
       --input=assets/css/app.css
       --output=priv/static/assets/css/app.css

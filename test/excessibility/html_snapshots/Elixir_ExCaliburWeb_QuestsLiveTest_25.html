@@ -1,0 +1,99 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="csrf-token" content="OSYPJmoFB3gjHXoFJQg_KAU3QC4ieX43Vu_EStI-GmOBiFkDWGvVpJ6_"/>
+    <title>
+      Excellence
+    </title>
+    <link phx-track-static="phx-track-static" rel="stylesheet" href="file:///home/andrew/projects/ex_cellence_server/_build/test/lib/ex_calibur/priv/static/assets/css/app.css"/>
+  </head>
+  <body>
+    <div id="phx-GJr-YxpfDsQb5QdC" data-phx-main="" data-phx-session="SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdKci1ZeHBmRHNRYjVRZEN3B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwR2aWV3dx5FbGl4aXIuRXhDYWxpYnVyV2ViLlF1ZXN0c0xpdmV3CHJvb3RfcGlkdwNuaWx3BnJvdXRlcncaRWxpeGlyLkV4Q2FsaWJ1cldlYi5Sb3V0ZXJ3CXJvb3Rfdmlld3ceRWxpeGlyLkV4Q2FsaWJ1cldlYi5RdWVzdHNMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GABrwk8-cAWIAAVGA.2EN4QglN6dCvEhVb2u5STOKVi1fNHoRbp0texbYEBLE" data-phx-static="SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdKci1ZeHBmRHNRYjVRZEN3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdqbgYAG_CTz5wBYgABUYA.aOB6HOcqOnxkHqD9NAODZ7v0bu-FdYpymEkOxcSMyHE">
+      <div class="space-y-6">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-bold">
+            Quests
+          </h1>
+          <div class="flex gap-2">
+            <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="add_campaign">
+              + New Campaign
+            </button>
+            <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="add_quest">
+              + New Quest
+            </button>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            Campaigns
+          </h2>
+          <div class="space-y-2">
+            <div class="border rounded-lg bg-card ">
+              <div class="flex items-center gap-3 px-4 py-3">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="campaign-3">
+                  <span class="transition-transform text-muted-foreground ">
+                    ›
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-medium">
+                      Test Campaign
+                    </span>
+                    <span class="text-xs text-muted-foreground ml-2">
+                      1 quests
+                    </span>
+                  </div>
+                  <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground text-xs shrink-0">
+                    manual
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_campaign_status" phx-value-id="3">
+                    Pause
+                  </button>
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_campaign" phx-value-id="3" data-confirm="Delete this campaign?">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+            Quests
+          </h2>
+          <div class="space-y-2">
+            <div class="border rounded-lg bg-card ">
+              <div class="flex items-center gap-3 px-4 py-3">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="quest-5">
+                  <span class="transition-transform text-muted-foreground ">
+                    ›
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-medium">
+                      Test Quest
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground text-xs">
+                      manual
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_quest_status" phx-value-id="5">
+                    Pause
+                  </button>
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_quest" phx-value-id="5" data-confirm="Delete this quest?">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

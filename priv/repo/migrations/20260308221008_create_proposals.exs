@@ -1,4 +1,4 @@
-defmodule ExCellenceServer.Repo.Migrations.CreateProposals do
+defmodule ExCalibur.Repo.Migrations.CreateProposals do
   use Ecto.Migration
 
   def change do

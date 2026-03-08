@@ -8,11 +8,11 @@
 ## Task 1: Rename RolesLive → MembersLive (file + module + all strings)
 
 **Files to change:**
-- Rename `lib/ex_cellence_server_web/live/roles_live.ex` → `lib/ex_cellence_server_web/live/members_live.ex`
-- Rename `test/ex_cellence_server_web/live/roles_live_test.exs` → `test/ex_cellence_server_web/live/members_live_test.exs`
+- Rename `lib/ex_calibur_web/live/roles_live.ex` → `lib/ex_calibur_web/live/members_live.ex`
+- Rename `test/ex_calibur_web/live/roles_live_test.exs` → `test/ex_calibur_web/live/members_live_test.exs`
 
 **Steps:**
-1. Create `lib/ex_cellence_server_web/live/members_live.ex` with module name `ExCellenceServerWeb.MembersLive`
+1. Create `lib/ex_calibur_web/live/members_live.ex` with module name `ExCaliburWeb.MembersLive`
 2. In the module: change all user-facing strings:
    - `page_title: "Roles"` → `page_title: "Members"`
    - `page_title: "New Role"` → `page_title: "New Member"`
@@ -27,24 +27,24 @@
    - Flash: `"Failed to save role"` → `"Failed to save member"`
    - Label in template for perspectives: `"Perspectives"` → `"Disciplines"` (if visible in render — check `.role_form` component from ExCellenceUI)
 3. Keep all internal variable names (`roles`, `role_form`, `list_roles`, `get_role`, `save_role` event, `ResourceDefinition` type: "role") unchanged — these are internal
-4. Create `test/ex_cellence_server_web/live/members_live_test.exs`:
-   - Module: `ExCellenceServerWeb.MembersLiveTest`
+4. Create `test/ex_calibur_web/live/members_live_test.exs`:
+   - Module: `ExCaliburWeb.MembersLiveTest`
    - Route: `/members`
    - Assert: `"Members"`, `"New Member"`
 5. Delete old files: `roles_live.ex`, `roles_live_test.exs`
 
-**Verify:** `mix compile --warnings-as-errors && mix test test/ex_cellence_server_web/live/members_live_test.exs`
+**Verify:** `mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/members_live_test.exs`
 
 ---
 
 ## Task 2: Rename PipelinesLive → QuestsLive (file + module + all strings)
 
 **Files to change:**
-- Rename `lib/ex_cellence_server_web/live/pipelines_live.ex` → `lib/ex_cellence_server_web/live/quests_live.ex`
-- Rename `test/ex_cellence_server_web/live/pipelines_live_test.exs` → `test/ex_cellence_server_web/live/quests_live_test.exs`
+- Rename `lib/ex_calibur_web/live/pipelines_live.ex` → `lib/ex_calibur_web/live/quests_live.ex`
+- Rename `test/ex_calibur_web/live/pipelines_live_test.exs` → `test/ex_calibur_web/live/quests_live_test.exs`
 
 **Steps:**
-1. Create `lib/ex_cellence_server_web/live/quests_live.ex` with module name `ExCellenceServerWeb.QuestsLive`
+1. Create `lib/ex_calibur_web/live/quests_live.ex` with module name `ExCaliburWeb.QuestsLive`
 2. In the module: change all user-facing strings:
    - `page_title: "Pipelines"` → `page_title: "Quests"`
    - `<h1>` text: `"Pipelines"` → `"Quests"`
@@ -54,41 +54,41 @@
    - Flash: `"Template not found"` → `"Charter not found"`
    - Flash: `"Pipeline saved"` → `"Quest saved"`
 3. Keep internal variable names unchanged (`@templates`, `pipeline`, `install_template` event name, etc.)
-4. Create `test/ex_cellence_server_web/live/quests_live_test.exs`:
-   - Module: `ExCellenceServerWeb.QuestsLiveTest`
+4. Create `test/ex_calibur_web/live/quests_live_test.exs`:
+   - Module: `ExCaliburWeb.QuestsLiveTest`
    - Route: `/quests`
    - Assert: `"Quests"`, `"Content Moderation"`, `"Code Review"`, `"Risk Assessment"`
 5. Delete old files: `pipelines_live.ex`, `pipelines_live_test.exs`
 
-**Verify:** `mix compile --warnings-as-errors && mix test test/ex_cellence_server_web/live/quests_live_test.exs`
+**Verify:** `mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/quests_live_test.exs`
 
 ---
 
 ## Task 3: Rename DashboardLive → LodgeLive (file + module + all strings)
 
 **Files to change:**
-- Rename `lib/ex_cellence_server_web/live/dashboard_live.ex` → `lib/ex_cellence_server_web/live/lodge_live.ex`
-- Rename `test/ex_cellence_server_web/live/dashboard_live_test.exs` → `test/ex_cellence_server_web/live/lodge_live_test.exs`
+- Rename `lib/ex_calibur_web/live/dashboard_live.ex` → `lib/ex_calibur_web/live/lodge_live.ex`
+- Rename `test/ex_calibur_web/live/dashboard_live_test.exs` → `test/ex_calibur_web/live/lodge_live_test.exs`
 
 **Steps:**
-1. Create `lib/ex_cellence_server_web/live/lodge_live.ex` with module name `ExCellenceServerWeb.LodgeLive`
+1. Create `lib/ex_calibur_web/live/lodge_live.ex` with module name `ExCaliburWeb.LodgeLive`
 2. In the module: change user-facing strings:
    - `page_title: "Dashboard"` → `page_title: "Lodge"`
    - `<h1>` text: `"Dashboard"` → `"Lodge"`
 3. Everything else stays the same (decisions, outcomes, agents — internal data)
-4. Create `test/ex_cellence_server_web/live/lodge_live_test.exs`:
-   - Module: `ExCellenceServerWeb.LodgeLiveTest`
+4. Create `test/ex_calibur_web/live/lodge_live_test.exs`:
+   - Module: `ExCaliburWeb.LodgeLiveTest`
    - Route: `/lodge`
    - Assert: `"Lodge"`, `"Recent Decisions"`, `"Agent Health"`
 5. Delete old files: `dashboard_live.ex`, `dashboard_live_test.exs`
 
-**Verify:** `mix compile --warnings-as-errors && mix test test/ex_cellence_server_web/live/lodge_live_test.exs`
+**Verify:** `mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/lodge_live_test.exs`
 
 ---
 
 ## Task 4: Update EvaluateLive guild terminology
 
-**File:** `lib/ex_cellence_server_web/live/evaluate_live.ex`
+**File:** `lib/ex_calibur_web/live/evaluate_live.ex`
 
 **Steps:**
 1. Change the template display names by appending " Guild" to each:
@@ -96,13 +96,13 @@
 2. Change the label text: `"Template"` → `"Guild"`
 3. No other changes — Evaluate page title stays "Evaluate"
 
-**Verify:** `mix compile --warnings-as-errors && mix test test/ex_cellence_server_web/live/evaluate_live_test.exs`
+**Verify:** `mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/evaluate_live_test.exs`
 
 ---
 
 ## Task 5: Update router with new routes and modules
 
-**File:** `lib/ex_cellence_server_web/router.ex`
+**File:** `lib/ex_calibur_web/router.ex`
 
 **Steps:**
 1. Replace the entire route block inside `scope "/"` with:
@@ -119,9 +119,9 @@
    ```
 2. Note: `GuildHallLive` doesn't exist yet (Task 7). This will cause a compile warning but not an error since Phoenix resolves modules at runtime. To be safe, create a minimal placeholder in this task:
    ```elixir
-   # lib/ex_cellence_server_web/live/guild_hall_live.ex
-   defmodule ExCellenceServerWeb.GuildHallLive do
-     use ExCellenceServerWeb, :live_view
+   # lib/ex_calibur_web/live/guild_hall_live.ex
+   defmodule ExCaliburWeb.GuildHallLive do
+     use ExCaliburWeb, :live_view
      def mount(_params, _session, socket), do: {:ok, assign(socket, page_title: "Guild Hall")}
      def render(assigns), do: ~H"<h1>Guild Hall</h1><p>Coming soon...</p>"
    end
@@ -133,7 +133,7 @@
 
 ## Task 6: Update nav bar and root layout
 
-**File:** `lib/ex_cellence_server_web/components/layouts/root.html.heex`
+**File:** `lib/ex_calibur_web/components/layouts/root.html.heex`
 
 **Steps:**
 1. Replace the nav links section with:
@@ -161,13 +161,13 @@
 
 ## Task 7: Build GuildHallLive
 
-**File:** `lib/ex_cellence_server_web/live/guild_hall_live.ex` (replace placeholder from Task 5)
+**File:** `lib/ex_calibur_web/live/guild_hall_live.ex` (replace placeholder from Task 5)
 
 **Steps:**
 1. Create the full `GuildHallLive` module with:
    - `@templates` map (same as PipelinesLive had — reuse `Excellence.Templates.*`)
    - `@post_install_redirect "/evaluate"` module attribute
-   - `mount/3`: Load template metadata into `guilds` assign. Also query `ExCellenceServer.Repo.exists?(from r in ResourceDefinition, where: r.type == "role")` to get `installed_types` — a MapSet of installed role names to show checkmarks
+   - `mount/3`: Load template metadata into `guilds` assign. Also query `ExCalibur.Repo.exists?(from r in ResourceDefinition, where: r.type == "role")` to get `installed_types` — a MapSet of installed role names to show checkmarks
    - `handle_event("install_guild", ...)`: Same logic as old `install_template` — write ResourceDefinitions, then `push_navigate(to: @post_install_redirect)`
    - `handle_event("dissolve_and_install", ...)`: Delete all ResourceDefinitions (`Repo.delete_all(ResourceDefinition)`), then install the selected guild's ResourceDefinitions, then redirect
    - `handle_event("confirm_dissolve", %{"guild" => name})`: Set `confirming_dissolve: name` assign to show confirmation state on that card
@@ -232,13 +232,13 @@
 
 ## Task 8: Add GuildHallLive test
 
-**File:** `test/ex_cellence_server_web/live/guild_hall_live_test.exs`
+**File:** `test/ex_calibur_web/live/guild_hall_live_test.exs`
 
 **Steps:**
-1. Create test module `ExCellenceServerWeb.GuildHallLiveTest`:
+1. Create test module `ExCaliburWeb.GuildHallLiveTest`:
    ```elixir
-   defmodule ExCellenceServerWeb.GuildHallLiveTest do
-     use ExCellenceServerWeb.ConnCase, async: true
+   defmodule ExCaliburWeb.GuildHallLiveTest do
+     use ExCaliburWeb.ConnCase, async: true
      import Phoenix.LiveViewTest
 
      describe "index" do
@@ -254,26 +254,26 @@
    end
    ```
 
-**Verify:** `mix test test/ex_cellence_server_web/live/guild_hall_live_test.exs`
+**Verify:** `mix test test/ex_calibur_web/live/guild_hall_live_test.exs`
 
 ---
 
 ## Task 9: Add first-run redirect on `/` (LodgeLive)
 
-**File:** `lib/ex_cellence_server_web/live/lodge_live.ex`
+**File:** `lib/ex_calibur_web/live/lodge_live.ex`
 
 **Steps:**
 1. In `mount/3`, after `load_dashboard_data`, add first-run detection:
    ```elixir
    def mount(_params, _session, socket) do
      import Ecto.Query
-     has_roles = ExCellenceServer.Repo.exists?(from r in ResourceDefinition, where: r.type == "role")
+     has_roles = ExCalibur.Repo.exists?(from r in ResourceDefinition, where: r.type == "role")
 
      if !has_roles && socket.assigns.live_action == :index do
        {:ok, push_navigate(socket, to: "/guild-hall")}
      else
        if connected?(socket) do
-         Phoenix.PubSub.subscribe(ExCellenceServer.PubSub, "evaluation:results")
+         Phoenix.PubSub.subscribe(ExCalibur.PubSub, "evaluation:results")
          :timer.send_interval(30_000, self(), :refresh)
        end
        {:ok, load_dashboard_data(socket)}

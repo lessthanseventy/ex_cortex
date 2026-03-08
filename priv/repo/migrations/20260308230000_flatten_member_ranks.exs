@@ -1,4 +1,4 @@
-defmodule ExCellenceServer.Repo.Migrations.FlattenMemberRanks do
+defmodule ExCalibur.Repo.Migrations.FlattenMemberRanks do
   use Ecto.Migration
 
   def change do

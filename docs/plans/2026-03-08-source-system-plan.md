@@ -28,12 +28,12 @@
 
 **Files:**
 - `priv/repo/migrations/20260308092633_add_sources.exs`
-- `lib/ex_cellence_server/sources/source.ex`
+- `lib/ex_calibur/sources/source.ex`
 
 **Steps:**
 1. Create migration:
    ```elixir
-   defmodule ExCellenceServer.Repo.Migrations.AddSources do
+   defmodule ExCalibur.Repo.Migrations.AddSources do
      use Ecto.Migration
 
      def change do
@@ -56,7 +56,7 @@
    ```
 2. Create Source schema:
    ```elixir
-   defmodule ExCellenceServer.Sources.Source do
+   defmodule ExCalibur.Sources.Source do
      use Ecto.Schema
      import Ecto.Changeset
 
@@ -90,13 +90,13 @@
 ## Task 3: Create SourceItem struct and Source behaviour
 
 **Files:**
-- `lib/ex_cellence_server/sources/source_item.ex`
-- `lib/ex_cellence_server/sources/behaviour.ex`
+- `lib/ex_calibur/sources/source_item.ex`
+- `lib/ex_calibur/sources/behaviour.ex`
 
 **Steps:**
 1. Create SourceItem struct:
    ```elixir
-   defmodule ExCellenceServer.Sources.SourceItem do
+   defmodule ExCalibur.Sources.SourceItem do
      defstruct [:source_id, :guild_name, :type, :content, :metadata]
 
      @type t :: %__MODULE__{
@@ -110,8 +110,8 @@
    ```
 2. Create behaviour:
    ```elixir
-   defmodule ExCellenceServer.Sources.Behaviour do
-     alias ExCellenceServer.Sources.SourceItem
+   defmodule ExCalibur.Sources.Behaviour do
+     alias ExCalibur.Sources.SourceItem
 
      @callback init(config :: map()) :: {:ok, state :: map()} | {:error, term()}
      @callback fetch(state :: map(), config :: map()) :: {:ok, [SourceItem.t()], map()} | {:error, term()}
@@ -128,13 +128,13 @@
 ## Task 4: Extract evaluation pipeline from EvaluateLive into shared module
 
 **Files:**
-- `lib/ex_cellence_server/evaluator.ex` (new)
-- `lib/ex_cellence_server_web/live/evaluate_live.ex` (modify to use new module)
+- `lib/ex_calibur/evaluator.ex` (new)
+- `lib/ex_calibur_web/live/evaluate_live.ex` (modify to use new module)
 
 **Steps:**
-1. Create `ExCellenceServer.Evaluator` module that extracts the reusable parts from EvaluateLive:
+1. Create `ExCalibur.Evaluator` module that extracts the reusable parts from EvaluateLive:
    ```elixir
-   defmodule ExCellenceServer.Evaluator do
+   defmodule ExCalibur.Evaluator do
      alias Excellence.LLM.Ollama
      alias Excellence.Orchestrator
 
@@ -150,7 +150,7 @@
        template_mod = Map.fetch!(@templates, guild_name)
        meta = template_mod.metadata()
 
-       ollama_url = Application.get_env(:ex_cellence_server, :ollama_url, "http://127.0.0.1:11434")
+       ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
        provider = Keyword.get(opts, :provider, Ollama.new(base_url: ollama_url))
 
        roles = build_roles_from_template(meta)
@@ -170,33 +170,33 @@
      # Move build_roles_from_template/1 and build_actions_from_template/1 here
    end
    ```
-2. Update EvaluateLive to delegate to `ExCellenceServer.Evaluator`:
+2. Update EvaluateLive to delegate to `ExCalibur.Evaluator`:
    - Remove `build_roles_from_template/1` and `build_actions_from_template/1`
-   - Update `run_evaluation/3` to call `ExCellenceServer.Evaluator.evaluate/2`
+   - Update `run_evaluation/3` to call `ExCalibur.Evaluator.evaluate/2`
    - Keep `@templates` reference for UI display (use `Evaluator.templates()`)
 3. Run existing evaluate test to confirm no regression
 
-**Verify:** `mix compile --warnings-as-errors && mix test test/ex_cellence_server_web/live/evaluate_live_test.exs`
+**Verify:** `mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/evaluate_live_test.exs`
 
 ---
 
 ## Task 5: Create SourceWorker GenServer
 
-**File:** `lib/ex_cellence_server/sources/source_worker.ex`
+**File:** `lib/ex_calibur/sources/source_worker.ex`
 
 **Steps:**
 1. Create the GenServer that drives poll-based sources:
    ```elixir
-   defmodule ExCellenceServer.Sources.SourceWorker do
+   defmodule ExCalibur.Sources.SourceWorker do
      use GenServer, restart: :transient
      require Logger
 
-     alias ExCellenceServer.Sources.Source
-     alias ExCellenceServer.Evaluator
+     alias ExCalibur.Sources.Source
+     alias ExCalibur.Evaluator
 
      # Public API
      def start_link(%Source{} = source), do: GenServer.start_link(__MODULE__, source, name: via(source.id))
-     defp via(id), do: {:via, Registry, {ExCellenceServer.SourceRegistry, id}}
+     defp via(id), do: {:via, Registry, {ExCalibur.SourceRegistry, id}}
 
      # Init: load source module, call init, schedule first fetch
      @impl true
@@ -228,7 +228,7 @@
      end
 
      defp evaluate_item(item) do
-       Task.Supervisor.start_child(ExCellenceServer.SourceTaskSupervisor, fn ->
+       Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
          try do
            Evaluator.evaluate(item.guild_name, item.content)
          rescue
@@ -237,22 +237,22 @@
        end)
      end
 
-     defp source_module("git"), do: ExCellenceServer.Sources.GitWatcher
-     defp source_module("directory"), do: ExCellenceServer.Sources.DirectoryWatcher
-     defp source_module("feed"), do: ExCellenceServer.Sources.FeedWatcher
-     defp source_module("url"), do: ExCellenceServer.Sources.UrlWatcher
-     defp source_module("websocket"), do: ExCellenceServer.Sources.WebSocketSource
+     defp source_module("git"), do: ExCalibur.Sources.GitWatcher
+     defp source_module("directory"), do: ExCalibur.Sources.DirectoryWatcher
+     defp source_module("feed"), do: ExCalibur.Sources.FeedWatcher
+     defp source_module("url"), do: ExCalibur.Sources.UrlWatcher
+     defp source_module("websocket"), do: ExCalibur.Sources.WebSocketSource
 
      defp update_source_state(source, new_state) do
        source
        |> Source.changeset(%{state: new_state, last_run_at: DateTime.utc_now(), status: "active", error_message: nil})
-       |> ExCellenceServer.Repo.update()
+       |> ExCalibur.Repo.update()
      end
 
      defp mark_source_error(source, reason) do
        source
        |> Source.changeset(%{status: "error", error_message: inspect(reason)})
-       |> ExCellenceServer.Repo.update()
+       |> ExCalibur.Repo.update()
      end
    end
    ```
@@ -264,16 +264,16 @@
 ## Task 6: Create SourceSupervisor and add to application tree
 
 **Files:**
-- `lib/ex_cellence_server/sources/source_supervisor.ex`
-- `lib/ex_cellence_server/application.ex` (modify)
+- `lib/ex_calibur/sources/source_supervisor.ex`
+- `lib/ex_calibur/application.ex` (modify)
 
 **Steps:**
 1. Create SourceSupervisor:
    ```elixir
-   defmodule ExCellenceServer.Sources.SourceSupervisor do
+   defmodule ExCalibur.Sources.SourceSupervisor do
      use DynamicSupervisor
 
-     alias ExCellenceServer.Sources.{Source, SourceWorker}
+     alias ExCalibur.Sources.{Source, SourceWorker}
 
      def start_link(init_arg), do: DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
 
@@ -285,7 +285,7 @@
      end
 
      def stop_source(source_id) do
-       case Registry.lookup(ExCellenceServer.SourceRegistry, source_id) do
+       case Registry.lookup(ExCalibur.SourceRegistry, source_id) do
          [{pid, _}] -> DynamicSupervisor.terminate_child(__MODULE__, pid)
          [] -> :ok
        end
@@ -293,21 +293,21 @@
 
      def start_all_active do
        import Ecto.Query
-       sources = ExCellenceServer.Repo.all(from s in Source, where: s.status == "active")
+       sources = ExCalibur.Repo.all(from s in Source, where: s.status == "active")
        Enum.each(sources, &start_source/1)
      end
    end
    ```
 2. Add to application.ex children list (after Repo, before Endpoint):
    ```elixir
-   {Registry, keys: :unique, name: ExCellenceServer.SourceRegistry},
-   {Task.Supervisor, name: ExCellenceServer.SourceTaskSupervisor},
-   ExCellenceServer.Sources.SourceSupervisor,
+   {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
+   {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor},
+   ExCalibur.Sources.SourceSupervisor,
    ```
 3. Add an `init/1` or post-boot hook to call `SourceSupervisor.start_all_active()`. Simplest: add a `handle_continue` or just call it in the supervisor's `init`. Better: use a simple GenServer or Task that runs after boot:
    ```elixir
    # Add to children list after SourceSupervisor:
-   {Task, fn -> ExCellenceServer.Sources.SourceSupervisor.start_all_active() end},
+   {Task, fn -> ExCalibur.Sources.SourceSupervisor.start_all_active() end},
    ```
 
 **Verify:** `mix compile --warnings-as-errors && mix test`
@@ -316,14 +316,14 @@
 
 ## Task 7: Implement FeedWatcher source
 
-**File:** `lib/ex_cellence_server/sources/feed_watcher.ex`
+**File:** `lib/ex_calibur/sources/feed_watcher.ex`
 
 **Steps:**
 1. Implement the behaviour — simplest source, good to build first:
    ```elixir
-   defmodule ExCellenceServer.Sources.FeedWatcher do
-     @behaviour ExCellenceServer.Sources.Behaviour
-     alias ExCellenceServer.Sources.SourceItem
+   defmodule ExCalibur.Sources.FeedWatcher do
+     @behaviour ExCalibur.Sources.Behaviour
+     alias ExCalibur.Sources.SourceItem
 
      @impl true
      def init(config) do
@@ -368,7 +368,7 @@
 
 ## Task 8: Implement GitWatcher source
 
-**File:** `lib/ex_cellence_server/sources/git_watcher.ex`
+**File:** `lib/ex_calibur/sources/git_watcher.ex`
 
 **Steps:**
 1. Implement the behaviour:
@@ -389,7 +389,7 @@
 
 ## Task 9: Implement DirectoryWatcher source
 
-**File:** `lib/ex_cellence_server/sources/directory_watcher.ex`
+**File:** `lib/ex_calibur/sources/directory_watcher.ex`
 
 **Steps:**
 1. Implement the behaviour:
@@ -406,7 +406,7 @@
 
 ## Task 10: Implement UrlWatcher source
 
-**File:** `lib/ex_cellence_server/sources/url_watcher.ex`
+**File:** `lib/ex_calibur/sources/url_watcher.ex`
 
 **Steps:**
 1. Implement the behaviour:
@@ -423,31 +423,31 @@
 ## Task 11: Implement WebhookReceiver (controller + route)
 
 **Files:**
-- `lib/ex_cellence_server_web/controllers/webhook_controller.ex`
-- `lib/ex_cellence_server_web/router.ex` (modify)
+- `lib/ex_calibur_web/controllers/webhook_controller.ex`
+- `lib/ex_calibur_web/router.ex` (modify)
 
 **Steps:**
 1. Create webhook controller:
    ```elixir
-   defmodule ExCellenceServerWeb.WebhookController do
-     use ExCellenceServerWeb, :controller
+   defmodule ExCaliburWeb.WebhookController do
+     use ExCaliburWeb, :controller
 
-     alias ExCellenceServer.Sources.Source
-     alias ExCellenceServer.Evaluator
+     alias ExCalibur.Sources.Source
+     alias ExCalibur.Evaluator
 
      def receive(conn, %{"source_id" => source_id}) do
        import Ecto.Query
 
        with %Source{status: "active", source_type: "webhook"} = source <-
-              ExCellenceServer.Repo.get(Source, source_id),
+              ExCalibur.Repo.get(Source, source_id),
             true <- valid_token?(conn, source) do
          body = conn.body_params["content"] || Jason.encode!(conn.body_params)
 
-         Task.Supervisor.start_child(ExCellenceServer.SourceTaskSupervisor, fn ->
+         Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
            Evaluator.evaluate(source.guild_name, body)
          end)
 
-         source |> Source.changeset(%{last_run_at: DateTime.utc_now()}) |> ExCellenceServer.Repo.update()
+         source |> Source.changeset(%{last_run_at: DateTime.utc_now()}) |> ExCalibur.Repo.update()
          json(conn, %{status: "accepted"})
        else
          nil -> conn |> put_status(404) |> json(%{error: "source not found"})
@@ -470,7 +470,7 @@
    ```
 2. Add API route in router.ex:
    ```elixir
-   scope "/api", ExCellenceServerWeb do
+   scope "/api", ExCaliburWeb do
      pipe_through :api
      post "/webhooks/:source_id", WebhookController, :receive
    end
@@ -488,14 +488,14 @@
 
 ## Task 12: Implement WebSocketSource
 
-**File:** `lib/ex_cellence_server/sources/websocket_source.ex`
+**File:** `lib/ex_calibur/sources/websocket_source.ex`
 
 **Steps:**
 1. This source is different — it maintains a persistent connection rather than polling. Implement as a GenServer that doesn't use the standard SourceWorker fetch loop:
    ```elixir
-   defmodule ExCellenceServer.Sources.WebSocketSource do
-     @behaviour ExCellenceServer.Sources.Behaviour
-     alias ExCellenceServer.Sources.SourceItem
+   defmodule ExCalibur.Sources.WebSocketSource do
+     @behaviour ExCalibur.Sources.Behaviour
+     alias ExCalibur.Sources.SourceItem
 
      @impl true
      def init(config) do
@@ -521,10 +521,10 @@
 ## Task 13: Create Sources LiveView page
 
 **Files:**
-- `lib/ex_cellence_server_web/live/sources_live.ex`
-- `test/ex_cellence_server_web/live/sources_live_test.exs`
-- `lib/ex_cellence_server_web/router.ex` (add route)
-- `lib/ex_cellence_server_web/components/layouts/root.html.heex` (add nav link)
+- `lib/ex_calibur_web/live/sources_live.ex`
+- `test/ex_calibur_web/live/sources_live_test.exs`
+- `lib/ex_calibur_web/router.ex` (add route)
+- `lib/ex_calibur_web/components/layouts/root.html.heex` (add nav link)
 
 **Steps:**
 1. Create SourcesLive:
@@ -553,7 +553,7 @@
 
 ## Task 14: Integrate source creation into Guild Hall install flow
 
-**File:** `lib/ex_cellence_server_web/live/guild_hall_live.ex`
+**File:** `lib/ex_calibur_web/live/guild_hall_live.ex`
 
 **Steps:**
 1. After `install_guild(mod)`, create a default source for the guild:
@@ -568,7 +568,7 @@
        config: default_config,
        status: "paused"  # start paused so user can configure first
      })
-     |> ExCellenceServer.Repo.insert()
+     |> ExCalibur.Repo.insert()
    end
 
    defp default_source_for("Code Review"), do: {"git", %{"repo_path" => "", "branch" => "main", "interval" => 60_000}}

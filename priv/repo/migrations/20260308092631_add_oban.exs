@@ -1,4 +1,4 @@
-defmodule ExCellenceServer.Repo.Migrations.AddOban do
+defmodule ExCalibur.Repo.Migrations.AddOban do
   use Ecto.Migration
 
   def up, do: Oban.Migration.up(version: 12)

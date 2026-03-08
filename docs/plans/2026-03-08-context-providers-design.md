@@ -54,7 +54,7 @@ At run time, context blocks are assembled in order and prepended to the input:
 
 ## Extension Point
 
-A `ExCellenceServer.ContextProvider` behaviour for app-level custom providers:
+A `ExCalibur.ContextProvider` behaviour for app-level custom providers:
 
 ```elixir
 @callback fetch(config :: map(), quest_run :: map()) :: String.t()
@@ -62,7 +62,7 @@ A `ExCellenceServer.ContextProvider` behaviour for app-level custom providers:
 
 Custom providers registered in config:
 ```elixir
-config :ex_cellence_server, :context_providers, [
+config :ex_calibur, :context_providers, [
   my_app: MyApp.CustomContextProvider
 ]
 ```

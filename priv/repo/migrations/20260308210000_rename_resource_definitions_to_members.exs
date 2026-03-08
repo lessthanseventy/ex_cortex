@@ -1,7 +1,7 @@
-defmodule ExCellenceServer.Repo.Migrations.RenameResourceDefinitionsToMembers do
+defmodule ExCalibur.Repo.Migrations.RenameResourceDefinitionsToMembers do
   use Ecto.Migration
 
   def change do
-    rename table(:excellence_resource_definitions), to: table(:excellence_members)
+    # excellence_resource_definitions was removed; excellence_members is created directly in add_excellence_tables
   end
 end

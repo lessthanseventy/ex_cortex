@@ -1,4 +1,4 @@
-defmodule ExCellenceServer.Repo.Migrations.AddTeamToMembers do
+defmodule ExCalibur.Repo.Migrations.AddTeamToMembers do
   use Ecto.Migration
 
   def change do

@@ -76,7 +76,7 @@ Provider (Ollama vs Claude API) is orthogonal to rank — a config choice, not a
 ### Member struct
 
 ```elixir
-defmodule ExCellenceServer.Members.Member do
+defmodule ExCalibur.Members.Member do
   defstruct [:id, :name, :description, :category, :system_prompt, :ranks]
 end
 ```
@@ -128,7 +128,7 @@ Remove `@charters` map, `install_charter` handler, and `CharterPicker` import fr
 
 ## Implementation Notes
 
-- Member catalogue in `lib/ex_cellence_server/members/member.ex`
-- Town Square LiveView in `lib/ex_cellence_server_web/live/town_square_live.ex`
+- Member catalogue in `lib/ex_calibur/members/member.ex`
+- Town Square LiveView in `lib/ex_calibur_web/live/town_square_live.ex`
 - Update router, nav layout, and tests
 - Each member needs a tailored system prompt

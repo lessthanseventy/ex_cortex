@@ -8,16 +8,16 @@ Always use tmux-cli for shell commands. Pane layout:
 
 ```bash
 # Run all tests
-tmux-cli send 'cd /home/andrew/projects/ex_cellence_server && mix test' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test' --pane=main:1.3
 
 # Run specific test
-tmux-cli send 'cd /home/andrew/projects/ex_cellence_server && mix test test/ex_cellence_server_web/live/members_live_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/members_live_test.exs' --pane=main:1.3
 
 # Format
-tmux-cli send 'cd /home/andrew/projects/ex_cellence_server && mix format' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix format' --pane=main:1.3
 
 # Start server
-tmux-cli send 'cd /home/andrew/projects/ex_cellence_server && mix phx.server' --pane=main:1.2
+tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix phx.server' --pane=main:1.2
 ```
 
 ## Project Overview
@@ -70,9 +70,9 @@ PORT=4001 docker-compose up  # custom port
 - Guild terminology is UI-only — internal code uses ResourceDefinition, type: "role", etc.
 - Sources: DynamicSupervisor-managed workers that poll/push data into guilds for evaluation
 - Source types: git, directory, feed, webhook, url, websocket
-- Evaluator module (`ExCellenceServer.Evaluator`) shared between EvaluateLive and Sources
+- Evaluator module (`ExCalibur.Evaluator`) shared between EvaluateLive and Sources
 - Webhook endpoint: `POST /api/webhooks/:source_id` with optional Bearer auth
-- Books: source blueprints in `ExCellenceServer.Sources.Book` — Library for browsing, Stacks for managing
+- Books: source blueprints in `ExCalibur.Sources.Book` — Library for browsing, Stacks for managing
 - Core library uses `Excellence.Charters.*` (was `Excellence.Templates.*`)
 
 ## Gotchas

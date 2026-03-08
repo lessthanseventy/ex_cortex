@@ -6,25 +6,25 @@
 
 **Architecture:** A `ContextProvider` behaviour defines a `fetch/2` callback. Three built-in providers (`Static`, `QuestHistory`, `MemberStats`) are registered. Before QuestRunner evaluates, it calls each provider configured on the quest and assembles their outputs into a preamble prepended to the input. The `context_providers` field is stored as `{:array, :map}` on the Quest schema (already present).
 
-**Tech Stack:** Phoenix LiveView, Ecto, ExCellenceServer.QuestRunner (from escalation plan).
+**Tech Stack:** Phoenix LiveView, Ecto, ExCalibur.QuestRunner (from escalation plan).
 
 ---
 
 ## Task 1: ContextProvider behaviour + Static provider
 
 **Files:**
-- Create: `lib/ex_cellence_server/context_provider.ex`
-- Create: `lib/ex_cellence_server/context_providers/static.ex`
-- Create: `test/ex_cellence_server/context_providers/static_test.exs`
+- Create: `lib/ex_calibur/context_provider.ex`
+- Create: `lib/ex_calibur/context_providers/static.ex`
+- Create: `test/ex_calibur/context_providers/static_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_cellence_server/context_providers/static_test.exs
-defmodule ExCellenceServer.ContextProviders.StaticTest do
+# test/ex_calibur/context_providers/static_test.exs
+defmodule ExCalibur.ContextProviders.StaticTest do
   use ExUnit.Case, async: true
 
-  alias ExCellenceServer.ContextProviders.Static
+  alias ExCalibur.ContextProviders.Static
 
   test "returns configured content as-is" do
     config = %{"content" => "Always be thorough."}
@@ -40,7 +40,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-cd /home/andrew/projects/ex_cellence_server && mix test test/ex_cellence_server/context_providers/static_test.exs
+cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/context_providers/static_test.exs
 ```
 
 Expected: error — module not found.
@@ -48,8 +48,8 @@ Expected: error — module not found.
 **Step 3: Implement behaviour and Static provider**
 
 ```elixir
-# lib/ex_cellence_server/context_provider.ex
-defmodule ExCellenceServer.ContextProvider do
+# lib/ex_calibur/context_provider.ex
+defmodule ExCalibur.ContextProvider do
   @moduledoc """
   Behaviour for context providers. Each provider fetches a string block
   that gets injected into the prompt before the input.
@@ -58,9 +58,9 @@ defmodule ExCellenceServer.ContextProvider do
   @callback fetch(config :: map(), quest_run_context :: map()) :: String.t()
 
   @builtin_providers %{
-    "static" => ExCellenceServer.ContextProviders.Static,
-    "quest_history" => ExCellenceServer.ContextProviders.QuestHistory,
-    "member_stats" => ExCellenceServer.ContextProviders.MemberStats
+    "static" => ExCalibur.ContextProviders.Static,
+    "quest_history" => ExCalibur.ContextProviders.QuestHistory,
+    "member_stats" => ExCalibur.ContextProviders.MemberStats
   }
 
   @doc """
@@ -68,7 +68,7 @@ defmodule ExCellenceServer.ContextProvider do
   Returns nil if unknown.
   """
   def resolve(type) do
-    custom = Application.get_env(:ex_cellence_server, :context_providers, [])
+    custom = Application.get_env(:ex_calibur, :context_providers, [])
     custom_map = Map.new(custom, fn {k, v} -> {to_string(k), v} end)
     Map.merge(@builtin_providers, custom_map)[type]
   end
@@ -103,10 +103,10 @@ end
 ```
 
 ```elixir
-# lib/ex_cellence_server/context_providers/static.ex
-defmodule ExCellenceServer.ContextProviders.Static do
+# lib/ex_calibur/context_providers/static.ex
+defmodule ExCalibur.ContextProviders.Static do
   @moduledoc "Injects a static text block into every evaluation."
-  @behaviour ExCellenceServer.ContextProvider
+  @behaviour ExCalibur.ContextProvider
 
   @impl true
   def fetch(%{"content" => content}, _ctx) when is_binary(content), do: content
@@ -117,7 +117,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_cellence_server/context_providers/static_test.exs
+mix test test/ex_calibur/context_providers/static_test.exs
 ```
 
 Expected: all passing.
@@ -125,7 +125,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_cellence_server/context_provider.ex lib/ex_cellence_server/context_providers/static.ex test/ex_cellence_server/context_providers/static_test.exs
+git add lib/ex_calibur/context_provider.ex lib/ex_calibur/context_providers/static.ex test/ex_calibur/context_providers/static_test.exs
 git commit -m "feat: add ContextProvider behaviour and Static provider"
 ```
 
@@ -134,19 +134,19 @@ git commit -m "feat: add ContextProvider behaviour and Static provider"
 ## Task 2: QuestHistory provider
 
 **Files:**
-- Create: `lib/ex_cellence_server/context_providers/quest_history.ex`
-- Create: `test/ex_cellence_server/context_providers/quest_history_test.exs`
+- Create: `lib/ex_calibur/context_providers/quest_history.ex`
+- Create: `test/ex_calibur/context_providers/quest_history_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_cellence_server/context_providers/quest_history_test.exs
-defmodule ExCellenceServer.ContextProviders.QuestHistoryTest do
-  use ExCellenceServer.DataCase, async: true
+# test/ex_calibur/context_providers/quest_history_test.exs
+defmodule ExCalibur.ContextProviders.QuestHistoryTest do
+  use ExCalibur.DataCase, async: true
 
-  alias ExCellenceServer.ContextProviders.QuestHistory
-  alias ExCellenceServer.Quests
-  alias ExCellenceServer.Repo
+  alias ExCalibur.ContextProviders.QuestHistory
+  alias ExCalibur.Quests
+  alias ExCalibur.Repo
 
   test "returns recent run summaries for a quest" do
     {:ok, quest} = Quests.create_quest(%{name: "History Quest", trigger: "manual"})
@@ -182,7 +182,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_cellence_server/context_providers/quest_history_test.exs
+mix test test/ex_calibur/context_providers/quest_history_test.exs
 ```
 
 Expected: error — module not found.
@@ -190,15 +190,15 @@ Expected: error — module not found.
 **Step 3: Implement QuestHistory provider**
 
 ```elixir
-# lib/ex_cellence_server/context_providers/quest_history.ex
-defmodule ExCellenceServer.ContextProviders.QuestHistory do
+# lib/ex_calibur/context_providers/quest_history.ex
+defmodule ExCalibur.ContextProviders.QuestHistory do
   @moduledoc "Fetches recent quest run summaries and formats them as context."
-  @behaviour ExCellenceServer.ContextProvider
+  @behaviour ExCalibur.ContextProvider
 
   import Ecto.Query
 
-  alias ExCellenceServer.Quests.QuestRun
-  alias ExCellenceServer.Repo
+  alias ExCalibur.Quests.QuestRun
+  alias ExCalibur.Repo
 
   @impl true
   def fetch(%{"quest_id" => quest_id_str} = config, _ctx) do
@@ -244,7 +244,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_cellence_server/context_providers/quest_history_test.exs
+mix test test/ex_calibur/context_providers/quest_history_test.exs
 ```
 
 Expected: all passing.
@@ -252,7 +252,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_cellence_server/context_providers/quest_history.ex test/ex_cellence_server/context_providers/quest_history_test.exs
+git add lib/ex_calibur/context_providers/quest_history.ex test/ex_calibur/context_providers/quest_history_test.exs
 git commit -m "feat: add QuestHistory context provider"
 ```
 
@@ -261,18 +261,18 @@ git commit -m "feat: add QuestHistory context provider"
 ## Task 3: MemberStats provider
 
 **Files:**
-- Create: `lib/ex_cellence_server/context_providers/member_stats.ex`
-- Create: `test/ex_cellence_server/context_providers/member_stats_test.exs`
+- Create: `lib/ex_calibur/context_providers/member_stats.ex`
+- Create: `test/ex_calibur/context_providers/member_stats_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_cellence_server/context_providers/member_stats_test.exs
-defmodule ExCellenceServer.ContextProviders.MemberStatsTest do
-  use ExCellenceServer.DataCase, async: true
+# test/ex_calibur/context_providers/member_stats_test.exs
+defmodule ExCalibur.ContextProviders.MemberStatsTest do
+  use ExCalibur.DataCase, async: true
 
-  alias ExCellenceServer.ContextProviders.MemberStats
-  alias ExCellenceServer.Repo
+  alias ExCalibur.ContextProviders.MemberStats
+  alias ExCalibur.Repo
   alias Excellence.Schemas.Member
 
   test "returns member performance summary" do
@@ -296,7 +296,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_cellence_server/context_providers/member_stats_test.exs
+mix test test/ex_calibur/context_providers/member_stats_test.exs
 ```
 
 Expected: error — module not found.
@@ -304,14 +304,14 @@ Expected: error — module not found.
 **Step 3: Implement MemberStats provider**
 
 ```elixir
-# lib/ex_cellence_server/context_providers/member_stats.ex
-defmodule ExCellenceServer.ContextProviders.MemberStats do
+# lib/ex_calibur/context_providers/member_stats.ex
+defmodule ExCalibur.ContextProviders.MemberStats do
   @moduledoc "Summarizes active members and their rank/model configuration as context."
-  @behaviour ExCellenceServer.ContextProvider
+  @behaviour ExCalibur.ContextProvider
 
   import Ecto.Query
 
-  alias ExCellenceServer.Repo
+  alias ExCalibur.Repo
   alias Excellence.Schemas.Member
 
   @impl true
@@ -344,7 +344,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_cellence_server/context_providers/member_stats_test.exs
+mix test test/ex_calibur/context_providers/member_stats_test.exs
 ```
 
 Expected: passing.
@@ -352,7 +352,7 @@ Expected: passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_cellence_server/context_providers/member_stats.ex test/ex_cellence_server/context_providers/member_stats_test.exs
+git add lib/ex_calibur/context_providers/member_stats.ex test/ex_calibur/context_providers/member_stats_test.exs
 git commit -m "feat: add MemberStats context provider"
 ```
 
@@ -361,7 +361,7 @@ git commit -m "feat: add MemberStats context provider"
 ## Task 4: Integrate context assembly into QuestRunner
 
 **Files:**
-- Modify: `lib/ex_cellence_server/quest_runner.ex`
+- Modify: `lib/ex_calibur/quest_runner.ex`
 
 **Step 1: Update the `run/3` function to assemble context**
 
@@ -369,13 +369,13 @@ In `QuestRunner.run/3`, after building `all_members`, add context assembly:
 
 ```elixir
 def run(quest, input, opts \\ []) do
-  ollama_url = Application.get_env(:ex_cellence_server, :ollama_url, "http://127.0.0.1:11434")
+  ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
   ollama = Keyword.get(opts, :ollama, Ollama.new(base_url: ollama_url))
 
   all_members = Repo.all(from(m in Member, where: m.type == "role" and m.status == "active"))
 
   context_preamble =
-    ExCellenceServer.ContextProvider.assemble(
+    ExCalibur.ContextProvider.assemble(
       quest.context_providers || [],
       %{quest_id: quest.id}
     )
@@ -391,7 +391,7 @@ end
 
 **Step 2: Add context_providers field to Quest schema**
 
-In `lib/ex_cellence_server/quests/quest.ex`, add field:
+In `lib/ex_calibur/quests/quest.ex`, add field:
 
 ```elixir
 field :context_providers, {:array, :map}, default: []
@@ -407,7 +407,7 @@ And add to `@optional`:
 
 ```elixir
 # priv/repo/migrations/20260308240000_add_context_providers_to_quests.exs
-defmodule ExCellenceServer.Repo.Migrations.AddContextProvidersToQuests do
+defmodule ExCalibur.Repo.Migrations.AddContextProvidersToQuests do
   use Ecto.Migration
 
   def change do
@@ -435,7 +435,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_cellence_server/quest_runner.ex lib/ex_cellence_server/quests/quest.ex priv/repo/migrations/20260308240000_add_context_providers_to_quests.exs
+git add lib/ex_calibur/quest_runner.ex lib/ex_calibur/quests/quest.ex priv/repo/migrations/20260308240000_add_context_providers_to_quests.exs
 git commit -m "feat: integrate context providers into QuestRunner"
 ```
 
@@ -444,7 +444,7 @@ git commit -m "feat: integrate context providers into QuestRunner"
 ## Task 5: Context provider UI in Quest form
 
 **Files:**
-- Modify: `lib/ex_cellence_server_web/live/quests_live.ex`
+- Modify: `lib/ex_calibur_web/live/quests_live.ex`
 
 **Step 1: Add context provider section to new_quest_form**
 
@@ -502,7 +502,7 @@ Expected: all passing.
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_cellence_server_web/live/quests_live.ex
+git add lib/ex_calibur_web/live/quests_live.ex
 git commit -m "feat: add context provider picker to new quest form"
 ```
 

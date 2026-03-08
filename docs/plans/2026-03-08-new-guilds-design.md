@@ -143,7 +143,7 @@ Five new guilds to expand the Guild Hall catalog, each with curated Library book
 ## Implementation Notes
 
 - Charters go in `ex_cellence` at `lib/excellence/charters/`
-- Books go in `ExCellenceServer.Sources.Book` catalogue
+- Books go in `ExCalibur.Sources.Book` catalogue
 - Each guild follows the established pattern: 3 roles, 2 perspectives each, domain-specific actions
 - Guild Hall install flow auto-creates default books (paused) via `Book.for_guild/1`
 - RSS feed URLs should be verified before shipping — some may need adjustment

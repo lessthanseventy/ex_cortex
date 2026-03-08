@@ -6,7 +6,7 @@
 
 ## Task 1: Member catalogue module
 
-**File:** `lib/ex_cellence_server/members/member.ex`
+**File:** `lib/ex_calibur/members/member.ex`
 
 **Steps:**
 1. Create the Member struct and catalogue with all 18 members across 4 categories, each with system prompts and rank definitions.
@@ -17,7 +17,7 @@
 
 ## Task 2: Town Square LiveView
 
-**File:** `lib/ex_cellence_server_web/live/town_square_live.ex`
+**File:** `lib/ex_calibur_web/live/town_square_live.ex`
 
 **Steps:**
 1. Create the Town Square page with four sections (Editors, Analysts, Specialists, Advisors).
@@ -33,7 +33,7 @@
 
 ## Task 3: Quests cleanup
 
-**File:** `lib/ex_cellence_server_web/live/quests_live.ex`
+**File:** `lib/ex_calibur_web/live/quests_live.ex`
 
 **Steps:**
 1. Remove `@charters` module attribute.
@@ -50,8 +50,8 @@
 ## Task 4: Router and nav updates
 
 **Files:**
-- `lib/ex_cellence_server_web/router.ex`
-- `lib/ex_cellence_server_web/components/layouts/root.html.heex`
+- `lib/ex_calibur_web/router.ex`
+- `lib/ex_calibur_web/components/layouts/root.html.heex`
 
 **Steps:**
 1. Add `live "/town-square", TownSquareLive, :index` route.
@@ -63,7 +63,7 @@
 
 ## Task 5: Tests
 
-**File:** `test/ex_cellence_server_web/live/town_square_live_test.exs`
+**File:** `test/ex_calibur_web/live/town_square_live_test.exs`
 
 **Steps:**
 1. Test page renders with all 4 category sections.

@@ -1,4 +1,4 @@
-defmodule ExCellenceServer.Repo.Migrations.AddQuestsAndCampaigns do
+defmodule ExCalibur.Repo.Migrations.AddQuestsAndCampaigns do
   use Ecto.Migration
 
   def change do

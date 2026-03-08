@@ -4,16 +4,16 @@ import Config
 config :ex_cellence, Excellence.Repo,
   username: "andrew",
   hostname: "localhost",
-  database: "ex_cellence_server_dev",
+  database: "ex_calibur_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
 # Configure your database
-config :ex_cellence_server, ExCellenceServer.Repo,
+config :ex_calibur, ExCalibur.Repo,
   username: "andrew",
   hostname: "localhost",
-  database: "ex_cellence_server_dev",
+  database: "ex_calibur_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
@@ -24,7 +24,7 @@ config :ex_cellence_server, ExCellenceServer.Repo,
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
-config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
+config :ex_calibur, ExCaliburWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {0, 0, 0, 0}, port: 4001],
@@ -33,8 +33,8 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
   debug_errors: true,
   secret_key_base: "+vsB1Rw8UxeHt8/3GOR+beebgaLPRKG8yVzm/wVlS5mqmMrRLbrcLuf+DhrciCYp",
   watchers: [
-    esbuild: {Esbuild, :install_and_run, [:ex_cellence_server, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:ex_cellence_server, ~w(--watch --poll)]}
+    esbuild: {Esbuild, :install_and_run, [:ex_calibur, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:ex_calibur, ~w(--watch --poll)]}
   ]
 
 # ## SSL Support
@@ -61,23 +61,23 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
 # different ports.
 
 # Reload browser tabs when matching files change.
-config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
+config :ex_calibur, ExCaliburWeb.Endpoint,
   live_reload: [
     web_console_logger: true,
     patterns: [
       # Static assets, except user uploads
       ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/ex_cellence_server_web/router\.ex$",
-      ~r"lib/ex_cellence_server_web/(controllers|live|components)/.*\.(ex|heex)$"
+      ~r"lib/ex_calibur_web/router\.ex$",
+      ~r"lib/ex_calibur_web/(controllers|live|components)/.*\.(ex|heex)$"
     ]
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :ex_cellence_server, dev_routes: true
+config :ex_calibur, dev_routes: true
 
 # Ollama defaults for local dev
-config :ex_cellence_server,
+config :ex_calibur,
   ollama_url: "http://127.0.0.1:11434"
 
 # Do not include metadata nor timestamps in development logs
