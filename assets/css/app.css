@@ -182,7 +182,7 @@
 }
 
   * {
-    @apply border-border !important;
+    border-color: hsl(var(--border));
   }
 }
 

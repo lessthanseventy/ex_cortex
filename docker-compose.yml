@@ -1,6 +1,6 @@
 services:
   db:
-    image: timescale/timescaledb:latest-pg16
+    image: docker.io/timescale/timescaledb:latest-pg16
     environment:
       POSTGRES_USER: excellence
       POSTGRES_PASSWORD: excellence
@@ -10,19 +10,19 @@ services:
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U excellence"]
+      test: ["CMD-SHELL", "pg_isready -U excellence -d ex_cellence_server"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   ollama:
-    image: ollama/ollama
+    image: docker.io/ollama/ollama
     volumes:
       - ollama_data:/root/.ollama
       - ./docker/init-ollama.sh:/init-ollama.sh
     entrypoint: ["/bin/bash", "/init-ollama.sh"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:11434/api/tags || exit 1"]
+      test: ["CMD-SHELL", "ollama list || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -42,7 +42,8 @@ services:
     environment:
       DATABASE_URL: ecto://excellence:excellence@db/ex_cellence_server
       OLLAMA_URL: http://ollama:11434
-      PHX_PORT: "4000"
+      PHX_SERVER: "true"
+      PORT: "4000"
       PHX_HOST: localhost
       SECRET_KEY_BASE: "dev-only-secret-key-base-that-is-at-least-64-bytes-long-for-development-use"
 
