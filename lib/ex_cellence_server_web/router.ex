@@ -13,13 +13,14 @@ defmodule ExCellenceServerWeb.Router do
   scope "/", ExCellenceServerWeb do
     pipe_through :browser
 
-    live "/", DashboardLive, :index
-    live "/roles", RolesLive, :index
-    live "/roles/new", RolesLive, :new
-    live "/roles/:id/edit", RolesLive, :edit
-    live "/pipelines", PipelinesLive, :index
-    live "/pipelines/new", PipelinesLive, :new
+    live "/", LodgeLive, :index
+    live "/guild-hall", GuildHallLive, :index
+    live "/members", MembersLive, :index
+    live "/members/new", MembersLive, :new
+    live "/members/:id/edit", MembersLive, :edit
+    live "/quests", QuestsLive, :index
+    live "/quests/new", QuestsLive, :new
     live "/evaluate", EvaluateLive, :index
-    live "/dashboard", DashboardLive, :index
+    live "/lodge", LodgeLive, :index
   end
 end
