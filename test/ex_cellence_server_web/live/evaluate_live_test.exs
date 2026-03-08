@@ -4,10 +4,8 @@ defmodule ExCellenceServerWeb.EvaluateLiveTest do
   import Phoenix.LiveViewTest
 
   describe "index" do
-    test "renders evaluate page with input form", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/evaluate")
-      assert html =~ "Evaluate"
-      assert html =~ "Run"
+    test "redirects /evaluate to /quests", %{conn: conn} do
+      assert {:error, {:live_redirect, %{to: "/quests"}}} = live(conn, "/evaluate")
     end
   end
 end

@@ -67,13 +67,9 @@ defmodule ExCellenceServerWeb.GuildHallLive do
       mod ->
         import Ecto.Query
 
-        ExCellenceServer.Repo.delete_all(
-          from(r in ExCellenceServer.Quests.CampaignRun)
-        )
+        ExCellenceServer.Repo.delete_all(from(r in ExCellenceServer.Quests.CampaignRun))
 
-        ExCellenceServer.Repo.delete_all(
-          from(r in ExCellenceServer.Quests.QuestRun)
-        )
+        ExCellenceServer.Repo.delete_all(from(r in ExCellenceServer.Quests.QuestRun))
 
         ExCellenceServer.Repo.delete_all(from(c in Campaign))
         ExCellenceServer.Repo.delete_all(from(q in Quest))
@@ -98,6 +94,21 @@ defmodule ExCellenceServerWeb.GuildHallLive do
     {:noreply, assign(socket, confirming: nil)}
   end
 
+  @impl true
+  def handle_event("build_own_guild", _, socket) do
+    import Ecto.Query
+
+    ExCellenceServer.Repo.delete_all(from(r in Member))
+    ExCellenceServer.Repo.delete_all(from(q in Quest))
+    ExCellenceServer.Repo.delete_all(from(c in Campaign))
+
+    {:noreply,
+     socket
+     |> assign(current_guild: nil, confirming: nil)
+     |> put_flash(:info, "Blank guild ready. Add members and quests to get started.")
+     |> push_navigate(to: "/members")}
+  end
+
   defp install_guild(mod) do
     resource_defs = mod.resource_definitions()
 
@@ -118,7 +129,7 @@ defmodule ExCellenceServerWeb.GuildHallLive do
 
   defp install_campaigns(mod) do
     if function_exported?(mod, :campaign_definitions, 0) do
-      quest_by_name = Quests.list_quests() |> Map.new(&{&1.name, &1.id})
+      quest_by_name = Map.new(Quests.list_quests(), &{&1.name, &1.id})
 
       Enum.each(mod.campaign_definitions(), fn attrs ->
         steps =
@@ -221,6 +232,18 @@ defmodule ExCellenceServerWeb.GuildHallLive do
             </div>
           </div>
         <% end %>
+      </div>
+
+      <div class="flex items-center justify-between rounded-lg border border-dashed p-4 mt-4">
+        <div class="space-y-1">
+          <span class="font-semibold">Build Your Own Guild</span>
+          <p class="text-sm text-muted-foreground">
+            Start from scratch — add your own members and quests.
+          </p>
+        </div>
+        <.button variant="outline" size="sm" phx-click="build_own_guild">
+          Start Fresh
+        </.button>
       </div>
     </div>
     """
