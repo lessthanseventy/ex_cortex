@@ -10,7 +10,6 @@ defmodule ExCellenceServer.Application do
     children = [
       ExCellenceServerWeb.Telemetry,
       ExCellenceServer.Repo,
-      {Oban, Application.fetch_env!(:ex_cellence, Oban)},
       {DNSCluster, query: Application.get_env(:ex_cellence_server, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ExCellenceServer.PubSub},
       ExCellenceServerWeb.Endpoint

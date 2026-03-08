@@ -9,6 +9,15 @@ config :ex_cellence_server, ExCellenceServer.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+# Configure ex_cellence Repo to use our database
+config :ex_cellence, Excellence.Repo,
+  username: "andrew",
+  hostname: "localhost",
+  database: "ex_cellence_server_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
 # Ollama defaults for local dev
 config :ex_cellence_server,
   ollama_url: "http://127.0.0.1:11434"

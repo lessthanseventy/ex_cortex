@@ -19,6 +19,16 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
   secret_key_base: "KY64T6XteuWzRYjr2XCLj1kG0olZI3nQ91FCAv0Ky5SVo187Hj3GvvchhKEzFRWY",
   server: false
 
+# Configure ex_cellence to use our repo and test-mode Oban
+config :ex_cellence, Excellence.Repo,
+  username: "andrew",
+  hostname: "localhost",
+  database: "ex_cellence_server_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2
+
+config :ex_cellence, Oban, testing: :manual
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 
