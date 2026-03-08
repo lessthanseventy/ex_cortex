@@ -1,5 +1,6 @@
 defmodule ExCellenceServerWeb.MembersLiveTest do
   use ExCellenceServerWeb.ConnCase, async: true
+  use Excessibility
 
   import Phoenix.LiveViewTest
 
@@ -26,7 +27,8 @@ defmodule ExCellenceServerWeb.MembersLiveTest do
 
   describe "index" do
     test "renders members page header", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/members")
+      {:ok, view, html} = live(conn, "/members")
+      html_snapshot(view)
       assert html =~ "Members"
       assert html =~ "phx-click=\"add_new\""
     end
@@ -126,6 +128,7 @@ defmodule ExCellenceServerWeb.MembersLiveTest do
     test "add_new shows new member form", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/members")
       html = view |> element("[phx-click=\"add_new\"]") |> render_click()
+      html_snapshot(view)
       assert html =~ "Create Member"
     end
 

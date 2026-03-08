@@ -1,5 +1,6 @@
 defmodule ExCellenceServerWeb.QuestsLiveTest do
   use ExCellenceServerWeb.ConnCase, async: true
+  use Excessibility
 
   import Phoenix.LiveViewTest
 
@@ -18,20 +19,31 @@ defmodule ExCellenceServerWeb.QuestsLiveTest do
     %{quest: quest, campaign: campaign}
   end
 
-  test "renders quest board with quests and campaigns", %{conn: conn, quest: quest, campaign: campaign} do
-    {:ok, _view, html} = live(conn, "/quests")
-    assert html =~ quest.name
-    assert html =~ campaign.name
-  end
+  describe "index" do
+    test "renders quest board with quests and campaigns", %{conn: conn, quest: quest, campaign: campaign} do
+      {:ok, view, html} = live(conn, "/quests")
+      html_snapshot(view)
+      assert html =~ quest.name
+      assert html =~ campaign.name
+    end
 
-  test "shows + New Quest button", %{conn: conn} do
-    {:ok, _view, html} = live(conn, "/quests")
-    assert html =~ "New Quest"
-  end
+    test "shows + New Quest button", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/quests")
+      assert html =~ "New Quest"
+    end
 
-  test "shows + New Campaign button", %{conn: conn} do
-    {:ok, _view, html} = live(conn, "/quests")
-    assert html =~ "New Campaign"
+    test "shows + New Campaign button", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/quests")
+      assert html =~ "New Campaign"
+    end
+
+    test "new quest form renders with accessibility snapshot", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/quests")
+      render_click(view, "add_quest", %{})
+      html_snapshot(view)
+      html = render(view)
+      assert html =~ "form"
+    end
   end
 
   test "create_quest event adds a quest", %{conn: conn} do

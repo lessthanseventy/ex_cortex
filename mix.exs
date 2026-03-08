@@ -11,7 +11,8 @@ defmodule ExCellenceServer.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      elixirc_options: [warnings_as_errors: Mix.env() == :test]
     ]
   end
 

@@ -1,11 +1,13 @@
 defmodule ExCellenceServerWeb.StacksLiveTest do
   use ExCellenceServerWeb.ConnCase, async: true
+  use Excessibility
 
   import Phoenix.LiveViewTest
 
   describe "index" do
     test "renders stacks page", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/stacks")
+      {:ok, view, html} = live(conn, "/stacks")
+      html_snapshot(view)
       assert html =~ "Stacks"
       assert html =~ "Browse Library"
     end
