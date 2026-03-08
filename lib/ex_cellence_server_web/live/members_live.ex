@@ -96,8 +96,8 @@ defmodule ExCellenceServerWeb.MembersLive do
           </span>
           <div class="flex-1 flex items-center gap-2 min-w-0">
             <span class="font-medium truncate">{@member.name}</span>
-            <%= if @member.category do %>
-              <.badge variant="outline" class="text-xs shrink-0">{@member.category}</.badge>
+            <%= if @member.team do %>
+              <.badge variant="outline" class="text-xs shrink-0">{@member.team}</.badge>
             <% end %>
           </div>
           <.rank_pill rank={@member.rank} model={@member.model} />
@@ -134,6 +134,16 @@ defmodule ExCellenceServerWeb.MembersLive do
                 <.input type="text" name="member[name]" value={@member.name} />
               </div>
             <% end %>
+
+            <div>
+              <label class="text-sm font-medium">Team</label>
+              <.input
+                type="text"
+                name="member[team]"
+                value={@member.team || ""}
+                placeholder="e.g. security, quality, editors"
+              />
+            </div>
 
             <div>
               <label class="text-sm font-medium">System Prompt</label>
@@ -218,9 +228,15 @@ defmodule ExCellenceServerWeb.MembersLive do
     <div class="border rounded-lg bg-card border-dashed">
       <div class="px-4 py-4">
         <form phx-submit="create_member" class="space-y-4">
-          <div>
-            <label class="text-sm font-medium">Name</label>
-            <.input type="text" name="member[name]" value="" placeholder="e.g. safety-reviewer" />
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm font-medium">Name</label>
+              <.input type="text" name="member[name]" value="" placeholder="e.g. safety-reviewer" />
+            </div>
+            <div>
+              <label class="text-sm font-medium">Team</label>
+              <.input type="text" name="member[team]" value="" placeholder="e.g. security" />
+            </div>
           </div>
           <div>
             <label class="text-sm font-medium">System Prompt</label>
@@ -332,11 +348,17 @@ defmodule ExCellenceServerWeb.MembersLive do
 
   @impl true
   def handle_event("create_member", %{"member" => params}, socket) do
+    team = case params["team"] do
+      "" -> nil
+      t -> t
+    end
+
     attrs = %{
       type: "role",
       name: params["name"],
       source: "db",
       status: "active",
+      team: team,
       config: %{
         "system_prompt" => params["system_prompt"] || "",
         "rank" => params["rank"] || "journeyman",
@@ -369,10 +391,15 @@ defmodule ExCellenceServerWeb.MembersLive do
             "strategy" => params["strategy"] || "cot"
           })
 
+        team = case params["team"] do
+          "" -> nil
+          t -> t
+        end
+
         attrs =
           if builtin,
-            do: %{config: config},
-            else: %{name: params["name"] || db.name, config: config}
+            do: %{config: config, team: team},
+            else: %{name: params["name"] || db.name, config: config, team: team}
 
         case db |> Member.changeset(attrs) |> ExCellenceServer.Repo.update() do
           {:ok, _} -> {:noreply, assign(socket, members: list_members())}
