@@ -10,11 +10,9 @@ defmodule ExCellenceServer.Application do
     children = [
       ExCellenceServerWeb.Telemetry,
       ExCellenceServer.Repo,
+      {Oban, Application.fetch_env!(:ex_cellence, Oban)},
       {DNSCluster, query: Application.get_env(:ex_cellence_server, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ExCellenceServer.PubSub},
-      # Start a worker by calling: ExCellenceServer.Worker.start_link(arg)
-      # {ExCellenceServer.Worker, arg},
-      # Start to serve requests, typically the last entry
       ExCellenceServerWeb.Endpoint
     ]
 
