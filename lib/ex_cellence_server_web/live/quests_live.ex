@@ -4,6 +4,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
 
   import SaladUI.Badge
 
+  alias Excellence.Schemas.Member
   alias ExCellenceServer.Evaluator
   alias ExCellenceServer.Quests
   alias ExCellenceServer.Quests.Quest
@@ -14,6 +15,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
      assign(socket,
        quests: Quests.list_quests(),
        campaigns: Quests.list_campaigns(),
+       teams: list_teams(),
        expanded: MapSet.new(),
        adding_quest: false,
        adding_campaign: false,
@@ -188,7 +190,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
       </div>
 
       <%= if @adding_quest do %>
-        <.new_quest_form />
+        <.new_quest_form teams={@teams} />
       <% end %>
 
       <%= if @adding_campaign do %>
@@ -228,6 +230,8 @@ defmodule ExCellenceServerWeb.QuestsLive do
     """
   end
 
+  attr :teams, :list, default: []
+
   defp new_quest_form(assigns) do
     ~H"""
     <div class="border rounded-lg border-dashed p-4">
@@ -250,6 +254,13 @@ defmodule ExCellenceServerWeb.QuestsLive do
               <option value="apprentice">Apprentice tier</option>
               <option value="journeyman">Journeyman tier</option>
               <option value="master">Master tier</option>
+              <%= if @teams != [] do %>
+                <optgroup label="Teams">
+                  <%= for team <- @teams do %>
+                    <option value={"team:#{team}"}>{team}</option>
+                  <% end %>
+                </optgroup>
+              <% end %>
             </select>
           </div>
           <div>
@@ -477,6 +488,18 @@ defmodule ExCellenceServerWeb.QuestsLive do
 
   defp roster_summary(%Quest{roster: []}), do: ""
   defp roster_summary(%Quest{roster: [first | _]}), do: "#{first["who"]} · #{first["how"]}"
+
+  defp list_teams do
+    import Ecto.Query
+
+    ExCellenceServer.Repo.all(
+      from m in Member,
+        where: m.type == "role" and m.status == "active" and not is_nil(m.team),
+        select: m.team,
+        distinct: true,
+        order_by: m.team
+    )
+  end
 
   defp run_state_class("running"), do: "bg-blue-50 text-blue-700 border border-blue-200"
   defp run_state_class("complete"), do: "bg-green-50 text-green-700 border border-green-200"
