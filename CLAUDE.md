@@ -33,6 +33,9 @@ Turnkey via docker-compose.
 - `salad_ui` — component library
 - `ecto_sql`, `postgrex` — database
 - `opentelemetry_api`
+- `req` — HTTP client (feeds, URLs)
+- `file_system` — filesystem watching
+- `fresh` — WebSocket client
 
 ## Pages
 - `/guild-hall` — Browse/install/dissolve guilds (pre-built agent teams)
@@ -40,10 +43,12 @@ Turnkey via docker-compose.
 - `/quests` — Quest planner, charter picker, charter installation
 - `/evaluate` — Select guild, input text, run against Ollama, live verdicts
 - `/lodge` — ReplayViewer, AgentHealth, OutcomeTracker, DriftMonitor, CalibrationChart
+- `/library` — Browse and install source "books" (pre-configured source templates)
+- `/stacks` — Manage active sources (pause, resume, delete, status)
 - `/` — Redirects to `/lodge` (or `/guild-hall` if no members exist)
 
 ## Guild Terminology Map
-- Templates → **Charters** (founding docs that define a guild)
+- Templates → **Charters** (founding docs that define a guild) — `@charters`, `Evaluator.charters()`
 - Roles → **Members** (agents in a guild)
 - Pipelines → **Quests** (structured missions)
 - Dashboard → **Lodge** (home base / monitoring)
@@ -63,6 +68,12 @@ PORT=4001 docker-compose up  # custom port
 - PubSub broadcasts evaluation results for live updates
 - SaladUI.Button is imported globally via html_helpers (CoreComponents button removed)
 - Guild terminology is UI-only — internal code uses ResourceDefinition, type: "role", etc.
+- Sources: DynamicSupervisor-managed workers that poll/push data into guilds for evaluation
+- Source types: git, directory, feed, webhook, url, websocket
+- Evaluator module (`ExCellenceServer.Evaluator`) shared between EvaluateLive and Sources
+- Webhook endpoint: `POST /api/webhooks/:source_id` with optional Bearer auth
+- Books: source blueprints in `ExCellenceServer.Sources.Book` — Library for browsing, Stacks for managing
+- Core library uses `Excellence.Charters.*` (was `Excellence.Templates.*`)
 
 ## Gotchas
 - Warnings are errors in test

@@ -1,0 +1,23 @@
+[tasks.up]
+description = "Start the stack"
+run = "PORT=${PORT:-4001} docker compose up"
+
+[tasks.down]
+description = "Stop the stack"
+run = "docker compose down"
+
+[tasks.rebuild]
+description = "Rebuild app and restart"
+run = "docker compose down && docker compose build app && PORT=${PORT:-4001} docker compose up"
+
+[tasks.nuke]
+description = "Stop and destroy all data (volumes)"
+run = "docker compose down -v"
+
+[tasks.logs]
+description = "Tail app logs"
+run = "podman logs -f ex_cellence_server_app_1"
+
+[tasks.build]
+description = "Build app image only"
+run = "docker compose build app"
