@@ -66,4 +66,25 @@ defmodule ExCellenceServerWeb.MembersLiveTest do
       assert grammar_pos < tone_pos
     end
   end
+
+  describe "card UI" do
+    test "shows + button to add new member", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/members")
+      assert html =~ "phx-click=\"add_new\""
+    end
+
+    test "built-in member shows rank pills", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/members")
+      assert html =~ "Apprentice"
+      assert html =~ "Journeyman"
+      assert html =~ "Master"
+    end
+
+    test "clicking member name expands it", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/members")
+      # Click to expand Grammar Editor (a built-in)
+      html = view |> element("[phx-click=\"toggle_expand\"][phx-value-id=\"grammar-editor\"]") |> render_click()
+      assert html =~ "system_prompt"
+    end
+  end
 end

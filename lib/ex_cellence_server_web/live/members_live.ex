@@ -3,7 +3,7 @@ defmodule ExCellenceServerWeb.MembersLive do
   use ExCellenceServerWeb, :live_view
 
   import SaladUI.Badge
-  import SaladUI.Card
+  import SaladUI.Button
 
   alias Excellence.Schemas.ResourceDefinition
 
@@ -106,30 +106,225 @@ defmodule ExCellenceServerWeb.MembersLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="space-y-4">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">Members</h1>
-        <.link navigate="/members/new">
-          <.button>New Member</.button>
-        </.link>
+        <.button variant="outline" size="sm" phx-click="add_new">+ New Member</.button>
       </div>
 
-      <div class="grid gap-4">
-        <%= for member <- @members do %>
-          <.card>
-            <.card_header>
-              <div class="flex items-center justify-between">
-                <.card_title>{member.name}</.card_title>
-                <.badge variant={if member.active, do: "default", else: "secondary"}>
-                  {if member.active, do: "active", else: "inactive"}
-                </.badge>
-              </div>
-            </.card_header>
-          </.card>
-        <% end %>
+      <%= if @adding_new do %>
+        <.new_member_card />
+      <% end %>
+
+      <div class="space-y-2">
+        <.member_card
+          :for={member <- @members}
+          member={member}
+          expanded={MapSet.member?(@expanded, member.id)}
+        />
       </div>
     </div>
     """
+  end
+
+  attr :member, :map, required: true
+  attr :expanded, :boolean, required: true
+
+  defp member_card(assigns) do
+    ~H"""
+    <div class={["border rounded-lg bg-card transition-opacity", if(!@member.active, do: "opacity-60")]}>
+      <%!-- Collapsed header (always visible) --%>
+      <div
+        class="flex items-center gap-3 px-4 py-3 cursor-pointer"
+        phx-click="toggle_expand"
+        phx-value-id={@member.id}
+      >
+        <span class={["transition-transform text-muted-foreground", if(@expanded, do: "rotate-90")]}>›</span>
+        <div class="flex-1 flex items-center gap-2 min-w-0">
+          <span class="font-medium truncate">{@member.name}</span>
+          <%= if @member.category do %>
+            <.badge variant="outline" class="text-xs shrink-0">{@member.category}</.badge>
+          <% end %>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <.rank_pill rank={:apprentice} model={@member.ranks.apprentice.model} />
+          <.rank_pill rank={:journeyman} model={@member.ranks.journeyman.model} />
+          <.rank_pill rank={:master} model={@member.ranks.master.model} />
+          <button
+            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+            style={"background-color: #{if @member.active, do: "hsl(var(--primary))", else: "hsl(var(--input))"}"}
+            phx-click="toggle_active"
+            phx-value-id={@member.id}
+            phx-value-active={if @member.active, do: "true", else: "false"}
+            type="button"
+          >
+            <span
+              class="pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform"
+              style={"transform: translateX(#{if @member.active, do: "16px", else: "0px"})"}
+            ></span>
+          </button>
+        </div>
+      </div>
+
+      <%!-- Expanded body --%>
+      <%= if @expanded do %>
+        <div class="border-t px-4 py-4">
+          <form phx-submit="save_member" class="space-y-4">
+            <input type="hidden" name="member[id]" value={@member.id} />
+            <input type="hidden" name="member[builtin]" value={if @member.builtin, do: "true", else: "false"} />
+
+            <%= if !@member.builtin do %>
+              <div>
+                <label class="text-sm font-medium">Name</label>
+                <.input type="text" name="member[name]" value={@member.name} />
+              </div>
+            <% end %>
+
+            <div>
+              <label class="text-sm font-medium">System Prompt</label>
+              <.input type="textarea" name="member[system_prompt]" value={@member.system_prompt} rows={5} />
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <.rank_section rank={:apprentice} data={@member.ranks.apprentice} />
+              <.rank_section rank={:journeyman} data={@member.ranks.journeyman} />
+              <.rank_section rank={:master} data={@member.ranks.master} />
+            </div>
+
+            <div class="flex justify-between pt-2">
+              <.button
+                type="button"
+                variant="destructive"
+                size="sm"
+                phx-click="delete_member"
+                phx-value-id={@member.id}
+                data-confirm="Delete this member?"
+              >
+                Delete
+              </.button>
+              <.button type="submit" size="sm">Save</.button>
+            </div>
+          </form>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp new_member_card(assigns) do
+    ~H"""
+    <div class="border rounded-lg bg-card border-dashed">
+      <div class="px-4 py-4">
+        <form phx-submit="create_member" class="space-y-4">
+          <div>
+            <label class="text-sm font-medium">Name</label>
+            <.input type="text" name="member[name]" value="" placeholder="e.g. safety-reviewer" />
+          </div>
+          <div>
+            <label class="text-sm font-medium">System Prompt</label>
+            <.input type="textarea" name="member[system_prompt]" value="" rows={4} placeholder="You are a..." />
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <.rank_section rank={:apprentice} data={%{model: "", strategy: "cot"}} />
+            <.rank_section rank={:journeyman} data={%{model: "", strategy: "cod"}} />
+            <.rank_section rank={:master} data={%{model: "", strategy: "cod"}} />
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <.button type="button" variant="outline" size="sm" phx-click="cancel_new">Cancel</.button>
+            <.button type="submit" size="sm">Create Member</.button>
+          </div>
+        </form>
+      </div>
+    </div>
+    """
+  end
+
+  attr :rank, :atom, required: true
+  attr :model, :string, required: true
+
+  defp rank_pill(assigns) do
+    color_classes =
+      case assigns.rank do
+        :apprentice -> "border-l-2 border-amber-700 bg-amber-50 text-amber-700"
+        :journeyman -> "border-l-2 border-slate-400 bg-slate-100 text-slate-500"
+        :master -> "border-l-2 border-yellow-500 bg-yellow-50 text-yellow-600"
+      end
+
+    label =
+      case assigns.rank do
+        :apprentice -> "Apprentice"
+        :journeyman -> "Journeyman"
+        :master -> "Master"
+      end
+
+    assigns = assign(assigns, color_classes: color_classes, label: label)
+
+    ~H"""
+    <span class={["flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium", @color_classes]}>
+      <span class="font-bold">{@label}</span>
+      <span class="opacity-75 max-w-20 truncate">{if @model == "", do: "—", else: @model}</span>
+    </span>
+    """
+  end
+
+  attr :rank, :atom, required: true
+  attr :data, :map, required: true
+
+  defp rank_section(assigns) do
+    {label, border_class, text_class} =
+      case assigns.rank do
+        :apprentice -> {"Apprentice", "border-t-2 border-amber-700", "text-amber-700"}
+        :journeyman -> {"Journeyman", "border-t-2 border-slate-400", "text-slate-500"}
+        :master -> {"Master", "border-t-2 border-yellow-500", "text-yellow-600"}
+      end
+
+    rank_key = Atom.to_string(assigns.rank)
+    assigns = assign(assigns, label: label, border_class: border_class, text_class: text_class, rank_key: rank_key)
+
+    ~H"""
+    <div class={["rounded p-3 bg-muted/30", @border_class]}>
+      <div class={["text-xs font-semibold mb-2", @text_class]}>{@label}</div>
+      <div class="space-y-1">
+        <.input
+          type="text"
+          name={"member[ranks][#{@rank_key}][model]"}
+          value={@data.model}
+          placeholder="model name"
+          class="text-sm"
+        />
+        <select
+          name={"member[ranks][#{@rank_key}][strategy]"}
+          class="w-full text-sm border rounded px-2 py-1 bg-background"
+        >
+          <option value="cot" selected={@data.strategy == "cot"}>cot</option>
+          <option value="cod" selected={@data.strategy == "cod"}>cod</option>
+          <option value="default" selected={@data.strategy == "default"}>default</option>
+        </select>
+      </div>
+    </div>
+    """
+  end
+
+  @impl true
+  def handle_event("toggle_expand", %{"id" => id}, socket) do
+    expanded =
+      if MapSet.member?(socket.assigns.expanded, id) do
+        MapSet.delete(socket.assigns.expanded, id)
+      else
+        MapSet.put(socket.assigns.expanded, id)
+      end
+
+    {:noreply, assign(socket, expanded: expanded)}
+  end
+
+  @impl true
+  def handle_event("add_new", _params, socket) do
+    {:noreply, assign(socket, adding_new: true)}
+  end
+
+  @impl true
+  def handle_event("cancel_new", _params, socket) do
+    {:noreply, assign(socket, adding_new: false)}
   end
 
 end
