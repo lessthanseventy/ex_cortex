@@ -6,13 +6,12 @@ defmodule ExCellenceServerWeb.EvaluateLive do
   import ExCellenceDashboard.Components.VerdictPanel
   import SaladUI.Card
 
-  alias Excellence.LLM.Ollama
-  alias Excellence.Orchestrator
+  alias ExCellenceServer.Evaluator
 
-  @templates %{
-    "content_moderation" => Excellence.Templates.ContentModeration,
-    "code_review" => Excellence.Templates.CodeReview,
-    "risk_assessment" => Excellence.Templates.RiskAssessment
+  @charter_keys %{
+    "content_moderation" => "Content Moderation",
+    "code_review" => "Code Review",
+    "risk_assessment" => "Risk Assessment"
   }
 
   @impl true
@@ -21,17 +20,16 @@ defmodule ExCellenceServerWeb.EvaluateLive do
       Phoenix.PubSub.subscribe(ExCellenceServer.PubSub, "evaluation:results")
     end
 
-    templates =
-      Enum.map(@templates, fn {key, mod} ->
-        meta = mod.metadata()
-        {key, "#{meta.name} Guild"}
+    charters =
+      Enum.map(@charter_keys, fn {key, guild_name} ->
+        {key, "#{guild_name} Guild"}
       end)
 
     {:ok,
      assign(socket,
        page_title: "Evaluate",
-       templates: templates,
-       selected_template: nil,
+       charters: charters,
+       selected_charter: nil,
        input_text: "",
        running: false,
        verdicts: [],
@@ -42,8 +40,8 @@ defmodule ExCellenceServerWeb.EvaluateLive do
   end
 
   @impl true
-  def handle_event("select_template", %{"template" => key}, socket) do
-    {:noreply, assign(socket, selected_template: key)}
+  def handle_event("select_charter", %{"charter" => key}, socket) do
+    {:noreply, assign(socket, selected_charter: key)}
   end
 
   @impl true
@@ -53,15 +51,15 @@ defmodule ExCellenceServerWeb.EvaluateLive do
 
   @impl true
   def handle_event("run", _params, socket) do
-    template_key = socket.assigns.selected_template
+    charter_key = socket.assigns.selected_charter
     input_text = socket.assigns.input_text
 
-    if template_key && input_text != "" do
+    if charter_key && input_text != "" do
       socket = assign(socket, running: true, verdicts: [], role_results: [], decision: nil, error: nil)
       pid = self()
 
       Task.start(fn ->
-        run_evaluation(template_key, input_text, pid)
+        run_evaluation(charter_key, input_text, pid)
       end)
 
       {:noreply, socket}
@@ -102,92 +100,17 @@ defmodule ExCellenceServerWeb.EvaluateLive do
     {:noreply, socket}
   end
 
-  defp run_evaluation(template_key, input_text, caller_pid) do
-    template_mod = Map.fetch!(@templates, template_key)
-    meta = template_mod.metadata()
-
-    ollama_url = Application.get_env(:ex_cellence_server, :ollama_url, "http://127.0.0.1:11434")
-    provider = Ollama.new(base_url: ollama_url)
-
-    roles = build_roles_from_template(meta)
-    actions_mod = build_actions_from_template(meta)
+  defp run_evaluation(charter_key, input_text, caller_pid) do
+    guild_name = Map.fetch!(@charter_keys, charter_key)
 
     result =
       try do
-        {:ok,
-         Orchestrator.evaluate(
-           %{subject: input_text},
-           %{},
-           roles: roles,
-           actions: actions_mod,
-           strategy: meta.strategy,
-           llm_provider: provider,
-           guards: []
-         )}
+        {:ok, Evaluator.evaluate(guild_name, input_text)}
       rescue
         e -> {:error, e}
       end
 
     send(caller_pid, {:evaluation_complete, result})
-  end
-
-  defp build_roles_from_template(meta) do
-    Enum.map(meta.roles, fn role_def ->
-      mod_name = Module.concat([Excellence, Roles, Macro.camelize(role_def.name)])
-
-      if !Code.ensure_loaded?(mod_name) do
-        contents =
-          quote do
-            use Excellence.Role
-
-            system_prompt(unquote(role_def.system_prompt))
-
-            unquote_splicing(
-              Enum.map(role_def.perspectives, fn p ->
-                quote do
-                  perspective(unquote(String.to_atom(p.name)),
-                    model: unquote(p.model),
-                    strategy: unquote(String.to_atom(p.strategy)),
-                    name: unquote("#{role_def.name}.#{p.name}")
-                  )
-                end
-              end)
-            )
-
-            def build_prompt(input, _context) do
-              "Evaluate the following:\n\n#{inspect(input)}"
-            end
-          end
-
-        Module.create(mod_name, contents, Macro.Env.location(__ENV__))
-      end
-
-      mod_name
-    end)
-  end
-
-  defp build_actions_from_template(meta) do
-    mod_name = Module.concat([Excellence, DynamicActions, :Template])
-
-    if !Code.ensure_loaded?(mod_name) do
-      action_defs =
-        Enum.map(meta.actions, fn action ->
-          quote do
-            action(unquote(action))
-          end
-        end)
-
-      contents =
-        quote do
-          use Excellence.Actions
-
-          unquote_splicing(action_defs)
-        end
-
-      Module.create(mod_name, contents, Macro.Env.location(__ENV__))
-    end
-
-    mod_name
   end
 
   @impl true
@@ -201,11 +124,11 @@ defmodule ExCellenceServerWeb.EvaluateLive do
           <div>
             <label class="text-sm font-medium">Guild</label>
             <div class="flex gap-2 mt-2">
-              <%= for {key, name} <- @templates do %>
+              <%= for {key, name} <- @charters do %>
                 <.button
-                  variant={if @selected_template == key, do: "default", else: "outline"}
-                  phx-click="select_template"
-                  phx-value-template={key}
+                  variant={if @selected_charter == key, do: "default", else: "outline"}
+                  phx-click="select_charter"
+                  phx-value-charter={key}
                 >
                   {name}
                 </.button>

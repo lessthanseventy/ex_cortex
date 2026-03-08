@@ -6,19 +6,21 @@ defmodule ExCellenceServerWeb.GuildHallLive do
   import SaladUI.Card
 
   alias Excellence.Schemas.ResourceDefinition
+  alias ExCellenceServer.Sources.Book
+  alias ExCellenceServer.Sources.Source
 
-  @templates %{
-    "Content Moderation" => Excellence.Templates.ContentModeration,
-    "Code Review" => Excellence.Templates.CodeReview,
-    "Risk Assessment" => Excellence.Templates.RiskAssessment
+  @charters %{
+    "Content Moderation" => Excellence.Charters.ContentModeration,
+    "Code Review" => Excellence.Charters.CodeReview,
+    "Risk Assessment" => Excellence.Charters.RiskAssessment
   }
 
-  @post_install_redirect "/evaluate"
+  @post_install_redirect "/stacks"
 
   @impl true
   def mount(_params, _session, socket) do
     guilds =
-      Enum.map(@templates, fn {_name, mod} ->
+      Enum.map(@charters, fn {_name, mod} ->
         meta = mod.metadata()
 
         %{
@@ -42,12 +44,13 @@ defmodule ExCellenceServerWeb.GuildHallLive do
 
   @impl true
   def handle_event("install_guild", %{"guild" => guild_name}, socket) do
-    case Map.get(@templates, guild_name) do
+    case Map.get(@charters, guild_name) do
       nil ->
         {:noreply, put_flash(socket, :error, "Guild not found")}
 
       mod ->
         install_guild(mod)
+        create_default_sources(guild_name)
 
         {:noreply,
          socket
@@ -68,7 +71,7 @@ defmodule ExCellenceServerWeb.GuildHallLive do
 
   @impl true
   def handle_event("dissolve_and_install", %{"guild" => guild_name}, socket) do
-    case Map.get(@templates, guild_name) do
+    case Map.get(@charters, guild_name) do
       nil ->
         {:noreply, put_flash(socket, :error, "Guild not found")}
 
@@ -76,7 +79,9 @@ defmodule ExCellenceServerWeb.GuildHallLive do
         import Ecto.Query
 
         ExCellenceServer.Repo.delete_all(from(r in ResourceDefinition))
+        ExCellenceServer.Repo.delete_all(from(s in Source))
         install_guild(mod)
+        create_default_sources(guild_name)
 
         {:noreply,
          socket
@@ -95,13 +100,28 @@ defmodule ExCellenceServerWeb.GuildHallLive do
     end)
   end
 
+  defp create_default_sources(guild_name) do
+    books = Book.for_guild(guild_name)
+
+    Enum.each(books, fn book ->
+      %Source{}
+      |> Source.changeset(%{
+        guild_name: guild_name,
+        source_type: book.source_type,
+        config: book.default_config,
+        status: "paused"
+      })
+      |> ExCellenceServer.Repo.insert()
+    end)
+  end
+
   defp installed_guild_names do
     import Ecto.Query
 
     names = ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", select: r.name))
 
     # Check which guilds have all their roles installed
-    Enum.reduce(@templates, MapSet.new(), fn {_name, mod}, acc ->
+    Enum.reduce(@charters, MapSet.new(), fn {_name, mod}, acc ->
       meta = mod.metadata()
       role_names = Enum.map(meta.roles, & &1.name)
 

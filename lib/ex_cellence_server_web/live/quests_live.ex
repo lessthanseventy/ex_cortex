@@ -2,21 +2,21 @@ defmodule ExCellenceServerWeb.QuestsLive do
   @moduledoc false
   use ExCellenceServerWeb, :live_view
 
+  import ExCellenceUI.Components.CharterPicker
   import ExCellenceUI.Components.PipelineBuilder
-  import ExCellenceUI.Components.TemplatePicker
 
   alias Excellence.Schemas.ResourceDefinition
 
-  @templates %{
-    "Content Moderation" => Excellence.Templates.ContentModeration,
-    "Code Review" => Excellence.Templates.CodeReview,
-    "Risk Assessment" => Excellence.Templates.RiskAssessment
+  @charters %{
+    "Content Moderation" => Excellence.Charters.ContentModeration,
+    "Code Review" => Excellence.Charters.CodeReview,
+    "Risk Assessment" => Excellence.Charters.RiskAssessment
   }
 
   @impl true
   def mount(_params, _session, socket) do
-    templates =
-      Enum.map(@templates, fn {_name, mod} ->
+    charters =
+      Enum.map(@charters, fn {_name, mod} ->
         meta = mod.metadata()
 
         %{
@@ -30,7 +30,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
 
     {:ok,
      assign(socket,
-       templates: templates,
+       charters: charters,
        building: false,
        pipeline: [],
        page_title: "Quests"
@@ -43,8 +43,8 @@ defmodule ExCellenceServerWeb.QuestsLive do
   end
 
   @impl true
-  def handle_event("install_template", %{"template" => template_name}, socket) do
-    case Map.get(@templates, template_name) do
+  def handle_event("install_charter", %{"charter" => charter_name}, socket) do
+    case Map.get(@charters, charter_name) do
       nil ->
         {:noreply, put_flash(socket, :error, "Charter not found")}
 
@@ -57,7 +57,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
           |> ExCellenceServer.Repo.insert(on_conflict: :nothing)
         end)
 
-        {:noreply, put_flash(socket, :info, "Charter '#{template_name}' installed!")}
+        {:noreply, put_flash(socket, :info, "Charter '#{charter_name}' installed!")}
     end
   end
 
@@ -100,7 +100,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
 
       <div>
         <h2 class="text-lg font-semibold mb-4">Charters</h2>
-        <.template_picker templates={@templates} on_install="install_template" />
+        <.charter_picker charters={@charters} on_install="install_charter" />
       </div>
     </div>
     """
