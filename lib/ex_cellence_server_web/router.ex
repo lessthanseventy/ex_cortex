@@ -27,7 +27,6 @@ defmodule ExCellenceServerWeb.Router do
     live "/town-square", TownSquareLive, :index
     live "/members", MembersLive, :index
     live "/quests", QuestsLive, :index
-    live "/quests/new", QuestsLive, :new
     live "/library", LibraryLive, :index
     live "/stacks", StacksLive, :index
     live "/evaluate", EvaluateLive, :index

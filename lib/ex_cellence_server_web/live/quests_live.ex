@@ -138,7 +138,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
   end
 
   @impl true
-  def handle_event("run_quest", %{"id" => id, "input" => input}, socket) when input != "" do
+  def handle_event("run_quest", %{"quest_id" => id, "input" => input}, socket) when input != "" do
     quest = Quests.get_quest!(String.to_integer(id))
     run_id = to_string(quest.id)
 
@@ -448,7 +448,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
             <p class="text-sm text-muted-foreground">{@quest.description}</p>
           <% end %>
           <form phx-submit="run_quest" class="flex gap-2">
-            <input type="hidden" name="id" value={@quest.id} />
+            <input type="hidden" name="quest_id" value={@quest.id} />
             <.input
               type="textarea"
               name="input"
