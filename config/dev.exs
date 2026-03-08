@@ -27,14 +27,14 @@ config :ex_cellence_server, ExCellenceServer.Repo,
 config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
   # Binding to loopback ipv4 address prevents access from other machines.
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
-  http: [ip: {127, 0, 0, 1}],
+  http: [ip: {0, 0, 0, 0}, port: 4001],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "+vsB1Rw8UxeHt8/3GOR+beebgaLPRKG8yVzm/wVlS5mqmMrRLbrcLuf+DhrciCYp",
   watchers: [
     esbuild: {Esbuild, :install_and_run, [:ex_cellence_server, ~w(--sourcemap=inline --watch)]},
-    tailwind: {Tailwind, :install_and_run, [:ex_cellence_server, ~w(--watch)]}
+    tailwind: {Tailwind, :install_and_run, [:ex_cellence_server, ~w(--watch --poll)]}
   ]
 
 # ## SSL Support
@@ -66,10 +66,10 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
     web_console_logger: true,
     patterns: [
       # Static assets, except user uploads
-      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
+      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/ex_cellence_server_web/router\.ex$"E,
-      ~r"lib/ex_cellence_server_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/ex_cellence_server_web/router\.ex$",
+      ~r"lib/ex_cellence_server_web/(controllers|live|components)/.*\.(ex|heex)$"
     ]
   ]
 

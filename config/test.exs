@@ -31,6 +31,13 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
   secret_key_base: "KY64T6XteuWzRYjr2XCLj1kG0olZI3nQ91FCAv0Ky5SVo187Hj3GvvchhKEzFRWY",
   server: false
 
+config :excessibility,
+  endpoint: ExCellenceServerWeb.Endpoint,
+  head_render_path: "/guild-hall",
+  browser_mod: Wallaby.Browser,
+  live_view_mod: Excessibility.LiveView,
+  system_mod: Excessibility.System
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

@@ -304,22 +304,28 @@ defmodule ExCellenceServerWeb.MembersLive do
     ~H"""
     <div class={["rounded p-3 bg-muted/30", @border_class]}>
       <div class={["text-xs font-semibold mb-2", @text_class]}>{@label}</div>
-      <div class="space-y-1">
-        <.input
-          type="text"
-          name={"member[ranks][#{@rank_key}][model]"}
-          value={@data.model}
-          placeholder="model name"
-          class="text-sm"
-        />
-        <select
-          name={"member[ranks][#{@rank_key}][strategy]"}
-          class="w-full text-sm border rounded px-2 py-1 bg-background"
-        >
-          <option value="cot" selected={@data.strategy == "cot"}>cot</option>
-          <option value="cod" selected={@data.strategy == "cod"}>cod</option>
-          <option value="default" selected={@data.strategy == "default"}>default</option>
-        </select>
+      <div class="space-y-2">
+        <div>
+          <label class="text-xs text-muted-foreground">Model</label>
+          <.input
+            type="text"
+            name={"member[ranks][#{@rank_key}][model]"}
+            value={@data.model}
+            placeholder="model name"
+            class="text-sm"
+          />
+        </div>
+        <div>
+          <label class="text-xs text-muted-foreground">Strategy</label>
+          <select
+            name={"member[ranks][#{@rank_key}][strategy]"}
+            class="w-full text-sm border rounded px-2 py-1 bg-background"
+          >
+            <option value="cot" selected={@data.strategy == "cot"}>cot</option>
+            <option value="cod" selected={@data.strategy == "cod"}>cod</option>
+            <option value="default" selected={@data.strategy == "default"}>default</option>
+          </select>
+        </div>
       </div>
     </div>
     """

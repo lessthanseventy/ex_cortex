@@ -68,7 +68,6 @@ defmodule ExCellenceServer.Sources.GitWatcher do
     Enum.map(commits, fn {sha, message} ->
       %SourceItem{
         source_id: config["source_id"],
-        guild_name: config["guild_name"],
         type: "commit",
         content: "Commit: #{sha} #{message}\n\n#{diff_output}",
         metadata: %{sha: sha, message: message, branch: config["branch"] || "main"}

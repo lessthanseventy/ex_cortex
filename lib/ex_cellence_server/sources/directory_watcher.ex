@@ -40,7 +40,6 @@ defmodule ExCellenceServer.Sources.DirectoryWatcher do
 
         %SourceItem{
           source_id: config["source_id"],
-          guild_name: config["guild_name"],
           type: "file",
           content: content,
           metadata: %{

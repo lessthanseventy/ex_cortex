@@ -68,7 +68,9 @@ defmodule ExCellenceServer.MixProject do
       # Sources
       {:req, "~> 0.5"},
       {:file_system, "~> 1.0"},
-      {:fresh, "~> 0.4"}
+      {:fresh, "~> 0.4"},
+      # Accessibility
+      {:excessibility, "~> 0.10", only: [:dev, :test]}
     ]
   end
 

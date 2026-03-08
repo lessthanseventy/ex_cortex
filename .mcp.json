@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "excessibility": {
+      "type": "stdio",
+      "command": "mix",
+      "args": [
+        "run",
+        "--no-halt",
+        "-e",
+        "Excessibility.MCP.Server.start()"
+      ],
+      "env": {}
+    }
+  }
+}

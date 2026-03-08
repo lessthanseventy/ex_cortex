@@ -11,7 +11,7 @@ defmodule ExCellenceServerWeb.WebhookController do
       body = conn.body_params["content"] || Jason.encode!(conn.body_params)
 
       Task.Supervisor.start_child(ExCellenceServer.SourceTaskSupervisor, fn ->
-        Evaluator.evaluate(source.guild_name, body)
+        Evaluator.evaluate(body)
       end)
 
       source |> Source.changeset(%{last_run_at: DateTime.utc_now()}) |> ExCellenceServer.Repo.update()

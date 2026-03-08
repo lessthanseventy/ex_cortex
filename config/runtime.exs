@@ -20,11 +20,17 @@ if System.get_env("PHX_SERVER") do
   config :ex_cellence_server, ExCellenceServerWeb.Endpoint, server: true
 end
 
-config :ex_cellence_server, ExCellenceServerWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+config :ex_cellence_server, ExCellenceServerWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4001"))]
 
 # Ollama URL (Docker: http://ollama:11434, local: http://127.0.0.1:11434)
 config :ex_cellence_server,
   ollama_url: System.get_env("OLLAMA_URL") || "http://127.0.0.1:11434"
+
+# Apply DATABASE_URL for any env when set (e.g., Docker dev)
+if database_url = System.get_env("DATABASE_URL") do
+  config :ex_cellence_server, ExCellenceServer.Repo, url: database_url
+  config :ex_cellence, Excellence.Repo, url: database_url
+end
 
 if config_env() == :prod do
   database_url =

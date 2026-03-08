@@ -7,30 +7,60 @@ defmodule ExCellenceServer.Evaluator do
   @charters %{
     "Content Moderation" => Excellence.Charters.ContentModeration,
     "Code Review" => Excellence.Charters.CodeReview,
-    "Risk Assessment" => Excellence.Charters.RiskAssessment
+    "Risk Assessment" => Excellence.Charters.RiskAssessment,
+    "Accessibility Review" => Excellence.Charters.AccessibilityReview,
+    "Performance Audit" => Excellence.Charters.PerformanceAudit,
+    "Incident Triage" => Excellence.Charters.IncidentTriage,
+    "Contract Review" => Excellence.Charters.ContractReview,
+    "Dependency Audit" => Excellence.Charters.DependencyAudit
   }
 
   def charters, do: @charters
 
-  def evaluate(guild_name, input_text, opts \\ []) do
-    charter_mod = Map.fetch!(@charters, guild_name)
-    meta = charter_mod.metadata()
+  def current_guild do
+    import Ecto.Query
 
-    ollama_url = Application.get_env(:ex_cellence_server, :ollama_url, "http://127.0.0.1:11434")
-    provider = Keyword.get(opts, :provider, Ollama.new(base_url: ollama_url))
+    alias Excellence.Schemas.ResourceDefinition
 
-    roles = build_roles_from_charter(meta)
-    actions_mod = build_actions_from_charter(meta)
+    names =
+      ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", select: r.name))
 
-    Orchestrator.evaluate(
-      %{subject: input_text},
-      %{},
-      roles: roles,
-      actions: actions_mod,
-      strategy: meta.strategy,
-      llm_provider: provider,
-      guards: []
-    )
+    Enum.find_value(@charters, fn {guild_name, mod} ->
+      meta = mod.metadata()
+      role_names = Enum.map(meta.roles, & &1.name)
+
+      if Enum.all?(role_names, &(&1 in names)) do
+        {guild_name, mod}
+      end
+    end)
+  end
+
+  def evaluate(input_text, opts \\ []) do
+    case current_guild() do
+      nil ->
+        {:error, :no_guild_installed}
+
+      {_name, charter_mod} ->
+        meta = charter_mod.metadata()
+
+        ollama_url =
+          Application.get_env(:ex_cellence_server, :ollama_url, "http://127.0.0.1:11434")
+
+        provider = Keyword.get(opts, :provider, Ollama.new(base_url: ollama_url))
+
+        roles = build_roles_from_charter(meta)
+        actions_mod = build_actions_from_charter(meta)
+
+        Orchestrator.evaluate(
+          %{subject: input_text},
+          %{},
+          roles: roles,
+          actions: actions_mod,
+          strategy: meta.strategy,
+          llm_provider: provider,
+          guards: []
+        )
+    end
   end
 
   defp build_roles_from_charter(meta) do

@@ -22,7 +22,6 @@ defmodule ExCellenceServer.Sources.FeedWatcher do
           Enum.map(new_entries, fn entry ->
             %SourceItem{
               source_id: config["source_id"],
-              guild_name: config["guild_name"],
               type: "feed_entry",
               content: "#{entry.title}\n\n#{entry.description}",
               metadata: %{title: entry.title, link: entry.link, published_at: entry.published_at}

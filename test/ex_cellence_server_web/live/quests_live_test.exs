@@ -4,12 +4,10 @@ defmodule ExCellenceServerWeb.QuestsLiveTest do
   import Phoenix.LiveViewTest
 
   describe "index" do
-    test "renders quests page with charters", %{conn: conn} do
+    test "renders quests page with pipeline builder", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/quests")
       assert html =~ "Quests"
-      assert html =~ "Content Moderation"
-      assert html =~ "Code Review"
-      assert html =~ "Risk Assessment"
+      assert html =~ "Plan Quest"
     end
   end
 end

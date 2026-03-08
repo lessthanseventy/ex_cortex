@@ -23,7 +23,6 @@ defmodule ExCellenceServer.Sources.UrlWatcher do
         else
           item = %SourceItem{
             source_id: config["source_id"],
-            guild_name: config["guild_name"],
             type: "url_diff",
             content: body_str,
             metadata: %{url: url, previous_hash: state.last_hash, new_hash: hash}

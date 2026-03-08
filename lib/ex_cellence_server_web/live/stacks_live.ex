@@ -3,8 +3,8 @@ defmodule ExCellenceServerWeb.StacksLive do
   use ExCellenceServerWeb, :live_view
 
   import SaladUI.Badge
-  import SaladUI.Card
 
+  alias ExCellenceServer.Sources.Book
   alias ExCellenceServer.Sources.Source
   alias ExCellenceServer.Sources.SourceSupervisor
 
@@ -21,7 +21,11 @@ defmodule ExCellenceServerWeb.StacksLive do
   @impl true
   def handle_event("resume", %{"id" => id}, socket) do
     source = ExCellenceServer.Repo.get!(Source, id)
-    source |> Source.changeset(%{status: "active", error_message: nil}) |> ExCellenceServer.Repo.update!()
+
+    source
+    |> Source.changeset(%{status: "active", error_message: nil})
+    |> ExCellenceServer.Repo.update!()
+
     SourceSupervisor.start_source(source)
     {:noreply, load_sources(socket)}
   end
@@ -55,6 +59,15 @@ defmodule ExCellenceServerWeb.StacksLive do
     assign(socket, sources: sources)
   end
 
+  defp source_name(%Source{book_id: book_id}) when is_binary(book_id) do
+    case Book.get(book_id) do
+      nil -> book_id
+      book -> book.name
+    end
+  end
+
+  defp source_name(%Source{source_type: type}), do: String.capitalize(type) <> " source"
+
   defp status_variant("active"), do: "default"
   defp status_variant("paused"), do: "secondary"
   defp status_variant("error"), do: "destructive"
@@ -75,60 +88,64 @@ defmodule ExCellenceServerWeb.StacksLive do
       </div>
 
       <%= if @sources == [] do %>
-        <.card>
-          <.card_content class="pt-6">
-            <p class="text-muted-foreground text-sm">
-              Your stacks are empty. Browse the <a href="/library" class="underline">Library</a>
-              to add books to your guild.
-            </p>
-          </.card_content>
-        </.card>
+        <div class="rounded-lg border p-4">
+          <p class="text-muted-foreground text-sm">
+            Your stacks are empty. Browse the <a href="/library" class="underline">Library</a>
+            to add scrolls and books.
+          </p>
+        </div>
       <% else %>
-        <div class="space-y-4">
+        <div class="space-y-2">
           <%= for source <- @sources do %>
-            <.card>
-              <.card_content class="pt-6">
-                <div class="flex items-center justify-between">
-                  <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                      <span class="font-medium">{source.guild_name} Guild</span>
-                      <.badge variant="outline">{source.source_type}</.badge>
-                      <.badge variant={status_variant(source.status)}>{source.status}</.badge>
-                    </div>
-                    <p class="text-sm text-muted-foreground">
-                      Last run: {format_time(source.last_run_at)}
-                    </p>
-                    <%= if source.source_type == "webhook" do %>
-                      <p class="text-xs text-muted-foreground font-mono">
-                        POST /api/webhooks/{source.id}
-                      </p>
-                    <% end %>
-                    <%= if source.error_message do %>
-                      <p class="text-sm text-destructive">{source.error_message}</p>
-                    <% end %>
-                  </div>
-                  <div class="flex gap-2">
-                    <%= if source.status == "active" do %>
-                      <.button variant="outline" size="sm" phx-click="pause" phx-value-id={source.id}>
-                        Pause
-                      </.button>
-                    <% else %>
-                      <.button variant="outline" size="sm" phx-click="resume" phx-value-id={source.id}>
-                        Resume
-                      </.button>
-                    <% end %>
-                    <.button
-                      variant="destructive"
-                      size="sm"
-                      phx-click="delete"
-                      phx-value-id={source.id}
-                    >
-                      Delete
-                    </.button>
-                  </div>
+            <div class="flex items-center justify-between rounded-lg border p-4">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium">{source_name(source)}</span>
+                  <.badge variant="outline">{source.source_type}</.badge>
+                  <.badge variant={status_variant(source.status)}>{source.status}</.badge>
                 </div>
-              </.card_content>
-            </.card>
+                <p class="text-xs text-muted-foreground">
+                  Last run: {format_time(source.last_run_at)}
+                </p>
+                <%= if source.source_type == "webhook" do %>
+                  <p class="text-xs text-muted-foreground font-mono">
+                    POST /api/webhooks/{source.id}
+                  </p>
+                <% end %>
+                <%= if source.error_message do %>
+                  <p class="text-xs text-destructive">{source.error_message}</p>
+                <% end %>
+              </div>
+              <div class="ml-4 shrink-0 flex gap-2">
+                <%= if source.status == "active" do %>
+                  <.button
+                    variant="outline"
+                    size="sm"
+                    phx-click="pause"
+                    phx-value-id={source.id}
+                  >
+                    Pause
+                  </.button>
+                <% else %>
+                  <.button
+                    variant="outline"
+                    size="sm"
+                    phx-click="resume"
+                    phx-value-id={source.id}
+                  >
+                    Resume
+                  </.button>
+                <% end %>
+                <.button
+                  variant="destructive"
+                  size="sm"
+                  phx-click="delete"
+                  phx-value-id={source.id}
+                >
+                  Delete
+                </.button>
+              </div>
+            </div>
           <% end %>
         </div>
       <% end %>

@@ -20,7 +20,6 @@ defmodule ExCellenceServer.Sources.WebSocketSource do
       Enum.map(messages, fn msg ->
         %SourceItem{
           source_id: config["source_id"],
-          guild_name: config["guild_name"],
           type: "ws_message",
           content: msg,
           metadata: %{url: url}

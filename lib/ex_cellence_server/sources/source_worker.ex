@@ -3,6 +3,8 @@ defmodule ExCellenceServer.Sources.SourceWorker do
   use GenServer, restart: :transient
 
   alias ExCellenceServer.Evaluator
+  alias ExCellenceServer.Sandbox
+  alias ExCellenceServer.Sources.Book
   alias ExCellenceServer.Sources.Source
 
   require Logger
@@ -32,7 +34,7 @@ defmodule ExCellenceServer.Sources.SourceWorker do
   def handle_info(:fetch, state) do
     case state.mod.fetch(state.worker_state, state.source.config) do
       {:ok, items, new_worker_state} ->
-        Enum.each(items, &evaluate_item/1)
+        Enum.each(items, &evaluate_item(&1, state.source))
         update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
         {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
@@ -43,14 +45,40 @@ defmodule ExCellenceServer.Sources.SourceWorker do
     end
   end
 
-  defp evaluate_item(item) do
+  defp evaluate_item(item, source) do
     Task.Supervisor.start_child(ExCellenceServer.SourceTaskSupervisor, fn ->
       try do
-        Evaluator.evaluate(item.guild_name, item.content)
+        content = maybe_run_sandbox(item.content, source)
+        Evaluator.evaluate(content)
       rescue
         e -> Logger.error("Source evaluation failed: #{Exception.message(e)}")
       end
     end)
+  end
+
+  defp maybe_run_sandbox(content, source) do
+    with book_id when book_id != nil <- source.book_id,
+         %Book{sandbox: sandbox} when sandbox != nil <- Book.get(book_id),
+         working_dir when working_dir != nil <- sandbox_working_dir(source) do
+      case Sandbox.run(sandbox, working_dir) do
+        {:ok, output, _exit_code} ->
+          Sandbox.wrap_content(content, output, sandbox.cmd)
+
+        {:error, reason} ->
+          Logger.warning("Sandbox execution failed: #{inspect(reason)}")
+          content
+      end
+    else
+      _ -> content
+    end
+  end
+
+  defp sandbox_working_dir(source) do
+    case source.source_type do
+      "directory" -> source.config["path"]
+      "git" -> source.config["repo_path"]
+      _ -> nil
+    end
   end
 
   defp source_module("git"), do: ExCellenceServer.Sources.GitWatcher

@@ -2,35 +2,12 @@ defmodule ExCellenceServerWeb.QuestsLive do
   @moduledoc false
   use ExCellenceServerWeb, :live_view
 
-  import ExCellenceUI.Components.CharterPicker
   import ExCellenceUI.Components.PipelineBuilder
-
-  alias Excellence.Schemas.ResourceDefinition
-
-  @charters %{
-    "Content Moderation" => Excellence.Charters.ContentModeration,
-    "Code Review" => Excellence.Charters.CodeReview,
-    "Risk Assessment" => Excellence.Charters.RiskAssessment
-  }
 
   @impl true
   def mount(_params, _session, socket) do
-    charters =
-      Enum.map(@charters, fn {_name, mod} ->
-        meta = mod.metadata()
-
-        %{
-          name: meta.name,
-          description: meta.description,
-          roles: Enum.map(meta.roles, & &1.name),
-          actions: Enum.map(meta.actions, &to_string/1),
-          strategy: inspect(meta.strategy)
-        }
-      end)
-
     {:ok,
      assign(socket,
-       charters: charters,
        building: false,
        pipeline: [],
        page_title: "Quests"
@@ -40,25 +17,6 @@ defmodule ExCellenceServerWeb.QuestsLive do
   @impl true
   def handle_params(_params, _url, socket) do
     {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("install_charter", %{"charter" => charter_name}, socket) do
-    case Map.get(@charters, charter_name) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Charter not found")}
-
-      mod ->
-        resource_defs = mod.resource_definitions()
-
-        Enum.each(resource_defs, fn attrs ->
-          %ResourceDefinition{}
-          |> ResourceDefinition.changeset(attrs)
-          |> ExCellenceServer.Repo.insert(on_conflict: :nothing)
-        end)
-
-        {:noreply, put_flash(socket, :info, "Charter '#{charter_name}' installed!")}
-    end
   end
 
   @impl true
@@ -97,11 +55,6 @@ defmodule ExCellenceServerWeb.QuestsLive do
       <%= if @building do %>
         <.pipeline_builder pipeline={@pipeline} on_save="save_pipeline" />
       <% end %>
-
-      <div>
-        <h2 class="text-lg font-semibold mb-4">Charters</h2>
-        <.charter_picker charters={@charters} on_install="install_charter" />
-      </div>
     </div>
     """
   end

@@ -3,7 +3,6 @@ defmodule ExCellenceServerWeb.GuildHallLive do
   use ExCellenceServerWeb, :live_view
 
   import SaladUI.Badge
-  import SaladUI.Card
 
   alias Excellence.Schemas.ResourceDefinition
   alias ExCellenceServer.Sources.Book
@@ -12,7 +11,12 @@ defmodule ExCellenceServerWeb.GuildHallLive do
   @charters %{
     "Content Moderation" => Excellence.Charters.ContentModeration,
     "Code Review" => Excellence.Charters.CodeReview,
-    "Risk Assessment" => Excellence.Charters.RiskAssessment
+    "Risk Assessment" => Excellence.Charters.RiskAssessment,
+    "Accessibility Review" => Excellence.Charters.AccessibilityReview,
+    "Performance Audit" => Excellence.Charters.PerformanceAudit,
+    "Incident Triage" => Excellence.Charters.IncidentTriage,
+    "Contract Review" => Excellence.Charters.ContractReview,
+    "Dependency Audit" => Excellence.Charters.DependencyAudit
   }
 
   @post_install_redirect "/stacks"
@@ -31,46 +35,28 @@ defmodule ExCellenceServerWeb.GuildHallLive do
         }
       end)
 
-    installed_names = installed_guild_names()
+    current = current_guild_name()
 
     {:ok,
      assign(socket,
        page_title: "Guild Hall",
        guilds: guilds,
-       installed_names: installed_names,
-       confirming_dissolve: nil
+       current_guild: current,
+       confirming: nil
      )}
   end
 
   @impl true
-  def handle_event("install_guild", %{"guild" => guild_name}, socket) do
-    case Map.get(@charters, guild_name) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Guild not found")}
-
-      mod ->
-        install_guild(mod)
-        create_default_sources(guild_name)
-
-        {:noreply,
-         socket
-         |> put_flash(:info, "#{guild_name} Guild installed!")
-         |> push_navigate(to: @post_install_redirect)}
+  def handle_event("select_guild", %{"guild" => guild_name}, socket) do
+    if guild_name == socket.assigns.current_guild do
+      {:noreply, put_flash(socket, :info, "#{guild_name} Guild is already active.")}
+    else
+      {:noreply, assign(socket, confirming: guild_name)}
     end
   end
 
   @impl true
-  def handle_event("confirm_dissolve", %{"guild" => guild_name}, socket) do
-    {:noreply, assign(socket, confirming_dissolve: guild_name)}
-  end
-
-  @impl true
-  def handle_event("cancel_dissolve", _params, socket) do
-    {:noreply, assign(socket, confirming_dissolve: nil)}
-  end
-
-  @impl true
-  def handle_event("dissolve_and_install", %{"guild" => guild_name}, socket) do
+  def handle_event("confirm_install", %{"guild" => guild_name}, socket) do
     case Map.get(@charters, guild_name) do
       nil ->
         {:noreply, put_flash(socket, :error, "Guild not found")}
@@ -80,14 +66,21 @@ defmodule ExCellenceServerWeb.GuildHallLive do
 
         ExCellenceServer.Repo.delete_all(from(r in ResourceDefinition))
         ExCellenceServer.Repo.delete_all(from(s in Source))
+
         install_guild(mod)
         create_default_sources(guild_name)
 
         {:noreply,
          socket
-         |> put_flash(:info, "All members dissolved. #{guild_name} Guild installed!")
+         |> assign(confirming: nil)
+         |> put_flash(:info, "#{guild_name} Guild installed!")
          |> push_navigate(to: @post_install_redirect)}
     end
+  end
+
+  @impl true
+  def handle_event("cancel_install", _params, socket) do
+    {:noreply, assign(socket, confirming: nil)}
   end
 
   defp install_guild(mod) do
@@ -106,29 +99,27 @@ defmodule ExCellenceServerWeb.GuildHallLive do
     Enum.each(books, fn book ->
       %Source{}
       |> Source.changeset(%{
-        guild_name: guild_name,
         source_type: book.source_type,
         config: book.default_config,
+        book_id: book.id,
         status: "paused"
       })
       |> ExCellenceServer.Repo.insert()
     end)
   end
 
-  defp installed_guild_names do
+  defp current_guild_name do
     import Ecto.Query
 
-    names = ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", select: r.name))
+    names =
+      ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", select: r.name))
 
-    # Check which guilds have all their roles installed
-    Enum.reduce(@charters, MapSet.new(), fn {_name, mod}, acc ->
+    Enum.find_value(@charters, fn {_name, mod} ->
       meta = mod.metadata()
       role_names = Enum.map(meta.roles, & &1.name)
 
       if Enum.all?(role_names, &(&1 in names)) do
-        MapSet.put(acc, meta.name)
-      else
-        acc
+        meta.name
       end
     end)
   end
@@ -137,61 +128,60 @@ defmodule ExCellenceServerWeb.GuildHallLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="flex items-center justify-between">
+      <div>
         <h1 class="text-2xl font-bold">Guild Hall</h1>
+        <p class="text-muted-foreground mt-1">
+          Choose your guild. Installing a new guild replaces the current one.
+        </p>
       </div>
-      <p class="text-muted-foreground">
-        Browse and install pre-built guilds — organizations of agents with specialized expertise.
-      </p>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <div class="space-y-2">
         <%= for guild <- @guilds do %>
-          <.card>
-            <.card_header>
-              <div class="flex items-center justify-between">
-                <.card_title>{guild.name} Guild</.card_title>
-                <%= if MapSet.member?(@installed_names, guild.name) do %>
-                  <.badge variant="default">Installed</.badge>
+          <div class={[
+            "flex items-center justify-between rounded-lg border p-4",
+            @current_guild == guild.name && "border-primary bg-accent/50"
+          ]}>
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold">{guild.name} Guild</span>
+                <%= if @current_guild == guild.name do %>
+                  <.badge variant="default">Active</.badge>
                 <% end %>
               </div>
-              <.card_description>{guild.description}</.card_description>
-            </.card_header>
-            <.card_content>
-              <div class="space-y-2">
-                <p class="text-sm font-medium">Members</p>
-                <div class="flex flex-wrap gap-1">
-                  <%= for role <- guild.roles do %>
-                    <.badge variant="outline">{role}</.badge>
-                  <% end %>
-                </div>
-                <p class="text-sm text-muted-foreground mt-2">Strategy: {guild.strategy}</p>
+              <p class="text-sm text-muted-foreground">{guild.description}</p>
+              <div class="flex flex-wrap gap-1 mt-1">
+                <%= for role <- guild.roles do %>
+                  <.badge variant="outline">{role}</.badge>
+                <% end %>
               </div>
-            </.card_content>
-            <.card_footer>
-              <div class="flex gap-2">
-                <%= if @confirming_dissolve == guild.name do %>
+            </div>
+            <div class="ml-4 shrink-0">
+              <%= if @confirming == guild.name do %>
+                <div class="flex gap-2">
                   <.button
                     variant="destructive"
-                    phx-click="dissolve_and_install"
+                    size="sm"
+                    phx-click="confirm_install"
                     phx-value-guild={guild.name}
                   >
-                    Confirm Dissolve & Install
+                    Confirm
                   </.button>
-                  <.button variant="outline" phx-click="cancel_dissolve">Cancel</.button>
-                <% else %>
-                  <.button phx-click="install_guild" phx-value-guild={guild.name}>
-                    Install Guild
+                  <.button variant="outline" size="sm" phx-click="cancel_install">
+                    Cancel
                   </.button>
-                  <.button
-                    variant="outline"
-                    phx-click="confirm_dissolve"
-                    phx-value-guild={guild.name}
-                  >
-                    Dissolve All & Install
-                  </.button>
-                <% end %>
-              </div>
-            </.card_footer>
-          </.card>
+                </div>
+              <% else %>
+                <.button
+                  variant={if @current_guild == guild.name, do: "outline", else: "default"}
+                  size="sm"
+                  phx-click="select_guild"
+                  phx-value-guild={guild.name}
+                >
+                  {if @current_guild == guild.name, do: "Active", else: "Install"}
+                </.button>
+              <% end %>
+            </div>
+          </div>
         <% end %>
       </div>
     </div>

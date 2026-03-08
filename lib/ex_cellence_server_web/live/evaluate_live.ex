@@ -8,28 +8,18 @@ defmodule ExCellenceServerWeb.EvaluateLive do
 
   alias ExCellenceServer.Evaluator
 
-  @charter_keys %{
-    "content_moderation" => "Content Moderation",
-    "code_review" => "Code Review",
-    "risk_assessment" => "Risk Assessment"
-  }
-
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(ExCellenceServer.PubSub, "evaluation:results")
     end
 
-    charters =
-      Enum.map(@charter_keys, fn {key, guild_name} ->
-        {key, "#{guild_name} Guild"}
-      end)
+    current_guild = Evaluator.current_guild()
 
     {:ok,
      assign(socket,
        page_title: "Evaluate",
-       charters: charters,
-       selected_charter: nil,
+       guild_name: current_guild && elem(current_guild, 0),
        input_text: "",
        running: false,
        verdicts: [],
@@ -40,31 +30,32 @@ defmodule ExCellenceServerWeb.EvaluateLive do
   end
 
   @impl true
-  def handle_event("select_charter", %{"charter" => key}, socket) do
-    {:noreply, assign(socket, selected_charter: key)}
-  end
-
-  @impl true
   def handle_event("update_input", %{"input" => text}, socket) do
     {:noreply, assign(socket, input_text: text)}
   end
 
   @impl true
   def handle_event("run", _params, socket) do
-    charter_key = socket.assigns.selected_charter
     input_text = socket.assigns.input_text
 
-    if charter_key && input_text != "" do
-      socket = assign(socket, running: true, verdicts: [], role_results: [], decision: nil, error: nil)
+    if socket.assigns.guild_name && input_text != "" do
+      socket =
+        assign(socket, running: true, verdicts: [], role_results: [], decision: nil, error: nil)
+
       pid = self()
 
       Task.start(fn ->
-        run_evaluation(charter_key, input_text, pid)
+        run_evaluation(input_text, pid)
       end)
 
       {:noreply, socket}
     else
-      {:noreply, put_flash(socket, :error, "Select a guild and enter input text")}
+      message =
+        if socket.assigns.guild_name,
+          do: "Enter input text",
+          else: "Install a guild first"
+
+      {:noreply, put_flash(socket, :error, message)}
     end
   end
 
@@ -100,12 +91,10 @@ defmodule ExCellenceServerWeb.EvaluateLive do
     {:noreply, socket}
   end
 
-  defp run_evaluation(charter_key, input_text, caller_pid) do
-    guild_name = Map.fetch!(@charter_keys, charter_key)
-
+  defp run_evaluation(input_text, caller_pid) do
     result =
       try do
-        {:ok, Evaluator.evaluate(guild_name, input_text)}
+        {:ok, Evaluator.evaluate(input_text)}
       rescue
         e -> {:error, e}
       end
@@ -121,19 +110,15 @@ defmodule ExCellenceServerWeb.EvaluateLive do
 
       <.card>
         <.card_content class="pt-6 space-y-4">
-          <div>
-            <label class="text-sm font-medium">Guild</label>
-            <div class="flex gap-2 mt-2">
-              <%= for {key, name} <- @charters do %>
-                <.button
-                  variant={if @selected_charter == key, do: "default", else: "outline"}
-                  phx-click="select_charter"
-                  phx-value-charter={key}
-                >
-                  {name}
-                </.button>
-              <% end %>
-            </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium">Guild:</label>
+            <%= if @guild_name do %>
+              <span class="text-sm">{@guild_name}</span>
+            <% else %>
+              <span class="text-sm text-muted-foreground">
+                No guild installed. <a href="/guild-hall" class="underline">Install one</a>
+              </span>
+            <% end %>
           </div>
 
           <div>
@@ -146,7 +131,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
             ><%= @input_text %></textarea>
           </div>
 
-          <.button phx-click="run" disabled={@running}>
+          <.button phx-click="run" disabled={@running || !@guild_name}>
             {if @running, do: "Running...", else: "Run"}
           </.button>
         </.card_content>

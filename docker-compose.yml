@@ -31,19 +31,21 @@ services:
   app:
     build:
       context: ..
-      dockerfile: ex_cellence_server/Dockerfile
+      dockerfile: ex_cellence_server/Dockerfile.dev
     depends_on:
       db:
         condition: service_healthy
       ollama:
         condition: service_healthy
     ports:
-      - "${PORT:-4000}:4000"
+      - "${PORT:-4001}:4001"
+    volumes:
+      - ..:/app:Z
     environment:
       DATABASE_URL: ecto://excellence:excellence@db/ex_cellence_server
       OLLAMA_URL: http://ollama:11434
       PHX_SERVER: "true"
-      PORT: "4000"
+      PORT: "4001"
       PHX_HOST: localhost
       SECRET_KEY_BASE: "dev-only-secret-key-base-that-is-at-least-64-bytes-long-for-development-use"
 

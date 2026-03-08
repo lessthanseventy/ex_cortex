@@ -9,9 +9,9 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
-  <body class="bg-background min-h-screen">
+  <body class="bg-background min-h-screen px-4 lg:px-8">
     <nav class="border-b bg-card">
-      <div class="container mx-auto flex items-center gap-6 px-4 py-3">
+      <div class="max-w-6xl mx-auto flex items-center gap-6 px-8 py-4">
         <a href="/" class="text-xl font-bold text-foreground">Excellence</a>
         <div class="flex gap-1">
           <a
@@ -19,6 +19,12 @@
             class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
           >
             Guild Hall
+          </a>
+          <a
+            href="/town-square"
+            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
+          >
+            Town Square
           </a>
           <a
             href="/members"
