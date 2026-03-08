@@ -20,14 +20,22 @@ defmodule ExCellenceServer.QuestRunner do
   alias Excellence.LLM.Ollama
   alias Excellence.Schemas.Member
   alias ExCellenceServer.ClaudeClient
+  alias ExCellenceServer.ContextProviders.ContextProvider
   alias ExCellenceServer.Repo
 
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
 
   @doc """
   Run a quest roster against `input_text`.
+  Accepts either a `Quest` struct or just a bare roster list.
   Returns `{:ok, result}` or `{:error, reason}`.
   """
+  def run(quest, input_text) when is_struct(quest) do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+    run(quest.roster, augmented)
+  end
+
   def run(roster, input_text) when is_list(roster) do
     ollama_url = Application.get_env(:ex_cellence_server, :ollama_url, "http://127.0.0.1:11434")
     ollama = Ollama.new(base_url: ollama_url)

@@ -159,7 +159,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
     parent = self()
 
     Task.start(fn ->
-      result = ExCellenceServer.QuestRunner.run(quest.roster, input)
+      result = ExCellenceServer.QuestRunner.run(quest, input)
       send(parent, {:quest_run_complete, run_id, quest_run.id, result})
     end)
 

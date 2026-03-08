@@ -11,12 +11,13 @@ defmodule ExCellenceServer.Quests.Quest do
     field :trigger, :string
     field :schedule, :string
     field :roster, {:array, :map}, default: []
+    field :context_providers, {:array, :map}, default: []
     field :source_ids, {:array, :string}, default: []
     timestamps()
   end
 
   @required [:name, :trigger]
-  @optional [:description, :status, :schedule, :roster, :source_ids]
+  @optional [:description, :status, :schedule, :roster, :context_providers, :source_ids]
 
   def changeset(quest, attrs) do
     quest
