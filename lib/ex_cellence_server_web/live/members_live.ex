@@ -1,4 +1,4 @@
-defmodule ExCellenceServerWeb.RolesLive do
+defmodule ExCellenceServerWeb.MembersLive do
   @moduledoc false
   use ExCellenceServerWeb, :live_view
 
@@ -20,12 +20,12 @@ defmodule ExCellenceServerWeb.RolesLive do
   end
 
   defp apply_action(socket, :index, _params) do
-    assign(socket, page_title: "Roles", editing: nil)
+    assign(socket, page_title: "Members", editing: nil)
   end
 
   defp apply_action(socket, :new, _params) do
     assign(socket,
-      page_title: "New Role",
+      page_title: "New Member",
       editing: :new,
       role_form: %{name: "", system_prompt: "", perspectives: [], parse_strategy: "default"}
     )
@@ -34,11 +34,11 @@ defmodule ExCellenceServerWeb.RolesLive do
   defp apply_action(socket, :edit, %{"id" => id}) do
     case get_role(id) do
       nil ->
-        push_navigate(socket, to: "/roles")
+        push_navigate(socket, to: "/members")
 
       role ->
         assign(socket,
-          page_title: "Edit Role",
+          page_title: "Edit Member",
           editing: role.id,
           role_form: %{
             name: role.name,
@@ -92,10 +92,10 @@ defmodule ExCellenceServerWeb.RolesLive do
 
     case result do
       {:ok, _} ->
-        {:noreply, socket |> push_navigate(to: "/roles") |> put_flash(:info, "Role saved")}
+        {:noreply, socket |> push_navigate(to: "/members") |> put_flash(:info, "Member saved")}
 
       {:error, _changeset} ->
-        {:noreply, put_flash(socket, :error, "Failed to save role")}
+        {:noreply, put_flash(socket, :error, "Failed to save member")}
     end
   end
 
@@ -149,9 +149,9 @@ defmodule ExCellenceServerWeb.RolesLive do
     ~H"""
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Roles</h1>
-        <.link navigate="/roles/new">
-          <.button>New Role</.button>
+        <h1 class="text-2xl font-bold">Members</h1>
+        <.link navigate="/members/new">
+          <.button>New Member</.button>
         </.link>
       </div>
 
@@ -159,7 +159,7 @@ defmodule ExCellenceServerWeb.RolesLive do
         <.role_form
           role={@role_form}
           on_save="save_role"
-          on_cancel={JS.navigate("/roles")}
+          on_cancel={JS.navigate("/members")}
         />
       <% else %>
         <div class="grid gap-4">
@@ -182,7 +182,7 @@ defmodule ExCellenceServerWeb.RolesLive do
               </.card_content>
               <.card_footer>
                 <div class="flex gap-2">
-                  <.link navigate={"/roles/#{role.id}/edit"}>
+                  <.link navigate={"/members/#{role.id}/edit"}>
                     <.button variant="outline" size="sm">Edit</.button>
                   </.link>
                   <%= if role.status == "draft" do %>

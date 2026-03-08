@@ -24,7 +24,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
     templates =
       Enum.map(@templates, fn {key, mod} ->
         meta = mod.metadata()
-        {key, meta.name}
+        {key, "#{meta.name} Guild"}
       end)
 
     {:ok,
@@ -66,7 +66,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
 
       {:noreply, socket}
     else
-      {:noreply, put_flash(socket, :error, "Select a template and enter input text")}
+      {:noreply, put_flash(socket, :error, "Select a guild and enter input text")}
     end
   end
 
@@ -199,7 +199,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
       <.card>
         <.card_content class="pt-6 space-y-4">
           <div>
-            <label class="text-sm font-medium">Template</label>
+            <label class="text-sm font-medium">Guild</label>
             <div class="flex gap-2 mt-2">
               <%= for {key, name} <- @templates do %>
                 <.button

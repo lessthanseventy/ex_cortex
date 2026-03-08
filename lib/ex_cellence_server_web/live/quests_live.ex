@@ -1,4 +1,4 @@
-defmodule ExCellenceServerWeb.PipelinesLive do
+defmodule ExCellenceServerWeb.QuestsLive do
   @moduledoc false
   use ExCellenceServerWeb, :live_view
 
@@ -33,7 +33,7 @@ defmodule ExCellenceServerWeb.PipelinesLive do
        templates: templates,
        building: false,
        pipeline: [],
-       page_title: "Pipelines"
+       page_title: "Quests"
      )}
   end
 
@@ -46,7 +46,7 @@ defmodule ExCellenceServerWeb.PipelinesLive do
   def handle_event("install_template", %{"template" => template_name}, socket) do
     case Map.get(@templates, template_name) do
       nil ->
-        {:noreply, put_flash(socket, :error, "Template not found")}
+        {:noreply, put_flash(socket, :error, "Charter not found")}
 
       mod ->
         resource_defs = mod.resource_definitions()
@@ -57,7 +57,7 @@ defmodule ExCellenceServerWeb.PipelinesLive do
           |> ExCellenceServer.Repo.insert(on_conflict: :nothing)
         end)
 
-        {:noreply, put_flash(socket, :info, "Template '#{template_name}' installed!")}
+        {:noreply, put_flash(socket, :info, "Charter '#{template_name}' installed!")}
     end
   end
 
@@ -68,7 +68,7 @@ defmodule ExCellenceServerWeb.PipelinesLive do
 
   @impl true
   def handle_event("save_pipeline", _, socket) do
-    {:noreply, put_flash(socket, :info, "Pipeline saved")}
+    {:noreply, put_flash(socket, :info, "Quest saved")}
   end
 
   @impl true
@@ -88,9 +88,9 @@ defmodule ExCellenceServerWeb.PipelinesLive do
     ~H"""
     <div class="space-y-6">
       <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Pipelines</h1>
+        <h1 class="text-2xl font-bold">Quests</h1>
         <.button phx-click="toggle_builder">
-          {if @building, do: "Close Builder", else: "Build Pipeline"}
+          {if @building, do: "Close Planner", else: "Plan Quest"}
         </.button>
       </div>
 
@@ -99,7 +99,7 @@ defmodule ExCellenceServerWeb.PipelinesLive do
       <% end %>
 
       <div>
-        <h2 class="text-lg font-semibold mb-4">Templates</h2>
+        <h2 class="text-lg font-semibold mb-4">Charters</h2>
         <.template_picker templates={@templates} on_install="install_template" />
       </div>
     </div>

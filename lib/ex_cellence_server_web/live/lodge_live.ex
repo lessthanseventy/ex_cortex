@@ -1,4 +1,4 @@
-defmodule ExCellenceServerWeb.DashboardLive do
+defmodule ExCellenceServerWeb.LodgeLive do
   @moduledoc false
   use ExCellenceServerWeb, :live_view
 
@@ -11,15 +11,25 @@ defmodule ExCellenceServerWeb.DashboardLive do
 
   alias Excellence.Schemas.Decision
   alias Excellence.Schemas.Outcome
+  alias Excellence.Schemas.ResourceDefinition
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-      Phoenix.PubSub.subscribe(ExCellenceServer.PubSub, "evaluation:results")
-      :timer.send_interval(30_000, self(), :refresh)
-    end
+    import Ecto.Query
 
-    {:ok, load_dashboard_data(socket)}
+    has_members =
+      ExCellenceServer.Repo.exists?(from(r in ResourceDefinition, where: r.type == "role"))
+
+    if has_members do
+      if connected?(socket) do
+        Phoenix.PubSub.subscribe(ExCellenceServer.PubSub, "evaluation:results")
+        :timer.send_interval(30_000, self(), :refresh)
+      end
+
+      {:ok, load_dashboard_data(socket)}
+    else
+      {:ok, push_navigate(socket, to: "/guild-hall")}
+    end
   end
 
   @impl true
@@ -75,7 +85,7 @@ defmodule ExCellenceServerWeb.DashboardLive do
     }
 
     assign(socket,
-      page_title: "Dashboard",
+      page_title: "Lodge",
       decisions: decisions,
       outcomes: outcomes,
       outcome_stats: outcome_stats,
@@ -89,7 +99,7 @@ defmodule ExCellenceServerWeb.DashboardLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <h1 class="text-2xl font-bold">Dashboard</h1>
+      <h1 class="text-2xl font-bold">Lodge</h1>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <.card>
