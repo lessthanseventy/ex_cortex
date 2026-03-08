@@ -5,7 +5,6 @@ defmodule ExCellenceServerWeb.QuestsLive do
   import SaladUI.Badge
 
   alias Excellence.Schemas.Member
-  alias ExCellenceServer.Evaluator
   alias ExCellenceServer.Quests
   alias ExCellenceServer.Quests.Quest
 
@@ -151,7 +150,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
     parent = self()
 
     Task.start(fn ->
-      result = Evaluator.evaluate(input)
+      result = ExCellenceServer.QuestRunner.run(quest.roster, input)
       send(parent, {:quest_run_complete, run_id, quest_run.id, result})
     end)
 
@@ -404,6 +403,62 @@ defmodule ExCellenceServerWeb.QuestsLive do
     """
   end
 
+  attr :run_state, :map, required: true
+
+  defp run_result(assigns) do
+    ~H"""
+    <div class={["rounded p-3 text-sm space-y-2", run_state_class(@run_state.status)]}>
+      <div class="font-medium">{String.capitalize(@run_state.status)}</div>
+      <%= if result = @run_state.result do %>
+        <%= if is_map(result) and Map.has_key?(result, :verdict) do %>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold uppercase">Overall:</span>
+            <.verdict_badge verdict={result.verdict} />
+          </div>
+          <%= for {step, idx} <- Enum.with_index(result.steps || []) do %>
+            <div class="border-l-2 border-current pl-2 opacity-80">
+              <div class="flex items-center gap-2 text-xs">
+                <span class="font-medium">Step {idx + 1}</span>
+                <span class="opacity-60">{step.who} · {step.how}</span>
+                <.verdict_badge verdict={step.verdict} />
+              </div>
+              <%= for r <- step.results || [] do %>
+                <div class="text-xs opacity-70 mt-0.5 ml-2">
+                  <span class="font-medium">{r.member}:</span>
+                  {r.verdict}
+                  <%= if r.reason && r.reason != "" do %>
+                    — {String.slice(r.reason, 0, 120)}{if String.length(r.reason) > 120, do: "…"}
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        <% else %>
+          <pre class="text-xs overflow-auto">{inspect(result, pretty: true)}</pre>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :verdict, :string, required: true
+
+  defp verdict_badge(assigns) do
+    color =
+      case assigns.verdict do
+        "pass" -> "bg-green-100 text-green-700"
+        "warn" -> "bg-yellow-100 text-yellow-700"
+        "fail" -> "bg-red-100 text-red-700"
+        _ -> "bg-muted text-muted-foreground"
+      end
+
+    assigns = assign(assigns, color: color)
+
+    ~H"""
+    <span class={["px-1.5 py-0.5 rounded text-xs font-medium", @color]}>{@verdict}</span>
+    """
+  end
+
   attr :quest, :map, required: true
   attr :expanded, :boolean, required: true
   attr :run_state, :map, default: nil
@@ -473,12 +528,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
             </div>
           </form>
           <%= if @run_state do %>
-            <div class={["rounded p-3 text-sm", run_state_class(@run_state.status)]}>
-              <span class="font-medium">{String.capitalize(@run_state.status)}</span>
-              <%= if @run_state.result do %>
-                <pre class="mt-1 text-xs overflow-auto">{inspect(@run_state.result, pretty: true)}</pre>
-              <% end %>
-            </div>
+            <.run_result run_state={@run_state} />
           <% end %>
         </div>
       <% end %>
