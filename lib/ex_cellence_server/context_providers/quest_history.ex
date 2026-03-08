@@ -37,11 +37,10 @@ defmodule ExCellenceServer.ContextProviders.QuestHistory do
             "- #{Calendar.strftime(ts, "%Y-%m-%d")}: #{verdict}"
           end)
 
-        """
+        String.trim("""
         ## Recent Quest History (last #{length(runs)} runs)
         #{Enum.join(lines, "\n")}
-        """
-        |> String.trim()
+        """)
       end
     end
   end

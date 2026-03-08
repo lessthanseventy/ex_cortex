@@ -31,11 +31,10 @@ defmodule ExCellenceServer.ContextProviders.MemberStats do
           "- #{name} (#{rank})#{team_str}"
         end)
 
-      """
+      String.trim("""
       ## Active Members (#{length(members)})
       #{Enum.join(lines, "\n")}
-      """
-      |> String.trim()
+      """)
     end
   end
 end

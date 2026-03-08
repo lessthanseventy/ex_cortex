@@ -43,14 +43,11 @@ defmodule ExCellenceServer.ContextProviders.ContextProvider do
 
   defp build_one(_, _, _), do: ""
 
-  defp module_for("static"),
-    do: Module.concat([ExCellenceServer, ContextProviders, Static])
+  defp module_for("static"), do: Module.concat([ExCellenceServer, ContextProviders, Static])
 
-  defp module_for("quest_history"),
-    do: Module.concat([ExCellenceServer, ContextProviders, QuestHistory])
+  defp module_for("quest_history"), do: Module.concat([ExCellenceServer, ContextProviders, QuestHistory])
 
-  defp module_for("member_stats"),
-    do: Module.concat([ExCellenceServer, ContextProviders, MemberStats])
+  defp module_for("member_stats"), do: Module.concat([ExCellenceServer, ContextProviders, MemberStats])
 
   defp module_for(_), do: nil
 end

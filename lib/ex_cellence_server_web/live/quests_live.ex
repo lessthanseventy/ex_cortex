@@ -71,12 +71,29 @@ defmodule ExCellenceServerWeb.QuestsLive do
       }
     ]
 
+    context_providers =
+      case params["context_type"] do
+        "static" ->
+          content = String.trim(params["context_content"] || "")
+          if content == "", do: [], else: [%{"type" => "static", "content" => content}]
+
+        "quest_history" ->
+          [%{"type" => "quest_history", "limit" => 5}]
+
+        "member_stats" ->
+          [%{"type" => "member_stats"}]
+
+        _ ->
+          []
+      end
+
     attrs = %{
       name: params["name"],
       description: params["description"],
       trigger: params["trigger"] || "manual",
       schedule: params["schedule"],
       roster: roster,
+      context_providers: context_providers,
       status: "active"
     }
 
@@ -306,6 +323,27 @@ defmodule ExCellenceServerWeb.QuestsLive do
               <option value="source">Source</option>
               <option value="scheduled">Scheduled</option>
             </select>
+          </div>
+        </div>
+        <div>
+          <label class="text-sm font-medium">Context (optional)</label>
+          <div class="mt-1 space-y-1">
+            <select
+              name="quest[context_type]"
+              class="w-full text-sm border rounded px-2 py-1 bg-background"
+            >
+              <option value="">None</option>
+              <option value="static">Static text</option>
+              <option value="quest_history">Quest history</option>
+              <option value="member_stats">Member roster</option>
+            </select>
+            <.input
+              type="textarea"
+              name="quest[context_content]"
+              value=""
+              rows={2}
+              placeholder="Static context text (if Static selected)"
+            />
           </div>
         </div>
         <div class="flex justify-end gap-2">
