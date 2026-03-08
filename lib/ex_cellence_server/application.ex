@@ -8,8 +8,10 @@ defmodule ExCellenceServer.Application do
   @impl true
   def start(_type, _args) do
     # SaladUI requires TwMerge.Cache ETS table
-    TwMerge.Cache.create_table()
-    TwMerge.Cache.insert(:class_tree, TwMerge.ClassTree.generate())
+    if :ets.whereis(:tw_merge_cache) == :undefined do
+      TwMerge.Cache.create_table()
+      TwMerge.Cache.insert(:class_tree, TwMerge.ClassTree.generate())
+    end
 
     children = [
       ExCellenceServerWeb.Telemetry,
