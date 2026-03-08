@@ -34,6 +34,7 @@ defmodule ExCellenceServerWeb.TownSquareLive do
       name: member.name,
       status: "active",
       source: "db",
+      team: member.category,
       config: %{
         "member_id" => member_id,
         "system_prompt" => member.system_prompt,

@@ -47,6 +47,7 @@ defmodule ExCellenceServerWeb.MembersLive do
       rank: db.config["rank"] || "journeyman",
       model: db.config["model"] || "",
       strategy: db.config["strategy"] || "cot",
+      team: db.team,
       db_id: db.id
     }
   end
