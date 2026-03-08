@@ -4,6 +4,7 @@ defmodule ExCellenceServer.Quests do
 
   alias ExCellenceServer.Quests.Campaign
   alias ExCellenceServer.Quests.CampaignRun
+  alias ExCellenceServer.Quests.Proposal
   alias ExCellenceServer.Quests.Quest
   alias ExCellenceServer.Quests.QuestRun
   alias ExCellenceServer.Repo
@@ -80,5 +81,37 @@ defmodule ExCellenceServer.Quests do
 
   def update_campaign_run(%CampaignRun{} = run, attrs) do
     run |> CampaignRun.changeset(attrs) |> Repo.update()
+  end
+
+  # --- Proposals ---
+
+  def list_proposals(opts \\ []) do
+    query = from p in Proposal, order_by: [desc: p.inserted_at], preload: [:quest]
+
+    query =
+      case Keyword.get(opts, :status) do
+        nil -> query
+        status -> from p in query, where: p.status == ^status
+      end
+
+    Repo.all(query)
+  end
+
+  def create_proposal(attrs) do
+    %Proposal{} |> Proposal.changeset(attrs) |> Repo.insert()
+  end
+
+  def update_proposal(%Proposal{} = proposal, attrs) do
+    proposal |> Proposal.changeset(attrs) |> Repo.update()
+  end
+
+  def approve_proposal(%Proposal{} = proposal) do
+    proposal
+    |> Proposal.changeset(%{status: "approved", applied_at: DateTime.utc_now()})
+    |> Repo.update()
+  end
+
+  def reject_proposal(%Proposal{} = proposal) do
+    proposal |> Proposal.changeset(%{status: "rejected"}) |> Repo.update()
   end
 end
