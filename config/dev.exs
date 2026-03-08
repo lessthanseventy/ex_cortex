@@ -1,14 +1,5 @@
 import Config
 
-# Configure your database
-config :ex_cellence_server, ExCellenceServer.Repo,
-  username: "andrew",
-  hostname: "localhost",
-  database: "ex_cellence_server_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 # Configure ex_cellence Repo to use our database
 config :ex_cellence, Excellence.Repo,
   username: "andrew",
@@ -18,9 +9,14 @@ config :ex_cellence, Excellence.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-# Ollama defaults for local dev
-config :ex_cellence_server,
-  ollama_url: "http://127.0.0.1:11434"
+# Configure your database
+config :ex_cellence_server, ExCellenceServer.Repo,
+  username: "andrew",
+  hostname: "localhost",
+  database: "ex_cellence_server_dev",
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -80,15 +76,19 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :ex_cellence_server, dev_routes: true
 
+# Ollama defaults for local dev
+config :ex_cellence_server,
+  ollama_url: "http://127.0.0.1:11434"
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
+
+# Initialize plugs at runtime for faster development compilation
+config :phoenix, :plug_init_mode, :runtime
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
-
-# Initialize plugs at runtime for faster development compilation
-config :phoenix, :plug_init_mode, :runtime
 
 config :phoenix_live_view,
   # Include debug annotations and locations in rendered markup.

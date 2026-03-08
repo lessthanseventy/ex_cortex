@@ -1,13 +1,14 @@
 defmodule ExCellenceServerWeb.DashboardLive do
+  @moduledoc false
   use ExCellenceServerWeb, :live_view
 
-  import SaladUI.Card
-  import ExCellenceDashboard.Components.ReplayViewer
-  import ExCellenceDashboard.Components.CalibrationChart
-  import ExCellenceDashboard.Components.DriftMonitor
   import ExCellenceDashboard.Components.AgentHealth
-  import ExCellenceDashboard.Components.OutcomeTracker
+  import ExCellenceDashboard.Components.CalibrationChart
   import ExCellenceDashboard.Components.ConsensusViz
+  import ExCellenceDashboard.Components.DriftMonitor
+  import ExCellenceDashboard.Components.OutcomeTracker
+  import ExCellenceDashboard.Components.ReplayViewer
+  import SaladUI.Card
 
   alias Excellence.Schemas.Decision
   alias Excellence.Schemas.Outcome
@@ -36,9 +37,8 @@ defmodule ExCellenceServerWeb.DashboardLive do
     import Ecto.Query
 
     decisions =
-      ExCellenceServer.Repo.all(
-        from(d in Decision, order_by: [desc: d.inserted_at], limit: 20)
-      )
+      from(d in Decision, order_by: [desc: d.inserted_at], limit: 20)
+      |> ExCellenceServer.Repo.all()
       |> Enum.map(fn d ->
         %{
           action: String.to_atom(d.action || "approve"),
@@ -50,9 +50,8 @@ defmodule ExCellenceServerWeb.DashboardLive do
       end)
 
     outcomes =
-      ExCellenceServer.Repo.all(
-        from(o in Outcome, order_by: [desc: o.inserted_at], limit: 20)
-      )
+      from(o in Outcome, order_by: [desc: o.inserted_at], limit: 20)
+      |> ExCellenceServer.Repo.all()
       |> Enum.map(fn o ->
         %{
           decision_id: to_string(o.decision_id),
@@ -109,7 +108,9 @@ defmodule ExCellenceServerWeb.DashboardLive do
           </.card_header>
           <.card_content>
             <%= if @agents == [] do %>
-              <p class="text-muted-foreground text-sm">No agent data yet. Run an evaluation to see agent health.</p>
+              <p class="text-muted-foreground text-sm">
+                No agent data yet. Run an evaluation to see agent health.
+              </p>
             <% else %>
               <.agent_health agents={@agents} />
             <% end %>

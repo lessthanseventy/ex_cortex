@@ -1,10 +1,11 @@
 defmodule ExCellenceServerWeb.EvaluateLive do
+  @moduledoc false
   use ExCellenceServerWeb, :live_view
 
-  import SaladUI.Card
-  import SaladUI.Badge
-  import ExCellenceDashboard.Components.VerdictPanel
   import ExCellenceDashboard.Components.ConsensusViz
+  import ExCellenceDashboard.Components.VerdictPanel
+  import SaladUI.Badge
+  import SaladUI.Card
 
   alias Excellence.LLM.Ollama
   alias Excellence.Orchestrator
@@ -135,7 +136,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
     Enum.map(meta.roles, fn role_def ->
       mod_name = Module.concat([Excellence, Roles, Macro.camelize(role_def.name)])
 
-      unless Code.ensure_loaded?(mod_name) do
+      if !Code.ensure_loaded?(mod_name) do
         contents =
           quote do
             use Excellence.Role
@@ -169,7 +170,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
   defp build_actions_from_template(meta) do
     mod_name = Module.concat([Excellence, DynamicActions, :Template])
 
-    unless Code.ensure_loaded?(mod_name) do
+    if !Code.ensure_loaded?(mod_name) do
       action_defs =
         Enum.map(meta.actions, fn action ->
           quote do
@@ -180,6 +181,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
       contents =
         quote do
           use Excellence.Actions
+
           unquote_splicing(action_defs)
         end
 
@@ -206,7 +208,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
                   phx-click="select_template"
                   phx-value-template={key}
                 >
-                  <%= name %>
+                  {name}
                 </.button>
               <% end %>
             </div>
@@ -223,7 +225,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
           </div>
 
           <.button phx-click="run" disabled={@running}>
-            <%= if @running, do: "Running...", else: "Run" %>
+            {if @running, do: "Running...", else: "Run"}
           </.button>
         </.card_content>
       </.card>
@@ -231,7 +233,7 @@ defmodule ExCellenceServerWeb.EvaluateLive do
       <%= if @error do %>
         <.card>
           <.card_content class="pt-6">
-            <p class="text-destructive"><%= @error %></p>
+            <p class="text-destructive">{@error}</p>
           </.card_content>
         </.card>
       <% end %>

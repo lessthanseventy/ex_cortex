@@ -1,9 +1,10 @@
 defmodule ExCellenceServerWeb.PipelinesLive do
+  @moduledoc false
   use ExCellenceServerWeb, :live_view
 
-  import SaladUI.Card
   import ExCellenceUI.Components.PipelineBuilder
   import ExCellenceUI.Components.TemplatePicker
+  import SaladUI.Card
 
   alias Excellence.Schemas.ResourceDefinition
 
@@ -90,7 +91,7 @@ defmodule ExCellenceServerWeb.PipelinesLive do
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">Pipelines</h1>
         <.button phx-click="toggle_builder">
-          <%= if @building, do: "Close Builder", else: "Build Pipeline" %>
+          {if @building, do: "Close Builder", else: "Build Pipeline"}
         </.button>
       </div>
 

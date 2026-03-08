@@ -1,4 +1,5 @@
 defmodule ExCellenceServer.Release do
+  @moduledoc false
   @app :ex_cellence_server
 
   def migrate do

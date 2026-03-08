@@ -19,15 +19,14 @@ defmodule ExCellenceServerWeb.ConnCase do
 
   using do
     quote do
+      use ExCellenceServerWeb, :verified_routes
+      import ExCellenceServerWeb.ConnCase
+      import Phoenix.ConnTest
+      import Plug.Conn
       # The default endpoint for testing
       @endpoint ExCellenceServerWeb.Endpoint
 
-      use ExCellenceServerWeb, :verified_routes
-
       # Import conveniences for testing with connections
-      import Plug.Conn
-      import Phoenix.ConnTest
-      import ExCellenceServerWeb.ConnCase
     end
   end
 

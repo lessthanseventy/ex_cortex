@@ -1,9 +1,10 @@
 defmodule ExCellenceServerWeb.RolesLive do
+  @moduledoc false
   use ExCellenceServerWeb, :live_view
 
-  import SaladUI.Card
-  import SaladUI.Badge
   import ExCellenceUI.Components.RoleForm
+  import SaladUI.Badge
+  import SaladUI.Card
 
   alias Excellence.Schemas.ResourceDefinition
 
@@ -83,7 +84,8 @@ defmodule ExCellenceServerWeb.RolesLive do
           |> ExCellenceServer.Repo.insert()
 
         id ->
-          ExCellenceServer.Repo.get!(ResourceDefinition, id)
+          ResourceDefinition
+          |> ExCellenceServer.Repo.get!(id)
           |> ResourceDefinition.changeset(attrs)
           |> ExCellenceServer.Repo.update()
       end
@@ -125,13 +127,12 @@ defmodule ExCellenceServerWeb.RolesLive do
   defp list_roles do
     import Ecto.Query
 
-    ExCellenceServer.Repo.all(
-      from(r in ResourceDefinition, where: r.type == "role", order_by: [desc: r.inserted_at])
-    )
+    ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", order_by: [desc: r.inserted_at]))
   end
 
   defp get_role(id) do
     import Ecto.Query
+
     ExCellenceServer.Repo.one(from(r in ResourceDefinition, where: r.type == "role" and r.id == ^id))
   end
 
@@ -166,14 +167,16 @@ defmodule ExCellenceServerWeb.RolesLive do
             <.card>
               <.card_header>
                 <div class="flex items-center justify-between">
-                  <.card_title><%= role.name %></.card_title>
-                  <.badge variant={status_variant(role.status)}><%= role.status %></.badge>
+                  <.card_title>{role.name}</.card_title>
+                  <.badge variant={status_variant(role.status)}>{role.status}</.badge>
                 </div>
               </.card_header>
               <.card_content>
                 <div class="flex items-center gap-2">
                   <%= for p <- (role.config["perspectives"] || []) do %>
-                    <.badge variant="outline"><%= p["name"] || p[:name] %> · <%= p["model"] || p[:model] %></.badge>
+                    <.badge variant="outline">
+                      {p["name"] || p[:name]} · {p["model"] || p[:model]}
+                    </.badge>
                   <% end %>
                 </div>
               </.card_content>
@@ -183,13 +186,45 @@ defmodule ExCellenceServerWeb.RolesLive do
                     <.button variant="outline" size="sm">Edit</.button>
                   </.link>
                   <%= if role.status == "draft" do %>
-                    <.button variant="outline" size="sm" phx-click="update_status" phx-value-id={role.id} phx-value-status="active">Activate</.button>
+                    <.button
+                      variant="outline"
+                      size="sm"
+                      phx-click="update_status"
+                      phx-value-id={role.id}
+                      phx-value-status="active"
+                    >
+                      Activate
+                    </.button>
                   <% end %>
                   <%= if role.status == "active" do %>
-                    <.button variant="outline" size="sm" phx-click="update_status" phx-value-id={role.id} phx-value-status="shadow">Shadow</.button>
-                    <.button variant="outline" size="sm" phx-click="update_status" phx-value-id={role.id} phx-value-status="paused">Pause</.button>
+                    <.button
+                      variant="outline"
+                      size="sm"
+                      phx-click="update_status"
+                      phx-value-id={role.id}
+                      phx-value-status="shadow"
+                    >
+                      Shadow
+                    </.button>
+                    <.button
+                      variant="outline"
+                      size="sm"
+                      phx-click="update_status"
+                      phx-value-id={role.id}
+                      phx-value-status="paused"
+                    >
+                      Pause
+                    </.button>
                   <% end %>
-                  <.button variant="destructive" size="sm" phx-click="delete" phx-value-id={role.id} data-confirm="Are you sure?">Delete</.button>
+                  <.button
+                    variant="destructive"
+                    size="sm"
+                    phx-click="delete"
+                    phx-value-id={role.id}
+                    data-confirm="Are you sure?"
+                  >
+                    Delete
+                  </.button>
                 </div>
               </.card_footer>
             </.card>
