@@ -35,3 +35,5 @@ ex_cellence_server-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Git worktrees
+.worktrees/
