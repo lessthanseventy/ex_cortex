@@ -17,10 +17,11 @@ config :esbuild,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
+# ex_cellence Oban config — uses Excellence.Repo (started by ex_cellence app)
 config :ex_cellence, Oban,
   engine: Oban.Engines.Basic,
   queues: [default: 10, learning: 5, tuning: 3, mining: 2],
-  repo: ExCellenceServer.Repo
+  repo: Excellence.Repo
 
 # Excellence core config
 config :ex_cellence,

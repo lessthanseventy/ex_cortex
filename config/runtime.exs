@@ -50,7 +50,12 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
-  config :ex_cellence, Oban, repo: ExCellenceServer.Repo
+  config :ex_cellence, Oban, repo: Excellence.Repo
+
+  config :ex_cellence, Excellence.Repo,
+    url: database_url,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+    socket_options: maybe_ipv6
 
   config :ex_cellence_server, ExCellenceServer.Repo,
     # ssl: true,
