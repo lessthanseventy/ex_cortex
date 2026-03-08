@@ -4,7 +4,6 @@ defmodule ExCellenceServerWeb.PipelinesLive do
 
   import ExCellenceUI.Components.PipelineBuilder
   import ExCellenceUI.Components.TemplatePicker
-  import SaladUI.Card
 
   alias Excellence.Schemas.ResourceDefinition
 

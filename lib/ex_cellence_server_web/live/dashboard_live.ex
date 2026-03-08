@@ -4,7 +4,6 @@ defmodule ExCellenceServerWeb.DashboardLive do
 
   import ExCellenceDashboard.Components.AgentHealth
   import ExCellenceDashboard.Components.CalibrationChart
-  import ExCellenceDashboard.Components.ConsensusViz
   import ExCellenceDashboard.Components.DriftMonitor
   import ExCellenceDashboard.Components.OutcomeTracker
   import ExCellenceDashboard.Components.ReplayViewer

@@ -20,6 +20,7 @@ defmodule ExCellenceServerWeb.ConnCase do
   using do
     quote do
       use ExCellenceServerWeb, :verified_routes
+
       import ExCellenceServerWeb.ConnCase
       import Phoenix.ConnTest
       import Plug.Conn

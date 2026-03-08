@@ -4,7 +4,6 @@ defmodule ExCellenceServerWeb.EvaluateLive do
 
   import ExCellenceDashboard.Components.ConsensusViz
   import ExCellenceDashboard.Components.VerdictPanel
-  import SaladUI.Badge
   import SaladUI.Card
 
   alias Excellence.LLM.Ollama
