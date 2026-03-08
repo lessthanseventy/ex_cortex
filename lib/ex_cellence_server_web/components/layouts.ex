@@ -84,5 +84,4 @@ defmodule ExCellenceServerWeb.Layouts do
     </div>
     """
   end
-
 end

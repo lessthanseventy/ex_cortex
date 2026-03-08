@@ -20,10 +20,10 @@ defmodule ExCellenceServer.Evaluator do
   def current_guild do
     import Ecto.Query
 
-    alias Excellence.Schemas.ResourceDefinition
+    alias Excellence.Schemas.Member
 
     names =
-      ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", select: r.name))
+      ExCellenceServer.Repo.all(from(r in Member, where: r.type == "role", select: r.name))
 
     Enum.find_value(@charters, fn {guild_name, mod} ->
       meta = mod.metadata()

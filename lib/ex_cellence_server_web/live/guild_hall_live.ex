@@ -4,7 +4,7 @@ defmodule ExCellenceServerWeb.GuildHallLive do
 
   import SaladUI.Badge
 
-  alias Excellence.Schemas.ResourceDefinition
+  alias Excellence.Schemas.Member
   alias ExCellenceServer.Sources.Book
   alias ExCellenceServer.Sources.Source
 
@@ -64,7 +64,7 @@ defmodule ExCellenceServerWeb.GuildHallLive do
       mod ->
         import Ecto.Query
 
-        ExCellenceServer.Repo.delete_all(from(r in ResourceDefinition))
+        ExCellenceServer.Repo.delete_all(from(r in Member))
         ExCellenceServer.Repo.delete_all(from(s in Source))
 
         install_guild(mod)
@@ -87,8 +87,8 @@ defmodule ExCellenceServerWeb.GuildHallLive do
     resource_defs = mod.resource_definitions()
 
     Enum.each(resource_defs, fn attrs ->
-      %ResourceDefinition{}
-      |> ResourceDefinition.changeset(attrs)
+      %Member{}
+      |> Member.changeset(attrs)
       |> ExCellenceServer.Repo.insert(on_conflict: :nothing)
     end)
   end
@@ -112,7 +112,7 @@ defmodule ExCellenceServerWeb.GuildHallLive do
     import Ecto.Query
 
     names =
-      ExCellenceServer.Repo.all(from(r in ResourceDefinition, where: r.type == "role", select: r.name))
+      ExCellenceServer.Repo.all(from(r in Member, where: r.type == "role", select: r.name))
 
     Enum.find_value(@charters, fn {_name, mod} ->
       meta = mod.metadata()

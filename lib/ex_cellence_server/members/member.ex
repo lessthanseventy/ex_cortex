@@ -1,4 +1,4 @@
-defmodule ExCellenceServer.Members.Member do
+defmodule ExCellenceServer.Members.BuiltinMember do
   @moduledoc false
   defstruct [:id, :name, :description, :category, :system_prompt, :ranks]
 

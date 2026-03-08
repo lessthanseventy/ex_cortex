@@ -3,7 +3,7 @@ defmodule ExCellenceServerWeb.LodgeLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Excellence.Schemas.ResourceDefinition
+  alias Excellence.Schemas.Member
 
   describe "index" do
     test "redirects to guild hall when no members exist", %{conn: conn} do
@@ -11,8 +11,8 @@ defmodule ExCellenceServerWeb.LodgeLiveTest do
     end
 
     test "renders lodge with component sections when members exist", %{conn: conn} do
-      %ResourceDefinition{}
-      |> ResourceDefinition.changeset(%{type: "role", name: "Test Role", status: "active", source: "db", config: %{}})
+      %Member{}
+      |> Member.changeset(%{type: "role", name: "Test Role", status: "active", source: "db", config: %{}})
       |> ExCellenceServer.Repo.insert!()
 
       {:ok, _view, html} = live(conn, "/lodge")

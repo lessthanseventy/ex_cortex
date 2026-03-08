@@ -1,9 +1,8 @@
 defmodule ExCellenceServerWeb.TownSquareLiveTest do
   use ExCellenceServerWeb.ConnCase, async: true
+  use Excessibility
 
   import Phoenix.LiveViewTest
-
-  use Excessibility
 
   describe "index" do
     test "renders town square with category sections", %{conn: conn} do
@@ -19,7 +18,7 @@ defmodule ExCellenceServerWeb.TownSquareLiveTest do
     test "renders all members", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/town-square")
 
-      for member <- ExCellenceServer.Members.Member.all() do
+      for member <- ExCellenceServer.Members.BuiltinMember.all() do
         escaped = member.name |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
         assert html =~ escaped
       end

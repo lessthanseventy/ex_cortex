@@ -4,9 +4,9 @@ defmodule ExCellenceServerWeb.TownSquareLive do
 
   import SaladUI.Badge
 
-  alias Excellence.Schemas.ResourceDefinition
+  alias Excellence.Schemas.Member
   alias ExCellenceServer.Evaluator
-  alias ExCellenceServer.Members.Member
+  alias ExCellenceServer.Members.BuiltinMember
 
   @impl true
   def mount(_params, _session, socket) do
@@ -15,40 +15,36 @@ defmodule ExCellenceServerWeb.TownSquareLive do
     {:ok,
      assign(socket,
        page_title: "Town Square",
-       editors: Member.editors(),
-       analysts: Member.analysts(),
-       specialists: Member.specialists(),
-       advisors: Member.advisors(),
+       editors: BuiltinMember.editors(),
+       analysts: BuiltinMember.analysts(),
+       specialists: BuiltinMember.specialists(),
+       advisors: BuiltinMember.advisors(),
        has_guild: has_guild
      )}
   end
 
   @impl true
   def handle_event("recruit", %{"member-id" => member_id, "rank" => rank}, socket) do
-    member = Member.get(member_id)
+    member = BuiltinMember.get(member_id)
     rank_atom = String.to_existing_atom(rank)
     rank_config = member.ranks[rank_atom]
 
     attrs = %{
       type: "role",
-      name: member.id,
-      status: "draft",
+      name: member.name,
+      status: "active",
       source: "db",
       config: %{
+        "member_id" => member_id,
         "system_prompt" => member.system_prompt,
-        "perspectives" => [
-          %{
-            "name" => rank,
-            "model" => rank_config.model,
-            "strategy" => rank_config.strategy
-          }
-        ],
-        "parse_strategy" => "default"
+        "rank" => rank,
+        "model" => rank_config.model,
+        "strategy" => rank_config.strategy
       }
     }
 
-    %ResourceDefinition{}
-    |> ResourceDefinition.changeset(attrs)
+    %Member{}
+    |> Member.changeset(attrs)
     |> ExCellenceServer.Repo.insert(on_conflict: :nothing)
 
     {:noreply,

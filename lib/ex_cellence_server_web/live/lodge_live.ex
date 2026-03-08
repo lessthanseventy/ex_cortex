@@ -10,15 +10,15 @@ defmodule ExCellenceServerWeb.LodgeLive do
   import SaladUI.Card
 
   alias Excellence.Schemas.Decision
+  alias Excellence.Schemas.Member
   alias Excellence.Schemas.Outcome
-  alias Excellence.Schemas.ResourceDefinition
 
   @impl true
   def mount(_params, _session, socket) do
     import Ecto.Query
 
     has_members =
-      ExCellenceServer.Repo.exists?(from(r in ResourceDefinition, where: r.type == "role"))
+      ExCellenceServer.Repo.exists?(from(r in Member, where: r.type == "role"))
 
     if has_members do
       if connected?(socket) do

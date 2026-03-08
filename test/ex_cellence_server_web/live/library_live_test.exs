@@ -1,9 +1,8 @@
 defmodule ExCellenceServerWeb.LibraryLiveTest do
   use ExCellenceServerWeb.ConnCase, async: true
+  use Excessibility
 
   import Phoenix.LiveViewTest
-
-  use Excessibility
 
   alias ExCellenceServer.Sources.Book
 

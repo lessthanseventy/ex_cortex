@@ -28,8 +28,9 @@ config :ex_cellence_server,
 
 # Apply DATABASE_URL for any env when set (e.g., Docker dev)
 if database_url = System.get_env("DATABASE_URL") do
-  config :ex_cellence_server, ExCellenceServer.Repo, url: database_url
   config :ex_cellence, Excellence.Repo, url: database_url
+
+  config :ex_cellence_server, ExCellenceServer.Repo, url: database_url
 end
 
 if config_env() == :prod do

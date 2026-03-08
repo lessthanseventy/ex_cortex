@@ -3,7 +3,7 @@ defmodule ExCellenceServer.Repo.Migrations.AddExcellenceTables do
 
   def change do
     # Resource definitions
-    create table(:excellence_resource_definitions) do
+    create table(:excellence_members) do
       add :type, :string, null: false
       add :name, :string, null: false
       add :status, :string, null: false, default: "draft"
@@ -14,8 +14,8 @@ defmodule ExCellenceServer.Repo.Migrations.AddExcellenceTables do
       timestamps()
     end
 
-    create unique_index(:excellence_resource_definitions, [:type, :name])
-    create index(:excellence_resource_definitions, [:type, :status])
+    create unique_index(:excellence_members, [:type, :name])
+    create index(:excellence_members, [:type, :status])
 
     # Decisions
     create table(:excellence_decisions) do

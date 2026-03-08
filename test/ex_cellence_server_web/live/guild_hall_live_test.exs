@@ -1,9 +1,8 @@
 defmodule ExCellenceServerWeb.GuildHallLiveTest do
   use ExCellenceServerWeb.ConnCase, async: true
+  use Excessibility
 
   import Phoenix.LiveViewTest
-
-  use Excessibility
 
   describe "index" do
     test "renders guild hall with available guilds", %{conn: conn} do
