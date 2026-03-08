@@ -24,6 +24,7 @@ defmodule ExCellenceServer.Application do
       {Task.Supervisor, name: ExCellenceServer.SourceTaskSupervisor},
       SourceSupervisor,
       {Task, fn -> SourceSupervisor.start_all_active() end},
+      ExCellenceServer.ScheduledQuestRunner,
       ExCellenceServerWeb.Endpoint
     ]
 
