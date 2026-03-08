@@ -25,8 +25,6 @@ defmodule ExCellenceServerWeb.Router do
     live "/", LodgeLive, :index
     live "/guild-hall", GuildHallLive, :index
     live "/members", MembersLive, :index
-    live "/members/new", MembersLive, :new
-    live "/members/:id/edit", MembersLive, :edit
     live "/quests", QuestsLive, :index
     live "/quests/new", QuestsLive, :new
     live "/library", LibraryLive, :index
