@@ -54,11 +54,20 @@ defmodule ExCellenceServerWeb.QuestsLive do
 
   @impl true
   def handle_event("create_quest", %{"quest" => params}, socket) do
+    escalate_on =
+      case params["escalate_on"] do
+        "warn_or_fail" -> %{"type" => "verdict", "values" => ["warn", "fail"]}
+        "fail_only" -> %{"type" => "verdict", "values" => ["fail"]}
+        "always" -> "always"
+        _ -> "never"
+      end
+
     roster = [
       %{
         "who" => params["who"] || "all",
         "when" => "on_trigger",
-        "how" => params["how"] || "consensus"
+        "how" => params["how"] || "consensus",
+        "escalate_on" => escalate_on
       }
     ]
 
@@ -245,7 +254,7 @@ defmodule ExCellenceServerWeb.QuestsLive do
             <.input type="text" name="quest[description]" value="" placeholder="Optional" />
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div>
             <label class="text-sm font-medium">Who runs it</label>
             <select name="quest[who]" class="w-full text-sm border rounded px-2 py-1 bg-background">
@@ -253,6 +262,11 @@ defmodule ExCellenceServerWeb.QuestsLive do
               <option value="apprentice">Apprentice tier</option>
               <option value="journeyman">Journeyman tier</option>
               <option value="master">Master tier</option>
+              <optgroup label="Cloud escalation">
+                <option value="claude_haiku">Claude Haiku</option>
+                <option value="claude_sonnet">Claude Sonnet</option>
+                <option value="claude_opus">Claude Opus</option>
+              </optgroup>
               <%= if @teams != [] do %>
                 <optgroup label="Teams">
                   <%= for team <- @teams do %>
@@ -267,8 +281,19 @@ defmodule ExCellenceServerWeb.QuestsLive do
             <select name="quest[how]" class="w-full text-sm border rounded px-2 py-1 bg-background">
               <option value="consensus">Consensus</option>
               <option value="solo">Solo</option>
-              <option value="unanimous">Unanimous</option>
-              <option value="first_to_pass">First to pass</option>
+              <option value="majority">Majority</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium">Escalate on</label>
+            <select
+              name="quest[escalate_on]"
+              class="w-full text-sm border rounded px-2 py-1 bg-background"
+            >
+              <option value="never">Never</option>
+              <option value="warn_or_fail">Warn or fail</option>
+              <option value="fail_only">Fail only</option>
+              <option value="always">Always</option>
             </select>
           </div>
           <div>
