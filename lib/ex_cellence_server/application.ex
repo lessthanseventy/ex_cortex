@@ -5,6 +5,8 @@ defmodule ExCellenceServer.Application do
 
   use Application
 
+  alias ExCellenceServer.Sources.SourceSupervisor
+
   @impl true
   def start(_type, _args) do
     # SaladUI requires TwMerge.Cache ETS table
@@ -18,6 +20,10 @@ defmodule ExCellenceServer.Application do
       ExCellenceServer.Repo,
       {DNSCluster, query: Application.get_env(:ex_cellence_server, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ExCellenceServer.PubSub},
+      {Registry, keys: :unique, name: ExCellenceServer.SourceRegistry},
+      {Task.Supervisor, name: ExCellenceServer.SourceTaskSupervisor},
+      SourceSupervisor,
+      {Task, fn -> SourceSupervisor.start_all_active() end},
       ExCellenceServerWeb.Endpoint
     ]
 

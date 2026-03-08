@@ -10,6 +10,15 @@ defmodule ExCellenceServerWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :api do
+    plug :accepts, ["json"]
+  end
+
+  scope "/api", ExCellenceServerWeb do
+    pipe_through :api
+    post "/webhooks/:source_id", WebhookController, :receive
+  end
+
   scope "/", ExCellenceServerWeb do
     pipe_through :browser
 
@@ -20,6 +29,8 @@ defmodule ExCellenceServerWeb.Router do
     live "/members/:id/edit", MembersLive, :edit
     live "/quests", QuestsLive, :index
     live "/quests/new", QuestsLive, :new
+    live "/library", LibraryLive, :index
+    live "/stacks", StacksLive, :index
     live "/evaluate", EvaluateLive, :index
     live "/lodge", LodgeLive, :index
   end

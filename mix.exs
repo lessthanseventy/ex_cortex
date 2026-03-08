@@ -64,7 +64,11 @@ defmodule ExCellenceServer.MixProject do
       # UI
       {:salad_ui, "~> 1.0.0-beta.3"},
       {:opentelemetry_api, "~> 1.4"},
-      {:styler, "~> 1.0", only: [:dev, :test], runtime: false}
+      {:styler, "~> 1.0", only: [:dev, :test], runtime: false},
+      # Sources
+      {:req, "~> 0.5"},
+      {:file_system, "~> 1.0"},
+      {:fresh, "~> 0.4"}
     ]
   end
 
