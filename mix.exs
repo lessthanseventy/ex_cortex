@@ -67,6 +67,7 @@ defmodule ExCellenceServer.MixProject do
       {:styler, "~> 1.0", only: [:dev, :test], runtime: false},
       # Sources
       {:req, "~> 0.5"},
+      {:req_llm, "~> 1.6"},
       {:file_system, "~> 1.0"},
       {:fresh, "~> 0.4"},
       # Accessibility

@@ -24,7 +24,8 @@ config :ex_cellence_server, ExCellenceServerWeb.Endpoint, http: [port: String.to
 
 # Ollama URL (Docker: http://ollama:11434, local: http://127.0.0.1:11434)
 config :ex_cellence_server,
-  ollama_url: System.get_env("OLLAMA_URL") || "http://127.0.0.1:11434"
+  ollama_url: System.get_env("OLLAMA_URL") || "http://127.0.0.1:11434",
+  anthropic_api_key: System.get_env("ANTHROPIC_API_KEY")
 
 # Apply DATABASE_URL for any env when set (e.g., Docker dev)
 if database_url = System.get_env("DATABASE_URL") do
