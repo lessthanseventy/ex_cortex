@@ -2,11 +2,11 @@ defmodule ExCellenceServer.Quests do
   @moduledoc false
   import Ecto.Query
 
-  alias ExCellenceServer.Repo
   alias ExCellenceServer.Quests.Campaign
   alias ExCellenceServer.Quests.CampaignRun
   alias ExCellenceServer.Quests.Quest
   alias ExCellenceServer.Quests.QuestRun
+  alias ExCellenceServer.Repo
 
   # --- Quests ---
 

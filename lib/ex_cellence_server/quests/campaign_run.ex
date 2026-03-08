@@ -1,6 +1,7 @@
 defmodule ExCellenceServer.Quests.CampaignRun do
   @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   schema "excellence_campaign_runs" do

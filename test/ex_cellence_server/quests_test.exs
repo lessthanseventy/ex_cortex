@@ -2,8 +2,8 @@ defmodule ExCellenceServer.QuestsTest do
   use ExCellenceServer.DataCase, async: true
 
   alias ExCellenceServer.Quests
-  alias ExCellenceServer.Quests.Quest
   alias ExCellenceServer.Quests.Campaign
+  alias ExCellenceServer.Quests.Quest
 
   describe "quests" do
     test "list_quests returns all quests" do

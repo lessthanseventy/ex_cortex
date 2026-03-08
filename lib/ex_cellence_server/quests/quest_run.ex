@@ -1,6 +1,7 @@
 defmodule ExCellenceServer.Quests.QuestRun do
   @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   schema "excellence_quest_runs" do
