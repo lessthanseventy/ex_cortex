@@ -4,33 +4,31 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title default="ExCellenceServer" suffix=" · Phoenix Framework">
-      {assigns[:page_title]}
-    </.live_title>
+    <.live_title>Excellence</.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
-    <script>
-      (() => {
-        const setTheme = (theme) => {
-          if (theme === "system") {
-            localStorage.removeItem("phx:theme");
-            document.documentElement.removeAttribute("data-theme");
-          } else {
-            localStorage.setItem("phx:theme", theme);
-            document.documentElement.setAttribute("data-theme", theme);
-          }
-        };
-        if (!document.documentElement.hasAttribute("data-theme")) {
-          setTheme(localStorage.getItem("phx:theme") || "system");
-        }
-        window.addEventListener("storage", (e) => e.key === "phx:theme" && setTheme(e.newValue || "system"));
-        
-        window.addEventListener("phx:set-theme", (e) => setTheme(e.target.dataset.phxTheme));
-      })();
-    </script>
   </head>
-  <body>
+  <body class="bg-background min-h-screen">
+    <nav class="border-b bg-card">
+      <div class="container mx-auto flex items-center gap-6 px-4 py-3">
+        <a href="/" class="text-xl font-bold text-foreground">Excellence</a>
+        <div class="flex gap-1">
+          <a href="/roles" class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+            Roles
+          </a>
+          <a href="/pipelines" class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+            Pipelines
+          </a>
+          <a href="/evaluate" class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+            Evaluate
+          </a>
+          <a href="/dashboard" class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground">
+            Dashboard
+          </a>
+        </div>
+      </div>
+    </nav>
     {@inner_content}
   </body>
 </html>
