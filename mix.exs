@@ -61,7 +61,15 @@ defmodule ExCellenceServer.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      # Excellence packages
+      {:ex_cellence, path: "../ex_cellence"},
+      {:ex_cellence_dashboard, path: "../ex_cellence_dashboard"},
+      {:ex_cellence_ui, path: "../ex_cellence_ui"},
+      # UI
+      {:salad_ui, "~> 1.0.0-beta.3"},
+      {:opentelemetry_api, "~> 1.4"},
+      {:styler, "~> 1.0", only: [:dev, :test], runtime: false}
     ]
   end
 
