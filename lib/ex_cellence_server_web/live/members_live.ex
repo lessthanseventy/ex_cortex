@@ -6,6 +6,7 @@ defmodule ExCellenceServerWeb.MembersLive do
   import SaladUI.Button
 
   alias Excellence.Schemas.ResourceDefinition
+  alias ExCellenceServer.Members.Member
 
   @impl true
   def mount(_params, _session, socket) do
@@ -33,8 +34,7 @@ defmodule ExCellenceServerWeb.MembersLive do
       Enum.filter(db_roles, &(&1.config["member_id"] == nil))
 
     builtins =
-      ExCellenceServer.Members.Member.all()
-      |> Enum.map(fn m ->
+      Enum.map(Member.all(), fn m ->
         db = Map.get(db_by_member_id, m.id)
         to_unified(m, db)
       end)
@@ -42,11 +42,10 @@ defmodule ExCellenceServerWeb.MembersLive do
     customs =
       Enum.map(db_custom, &to_unified_custom/1)
 
-    (builtins ++ customs)
-    |> Enum.sort_by(fn m -> {if(m.active, do: 0, else: 1), if(m.builtin, do: 0, else: 1), m.name} end)
+    Enum.sort_by(builtins ++ customs, fn m -> {if(m.active, do: 0, else: 1), if(m.builtin, do: 0, else: 1), m.name} end)
   end
 
-  defp to_unified(%ExCellenceServer.Members.Member{} = m, nil) do
+  defp to_unified(%Member{} = m, nil) do
     %{
       id: m.id,
       name: m.name,
@@ -64,7 +63,7 @@ defmodule ExCellenceServerWeb.MembersLive do
     }
   end
 
-  defp to_unified(%ExCellenceServer.Members.Member{} = m, db) do
+  defp to_unified(%Member{} = m, db) do
     %{
       id: m.id,
       name: m.name,
@@ -132,14 +131,19 @@ defmodule ExCellenceServerWeb.MembersLive do
 
   defp member_card(assigns) do
     ~H"""
-    <div class={["border rounded-lg bg-card transition-opacity", if(!@member.active, do: "opacity-60")]}>
+    <div class={[
+      "border rounded-lg bg-card transition-opacity",
+      if(!@member.active, do: "opacity-60")
+    ]}>
       <%!-- Collapsed header (always visible) --%>
       <div
         class="flex items-center gap-3 px-4 py-3 cursor-pointer"
         phx-click="toggle_expand"
         phx-value-id={@member.id}
       >
-        <span class={["transition-transform text-muted-foreground", if(@expanded, do: "rotate-90")]}>›</span>
+        <span class={["transition-transform text-muted-foreground", if(@expanded, do: "rotate-90")]}>
+          ›
+        </span>
         <div class="flex-1 flex items-center gap-2 min-w-0">
           <span class="font-medium truncate">{@member.name}</span>
           <%= if @member.category do %>
@@ -161,7 +165,8 @@ defmodule ExCellenceServerWeb.MembersLive do
             <span
               class="pointer-events-none inline-block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform"
               style={"transform: translateX(#{if @member.active, do: "16px", else: "0px"})"}
-            ></span>
+            >
+            </span>
           </button>
         </div>
       </div>
@@ -171,7 +176,11 @@ defmodule ExCellenceServerWeb.MembersLive do
         <div class="border-t px-4 py-4">
           <form phx-submit="save_member" class="space-y-4">
             <input type="hidden" name="member[id]" value={@member.id} />
-            <input type="hidden" name="member[builtin]" value={if @member.builtin, do: "true", else: "false"} />
+            <input
+              type="hidden"
+              name="member[builtin]"
+              value={if @member.builtin, do: "true", else: "false"}
+            />
 
             <%= if !@member.builtin do %>
               <div>
@@ -182,7 +191,12 @@ defmodule ExCellenceServerWeb.MembersLive do
 
             <div>
               <label class="text-sm font-medium">System Prompt</label>
-              <.input type="textarea" name="member[system_prompt]" value={@member.system_prompt} rows={5} />
+              <.input
+                type="textarea"
+                name="member[system_prompt]"
+                value={@member.system_prompt}
+                rows={5}
+              />
             </div>
 
             <div class="grid grid-cols-3 gap-3">
@@ -222,7 +236,13 @@ defmodule ExCellenceServerWeb.MembersLive do
           </div>
           <div>
             <label class="text-sm font-medium">System Prompt</label>
-            <.input type="textarea" name="member[system_prompt]" value="" rows={4} placeholder="You are a..." />
+            <.input
+              type="textarea"
+              name="member[system_prompt]"
+              value=""
+              rows={4}
+              placeholder="You are a..."
+            />
           </div>
           <div class="grid grid-cols-3 gap-3">
             <.rank_section rank={:apprentice} data={%{model: "", strategy: "cot"}} />
@@ -318,6 +338,13 @@ defmodule ExCellenceServerWeb.MembersLive do
   end
 
   @impl true
+  def handle_event("toggle_active", %{"id" => id, "active" => current_active}, socket) do
+    new_active = current_active != "true"
+    upsert_member_active(id, new_active, socket.assigns.members)
+    {:noreply, assign(socket, members: list_members())}
+  end
+
+  @impl true
   def handle_event("add_new", _params, socket) do
     {:noreply, assign(socket, adding_new: true)}
   end
@@ -327,4 +354,154 @@ defmodule ExCellenceServerWeb.MembersLive do
     {:noreply, assign(socket, adding_new: false)}
   end
 
+  @impl true
+  def handle_event("create_member", %{"member" => params}, socket) do
+    attrs = %{
+      type: "role",
+      name: params["name"],
+      source: "db",
+      status: "active",
+      config: %{
+        "system_prompt" => params["system_prompt"] || "",
+        "ranks" => parse_ranks(params["ranks"])
+      }
+    }
+
+    case %ResourceDefinition{} |> ResourceDefinition.changeset(attrs) |> ExCellenceServer.Repo.insert() do
+      {:ok, _} ->
+        {:noreply, assign(socket, members: list_members(), adding_new: false)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to create member")}
+    end
+  end
+
+  @impl true
+  def handle_event("save_member", %{"member" => params}, socket) do
+    builtin = params["builtin"] == "true"
+    id = params["id"]
+
+    result =
+      if builtin do
+        save_builtin_member(id, params, socket.assigns.members)
+      else
+        save_custom_member(id, params)
+      end
+
+    case result do
+      {:ok, _} ->
+        {:noreply, assign(socket, members: list_members())}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to save member")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_member", %{"id" => id}, socket) do
+    case ExCellenceServer.Repo.get(ResourceDefinition, id) do
+      nil ->
+        {:noreply, socket}
+
+      resource ->
+        ExCellenceServer.Repo.delete(resource)
+        {:noreply, assign(socket, members: list_members())}
+    end
+  end
+
+  defp upsert_member_active(id, new_active, members) do
+    status = if new_active, do: "active", else: "draft"
+    member = Enum.find(members, &(&1.id == id))
+
+    if member && member.builtin do
+      builtin = Member.get(id)
+
+      case member.db_id && ExCellenceServer.Repo.get(ResourceDefinition, member.db_id) do
+        nil ->
+          %ResourceDefinition{}
+          |> ResourceDefinition.changeset(%{
+            type: "role",
+            name: builtin.name,
+            source: "code",
+            status: status,
+            config: %{
+              "member_id" => id,
+              "system_prompt" => builtin.system_prompt,
+              "ranks" => ranks_to_config(builtin.ranks)
+            }
+          })
+          |> ExCellenceServer.Repo.insert()
+
+        db ->
+          db
+          |> ResourceDefinition.changeset(%{status: status})
+          |> ExCellenceServer.Repo.update()
+      end
+    else
+      case ExCellenceServer.Repo.get(ResourceDefinition, id) do
+        nil -> {:ok, nil}
+        db -> db |> ResourceDefinition.changeset(%{status: status}) |> ExCellenceServer.Repo.update()
+      end
+    end
+  end
+
+  defp save_builtin_member(slug, params, members) do
+    builtin = Member.get(slug)
+    member = Enum.find(members, &(&1.id == slug))
+
+    config = %{
+      "member_id" => slug,
+      "system_prompt" => params["system_prompt"] || "",
+      "ranks" => parse_ranks(params["ranks"])
+    }
+
+    case member && member.db_id && ExCellenceServer.Repo.get(ResourceDefinition, member.db_id) do
+      nil ->
+        %ResourceDefinition{}
+        |> ResourceDefinition.changeset(%{
+          type: "role",
+          name: builtin.name,
+          source: "code",
+          status: "active",
+          config: config
+        })
+        |> ExCellenceServer.Repo.insert()
+
+      db ->
+        db
+        |> ResourceDefinition.changeset(%{config: config})
+        |> ExCellenceServer.Repo.update()
+    end
+  end
+
+  defp save_custom_member(id, params) do
+    case ExCellenceServer.Repo.get(ResourceDefinition, id) do
+      nil ->
+        {:error, :not_found}
+
+      db ->
+        config = %{
+          "system_prompt" => params["system_prompt"] || "",
+          "ranks" => parse_ranks(params["ranks"])
+        }
+
+        db
+        |> ResourceDefinition.changeset(%{name: params["name"] || db.name, config: config})
+        |> ExCellenceServer.Repo.update()
+    end
+  end
+
+  defp parse_ranks(nil), do: %{}
+
+  defp parse_ranks(ranks_map) when is_map(ranks_map) do
+    Map.new(ranks_map, fn {rank_key, v} ->
+      {rank_key, %{"model" => v["model"] || "", "strategy" => v["strategy"] || "cot"}}
+    end)
+  end
+
+  defp ranks_to_config(ranks) when is_map(ranks) do
+    Map.new(ranks, fn {rank, data} ->
+      {Atom.to_string(rank), %{"model" => data.model || "", "strategy" => data.strategy || "cot"}}
+    end)
+  end
 end
