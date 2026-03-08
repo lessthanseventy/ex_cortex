@@ -12,6 +12,8 @@ defmodule ExCellenceServerWeb.LodgeLive do
   alias Excellence.Schemas.Decision
   alias Excellence.Schemas.Member
   alias Excellence.Schemas.Outcome
+  alias ExCellenceServer.Quests
+  alias ExCellenceServer.Quests.Proposal
 
   @impl true
   def mount(_params, _session, socket) do
@@ -84,6 +86,8 @@ defmodule ExCellenceServerWeb.LodgeLive do
       success_rate: if(resolved > 0, do: correct / resolved, else: 0.0)
     }
 
+    proposals = Quests.list_proposals(status: "pending")
+
     assign(socket,
       page_title: "Lodge",
       decisions: decisions,
@@ -91,8 +95,31 @@ defmodule ExCellenceServerWeb.LodgeLive do
       outcome_stats: outcome_stats,
       agents: [],
       drift_result: {:ok, :insufficient_data},
-      calibration_buckets: []
+      calibration_buckets: [],
+      proposals: proposals
     )
+  end
+
+  @impl true
+  def handle_event("approve_proposal", %{"id" => id}, socket) do
+    proposal = ExCellenceServer.Repo.get(Proposal, id)
+
+    if proposal do
+      Quests.approve_proposal(proposal)
+    end
+
+    {:noreply, load_dashboard_data(socket)}
+  end
+
+  @impl true
+  def handle_event("reject_proposal", %{"id" => id}, socket) do
+    proposal = ExCellenceServer.Repo.get(Proposal, id)
+
+    if proposal do
+      Quests.reject_proposal(proposal)
+    end
+
+    {:noreply, load_dashboard_data(socket)}
   end
 
   @impl true
@@ -156,6 +183,59 @@ defmodule ExCellenceServerWeb.LodgeLive do
         </.card>
       <% end %>
     </div>
+
+    <.card>
+      <.card_header>
+        <.card_title>Proposals</.card_title>
+        <.card_description>Suggested improvements from the learning loop</.card_description>
+      </.card_header>
+      <.card_content>
+        <%= if @proposals == [] do %>
+          <p class="text-muted-foreground text-sm">
+            No pending proposals. Proposals appear here after scheduled quests complete.
+          </p>
+        <% else %>
+          <div class="space-y-3">
+            <%= for proposal <- @proposals do %>
+              <div class="flex items-start justify-between gap-4 rounded-lg border p-3">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      {proposal.type}
+                    </span>
+                    <span class="text-xs text-muted-foreground">
+                      {proposal.quest && proposal.quest.name}
+                    </span>
+                  </div>
+                  <p class="text-sm font-medium">{proposal.description}</p>
+                  <%= if proposal.details["suggestion"] && proposal.details["suggestion"] != "" do %>
+                    <p class="text-xs text-muted-foreground mt-1">{proposal.details["suggestion"]}</p>
+                  <% end %>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                  <.button
+                    size="sm"
+                    variant="outline"
+                    phx-click="approve_proposal"
+                    phx-value-id={proposal.id}
+                  >
+                    Approve
+                  </.button>
+                  <.button
+                    size="sm"
+                    variant="ghost"
+                    phx-click="reject_proposal"
+                    phx-value-id={proposal.id}
+                  >
+                    Reject
+                  </.button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </.card_content>
+    </.card>
     """
   end
 end

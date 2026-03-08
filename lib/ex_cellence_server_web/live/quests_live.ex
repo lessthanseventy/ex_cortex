@@ -196,7 +196,12 @@ defmodule ExCellenceServerWeb.QuestsLive do
       end
 
     quest_run = ExCellenceServer.Repo.get!(ExCellenceServer.Quests.QuestRun, quest_run_id)
-    Quests.update_quest_run(quest_run, %{status: status, results: results})
+    {:ok, updated_run} = Quests.update_quest_run(quest_run, %{status: status, results: results})
+
+    if status == "complete" do
+      quest = Quests.get_quest!(updated_run.quest_id)
+      Task.start(fn -> ExCellenceServer.LearningLoop.retrospect(quest, updated_run) end)
+    end
 
     running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
     {:noreply, assign(socket, running: running)}
