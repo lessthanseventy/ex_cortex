@@ -23,6 +23,10 @@ end
 config :ex_cellence_server, ExCellenceServerWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# Ollama URL (Docker: http://ollama:11434, local: http://127.0.0.1:11434)
+config :ex_cellence_server,
+  ollama_url: System.get_env("OLLAMA_URL") || "http://127.0.0.1:11434"
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
@@ -40,6 +44,9 @@ if config_env() == :prod do
     # For machines with several cores, consider starting multiple pools of `pool_size`
     # pool_count: 4,
     socket_options: maybe_ipv6
+
+  config :ex_cellence, Oban,
+    repo: ExCellenceServer.Repo
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

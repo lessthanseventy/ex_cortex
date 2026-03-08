@@ -2,13 +2,16 @@ import Config
 
 # Configure your database
 config :ex_cellence_server, ExCellenceServer.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "andrew",
   hostname: "localhost",
   database: "ex_cellence_server_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
+
+# Ollama defaults for local dev
+config :ex_cellence_server,
+  ollama_url: "http://127.0.0.1:11434"
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

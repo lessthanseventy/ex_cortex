@@ -51,6 +51,15 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+# Excellence core config
+config :ex_cellence,
+  ecto_repos: [ExCellenceServer.Repo]
+
+config :ex_cellence, Oban,
+  engine: Oban.Engines.Basic,
+  queues: [default: 10, learning: 5, tuning: 3, mining: 2],
+  repo: ExCellenceServer.Repo
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
