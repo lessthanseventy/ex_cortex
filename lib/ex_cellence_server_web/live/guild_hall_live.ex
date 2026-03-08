@@ -5,6 +5,9 @@ defmodule ExCellenceServerWeb.GuildHallLive do
   import SaladUI.Badge
 
   alias Excellence.Schemas.Member
+  alias ExCellenceServer.Quests
+  alias ExCellenceServer.Quests.Campaign
+  alias ExCellenceServer.Quests.Quest
   alias ExCellenceServer.Sources.Book
   alias ExCellenceServer.Sources.Source
 
@@ -64,10 +67,22 @@ defmodule ExCellenceServerWeb.GuildHallLive do
       mod ->
         import Ecto.Query
 
+        ExCellenceServer.Repo.delete_all(
+          from(r in ExCellenceServer.Quests.CampaignRun)
+        )
+
+        ExCellenceServer.Repo.delete_all(
+          from(r in ExCellenceServer.Quests.QuestRun)
+        )
+
+        ExCellenceServer.Repo.delete_all(from(c in Campaign))
+        ExCellenceServer.Repo.delete_all(from(q in Quest))
         ExCellenceServer.Repo.delete_all(from(r in Member))
         ExCellenceServer.Repo.delete_all(from(s in Source))
 
         install_guild(mod)
+        install_quests(mod)
+        install_campaigns(mod)
         create_default_sources(guild_name)
 
         {:noreply,
@@ -91,6 +106,29 @@ defmodule ExCellenceServerWeb.GuildHallLive do
       |> Member.changeset(attrs)
       |> ExCellenceServer.Repo.insert(on_conflict: :nothing)
     end)
+  end
+
+  defp install_quests(mod) do
+    if function_exported?(mod, :quest_definitions, 0) do
+      Enum.each(mod.quest_definitions(), fn attrs ->
+        Quests.create_quest(attrs)
+      end)
+    end
+  end
+
+  defp install_campaigns(mod) do
+    if function_exported?(mod, :campaign_definitions, 0) do
+      quest_by_name = Quests.list_quests() |> Map.new(&{&1.name, &1.id})
+
+      Enum.each(mod.campaign_definitions(), fn attrs ->
+        steps =
+          Enum.map(attrs.steps, fn step ->
+            %{"quest_id" => Map.get(quest_by_name, step["quest_name"]), "flow" => step["flow"]}
+          end)
+
+        Quests.create_campaign(Map.put(attrs, :steps, steps))
+      end)
+    end
   end
 
   defp create_default_sources(guild_name) do
