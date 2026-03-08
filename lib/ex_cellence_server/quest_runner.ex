@@ -62,29 +62,26 @@ defmodule ExCellenceServer.QuestRunner do
   # ---------------------------------------------------------------------------
 
   defp resolve_members("all") do
-    Repo.all(from m in Member, where: m.type == "role" and m.status == "active")
+    from(m in Member, where: m.type == "role" and m.status == "active")
+    |> Repo.all()
     |> Enum.map(&member_to_runner_spec/1)
   end
 
-  defp resolve_members("apprentice"),
-    do: resolve_by_rank("apprentice")
+  defp resolve_members("apprentice"), do: resolve_by_rank("apprentice")
 
-  defp resolve_members("journeyman"),
-    do: resolve_by_rank("journeyman")
+  defp resolve_members("journeyman"), do: resolve_by_rank("journeyman")
 
-  defp resolve_members("master"),
-    do: resolve_by_rank("master")
+  defp resolve_members("master"), do: resolve_by_rank("master")
 
   defp resolve_members("team:" <> team) do
-    Repo.all(
-      from m in Member,
-        where: m.type == "role" and m.status == "active" and m.team == ^team
+    from(m in Member,
+      where: m.type == "role" and m.status == "active" and m.team == ^team
     )
+    |> Repo.all()
     |> Enum.map(&member_to_runner_spec/1)
   end
 
-  defp resolve_members(claude_tier)
-       when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
+  defp resolve_members(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
     [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil}]
   end
 
@@ -96,12 +93,12 @@ defmodule ExCellenceServer.QuestRunner do
   end
 
   defp resolve_by_rank(rank) do
-    Repo.all(
-      from m in Member,
-        where:
-          m.type == "role" and m.status == "active" and
-            fragment("config->>'rank' = ?", ^rank)
+    from(m in Member,
+      where:
+        m.type == "role" and m.status == "active" and
+          fragment("config->>'rank' = ?", ^rank)
     )
+    |> Repo.all()
     |> Enum.map(&member_to_runner_spec/1)
   end
 

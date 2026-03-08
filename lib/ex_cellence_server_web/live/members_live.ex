@@ -348,10 +348,11 @@ defmodule ExCellenceServerWeb.MembersLive do
 
   @impl true
   def handle_event("create_member", %{"member" => params}, socket) do
-    team = case params["team"] do
-      "" -> nil
-      t -> t
-    end
+    team =
+      case params["team"] do
+        "" -> nil
+        t -> t
+      end
 
     attrs = %{
       type: "role",
@@ -391,10 +392,11 @@ defmodule ExCellenceServerWeb.MembersLive do
             "strategy" => params["strategy"] || "cot"
           })
 
-        team = case params["team"] do
-          "" -> nil
-          t -> t
-        end
+        team =
+          case params["team"] do
+            "" -> nil
+            t -> t
+          end
 
         attrs =
           if builtin,
