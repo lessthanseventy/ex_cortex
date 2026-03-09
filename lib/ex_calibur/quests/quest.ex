@@ -17,6 +17,7 @@ defmodule ExCalibur.Quests.Quest do
     field :write_mode, :string, default: "append"
     field :entry_title_template, :string
     field :log_title_template, :string
+    field :herald_name, :string
     timestamps()
   end
 
@@ -31,7 +32,8 @@ defmodule ExCalibur.Quests.Quest do
     :output_type,
     :write_mode,
     :entry_title_template,
-    :log_title_template
+    :log_title_template,
+    :herald_name
   ]
 
   def changeset(quest, attrs) do
@@ -40,7 +42,7 @@ defmodule ExCalibur.Quests.Quest do
     |> validate_required(@required)
     |> validate_inclusion(:status, ["active", "paused"])
     |> validate_inclusion(:trigger, ["manual", "source", "scheduled"])
-    |> validate_inclusion(:output_type, ["verdict", "artifact"])
+    |> validate_inclusion(:output_type, ["verdict", "artifact", "slack", "webhook", "github_issue", "github_pr", "email", "pagerduty"])
     |> validate_inclusion(:write_mode, ["append", "replace", "both"])
     |> unique_constraint(:name)
   end

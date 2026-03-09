@@ -25,11 +25,24 @@ defmodule ExCalibur.QuestRunner do
 
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
 
+  @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
+
   @doc """
   Run a quest roster against `input_text`.
   Accepts either a `Quest` struct or just a bare roster list.
   Returns `{:ok, result}` or `{:error, reason}`.
   """
+  def run(%{output_type: type} = quest, input_text) when type in @herald_types do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+
+    with {:ok, attrs} <- run_artifact(quest, augmented),
+         {:ok, herald} <- ExCalibur.Heralds.get_by_name(quest.herald_name || ""),
+         :ok <- ExCalibur.Heralds.deliver(herald, quest, attrs) do
+      {:ok, %{delivered: true, type: type, title: attrs.title}}
+    end
+  end
+
   def run(%{output_type: "artifact"} = quest, input_text) do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
