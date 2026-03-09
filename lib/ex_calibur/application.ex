@@ -21,7 +21,7 @@ defmodule ExCalibur.Application do
       {DNSCluster, query: Application.get_env(:ex_calibur, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ExCalibur.PubSub},
       {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
-      {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor},
+      {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor, max_children: 4},
       SourceSupervisor,
       {Task, fn -> SourceSupervisor.start_all_active() end},
       ExCalibur.PubSubBridge,

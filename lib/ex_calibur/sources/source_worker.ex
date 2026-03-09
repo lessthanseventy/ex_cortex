@@ -42,8 +42,9 @@ defmodule ExCalibur.Sources.SourceWorker do
   @impl true
   def handle_info(:sync_now, state) do
     Process.cancel_timer(state.timer)
-    send(self(), :fetch)
-    {:noreply, state}
+    jitter = :rand.uniform(10_000)
+    timer = Process.send_after(self(), :fetch, jitter)
+    {:noreply, %{state | timer: timer}}
   end
 
   @impl true
