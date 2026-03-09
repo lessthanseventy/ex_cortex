@@ -39,11 +39,36 @@ Two tabs: **Scrolls** | **Books**
 
 Within each tab, items grouped by `suggested_guild` as section headers with a horizontal rule divider. `nil` guild → "General" group, sorted last.
 
-**Key behaviour:**
-- Items already in the user's stacks are **hidden** from the browse list
-- Clicking "Add" immediately creates the source (paused), moves it from browse into the Active Sources section — no redirect
-- If all items in a category are added, the category header hides too
-- If all scrolls/books are added, the tab shows "All added ✓"
+**Scrolls — click Add, done:**
+- Pre-configured (URLs baked into `default_config`)
+- "Add" immediately creates the source (paused), item moves to Active Sources
+- No config step needed
+
+**Books — click Add, expand inline config form:**
+- Books need user-provided config (`repo_path`, `url`, `path`, etc.)
+- Clicking "Add" expands the row in-place showing config fields derived from `default_config` keys
+- "Save & Add" validates, creates the source (paused), row disappears from browse and appears in Active Sources
+- "Cancel" collapses the row, nothing created
+
+**Config fields per source_type:**
+- `git` → repo path, branch, poll interval
+- `directory` → path, file patterns, poll interval
+- `feed` → URL, poll interval
+- `webhook` → (no config needed — endpoint is auto-generated)
+- `url` → URL, poll interval
+- `websocket` → URL, message path, poll interval
+
+**Shared behaviour:**
+- Items already in stacks are hidden from browse list
+- If all items in a category are added, category header hides too
+- If all scrolls/books are added, tab shows "All added ✓"
+
+### Active Sources — Editing Config
+
+Each active source row is expandable. Expanded view shows:
+- Editable config fields (same fields as the Add flow)
+- Status, last run time
+- Save, Pause/Resume, Delete actions
 
 ---
 
@@ -57,9 +82,29 @@ mount/2
   book_groups = Book.books()   |> reject already stacked |> group_by_guild
 
 handle_event("add_to_stacks", %{"book-id" => id})
-  insert Source (status: "paused")
+  # Scrolls: create immediately
+  insert Source (status: "paused", config: book.default_config)
   reload sources + rebuild groups
-  # item disappears from browse, appears in active section
+
+handle_event("expand_book", %{"book-id" => id})
+  # Books: expand inline config form in browse row
+  assign(expanding: id)
+
+handle_event("save_book", %{"book-id" => id, "config" => params})
+  # Books: validate + create
+  merge params into book.default_config
+  insert Source (status: "paused", config: merged_config)
+  reload sources + rebuild groups
+  # row disappears from browse, appears in active section
+
+handle_event("save_source_config", %{"id" => id, "config" => params})
+  # Edit existing source config
+  update Source config
+  reload sources
+
+handle_event("resume", %{"id" => id})   → update status: "active", start worker
+handle_event("pause",  %{"id" => id})   → update status: "paused", stop worker
+handle_event("delete", %{"id" => id})   → delete record, stop worker
 
 handle_event("resume", %{"id" => id})   → update status: "active", start worker
 handle_event("pause",  %{"id" => id})   → update status: "paused", stop worker
