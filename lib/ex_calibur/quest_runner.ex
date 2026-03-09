@@ -17,11 +17,11 @@ defmodule ExCalibur.QuestRunner do
 
   import Ecto.Query
 
-  alias Excellence.LLM.Ollama
-  alias Excellence.Schemas.Member
   alias ExCalibur.ClaudeClient
   alias ExCalibur.ContextProviders.ContextProvider
   alias ExCalibur.Repo
+  alias Excellence.LLM.Ollama
+  alias Excellence.Schemas.Member
 
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
 
@@ -30,6 +30,21 @@ defmodule ExCalibur.QuestRunner do
   Accepts either a `Quest` struct or just a bare roster list.
   Returns `{:ok, result}` or `{:error, reason}`.
   """
+  def run(%{output_type: "artifact"} = quest, input_text) do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+    result = run_artifact(quest, augmented)
+
+    case result do
+      {:ok, attrs} ->
+        ExCalibur.Lore.write_artifact(quest, attrs)
+        {:ok, %{artifact: attrs}}
+
+      error ->
+        error
+    end
+  end
+
   def run(quest, input_text) when is_struct(quest) do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
@@ -233,5 +248,108 @@ defmodule ExCalibur.QuestRunner do
     CONFIDENCE: 0.0-1.0
     REASON: your reasoning
     """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Artifact generation
+  # ---------------------------------------------------------------------------
+
+  defp run_artifact(quest, input_text) do
+    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    ollama = Ollama.new(base_url: ollama_url)
+
+    members =
+      case quest.roster do
+        [first | _] -> resolve_members(first["who"])
+        _ -> resolve_members("all")
+      end
+
+    member = List.first(members)
+
+    if is_nil(member) do
+      {:error, :no_members}
+    else
+      system_prompt = artifact_system_prompt(quest)
+
+      messages = [
+        %{role: :system, content: system_prompt},
+        %{role: :user, content: input_text}
+      ]
+
+      raw =
+        case member do
+          %{type: :claude, tier: tier} ->
+            case ClaudeClient.complete(tier, system_prompt, input_text) do
+              {:ok, text} -> text
+              _ -> nil
+            end
+
+          %{type: :ollama, model: model} ->
+            case Ollama.chat(ollama, model, messages) do
+              {:ok, %{content: text}} -> text
+              {:ok, text} when is_binary(text) -> text
+              _ -> nil
+            end
+        end
+
+      if raw do
+        date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
+        title_template = quest.entry_title_template || quest.name || "Entry — {date}"
+        title = String.replace(title_template, "{date}", date)
+        {:ok, parse_artifact(raw, title)}
+      else
+        {:error, :llm_failed}
+      end
+    end
+  end
+
+  defp artifact_system_prompt(quest) do
+    instruction = quest.description || "Synthesize the provided content."
+
+    """
+    #{instruction}
+
+    Respond in this exact format:
+    TITLE: <a concise title for this entry>
+    IMPORTANCE: <integer 1-5, where 5 is most important, or omit if not applicable>
+    TAGS: <comma-separated tags, lowercase, e.g. a11y,security,deps>
+    BODY:
+    <your synthesized content here, markdown is fine>
+    """
+  end
+
+  defp parse_artifact(text, fallback_title) do
+    title =
+      case Regex.run(~r/^TITLE:\s*(.+)$/m, text) do
+        [_, t] -> String.trim(t)
+        _ -> fallback_title
+      end
+
+    importance =
+      case Regex.run(~r/^IMPORTANCE:\s*(\d)$/m, text) do
+        [_, n] ->
+          val = String.to_integer(n)
+          if val in 1..5, do: val
+
+        _ ->
+          nil
+      end
+
+    tags =
+      case Regex.run(~r/^TAGS:\s*(.+)$/m, text) do
+        [_, t] ->
+          t |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+
+        _ ->
+          []
+      end
+
+    body =
+      case Regex.run(~r/^BODY:\s*\n(.*)/ms, text) do
+        [_, b] -> String.trim(b)
+        _ -> text
+      end
+
+    %{title: title, body: body, tags: tags, importance: importance, source: "quest"}
   end
 end
