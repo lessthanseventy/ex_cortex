@@ -50,8 +50,14 @@ defmodule ExCalibur.Sources.SourceWorker do
   @impl true
   def handle_info(:fetch, state) do
     case state.mod.fetch(state.worker_state, state.source.config) do
+      {:ok, [], new_worker_state} ->
+        update_source_state(state.source, new_worker_state)
+        timer = Process.send_after(self(), :fetch, state.interval)
+        {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
+
       {:ok, items, new_worker_state} ->
-        Enum.each(items, &evaluate_item(&1, state.source))
+        quests = Quests.list_quests_for_source(to_string(state.source.id))
+        evaluate_items(items, state.source, quests)
         update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
         {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
@@ -62,23 +68,37 @@ defmodule ExCalibur.Sources.SourceWorker do
     end
   end
 
-  defp evaluate_item(item, source) do
-    Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
-      try do
-        content = maybe_run_sandbox(item.content, source)
-        quests = Quests.list_quests_for_source(to_string(source.id))
+  # Quest-linked sources: combine all new items into one quest run per quest.
+  # This prevents N×quests tasks when a feed returns many new articles.
+  defp evaluate_items(items, source, [_ | _] = quests) do
+    combined = Enum.map_join(items, "\n\n---\n\n", & &1.content)
 
-        if quests == [] do
-          Evaluator.evaluate(content)
-        else
-          Enum.each(quests, fn quest ->
-            Logger.info("[SourceWorker] Running quest #{quest.id} (#{quest.name}) for source #{source.id}")
-            QuestRunner.run(quest, content)
-          end)
+    Enum.each(quests, fn quest ->
+      Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
+        try do
+          Logger.info(
+            "[SourceWorker] Running quest #{quest.id} (#{quest.name}) for source #{source.id} (#{length(items)} items)"
+          )
+
+          QuestRunner.run(quest, combined)
+        rescue
+          e -> Logger.error("Source evaluation failed: #{Exception.message(e)}")
         end
-      rescue
-        e -> Logger.error("Source evaluation failed: #{Exception.message(e)}")
-      end
+      end)
+    end)
+  end
+
+  # No quests: fall back to per-item evaluator (sandbox supported)
+  defp evaluate_items(items, source, []) do
+    Enum.each(items, fn item ->
+      Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
+        try do
+          content = maybe_run_sandbox(item.content, source)
+          Evaluator.evaluate(content)
+        rescue
+          e -> Logger.error("Source evaluation failed: #{Exception.message(e)}")
+        end
+      end)
     end)
   end
 
