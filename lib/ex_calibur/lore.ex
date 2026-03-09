@@ -33,20 +33,35 @@ defmodule ExCalibur.Lore do
 
   @doc """
   Used by artifact quest runs. Appends or replaces based on quest write_mode.
-  Only replaces entries with source: "quest" (never overwrites manually edited).
+  - "append": always creates a new entry
+  - "replace": overwrites the existing quest-owned entry (never overwrites source: "manual")
+  - "both": replaces the pinned summary entry AND appends a dated log entry
   """
   def write_artifact(quest, attrs) do
-    if quest.write_mode == "replace" do
-      case Repo.one(
-             from e in LoreEntry,
-               where: e.quest_id == ^quest.id and e.source == "quest",
-               limit: 1
-           ) do
-        nil -> create_entry(Map.put(attrs, :quest_id, quest.id))
-        existing -> update_entry(existing, attrs)
-      end
-    else
-      create_entry(Map.put(attrs, :quest_id, quest.id))
+    case quest.write_mode do
+      "replace" ->
+        replace_or_create(quest, attrs)
+
+      "both" ->
+        replace_or_create(quest, attrs)
+        date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
+        log_template = quest.log_title_template || "#{quest.name || "Entry"} — Log — {date}"
+        log_title = String.replace(log_template, "{date}", date)
+        create_entry(Map.merge(attrs, %{quest_id: quest.id, title: log_title}))
+
+      _ ->
+        create_entry(Map.put(attrs, :quest_id, quest.id))
+    end
+  end
+
+  defp replace_or_create(quest, attrs) do
+    case Repo.one(
+           from e in LoreEntry,
+             where: e.quest_id == ^quest.id and e.source == "quest",
+             limit: 1
+         ) do
+      nil -> create_entry(Map.put(attrs, :quest_id, quest.id))
+      existing -> update_entry(existing, attrs)
     end
   end
 

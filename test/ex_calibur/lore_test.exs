@@ -35,6 +35,24 @@ defmodule ExCalibur.LoreTest do
     assert hd(entries).title == "Updated"
   end
 
+  test "write_artifact both mode creates pinned summary and appends log" do
+    quest = %{id: 10, write_mode: "both", name: "Test Quest", log_title_template: "Test Log — {date}"}
+    {:ok, _} = Lore.write_artifact(quest, %{title: "Summary", source: "quest"})
+    entries = Lore.list_entries(quest_id: 10)
+    assert length(entries) == 2
+    titles = Enum.map(entries, & &1.title)
+    assert "Summary" in titles
+    assert Enum.any?(titles, &String.starts_with?(&1, "Test Log"))
+  end
+
+  test "write_artifact both mode replaces summary but keeps appending log" do
+    quest = %{id: 11, write_mode: "both", name: "Test Quest", log_title_template: "Log — {date}"}
+    {:ok, _} = Lore.write_artifact(quest, %{title: "Summary", source: "quest"})
+    {:ok, _} = Lore.write_artifact(quest, %{title: "Summary", source: "quest"})
+    entries = Lore.list_entries(quest_id: 11)
+    assert length(entries) == 3
+  end
+
   test "write_artifact replace mode does not overwrite manually edited entry" do
     quest = %{id: 3, write_mode: "replace"}
     {:ok, entry} = Lore.write_artifact(quest, %{title: "Original"})
