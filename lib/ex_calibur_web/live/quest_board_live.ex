@@ -5,7 +5,6 @@ defmodule ExCaliburWeb.QuestBoardLive do
   import SaladUI.Badge
 
   alias ExCalibur.Board
-  alias ExCalibur.Quests
 
   @categories [
     triage: "Triage",
@@ -106,7 +105,7 @@ defmodule ExCaliburWeb.QuestBoardLive do
         </p>
       </div>
 
-      <%# Category filter + unavailable toggle %>
+      <%!-- Category filter + unavailable toggle --%>
       <div class="flex flex-wrap items-center gap-2">
         <button
           phx-click="filter_category"
@@ -145,7 +144,7 @@ defmodule ExCaliburWeb.QuestBoardLive do
         </div>
       </div>
 
-      <%# Template list %>
+      <%!-- Template list --%>
       <div class="space-y-3">
         <%= for %{template: t, requirements: reqs, readiness: r} <- visible_templates(@templates, @active_category, @show_unavailable) do %>
           <div class={[
