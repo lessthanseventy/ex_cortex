@@ -3,7 +3,7 @@ defmodule ExCalibur.Sources.SourceWorker do
   use GenServer, restart: :transient
 
   alias ExCalibur.Evaluator
-  alias ExCalibur.QuestRunner
+  alias ExCalibur.QuestDebouncer
   alias ExCalibur.Quests
   alias ExCalibur.Sandbox
   alias ExCalibur.Sources.Book
@@ -42,8 +42,7 @@ defmodule ExCalibur.Sources.SourceWorker do
   @impl true
   def handle_info(:sync_now, state) do
     Process.cancel_timer(state.timer)
-    jitter = :rand.uniform(10_000)
-    timer = Process.send_after(self(), :fetch, jitter)
+    timer = Process.send_after(self(), :fetch, 0)
     {:noreply, %{state | timer: timer}}
   end
 
@@ -56,8 +55,11 @@ defmodule ExCalibur.Sources.SourceWorker do
         {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
 
       {:ok, items, new_worker_state} ->
+        maybe_write_to_lore(items, state.source)
         quests = Quests.list_quests_for_source(to_string(state.source.id))
+        campaigns = Quests.list_campaigns_for_source(to_string(state.source.id))
         evaluate_items(items, state.source, quests)
+        enqueue_campaigns(items, state.source, campaigns)
         update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
         {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
@@ -68,27 +70,14 @@ defmodule ExCalibur.Sources.SourceWorker do
     end
   end
 
-  # Quest-linked sources: combine all new items into one quest run per quest.
-  # This prevents N×quests tasks when a feed returns many new articles.
+  # Quest-linked sources: enqueue items into the debouncer, which coalesces
+  # all sources that fire in the same window into a single quest run.
   defp evaluate_items(items, source, [_ | _] = quests) do
-    combined = Enum.map_join(items, "\n\n---\n\n", & &1.content)
+    label = source.config["label"] || source.source_type
+    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(quests)} quest(s)")
 
     Enum.each(quests, fn quest ->
-      Phoenix.PubSub.broadcast(ExCalibur.PubSub, "source_activity", {:quest_started, quest.name, length(items)})
-
-      Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
-        try do
-          Logger.info(
-            "[SourceWorker] Running quest #{quest.id} (#{quest.name}) for source #{source.id} (#{length(items)} items)"
-          )
-
-          QuestRunner.run(quest, combined)
-        rescue
-          e ->
-            Logger.error("Source evaluation failed: #{Exception.message(e)}")
-            Phoenix.PubSub.broadcast(ExCalibur.PubSub, "source_activity", {:quest_error, quest.name, Exception.message(e)})
-        end
-      end)
+      QuestDebouncer.enqueue(quest, label, items)
     end)
   end
 
@@ -104,6 +93,39 @@ defmodule ExCalibur.Sources.SourceWorker do
         end
       end)
     end)
+  end
+
+  defp enqueue_campaigns(_items, _source, []), do: :ok
+
+  defp enqueue_campaigns(items, source, campaigns) do
+    label = source.config["label"] || source.source_type
+    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(campaigns)} campaign(s)")
+
+    Enum.each(campaigns, fn campaign ->
+      QuestDebouncer.enqueue_campaign(campaign, label, items)
+    end)
+  end
+
+  # If the source has "write_to_lore: true" in config, write each item directly
+  # to lore without any LLM involvement. Useful for price tickers and other
+  # structured data that doesn't need synthesis.
+  defp maybe_write_to_lore(items, source) do
+    if source.config["write_to_lore"] do
+      tags = source.config["lore_tags"] || []
+      title_template = source.config["lore_title"] || source.config["label"] || source.source_type
+
+      Enum.each(items, fn item ->
+        now = Calendar.strftime(DateTime.utc_now(), "%Y-%m-%d %H:%M")
+        title = String.replace(title_template, "{datetime}", now)
+
+        ExCalibur.Lore.create_entry(%{
+          title: title,
+          body: item.content,
+          tags: tags,
+          source: "source"
+        })
+      end)
+    end
   end
 
   defp maybe_run_sandbox(content, source) do
