@@ -162,6 +162,26 @@ defmodule ExCalibur.Sources.Book do
         suggested_guild: "Dependency Audit",
         kind: :book
       },
+      # Jira
+      %__MODULE__{
+        id: "jira_webhook",
+        name: "Jira Webhook",
+        description:
+          "Receive Jira issue events via webhook — new issues, status changes, priority escalations.",
+        source_type: "webhook",
+        default_config: %{},
+        suggested_guild: "Incident Triage",
+        kind: :book
+      },
+      %__MODULE__{
+        id: "jira_feed",
+        name: "Jira Activity Feed",
+        description: "Poll a Jira board activity feed for new and updated issues.",
+        source_type: "feed",
+        default_config: %{"url" => "", "interval" => 300_000},
+        suggested_guild: nil,
+        kind: :book
+      },
       # Sandbox-enabled books
       %__MODULE__{
         id: "excessibility_scanner",
