@@ -101,7 +101,7 @@ defmodule ExCalibur.Evaluator do
   defp build_actions_from_charter(meta) do
     mod_name = Module.concat([Excellence, DynamicActions, :Template])
 
-    if !Code.ensure_loaded?(mod_name) do
+    unless Code.ensure_loaded?(mod_name) do
       action_defs =
         Enum.map(meta.actions, fn action ->
           quote do
@@ -116,7 +116,11 @@ defmodule ExCalibur.Evaluator do
           unquote_splicing(action_defs)
         end
 
-      Module.create(mod_name, contents, Macro.Env.location(__ENV__))
+      try do
+        Module.create(mod_name, contents, Macro.Env.location(__ENV__))
+      rescue
+        ArgumentError -> :ok
+      end
     end
 
     mod_name
