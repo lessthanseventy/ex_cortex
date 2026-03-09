@@ -7,6 +7,7 @@ defmodule ExCaliburWeb.StacksLive do
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
   alias ExCalibur.Sources.SourceSupervisor
+  alias ExCalibur.Sources.SourceWorker
 
   @impl true
   def mount(_params, _session, socket) do
@@ -16,6 +17,21 @@ defmodule ExCaliburWeb.StacksLive do
     end
 
     {:ok, load_sources(assign(socket, page_title: "Stacks"))}
+  end
+
+  @impl true
+  def handle_event("sync", %{"id" => id}, socket) do
+    SourceWorker.sync(id)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("sync_all", _params, socket) do
+    Enum.each(socket.assigns.sources, fn source ->
+      if source.status == "active", do: SourceWorker.sync(source.id)
+    end)
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -104,9 +120,10 @@ defmodule ExCaliburWeb.StacksLive do
             Active sources feeding content into your guild for evaluation.
           </p>
         </div>
-        <a href="/library" class="self-start sm:mt-1">
-          <.button variant="outline">Browse Library</.button>
-        </a>
+        <div class="flex gap-2 self-start sm:mt-1">
+          <.button variant="outline" phx-click="sync_all">Sync All</.button>
+          <a href="/library"><.button variant="outline">Browse Library</.button></a>
+        </div>
       </div>
 
       <%= if @sources == [] do %>
@@ -141,6 +158,9 @@ defmodule ExCaliburWeb.StacksLive do
                 </div>
                 <div class="shrink-0 flex gap-2 self-start sm:self-auto">
                   <%= if source.status == "active" do %>
+                    <.button variant="outline" size="sm" phx-click="sync" phx-value-id={source.id}>
+                      Sync
+                    </.button>
                     <.button variant="outline" size="sm" phx-click="pause" phx-value-id={source.id}>
                       Pause
                     </.button>

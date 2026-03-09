@@ -30,6 +30,20 @@ defmodule ExCalibur.Sources.SourceWorker do
     end
   end
 
+  def sync(source_id) do
+    case Registry.lookup(ExCalibur.SourceRegistry, source_id) do
+      [{pid, _}] -> send(pid, :sync_now)
+      [] -> :ok
+    end
+  end
+
+  @impl true
+  def handle_info(:sync_now, state) do
+    Process.cancel_timer(state.timer)
+    send(self(), :fetch)
+    {:noreply, state}
+  end
+
   @impl true
   def handle_info(:fetch, state) do
     case state.mod.fetch(state.worker_state, state.source.config) do
