@@ -52,6 +52,7 @@ defmodule ExCaliburWeb.QuestsLive do
        campaigns: campaigns,
        teams: list_teams(),
        sources: sources,
+       heralds: ExCalibur.Heralds.list_heralds(),
        expanded: MapSet.new(),
        adding_quest: false,
        adding_campaign: false,
@@ -295,6 +296,7 @@ defmodule ExCaliburWeb.QuestsLive do
     write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
     entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
     log_title_template = if output_type == "artifact", do: params["log_title_template"], else: nil
+    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"], else: nil
 
     attrs = %{
       name: params["name"],
@@ -308,7 +310,8 @@ defmodule ExCaliburWeb.QuestsLive do
       output_type: output_type,
       write_mode: write_mode,
       entry_title_template: entry_title_template,
-      log_title_template: log_title_template
+      log_title_template: log_title_template,
+      herald_name: herald_name
     }
 
     case Quests.create_quest(attrs) do
@@ -515,6 +518,7 @@ defmodule ExCaliburWeb.QuestsLive do
     write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
     entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
     log_title_template = if output_type == "artifact", do: params["log_title_template"], else: nil
+    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"], else: nil
 
     attrs = %{
       name: params["name"],
@@ -527,7 +531,8 @@ defmodule ExCaliburWeb.QuestsLive do
       output_type: output_type,
       write_mode: write_mode,
       entry_title_template: entry_title_template,
-      log_title_template: log_title_template
+      log_title_template: log_title_template,
+      herald_name: herald_name
     }
 
     case Quests.update_quest(quest, attrs) do
@@ -621,6 +626,7 @@ defmodule ExCaliburWeb.QuestsLive do
             <.new_quest_form
               teams={@teams}
               sources={@sources}
+              heralds={@heralds}
               trigger_preview={@trigger_previews["new-quest"] || "manual"}
               output_preview={@output_previews["new-quest"] || "verdict"}
               context_preview={@context_previews["new-quest"] || "none"}
@@ -637,6 +643,7 @@ defmodule ExCaliburWeb.QuestsLive do
             past_runs={Map.get(@quest_runs, to_string(quest.id), [])}
             teams={@teams}
             sources={@sources}
+            heralds={@heralds}
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
             output_preview={@output_previews["quest-#{quest.id}"] || quest.output_type || "verdict"}
             context_preview={@context_previews["quest-#{quest.id}"] || "none"}
@@ -650,6 +657,7 @@ defmodule ExCaliburWeb.QuestsLive do
 
   attr :teams, :list, default: []
   attr :sources, :list, default: []
+  attr :heralds, :list, default: []
   attr :trigger_preview, :string, default: "manual"
   attr :output_preview, :string, default: "verdict"
   attr :context_preview, :string, default: "none"
@@ -799,6 +807,14 @@ defmodule ExCaliburWeb.QuestsLive do
             <option value="artifact" selected={@output_preview == "artifact"}>
               Artifact (write to Grimoire)
             </option>
+            <optgroup label="Heralds">
+              <option value="slack" selected={@output_preview == "slack"}>Slack</option>
+              <option value="webhook" selected={@output_preview == "webhook"}>Webhook</option>
+              <option value="github_issue" selected={@output_preview == "github_issue"}>GitHub Issue</option>
+              <option value="github_pr" selected={@output_preview == "github_pr"}>GitHub PR</option>
+              <option value="email" selected={@output_preview == "email"}>Email</option>
+              <option value="pagerduty" selected={@output_preview == "pagerduty"}>PagerDuty</option>
+            </optgroup>
           </select>
         </div>
         <%= if @output_preview == "artifact" do %>
@@ -836,6 +852,27 @@ defmodule ExCaliburWeb.QuestsLive do
               />
             </div>
           <% end %>
+        <% end %>
+        <%= if @output_preview in ~w(slack webhook github_issue github_pr email pagerduty) do %>
+          <% type_heralds = Enum.filter(@heralds, &(&1.type == @output_preview)) %>
+          <div>
+            <label class="text-sm font-medium">Herald</label>
+            <%= if type_heralds == [] do %>
+              <p class="text-xs text-muted-foreground mt-1">
+                No <strong>{@output_preview}</strong> heralds configured.
+                <a href="/library" class="underline">Add one in Library → Heralds.</a>
+              </p>
+            <% else %>
+              <select
+                name="quest[herald_name]"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <%= for h <- type_heralds do %>
+                  <option value={h.name}>{h.name}</option>
+                <% end %>
+              </select>
+            <% end %>
+          </div>
         <% end %>
         <div class="flex justify-end gap-2">
           <.button type="button" variant="outline" size="sm" phx-click="cancel_new">
@@ -1237,6 +1274,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :past_runs, :list, default: []
   attr :teams, :list, default: []
   attr :sources, :list, default: []
+  attr :heralds, :list, default: []
   attr :trigger_preview, :string, default: "manual"
   attr :output_preview, :string, default: "verdict"
   attr :context_preview, :string, default: "none"
@@ -1292,6 +1330,9 @@ defmodule ExCaliburWeb.QuestsLive do
             <.badge variant="outline" class="text-xs">{@quest.trigger}</.badge>
             <%= if roster_summary(@quest) != "" do %>
               <.badge variant="secondary" class="text-xs">{roster_summary(@quest)}</.badge>
+            <% end %>
+            <%= if @quest.output_type in ~w(slack webhook github_issue github_pr email pagerduty) do %>
+              <.badge variant="secondary" class="text-xs shrink-0">📣 {@quest.herald_name || @quest.output_type}</.badge>
             <% end %>
           </div>
         </div>
@@ -1528,6 +1569,14 @@ defmodule ExCaliburWeb.QuestsLive do
                   <option value="artifact" selected={@output_preview == "artifact"}>
                     Artifact (write to Grimoire)
                   </option>
+                  <optgroup label="Heralds">
+                    <option value="slack" selected={@output_preview == "slack"}>Slack</option>
+                    <option value="webhook" selected={@output_preview == "webhook"}>Webhook</option>
+                    <option value="github_issue" selected={@output_preview == "github_issue"}>GitHub Issue</option>
+                    <option value="github_pr" selected={@output_preview == "github_pr"}>GitHub PR</option>
+                    <option value="email" selected={@output_preview == "email"}>Email</option>
+                    <option value="pagerduty" selected={@output_preview == "pagerduty"}>PagerDuty</option>
+                  </optgroup>
                 </select>
               </div>
               <%= if @output_preview == "artifact" do %>
@@ -1578,6 +1627,27 @@ defmodule ExCaliburWeb.QuestsLive do
                     />
                   </div>
                 <% end %>
+              <% end %>
+              <%= if @output_preview in ~w(slack webhook github_issue github_pr email pagerduty) do %>
+                <% type_heralds = Enum.filter(@heralds, &(&1.type == @output_preview)) %>
+                <div class="space-y-1.5">
+                  <label class="text-sm font-medium">Herald</label>
+                  <%= if type_heralds == [] do %>
+                    <p class="text-xs text-muted-foreground mt-1">
+                      No <strong>{@output_preview}</strong> heralds configured.
+                      <a href="/library" class="underline">Add one in Library → Heralds.</a>
+                    </p>
+                  <% else %>
+                    <select
+                      name="quest[herald_name]"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <%= for h <- type_heralds do %>
+                        <option value={h.name} selected={@quest.herald_name == h.name}>{h.name}</option>
+                      <% end %>
+                    </select>
+                  <% end %>
+                </div>
               <% end %>
               <div class="flex justify-end pt-1">
                 <.button type="submit" size="sm" variant="outline">Save changes</.button>
