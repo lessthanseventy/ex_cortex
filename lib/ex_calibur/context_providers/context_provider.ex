@@ -49,5 +49,7 @@ defmodule ExCalibur.ContextProviders.ContextProvider do
 
   defp module_for("member_stats"), do: Module.concat([ExCalibur, ContextProviders, MemberStats])
 
+  defp module_for("lore"), do: Module.concat([ExCalibur, ContextProviders, Lore])
+
   defp module_for(_), do: nil
 end
