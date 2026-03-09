@@ -25,7 +25,8 @@ defmodule ExCaliburWeb.LibraryLive do
          tab: :scrolls,
          expanding: nil,
          herald_type_preview: "slack",
-         editing_herald: nil
+         editing_herald: nil,
+         syncing: false
        )
      )}
   end
@@ -35,6 +36,7 @@ defmodule ExCaliburWeb.LibraryLive do
 
   @impl true
   def handle_info(:refresh, socket), do: {:noreply, load_data(socket)}
+  def handle_info(:sync_done, socket), do: {:noreply, assign(socket, syncing: false)}
 
   def handle_info({:quest_started, name, n}, socket) do
     label = if n == 1, do: "1 item", else: "#{n} items"
@@ -100,11 +102,16 @@ defmodule ExCaliburWeb.LibraryLive do
     {:noreply, put_flash(socket, :info, "Syncing...")}
   end
 
+  def handle_event("sync_all", _params, %{assigns: %{syncing: true}} = socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("sync_all", _params, socket) do
     active = Enum.filter(socket.assigns.sources, &(&1.status == "active"))
     Enum.each(active, fn source -> SourceWorker.sync(source.id) end)
     n = length(active)
-    {:noreply, put_flash(socket, :info, "Syncing #{n} source#{if n == 1, do: "", else: "s"}...")}
+    Process.send_after(self(), :sync_done, 15_000)
+    {:noreply, socket |> assign(syncing: true) |> put_flash(:info, "Syncing #{n} source#{if n == 1, do: "", else: "s"}...")}
   end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
@@ -305,7 +312,9 @@ defmodule ExCaliburWeb.LibraryLive do
           <h2 class="text-xl font-semibold">Active Sources</h2>
           <%= if @sources != [] do %>
             <.badge variant="secondary">{length(@sources)}</.badge>
-            <.button variant="outline" size="sm" phx-click="sync_all" class="ml-auto">Sync All</.button>
+            <.button variant="outline" size="sm" phx-click="sync_all" disabled={@syncing} class="ml-auto">
+              {if @syncing, do: "Syncing…", else: "Sync All"}
+            </.button>
           <% end %>
         </div>
 
