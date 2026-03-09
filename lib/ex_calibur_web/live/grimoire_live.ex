@@ -15,16 +15,17 @@ defmodule ExCaliburWeb.GrimoireLive do
     end
 
     {:ok,
-     assign(socket,
+     socket
+     |> assign(
        page_title: "Grimoire",
-       entries: Lore.list_entries(),
        quests: Quests.list_quests(),
        filter_tags: [],
        filter_quest_id: nil,
        sort: "newest",
        adding: false,
        editing_id: nil
-     )}
+     )
+     |> reload()}
   end
 
   @impl true
@@ -106,14 +107,17 @@ defmodule ExCaliburWeb.GrimoireLive do
   end
 
   defp reload(socket) do
+    augury = Lore.list_entries(tags: ["augury"], sort: "newest") |> List.first()
+
     entries =
       Lore.list_entries(
         tags: socket.assigns.filter_tags,
         quest_id: socket.assigns.filter_quest_id,
         sort: socket.assigns.sort
       )
+      |> Enum.reject(&(augury && &1.id == augury.id))
 
-    assign(socket, entries: entries)
+    assign(socket, augury: augury, entries: entries)
   end
 
   defp parse_entry_params(params) do
@@ -165,6 +169,44 @@ defmodule ExCaliburWeb.GrimoireLive do
           + New Entry
         </.button>
       </div>
+
+      <%!-- The Augury — pinned world thesis hero --%>
+      <%= if @augury do %>
+        <div class="rounded-xl border-2 border-primary/20 bg-primary/5 p-6 space-y-3">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-widest text-primary/60">The Augury</span>
+                <%= if @augury.importance do %>
+                  <span class="text-xs text-muted-foreground font-mono">{importance_dots(@augury.importance)}</span>
+                <% end %>
+              </div>
+              <h2 class="text-lg font-semibold mt-0.5">{@augury.title}</h2>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                The guild's living read on the world — updated by the Strategist.
+                Last revised {Calendar.strftime(@augury.updated_at, "%b %d at %H:%M")}.
+              </p>
+            </div>
+            <div class="flex gap-2 shrink-0">
+              <.button variant="outline" size="sm" phx-click="edit_entry" phx-value-id={@augury.id}>
+                Edit
+              </.button>
+            </div>
+          </div>
+          <%= if @augury.body && @augury.body != "" do %>
+            <div class="text-sm text-foreground/80 whitespace-pre-wrap border-t border-primary/10 pt-3">
+              {@augury.body}
+            </div>
+          <% end %>
+          <%= if @augury.tags != [] do %>
+            <div class="flex flex-wrap gap-1 pt-1">
+              <%= for tag <- @augury.tags do %>
+                <.badge variant="outline" class="text-xs border-primary/20">{tag}</.badge>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
 
       <%!-- Filter bar --%>
       <div class="flex flex-wrap items-center gap-3">

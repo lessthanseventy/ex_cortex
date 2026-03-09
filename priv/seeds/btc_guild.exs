@@ -4,7 +4,7 @@
 # Creates the full BTC Prediction Guild:
 #   Members: Bull, Bear, Macro Analyst, Crypto Degen, The Oracle, Strategist, Auditor
 #   Sources: Binance ticker, Fear & Greed, 6 RSS feeds
-#   Quests:  BTC Price Prediction, World Thesis Update, Prediction Accuracy Retrospective
+#   Quests:  BTC Price Prediction, World Augury Update, Prediction Accuracy Retrospective
 
 alias ExCalibur.Quests
 alias ExCalibur.Sources.Source
@@ -109,10 +109,10 @@ IO.puts("Seeding BTC Prediction Guild...")
       "model" => "phi4-mini",
       "rank" => "master",
       "system_prompt" => """
-      You are the Strategist — you maintain the guild's living world thesis.
+      You are the Strategist — you maintain the guild's living world augury.
       You synthesize macro trends, crypto market dynamics, geopolitical context,
       and recent news into a coherent, updated worldview. Write with conviction.
-      This thesis will be used by the prediction guild as background context.
+      This augury will be used by the prediction guild as background context.
       """
     }
   })
@@ -263,21 +263,21 @@ IO.puts("  ✓ Created #{length(inserted_sources)} sources")
       }
     ],
     context_providers: [
-      %{"type" => "lore", "tags" => ["thesis"], "limit" => 1, "sort" => "newest"},
+      %{"type" => "lore", "tags" => ["augury"], "limit" => 1, "sort" => "newest"},
       %{"type" => "lore", "tags" => ["btc", "prediction"], "limit" => 5, "sort" => "newest"}
     ]
   })
 
-# Quest 2: World Thesis Update (scheduled every 6h, artifact replace)
-{:ok, _thesis_quest} =
+# Quest 2: World Augury Update (scheduled every 6h, artifact replace)
+{:ok, _augury_quest} =
   Quests.create_quest(%{
-    name: "World Thesis Update",
+    name: "World Augury Update",
     description: """
     Synthesize recent macro news, crypto market dynamics, and geopolitical context
-    into a living world thesis. This is the guild's current understanding of the
-    macro environment as it relates to BTC. Replace the previous thesis entirely.
+    into a living world augury. This is the guild's current understanding of the
+    macro environment as it relates to BTC. Replace the previous augury entirely.
 
-    Always include TAGS: thesis,btc,macro in your response.
+    Always include TAGS: augury,btc,macro in your response.
     """,
     trigger: "scheduled",
     schedule: "0 */6 * * *",
@@ -285,7 +285,7 @@ IO.puts("  ✓ Created #{length(inserted_sources)} sources")
     source_ids: [],
     output_type: "artifact",
     write_mode: "replace",
-    entry_title_template: "World Thesis",
+    entry_title_template: "World Augury",
     roster: [
       %{
         "preferred_who" => "Strategist",
@@ -296,7 +296,7 @@ IO.puts("  ✓ Created #{length(inserted_sources)} sources")
       }
     ],
     context_providers: [
-      %{"type" => "lore", "tags" => ["thesis"], "limit" => 1, "sort" => "newest"},
+      %{"type" => "lore", "tags" => ["augury"], "limit" => 1, "sort" => "newest"},
       %{"type" => "lore", "tags" => ["btc"], "limit" => 10, "sort" => "newest"}
     ]
   })
@@ -337,4 +337,4 @@ IO.puts("")
 IO.puts("BTC Prediction Guild seeded successfully!")
 IO.puts("Members: Bull, Bear, Macro Analyst, Crypto Degen, The Oracle, Strategist, Auditor")
 IO.puts("Sources: #{length(inserted_sources)} active (Binance, Fear&Greed, 6 RSS feeds)")
-IO.puts("Quests: BTC Price Prediction (source), World Thesis (6h), Accuracy Retro (hourly)")
+IO.puts("Quests: BTC Price Prediction (source), World Augury (6h), Accuracy Retro (hourly)")
