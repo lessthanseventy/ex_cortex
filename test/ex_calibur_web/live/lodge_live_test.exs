@@ -19,8 +19,8 @@ defmodule ExCaliburWeb.LodgeLiveTest do
       :ok
     end
 
-    test "redirects to guild hall when no members exist", %{conn: conn} do
-      {:error, {:live_redirect, %{to: "/guild-hall"}}} = live(conn, "/lodge")
+    test "redirects to town square when no members exist", %{conn: conn} do
+      {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, "/lodge")
     end
 
     test "renders lodge with component sections when members exist", %{conn: conn} do

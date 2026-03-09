@@ -19,12 +19,12 @@
         </span>
         <div class="flex overflow-x-auto">
           <%= for {label, path} <- [
-            {"Lodge", "/lodge"},
-            {"Guild Hall", "/guild-hall"},
-            {"Quests", "/quests"},
-            {"Library", "/library"},
-            {"Quest Board", "/quest-board"},
-            {"Town Square", "/town-square"}
+            {"Lodge", ~p"/lodge"},
+            {"Guild Hall", ~p"/guild-hall"},
+            {"Quests", ~p"/quests"},
+            {"Library", ~p"/library"},
+            {"Quest Board", ~p"/quest-board"},
+            {"Town Square", ~p"/town-square"}
           ] do %>
             <a
               href={path}

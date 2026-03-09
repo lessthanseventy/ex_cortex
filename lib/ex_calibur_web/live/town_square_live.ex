@@ -106,7 +106,7 @@ defmodule ExCaliburWeb.TownSquareLive do
      socket
      |> assign(current_guild: nil, confirming: nil)
      |> put_flash(:info, "Blank guild ready. Add members and quests to get started.")
-     |> push_navigate(to: "/guild-hall")}
+     |> push_navigate(to: ~p"/guild-hall")}
   end
 
   defp install_guild(mod) do

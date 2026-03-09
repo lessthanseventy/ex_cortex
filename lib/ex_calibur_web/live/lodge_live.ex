@@ -30,7 +30,7 @@ defmodule ExCaliburWeb.LodgeLive do
 
       {:ok, load_dashboard_data(socket)}
     else
-      {:ok, push_navigate(socket, to: "/town-square")}
+      {:ok, push_navigate(socket, to: ~p"/town-square")}
     end
   end
 
