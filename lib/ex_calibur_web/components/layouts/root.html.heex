@@ -12,29 +12,27 @@
     </script>
   </head>
   <body class="bg-background min-h-screen">
-    <nav class="border-b bg-card sticky top-0 z-50">
-      <div class="max-w-6xl mx-auto flex items-center gap-6 px-6 py-3">
-        <span class="text-base font-bold text-foreground tracking-tight shrink-0 select-none">
+    <nav class="border-b bg-card sticky top-0 z-50 shadow-sm">
+      <div class="max-w-6xl mx-auto flex items-center gap-8 px-6 py-0">
+        <span class="text-sm font-bold text-foreground tracking-widest uppercase shrink-0 select-none py-4 border-b-2 border-transparent">
           ExCalibur
         </span>
-        <div class="flex gap-0.5 overflow-x-auto">
+        <div class="flex overflow-x-auto">
           <%= for {label, path} <- [
             {"Lodge", "/lodge"},
-            {"Members", "/members"},
+            {"Guild Hall", "/guild-hall"},
             {"Quests", "/quests"},
-            {"Quest Board", "/quest-board"},
-            {"Grimoire", "/grimoire"},
             {"Library", "/library"},
-            {"Town Square", "/town-square"},
-            {"Guild Hall", "/guild-hall"}
+            {"Quest Board", "/quest-board"},
+            {"Town Square", "/town-square"}
           ] do %>
             <a
               href={path}
               class={[
-                "px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition-colors",
+                "px-4 py-4 text-sm whitespace-nowrap transition-colors border-b-2",
                 if(String.starts_with?(@conn.request_path, path),
-                  do: "bg-accent text-foreground font-medium",
-                  else: "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  do: "border-foreground text-foreground font-medium",
+                  else: "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
                 )
               ]}
             >
