@@ -22,7 +22,7 @@ defmodule ExCaliburWeb.TownSquareLive do
     "Dependency Audit" => Excellence.Charters.DependencyAudit
   }
 
-  @post_install_redirect "/stacks"
+  @post_install_redirect "/guild-hall"
 
   @impl true
   def mount(_params, _session, socket) do
