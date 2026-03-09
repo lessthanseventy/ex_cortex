@@ -13,6 +13,8 @@ defmodule ExCaliburWeb.LibraryLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(ExCalibur.PubSub, "sources")
+      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "source_activity")
+      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
       :timer.send_interval(10_000, self(), :refresh)
     end
 
@@ -33,6 +35,20 @@ defmodule ExCaliburWeb.LibraryLive do
 
   @impl true
   def handle_info(:refresh, socket), do: {:noreply, load_data(socket)}
+
+  def handle_info({:quest_started, name, n}, socket) do
+    label = if n == 1, do: "1 item", else: "#{n} items"
+    {:noreply, put_flash(socket, :info, "Thinking... #{name} (#{label})")}
+  end
+
+  def handle_info({:quest_error, name, msg}, socket) do
+    {:noreply, put_flash(socket, :error, "#{name} failed: #{msg}")}
+  end
+
+  def handle_info({:lore_updated, title}, socket) do
+    {:noreply, put_flash(socket, :info, "New entry: #{title}")}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, load_data(socket)}
 
   defp broadcast_sources do
@@ -81,15 +97,14 @@ defmodule ExCaliburWeb.LibraryLive do
   @impl true
   def handle_event("sync", %{"id" => id}, socket) do
     SourceWorker.sync(id)
-    {:noreply, socket}
+    {:noreply, put_flash(socket, :info, "Syncing...")}
   end
 
   def handle_event("sync_all", _params, socket) do
-    Enum.each(socket.assigns.sources, fn source ->
-      if source.status == "active", do: SourceWorker.sync(source.id)
-    end)
-
-    {:noreply, socket}
+    active = Enum.filter(socket.assigns.sources, &(&1.status == "active"))
+    Enum.each(active, fn source -> SourceWorker.sync(source.id) end)
+    n = length(active)
+    {:noreply, put_flash(socket, :info, "Syncing #{n} source#{if n == 1, do: "", else: "s"}...")}
   end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) do

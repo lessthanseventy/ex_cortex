@@ -74,6 +74,8 @@ defmodule ExCalibur.Sources.SourceWorker do
     combined = Enum.map_join(items, "\n\n---\n\n", & &1.content)
 
     Enum.each(quests, fn quest ->
+      Phoenix.PubSub.broadcast(ExCalibur.PubSub, "source_activity", {:quest_started, quest.name, length(items)})
+
       Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
         try do
           Logger.info(
@@ -82,7 +84,9 @@ defmodule ExCalibur.Sources.SourceWorker do
 
           QuestRunner.run(quest, combined)
         rescue
-          e -> Logger.error("Source evaluation failed: #{Exception.message(e)}")
+          e ->
+            Logger.error("Source evaluation failed: #{Exception.message(e)}")
+            Phoenix.PubSub.broadcast(ExCalibur.PubSub, "source_activity", {:quest_error, quest.name, Exception.message(e)})
         end
       end)
     end)

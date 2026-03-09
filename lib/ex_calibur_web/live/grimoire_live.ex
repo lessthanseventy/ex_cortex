@@ -11,6 +11,7 @@ defmodule ExCaliburWeb.GrimoireLive do
   def mount(_params, _session, socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
+      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "source_activity")
     end
 
     {:ok,
@@ -30,6 +31,19 @@ defmodule ExCaliburWeb.GrimoireLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
+  def handle_info({:quest_started, name, n}, socket) do
+    label = if n == 1, do: "1 item", else: "#{n} items"
+    {:noreply, put_flash(socket, :info, "Thinking... #{name} (#{label})")}
+  end
+
+  def handle_info({:quest_error, name, msg}, socket) do
+    {:noreply, put_flash(socket, :error, "#{name} failed: #{msg}")}
+  end
+
+  def handle_info({:lore_updated, title}, socket) do
+    {:noreply, socket |> reload() |> put_flash(:info, "New entry: #{title}")}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, reload(socket)}
 
   @impl true
