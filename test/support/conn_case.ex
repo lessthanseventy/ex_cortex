@@ -32,7 +32,10 @@ defmodule ExCaliburWeb.ConnCase do
   end
 
   setup tags do
-    ExCalibur.DataCase.setup_sandbox(tags)
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    pid = ExCalibur.DataCase.setup_sandbox(tags)
+    metadata = Phoenix.Ecto.SQL.Sandbox.metadata_for(ExCalibur.Repo, pid)
+    encoded = Phoenix.Ecto.SQL.Sandbox.encode_metadata(metadata)
+    conn = Phoenix.ConnTest.build_conn() |> Plug.Conn.put_req_header("user-agent", encoded)
+    {:ok, conn: conn}
   end
 end

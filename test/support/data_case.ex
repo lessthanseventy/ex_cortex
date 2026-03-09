@@ -40,6 +40,7 @@ defmodule ExCalibur.DataCase do
   def setup_sandbox(tags) do
     pid = Sandbox.start_owner!(ExCalibur.Repo, shared: not tags[:async])
     on_exit(fn -> Sandbox.stop_owner(pid) end)
+    pid
   end
 
   @doc """

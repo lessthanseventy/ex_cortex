@@ -12,8 +12,12 @@ defmodule ExCaliburWeb.Endpoint do
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
-    websocket: [connect_info: [session: @session_options]],
-    longpoll: [connect_info: [session: @session_options]]
+    websocket: [connect_info: [:user_agent, session: @session_options]],
+    longpoll: [connect_info: [:user_agent, session: @session_options]]
+
+  if Application.compile_env(:ex_calibur, :sql_sandbox) do
+    plug Phoenix.Ecto.SQL.Sandbox
+  end
 
   # Serve at "/" the static files from "priv/static" directory.
   #

@@ -51,6 +51,10 @@ defmodule ExCaliburWeb do
     quote do
       use Phoenix.LiveView
 
+      if Application.compile_env(:ex_calibur, :sql_sandbox) do
+        on_mount ExCaliburWeb.LiveAcceptance
+      end
+
       unquote(html_helpers())
     end
   end

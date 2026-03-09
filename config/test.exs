@@ -31,6 +31,8 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   secret_key_base: "KY64T6XteuWzRYjr2XCLj1kG0olZI3nQ91FCAv0Ky5SVo187Hj3GvvchhKEzFRWY",
   server: false
 
+config :ex_calibur, :sql_sandbox, true
+
 config :excessibility,
   endpoint: ExCaliburWeb.Endpoint,
   head_render_path: "/guild-hall",
