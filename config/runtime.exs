@@ -28,10 +28,13 @@ config :ex_calibur,
   anthropic_api_key: System.get_env("ANTHROPIC_API_KEY")
 
 # Apply DATABASE_URL for any env when set (e.g., Docker dev)
-if database_url = System.get_env("DATABASE_URL") do
-  config :ex_cellence, Excellence.Repo, url: database_url
+# Skip in test so DATABASE_URL doesn't override the test database config
+if config_env() != :test do
+  if database_url = System.get_env("DATABASE_URL") do
+    config :ex_cellence, Excellence.Repo, url: database_url
 
-  config :ex_calibur, ExCalibur.Repo, url: database_url
+    config :ex_calibur, ExCalibur.Repo, url: database_url
+  end
 end
 
 if config_env() == :prod do
