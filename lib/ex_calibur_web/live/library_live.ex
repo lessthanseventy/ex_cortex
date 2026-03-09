@@ -380,25 +380,25 @@ defmodule ExCaliburWeb.LibraryLive do
             <div class="space-y-2">
               <%= for herald <- @heralds do %>
                 <div class="rounded-lg border overflow-hidden">
-                  <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="space-y-1 min-w-0">
-                      <div class="flex items-center gap-2 flex-wrap">
-                        <span class="font-medium">{herald.name}</span>
-                        <.badge variant="secondary">{herald.type}</.badge>
-                        <%= if herald.config == %{} or Enum.all?(herald.config, fn {_, v} -> v == "" end) do %>
-                          <.badge variant="destructive" class="text-xs">needs config</.badge>
-                        <% end %>
+                  <div
+                    class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between cursor-pointer hover:bg-muted/20 transition-colors"
+                    phx-click="configure_herald"
+                    phx-value-id={herald.id}
+                  >
+                    <div class="flex items-center gap-3 min-w-0 flex-1">
+                      <span class={[
+                        "transition-transform inline-block text-muted-foreground shrink-0 text-lg leading-none",
+                        if(@editing_herald == to_string(herald.id), do: "rotate-90")
+                      ]}>›</span>
+                      <div class="space-y-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="font-medium">{herald.name}</span>
+                          <.badge variant="secondary">{herald.type}</.badge>
+                          <%= if herald.config == %{} or Enum.all?(herald.config, fn {_, v} -> v == "" end) do %>
+                            <.badge variant="destructive" class="text-xs">needs config</.badge>
+                          <% end %>
+                        </div>
                       </div>
-                    </div>
-                    <div class="shrink-0 self-start sm:self-auto">
-                      <.button
-                        variant="outline"
-                        size="sm"
-                        phx-click="configure_herald"
-                        phx-value-id={herald.id}
-                      >
-                        {if @editing_herald == to_string(herald.id), do: "Cancel", else: "Configure"}
-                      </.button>
                     </div>
                   </div>
                   <%= if @editing_herald == to_string(herald.id) do %>
@@ -407,16 +407,21 @@ defmodule ExCaliburWeb.LibraryLive do
                         Configure
                       </p>
                       <.herald_config_form herald={herald} />
-                      <div class="pt-3">
-                        <.button
-                          size="sm"
-                          variant="destructive"
-                          phx-click="delete_herald"
-                          phx-value-id={herald.id}
-                          data-confirm="Delete this herald?"
-                        >
-                          Delete herald
+                      <div class="flex items-center gap-2 pt-3">
+                        <.button type="submit" form={"herald-config-#{herald.id}"} size="sm">
+                          Save
                         </.button>
+                        <%= unless String.ends_with?(herald.name, ":default") do %>
+                          <.button
+                            size="sm"
+                            variant="destructive"
+                            phx-click="delete_herald"
+                            phx-value-id={herald.id}
+                            data-confirm="Delete this herald?"
+                          >
+                            Delete
+                          </.button>
+                        <% end %>
                       </div>
                     </div>
                   <% end %>
@@ -869,7 +874,7 @@ defmodule ExCaliburWeb.LibraryLive do
 
   defp herald_config_form(assigns) do
     ~H"""
-    <form phx-submit="save_herald_config" class="space-y-3">
+    <form id={"herald-config-#{@herald.id}"} phx-submit="save_herald_config" class="space-y-3">
       <input type="hidden" name="_herald_id" value={@herald.id} />
       <%= if @herald.type == "slack" do %>
         <div>
@@ -1011,7 +1016,6 @@ defmodule ExCaliburWeb.LibraryLive do
           </div>
         </div>
       <% end %>
-      <.button type="submit" size="sm">Save</.button>
     </form>
     """
   end
