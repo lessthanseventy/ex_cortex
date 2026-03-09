@@ -5,37 +5,150 @@ defmodule ExCaliburWeb.LibraryLiveTest do
   import Phoenix.LiveViewTest
 
   alias ExCalibur.Sources.Book
+  alias ExCalibur.Sources.Source
 
-  describe "index" do
-    test "renders library with scrolls and books sections", %{conn: conn} do
+  describe "active sources section" do
+    test "shows empty state when no sources exist", %{conn: conn} do
       {:ok, view, html} = live(conn, "/library")
       html_snapshot(view)
-      assert html =~ "Library"
-      assert html =~ "Scrolls"
-      assert html =~ "Books"
+      assert html =~ "No active sources"
     end
 
-    test "renders all books", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/library")
+    test "shows existing sources with status and actions", %{conn: conn} do
+      book = List.first(Book.scrolls())
 
-      for book <- Book.books() do
-        escaped = book.name |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
-        assert html =~ escaped
-      end
+      %Source{}
+      |> Source.changeset(%{
+        source_type: book.source_type,
+        config: book.default_config,
+        book_id: book.id,
+        status: "paused"
+      })
+      |> ExCalibur.Repo.insert!()
+
+      {:ok, _view, html} = live(conn, "/library")
+      assert html =~ book.name
+      assert html =~ "paused"
+      assert html =~ "Resume"
+      assert html =~ "Delete"
     end
 
-    test "renders all scrolls", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/library")
+    test "pause/resume/delete actions update the list", %{conn: conn} do
+      book = List.first(Book.scrolls())
 
-      for scroll <- Book.scrolls() do
-        escaped = scroll.name |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
-        assert html =~ escaped
-      end
+      source =
+        %Source{}
+        |> Source.changeset(%{
+          source_type: book.source_type,
+          config: book.default_config,
+          book_id: book.id,
+          status: "paused"
+        })
+        |> ExCalibur.Repo.insert!()
+
+      {:ok, view, _html} = live(conn, "/library")
+
+      # Delete removes it
+      view |> element("[phx-click=delete][phx-value-id='#{source.id}']") |> render_click()
+      refute has_element?(view, "[phx-value-id='#{source.id}']")
+    end
+  end
+
+  describe "browse tabs" do
+    test "renders scrolls tab by default", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/library")
+      scroll = List.first(Book.scrolls())
+      escaped = scroll.name |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+      assert html =~ escaped
     end
 
-    test "shows add to stacks button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/library")
-      assert html =~ "Add to Stacks"
+    test "switching to books tab shows books", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/library")
+
+      html = view |> element("button[phx-value-tab=books]") |> render_click()
+
+      book = List.first(Book.books())
+      escaped = book.name |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+      assert html =~ escaped
+    end
+
+    test "adding a scroll moves it from browse to active sources", %{conn: conn} do
+      scroll = List.first(Book.scrolls())
+      {:ok, view, _html} = live(conn, "/library")
+
+      escaped = scroll.name |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+      assert has_element?(view, "button[phx-click=add_scroll]")
+
+      view
+      |> element("button[phx-click=add_scroll][phx-value-book-id='#{scroll.id}']")
+      |> render_click()
+
+      html = render(view)
+      # Should appear in active sources
+      assert html =~ escaped
+      # Should no longer appear in browse list
+      refute has_element?(
+               view,
+               "button[phx-click=add_scroll][phx-value-book-id='#{scroll.id}']"
+             )
+    end
+
+    test "expanding a book shows config form", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/library")
+
+      view |> element("button[phx-value-tab=books]") |> render_click()
+
+      book = List.first(Book.books())
+
+      html =
+        view
+        |> element("button[phx-click=expand_book][phx-value-book-id='#{book.id}']")
+        |> render_click()
+
+      assert html =~ "Save &amp; Add"
+      assert html =~ "Configure"
+    end
+
+    test "books tab snapshot", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/library")
+      view |> element("button[phx-value-tab=books]") |> render_click()
+      html_snapshot(view)
+    end
+  end
+
+  describe "heralds tab" do
+    test "shows heralds tab", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/library")
+      assert html =~ "Heralds"
+    end
+
+    test "can switch to heralds tab", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/library")
+      html = view |> element("[phx-value-tab=heralds]") |> render_click()
+      assert html =~ "Herald"
+    end
+
+    test "can create a slack herald", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/library")
+      view |> element("[phx-value-tab=heralds]") |> render_click()
+
+      view
+      |> form("form[phx-submit=create_herald]", %{
+        "herald[name]" => "slack:eng",
+        "herald[type]" => "slack",
+        "herald[webhook_url]" => "https://hooks.slack.com/test"
+      })
+      |> render_submit()
+
+      assert ExCalibur.Heralds.list_heralds() |> length() == 1
+    end
+
+    test "can delete a herald", %{conn: conn} do
+      {:ok, _} = ExCalibur.Heralds.create_herald(%{name: "slack:eng", type: "slack", config: %{}})
+      {:ok, view, _html} = live(conn, ~p"/library")
+      view |> element("[phx-value-tab=heralds]") |> render_click()
+      view |> element("[phx-click=delete_herald]") |> render_click()
+      assert ExCalibur.Heralds.list_heralds() == []
     end
   end
 end
