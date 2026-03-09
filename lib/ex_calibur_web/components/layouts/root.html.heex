@@ -4,61 +4,47 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    <.live_title>Excellence</.live_title>
+    <.live_title suffix=" · ExCalibur">
+      {assigns[:page_title] || "ExCalibur"}
+    </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
-  <body class="bg-background min-h-screen px-4 lg:px-8">
-    <nav class="border-b bg-card">
-      <div class="max-w-6xl mx-auto flex items-center gap-6 px-8 py-4">
-        <a href="/" class="text-xl font-bold text-foreground">Excellence</a>
-        <div class="flex gap-1">
-          <a
-            href="/guild-hall"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Guild Hall
-          </a>
-          <a
-            href="/town-square"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Town Square
-          </a>
-          <a
-            href="/members"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Members
-          </a>
-          <a
-            href="/quests"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Quests
-          </a>
-          <a
-            href="/library"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Library
-          </a>
-          <a
-            href="/stacks"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Stacks
-          </a>
-          <a
-            href="/lodge"
-            class="px-3 py-2 text-sm rounded-md hover:bg-accent text-muted-foreground hover:text-foreground"
-          >
-            Lodge
-          </a>
+  <body class="bg-background min-h-screen">
+    <nav class="border-b bg-card sticky top-0 z-50">
+      <div class="max-w-6xl mx-auto flex items-center gap-6 px-6 py-3">
+        <span class="text-base font-bold text-foreground tracking-tight shrink-0 select-none">
+          ExCalibur
+        </span>
+        <div class="flex gap-0.5 overflow-x-auto">
+          <%= for {label, path} <- [
+            {"Lodge", "/lodge"},
+            {"Members", "/members"},
+            {"Quests", "/quests"},
+            {"Grimoire", "/grimoire"},
+            {"Library", "/library"},
+            {"Town Square", "/town-square"},
+            {"Guild Hall", "/guild-hall"}
+          ] do %>
+            <a
+              href={path}
+              class={[
+                "px-3 py-1.5 text-sm rounded-md whitespace-nowrap transition-colors",
+                if(String.starts_with?(@conn.request_path, path),
+                  do: "bg-accent text-foreground font-medium",
+                  else: "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )
+              ]}
+            >
+              {label}
+            </a>
+          <% end %>
         </div>
       </div>
     </nav>
-    {@inner_content}
+    <main class="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+      {@inner_content}
+    </main>
   </body>
 </html>

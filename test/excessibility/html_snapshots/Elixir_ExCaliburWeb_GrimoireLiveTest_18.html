@@ -1,0 +1,94 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="csrf-token" content="Chg7Exw8Gg8gJ3kpFnx6XQEBD2QMUEUfkTRiXhtNitM_b5MehyIRz11Z"/>
+    <title data-suffix=" · ExCalibur">
+      Guild Hall
+     · ExCalibur
+    </title>
+    <link phx-track-static="phx-track-static" rel="stylesheet" href="file:///home/andrew/projects/ex_calibur/_build/test/lib/ex_calibur/priv/static/assets/css/app.css"/>
+  </head>
+  <body>
+    <div id="phx-GJsNiDCGv3TsaQoC" data-phx-main="" data-phx-session="SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdKc05pRENHdjNUc2FRb0N3B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwZyb3V0ZXJ3GkVsaXhpci5FeENhbGlidXJXZWIuUm91dGVydwR2aWV3dyBFbGl4aXIuRXhDYWxpYnVyV2ViLkdyaW1vaXJlTGl2ZXcJcm9vdF92aWV3dyBFbGl4aXIuRXhDYWxpYnVyV2ViLkdyaW1vaXJlTGl2ZXcIcm9vdF9waWR3A25pbHcRbGl2ZV9zZXNzaW9uX25hbWV3B2RlZmF1bHRuBgDoBpLQnAFiAAFRgA.lBjblkFEJHfFi9ywkhikxal8trNP1HiBmk5393rOoXE" data-phx-static="SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdKc05pRENHdjNUc2FRb0N3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdqbgYA6AaS0JwBYgABUYA.Iq2nMoNMLchNC5xffp-1F-mny7fTTAaf56ZumQ2VuOU">
+      <div class="space-y-6">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 class="text-3xl font-bold tracking-tight">
+              Grimoire
+            </h1>
+            <p class="text-muted-foreground mt-1.5">
+              Synthesized artifacts and curated entries from your guild&#39;s quests.
+            </p>
+          </div>
+          <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground self-start sm:mt-1" phx-click="add_entry">
+            + New Entry
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <select phx-change="filter_quest" name="quest_id" class="h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none">
+            <option value="">
+              All quests
+            </option>
+            <option value="2">
+              Full Accessibility Audit
+            </option>
+            <option value="1">
+              WCAG Hourly Scan
+            </option>
+          </select>
+          <div class="flex gap-1">
+            <button phx-click="set_sort" phx-value-sort="newest" class="px-3 py-1 text-xs rounded-md border transition-colors bg-accent text-foreground border-accent">
+              Newest
+            </button>
+            <button phx-click="set_sort" phx-value-sort="importance" class="px-3 py-1 text-xs rounded-md border transition-colors border-border text-muted-foreground hover:bg-muted">
+              Importance
+            </button>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="rounded-lg border bg-card p-5 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="space-y-1 flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-medium truncate">
+                    My entry
+                  </span>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <button phx-click="toggle_tag_filter" phx-value-tag="test">
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground text-xs cursor-pointer">
+                      test
+                    </div>
+                  </button>
+                </div>
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="edit_entry" phx-value-id="15">
+                  Edit
+                </button>
+                <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90" phx-click="delete_entry" phx-value-id="15" data-confirm="This entry will be re-generated on the next quest run unless you change the quest&#39;s write mode.">
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div class="text-sm text-foreground/80 whitespace-pre-wrap border-t pt-3">
+              hello
+            </div>
+            <div class="text-xs text-muted-foreground border-t pt-2 flex items-center gap-2">
+              <span>
+                Manual
+              </span>
+              <span>
+                ·
+              </span>
+              <span>
+                Mar 09 03:09
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
