@@ -19,6 +19,15 @@ defmodule ExCaliburWeb.QuestsLive do
     import Ecto.Query
     quests = Quests.list_quests()
     campaigns = Quests.list_campaigns()
+
+    campaign_quest_ids =
+      campaigns
+      |> Enum.flat_map(fn c -> Enum.map(c.steps, &(&1["quest_id"])) end)
+      |> MapSet.new()
+
+    standalone_quests =
+      Enum.reject(quests, fn q -> MapSet.member?(campaign_quest_ids, to_string(q.id)) end)
+
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [asc: s.inserted_at]))
 
     trigger_previews =
@@ -54,6 +63,7 @@ defmodule ExCaliburWeb.QuestsLive do
      assign(socket,
        quests: quests,
        campaigns: campaigns,
+       standalone_quests: standalone_quests,
        teams: list_teams(),
        sources: sources,
        heralds: ExCalibur.Heralds.list_heralds(),
@@ -200,7 +210,7 @@ defmodule ExCaliburWeb.QuestsLive do
     {a, b} = {Enum.at(steps, idx - 1), Enum.at(steps, idx)}
     new_steps = steps |> List.replace_at(idx - 1, b) |> List.replace_at(idx, a)
     Quests.update_campaign(campaign, %{steps: new_steps})
-    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+    {:noreply, assign_campaigns(socket)}
   end
 
   @impl true
@@ -211,7 +221,7 @@ defmodule ExCaliburWeb.QuestsLive do
     {a, b} = {Enum.at(steps, idx), Enum.at(steps, idx + 1)}
     new_steps = steps |> List.replace_at(idx, b) |> List.replace_at(idx + 1, a)
     Quests.update_campaign(campaign, %{steps: new_steps})
-    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+    {:noreply, assign_campaigns(socket)}
   end
 
   @impl true
@@ -220,7 +230,7 @@ defmodule ExCaliburWeb.QuestsLive do
     campaign = Quests.get_campaign!(String.to_integer(id))
     new_steps = List.delete_at(campaign.steps, idx)
     Quests.update_campaign(campaign, %{steps: new_steps})
-    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+    {:noreply, assign_campaigns(socket)}
   end
 
   @impl true
@@ -232,7 +242,7 @@ defmodule ExCaliburWeb.QuestsLive do
     campaign = Quests.get_campaign!(String.to_integer(id))
     new_step = %{"quest_id" => quest_id, "flow" => "always"}
     Quests.update_campaign(campaign, %{steps: campaign.steps ++ [new_step]})
-    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+    {:noreply, assign_campaigns(socket)}
   end
 
   @impl true
@@ -321,11 +331,13 @@ defmodule ExCaliburWeb.QuestsLive do
     case Quests.create_quest(attrs) do
       {:ok, _} ->
         quests = Quests.list_quests()
-        previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
+        campaigns = socket.assigns.campaigns
+        standalone_quests = compute_standalone_quests(campaigns, quests)
+        previews = rebuild_trigger_previews(quests, campaigns, socket.assigns.trigger_previews)
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
         context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
         write_mode_previews = rebuild_write_mode_previews(quests, socket.assigns.write_mode_previews)
-        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
+        {:noreply, assign(socket, quests: quests, standalone_quests: standalone_quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create quest")}
@@ -404,7 +416,7 @@ defmodule ExCaliburWeb.QuestsLive do
     quest = Quests.get_quest!(String.to_integer(id))
     new_status = if quest.status == "active", do: "paused", else: "active"
     Quests.update_quest(quest, %{status: new_status})
-    {:noreply, assign(socket, quests: Quests.list_quests())}
+    {:noreply, assign_quests(socket)}
   end
 
   @impl true
@@ -412,21 +424,35 @@ defmodule ExCaliburWeb.QuestsLive do
     campaign = Quests.get_campaign!(String.to_integer(id))
     new_status = if campaign.status == "active", do: "paused", else: "active"
     Quests.update_campaign(campaign, %{status: new_status})
-    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+    {:noreply, assign_campaigns(socket)}
   end
 
   @impl true
   def handle_event("delete_quest", %{"id" => id}, socket) do
     quest = Quests.get_quest!(String.to_integer(id))
     Quests.delete_quest(quest)
-    {:noreply, assign(socket, quests: Quests.list_quests())}
+    {:noreply, assign_quests(socket)}
   end
 
   @impl true
   def handle_event("delete_campaign", %{"id" => id}, socket) do
     campaign = Quests.get_campaign!(String.to_integer(id))
     Quests.delete_campaign(campaign)
-    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+    {:noreply, assign_campaigns(socket)}
+  end
+
+  @impl true
+  def handle_event("pause_campaign", %{"id" => id}, socket) do
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    {:ok, _} = Quests.update_campaign(campaign, %{status: "paused"})
+    {:noreply, assign_campaigns(socket)}
+  end
+
+  @impl true
+  def handle_event("resume_campaign", %{"id" => id}, socket) do
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    {:ok, _} = Quests.update_campaign(campaign, %{status: "active"})
+    {:noreply, assign_campaigns(socket)}
   end
 
   @impl true
@@ -453,6 +479,24 @@ defmodule ExCaliburWeb.QuestsLive do
 
   def handle_event("run_quest", _, socket) do
     {:noreply, put_flash(socket, :error, "Please enter some input to evaluate")}
+  end
+
+  def handle_event("run_quest_now", %{"quest_id" => id}, socket) do
+    quest = Quests.get_quest!(String.to_integer(id))
+    run_id = to_string(quest.id)
+    parent = self()
+
+    Task.start(fn ->
+      result = ExCalibur.QuestRunner.run(quest, "")
+      send(parent, {:quest_run_complete, run_id, nil, result})
+    end)
+
+    running = Map.put(socket.assigns.running, run_id, %{status: "running", result: nil})
+
+    {:noreply,
+     socket
+     |> assign(running: running)
+     |> put_flash(:info, "Running #{quest.name}…")}
   end
 
   @impl true
@@ -542,11 +586,13 @@ defmodule ExCaliburWeb.QuestsLive do
     case Quests.update_quest(quest, attrs) do
       {:ok, _} ->
         quests = Quests.list_quests()
-        previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
+        campaigns = socket.assigns.campaigns
+        standalone_quests = compute_standalone_quests(campaigns, quests)
+        previews = rebuild_trigger_previews(quests, campaigns, socket.assigns.trigger_previews)
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
         context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
         write_mode_previews = rebuild_write_mode_previews(quests, socket.assigns.write_mode_previews)
-        {:noreply, assign(socket, quests: quests, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
+        {:noreply, assign(socket, quests: quests, standalone_quests: standalone_quests, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update quest")}
@@ -583,7 +629,7 @@ defmodule ExCaliburWeb.QuestsLive do
 
   @impl true
   def handle_info(:refresh, socket) do
-    {:noreply, assign(socket, quests: Quests.list_quests(), campaigns: Quests.list_campaigns())}
+    {:noreply, assign_standalone_quests(socket, Quests.list_campaigns(), Quests.list_quests())}
   end
 
   @impl true
@@ -627,11 +673,11 @@ defmodule ExCaliburWeb.QuestsLive do
 
       <div>
         <div class="flex items-center justify-between mb-1">
-          <h2 class="text-lg font-semibold">Quests</h2>
+          <h2 class="text-lg font-semibold">Standalone Quests</h2>
           <.button variant="outline" size="sm" phx-click="add_quest">+ Quest</.button>
         </div>
         <p class="text-sm text-muted-foreground mb-5">
-          Individual evaluation runs — trigger manually, on a schedule, or from a source.
+          Quests not used in any campaign — trigger manually, on a schedule, or from a source.
         </p>
         <%= if @adding_quest do %>
           <div class="mb-3">
@@ -648,7 +694,7 @@ defmodule ExCaliburWeb.QuestsLive do
         <% end %>
         <div class="space-y-3">
           <.quest_card
-            :for={quest <- @quests}
+            :for={quest <- @standalone_quests}
             quest={quest}
             expanded={MapSet.member?(@expanded, "quest-#{quest.id}")}
             run_state={Map.get(@running, to_string(quest.id))}
@@ -1031,14 +1077,14 @@ defmodule ExCaliburWeb.QuestsLive do
   defp campaign_card(assigns) do
     ~H"""
     <div class={["border rounded-lg bg-card", if(@campaign.status == "paused", do: "opacity-60")]}>
-      <div class="flex items-center gap-3 px-5 py-4">
+      <div class="flex items-stretch gap-3 px-5">
         <div
-          class="flex flex-1 items-center gap-3 cursor-pointer min-w-0"
+          class="flex flex-1 items-center gap-3 py-4 cursor-pointer min-w-0"
           phx-click="toggle_expand"
           phx-value-id={"campaign-#{@campaign.id}"}
         >
           <span class={[
-            "transition-transform text-muted-foreground",
+            "transition-transform text-muted-foreground shrink-0",
             if(@expanded, do: "rotate-90")
           ]}>
             ›
@@ -1323,14 +1369,14 @@ defmodule ExCaliburWeb.QuestsLive do
 
     ~H"""
     <div class={["border rounded-lg bg-card shadow-sm", if(@quest.status == "paused", do: "opacity-60")]}>
-      <div class="flex items-center gap-3 px-5 py-3.5">
+      <div class="flex items-stretch gap-3 px-5">
         <div
-          class="flex flex-1 items-center gap-3 cursor-pointer min-w-0"
+          class="flex flex-1 items-center gap-3 py-3.5 cursor-pointer min-w-0"
           phx-click="toggle_expand"
           phx-value-id={"quest-#{@quest.id}"}
         >
           <span class={[
-            "transition-transform duration-150 text-muted-foreground text-lg leading-none",
+            "transition-transform duration-150 text-muted-foreground text-lg leading-none shrink-0",
             if(@expanded, do: "rotate-90")
           ]}>
             ›
@@ -1348,7 +1394,15 @@ defmodule ExCaliburWeb.QuestsLive do
             <% end %>
           </div>
         </div>
-        <div class="flex items-center gap-1 shrink-0 ml-2">
+        <div class="flex items-center gap-1 shrink-0">
+          <.button
+            size="sm"
+            variant="outline"
+            phx-click="run_quest_now"
+            phx-value-quest_id={@quest.id}
+          >
+            ▶ Run
+          </.button>
           <.button
             size="sm"
             variant="ghost"
@@ -1751,6 +1805,30 @@ defmodule ExCaliburWeb.QuestsLive do
 
   defp roster_summary(%Quest{roster: []}), do: ""
   defp roster_summary(%Quest{roster: [first | _]}), do: "#{first["who"]} · #{first["how"]}"
+
+  defp assign_campaigns(socket) do
+    campaigns = Quests.list_campaigns()
+    assign_standalone_quests(socket, campaigns, socket.assigns.quests)
+  end
+
+  defp assign_quests(socket) do
+    quests = Quests.list_quests()
+    assign_standalone_quests(socket, socket.assigns.campaigns, quests)
+  end
+
+  defp compute_standalone_quests(campaigns, quests) do
+    campaign_quest_ids =
+      campaigns
+      |> Enum.flat_map(fn c -> Enum.map(c.steps, &(&1["quest_id"])) end)
+      |> MapSet.new()
+
+    Enum.reject(quests, fn q -> MapSet.member?(campaign_quest_ids, to_string(q.id)) end)
+  end
+
+  defp assign_standalone_quests(socket, campaigns, quests) do
+    standalone_quests = compute_standalone_quests(campaigns, quests)
+    assign(socket, campaigns: campaigns, quests: quests, standalone_quests: standalone_quests)
+  end
 
   defp list_teams do
     import Ecto.Query
