@@ -70,7 +70,7 @@ defmodule ExCalibur.QuestRunner do
 
     {steps, final_verdict} =
       Enum.reduce_while(roster, {[], nil}, fn step, {traces, _prev_verdict} ->
-        members = resolve_members(step["who"])
+        members = resolve_members(step)
 
         step_results = run_step(members, step["how"], input_text, ollama)
 
@@ -96,6 +96,20 @@ defmodule ExCalibur.QuestRunner do
   # ---------------------------------------------------------------------------
   # Member resolution
   # ---------------------------------------------------------------------------
+
+  defp resolve_members(%{"preferred_who" => name} = step) when is_binary(name) and name != "" do
+    case from(m in Member,
+           where: m.type == "role" and m.status == "active" and m.name == ^name
+         )
+         |> Repo.all()
+         |> Enum.map(&member_to_runner_spec/1) do
+      [] -> resolve_members(%{step | "preferred_who" => nil})
+      members -> members
+    end
+  end
+
+  defp resolve_members(%{"who" => who}), do: resolve_members(who)
+  defp resolve_members(step) when is_map(step), do: resolve_members(Map.get(step, "who", "all"))
 
   defp resolve_members("all") do
     from(m in Member, where: m.type == "role" and m.status == "active")
@@ -273,7 +287,7 @@ defmodule ExCalibur.QuestRunner do
 
     members =
       case quest.roster do
-        [first | _] -> resolve_members(first["who"])
+        [first | _] -> resolve_members(first)
         _ -> resolve_members("all")
       end
 
