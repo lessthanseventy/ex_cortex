@@ -28,6 +28,19 @@ defmodule ExCaliburWeb.QuestsLive do
       |> Map.new(fn q -> {"quest-#{q.id}", q.output_type || "verdict"} end)
       |> Map.put("new-quest", "verdict")
 
+    context_previews =
+      quests
+      |> Map.new(fn q ->
+        type =
+          case q.context_providers do
+            [%{"type" => t} | _] -> t
+            _ -> "none"
+          end
+
+        {"quest-#{q.id}", type}
+      end)
+      |> Map.put("new-quest", "none")
+
     {:ok,
      assign(socket,
        quests: quests,
@@ -40,7 +53,8 @@ defmodule ExCaliburWeb.QuestsLive do
        running: %{},
        quest_runs: %{},
        trigger_previews: trigger_previews,
-       output_previews: output_previews
+       output_previews: output_previews,
+       context_previews: context_previews
      )}
   end
 
@@ -95,6 +109,7 @@ defmodule ExCaliburWeb.QuestsLive do
   def handle_event("preview_quest_trigger", %{"quest_id" => id} = params, socket) do
     t = get_in(params, ["quest", "trigger"])
     o = get_in(params, ["quest", "output_type"])
+    c = get_in(params, ["quest", "context_type"])
 
     socket =
       if t,
@@ -106,6 +121,11 @@ defmodule ExCaliburWeb.QuestsLive do
         do: assign(socket, output_previews: Map.put(socket.assigns.output_previews, "quest-#{id}", o)),
         else: socket
 
+    socket =
+      if c,
+        do: assign(socket, context_previews: Map.put(socket.assigns.context_previews, "quest-#{id}", c)),
+        else: socket
+
     {:noreply, socket}
   end
 
@@ -115,6 +135,7 @@ defmodule ExCaliburWeb.QuestsLive do
   def handle_event("preview_new_quest_trigger", params, socket) do
     t = get_in(params, ["quest", "trigger"])
     o = get_in(params, ["quest", "output_type"])
+    c = get_in(params, ["quest", "context_type"])
 
     socket =
       if t,
@@ -124,6 +145,11 @@ defmodule ExCaliburWeb.QuestsLive do
     socket =
       if o,
         do: assign(socket, output_previews: Map.put(socket.assigns.output_previews, "new-quest", o)),
+        else: socket
+
+    socket =
+      if c,
+        do: assign(socket, context_previews: Map.put(socket.assigns.context_previews, "new-quest", c)),
         else: socket
 
     {:noreply, socket}
@@ -217,6 +243,22 @@ defmodule ExCaliburWeb.QuestsLive do
         "member_stats" ->
           [%{"type" => "member_stats"}]
 
+        "lore" ->
+          tags =
+            (params["kb_tags"] || "")
+            |> String.split(",")
+            |> Enum.map(&String.trim/1)
+            |> Enum.reject(&(&1 == ""))
+
+          limit =
+            case Integer.parse(params["kb_limit"] || "10") do
+              {n, _} -> max(1, n)
+              _ -> 10
+            end
+
+          sort = params["kb_sort"] || "newest"
+          [%{"type" => "lore", "tags" => tags, "limit" => limit, "sort" => sort}]
+
         _ ->
           []
       end
@@ -254,7 +296,8 @@ defmodule ExCaliburWeb.QuestsLive do
         quests = Quests.list_quests()
         previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
-        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews)}
+        context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
+        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create quest")}
@@ -417,6 +460,22 @@ defmodule ExCaliburWeb.QuestsLive do
         "member_stats" ->
           [%{"type" => "member_stats"}]
 
+        "lore" ->
+          tags =
+            (params["kb_tags"] || "")
+            |> String.split(",")
+            |> Enum.map(&String.trim/1)
+            |> Enum.reject(&(&1 == ""))
+
+          limit =
+            case Integer.parse(params["kb_limit"] || "10") do
+              {n, _} -> max(1, n)
+              _ -> 10
+            end
+
+          sort = params["kb_sort"] || "newest"
+          [%{"type" => "lore", "tags" => tags, "limit" => limit, "sort" => sort}]
+
         _ ->
           []
       end
@@ -453,7 +512,8 @@ defmodule ExCaliburWeb.QuestsLive do
         quests = Quests.list_quests()
         previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
-        {:noreply, assign(socket, quests: quests, trigger_previews: previews, output_previews: output_previews)}
+        context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
+        {:noreply, assign(socket, quests: quests, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update quest")}
@@ -539,6 +599,7 @@ defmodule ExCaliburWeb.QuestsLive do
               sources={@sources}
               trigger_preview={@trigger_previews["new-quest"] || "manual"}
               output_preview={@output_previews["new-quest"] || "verdict"}
+              context_preview={@context_previews["new-quest"] || "none"}
             />
           </div>
         <% end %>
@@ -553,6 +614,7 @@ defmodule ExCaliburWeb.QuestsLive do
             sources={@sources}
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
             output_preview={@output_previews["quest-#{quest.id}"] || quest.output_type || "verdict"}
+            context_preview={@context_previews["quest-#{quest.id}"] || "none"}
           />
         </div>
       </div>
@@ -564,6 +626,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :sources, :list, default: []
   attr :trigger_preview, :string, default: "manual"
   attr :output_preview, :string, default: "verdict"
+  attr :context_preview, :string, default: "none"
 
   defp new_quest_form(assigns) do
     ~H"""
@@ -653,6 +716,7 @@ defmodule ExCaliburWeb.QuestsLive do
               <option value="static">Static text</option>
               <option value="quest_history">Quest history</option>
               <option value="member_stats">Member roster</option>
+              <option value="lore">Knowledge board</option>
             </select>
             <.input
               type="textarea"
@@ -661,6 +725,39 @@ defmodule ExCaliburWeb.QuestsLive do
               rows={2}
               placeholder="Static context text (if Static selected)"
             />
+            <%= if @context_preview == "lore" do %>
+              <div class="grid grid-cols-3 gap-2 mt-1">
+                <div>
+                  <label class="text-xs text-muted-foreground">Tags (comma-sep)</label>
+                  <input
+                    type="text"
+                    name="quest[kb_tags]"
+                    placeholder="a11y, security"
+                    class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs text-muted-foreground">Limit</label>
+                  <input
+                    type="number"
+                    name="quest[kb_limit]"
+                    value="10"
+                    min="1"
+                    class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label class="text-xs text-muted-foreground">Sort</label>
+                  <select
+                    name="quest[kb_sort]"
+                    class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="newest">Newest</option>
+                    <option value="importance">Importance</option>
+                  </select>
+                </div>
+              </div>
+            <% end %>
           </div>
         </div>
         <div>
@@ -1102,6 +1199,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :sources, :list, default: []
   attr :trigger_preview, :string, default: "manual"
   attr :output_preview, :string, default: "verdict"
+  attr :context_preview, :string, default: "none"
 
   defp quest_card(assigns) do
     first_step = List.first(assigns.quest.roster || []) || %{}
@@ -1323,6 +1421,9 @@ defmodule ExCaliburWeb.QuestsLive do
                   <option value="member_stats" selected={@context_type_val == "member_stats"}>
                     Member roster
                   </option>
+                  <option value="lore" selected={@context_type_val == "lore"}>
+                    Knowledge board
+                  </option>
                 </select>
                 <%= if @context_type_val == "static" do %>
                   <.input
@@ -1332,6 +1433,45 @@ defmodule ExCaliburWeb.QuestsLive do
                     rows={2}
                     placeholder="Static context text"
                   />
+                <% end %>
+                <%= if @context_preview == "lore" do %>
+                  <% lore_provider = List.first(Enum.filter(@quest.context_providers || [], &(&1["type"] == "lore"))) || %{} %>
+                  <div class="grid grid-cols-3 gap-2 mt-1">
+                    <div>
+                      <label class="text-xs text-muted-foreground">Tags (comma-sep)</label>
+                      <input
+                        type="text"
+                        name="quest[kb_tags]"
+                        value={Enum.join(lore_provider["tags"] || [], ", ")}
+                        placeholder="a11y, security"
+                        class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                    </div>
+                    <div>
+                      <label class="text-xs text-muted-foreground">Limit</label>
+                      <input
+                        type="number"
+                        name="quest[kb_limit]"
+                        value={lore_provider["limit"] || 10}
+                        min="1"
+                        class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                      />
+                    </div>
+                    <div>
+                      <label class="text-xs text-muted-foreground">Sort</label>
+                      <select
+                        name="quest[kb_sort]"
+                        class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                      >
+                        <option value="newest" selected={lore_provider["sort"] == "newest"}>
+                          Newest
+                        </option>
+                        <option value="importance" selected={lore_provider["sort"] == "importance"}>
+                          Importance
+                        </option>
+                      </select>
+                    </div>
+                  </div>
                 <% end %>
               </div>
               <div class="space-y-1.5">
@@ -1432,6 +1572,21 @@ defmodule ExCaliburWeb.QuestsLive do
 
   defp rebuild_output_previews(quests, existing) do
     Map.merge(existing, Map.new(quests, fn q -> {"quest-#{q.id}", q.output_type || "verdict"} end))
+  end
+
+  defp rebuild_context_previews(quests, existing) do
+    Map.merge(
+      existing,
+      Map.new(quests, fn q ->
+        type =
+          case q.context_providers do
+            [%{"type" => t} | _] -> t
+            _ -> "none"
+          end
+
+        {"quest-#{q.id}", type}
+      end)
+    )
   end
 
   # "*/5 * * * *" → {5, "minutes"}, "0 */2 * * *" → {2, "hours"}

@@ -2,180 +2,68 @@
   <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <meta name="csrf-token" content="PiUeBBcAGRBiAyhqdREIVVsxFTEefQRfStMMYmQdOLy51bfcmIOfi2t2"/>
-    <title>
-      Excellence
+    <meta name="csrf-token" content="O1oTFQAyakpDI0NmenxgJUAiIRMgHx8FOluOnES9uZ0QN46s2fmFPWK7"/>
+    <title data-suffix=" · ExCalibur">
+      Guild Hall
+     · ExCalibur
     </title>
-    <link phx-track-static="phx-track-static" rel="stylesheet" href="file:///home/andrew/projects/ex_cellence_server/_build/test/lib/ex_calibur/priv/static/assets/css/app.css"/>
+    <link phx-track-static="phx-track-static" rel="stylesheet" href="file:///home/andrew/projects/ex_calibur/_build/test/lib/ex_calibur/priv/static/assets/css/app.css"/>
   </head>
   <body>
-    <div id="phx-GJr-YxrvEe7RHQHN" data-phx-main="" data-phx-session="SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdKci1ZeHJ2RWU3UkhRSE53B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwR2aWV3dx5FbGl4aXIuRXhDYWxpYnVyV2ViLlF1ZXN0c0xpdmV3CHJvb3RfcGlkdwNuaWx3BnJvdXRlcncaRWxpeGlyLkV4Q2FsaWJ1cldlYi5Sb3V0ZXJ3CXJvb3Rfdmlld3ceRWxpeGlyLkV4Q2FsaWJ1cldlYi5RdWVzdHNMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GACPwk8-cAWIAAVGA.4SVoC9_M52dr-gVHQVScBiN8kw9RhrKFkTYbpPrSOgA" data-phx-static="SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdKci1ZeHJ2RWU3UkhRSE53BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdqbgYAI_CTz5wBYgABUYA.Yrs3sf28W5GXDGOKnWIxk9QNOnDjSfGdbY5ZCUcQ-w8">
-      <div class="space-y-6">
-        <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold">
+    <div id="phx-GJsOPZR7JpgKpgQE" data-phx-main="" data-phx-session="SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdKc09QWlI3SnBnS3BnUUV3B3Nlc3Npb250AAAAAHcKcGFyZW50X3BpZHcDbmlsdwR2aWV3dx5FbGl4aXIuRXhDYWxpYnVyV2ViLlF1ZXN0c0xpdmV3CHJvb3RfcGlkdwNuaWx3BnJvdXRlcncaRWxpeGlyLkV4Q2FsaWJ1cldlYi5Sb3V0ZXJ3CXJvb3Rfdmlld3ceRWxpeGlyLkV4Q2FsaWJ1cldlYi5RdWVzdHNMaXZldxFsaXZlX3Nlc3Npb25fbmFtZXcHZGVmYXVsdG4GACTqndCcAWIAAVGA.wmrhJJ1CmP9af_IDSD4Ezq1S7MmkJn0E12SKmNflFAo" data-phx-static="SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdKc09QWlI3SnBnS3BnUUV3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdqbgYAJeqd0JwBYgABUYA.cZPgsbndHI34fH2uRCSj93ie0Mg_A8jNxl0kdNi7ZNU">
+      <div class="space-y-10">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">
             Quests
           </h1>
-          <div class="flex gap-2">
-            <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="add_campaign">
-              + New Campaign
-            </button>
-            <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="add_quest">
-              + New Quest
-            </button>
-          </div>
-        </div>
-        <div class="border rounded-lg border-dashed p-4">
-          <form phx-submit="create_quest" class="space-y-3">
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="text-sm font-medium">
-                  Name
-                </label>
-                <div class="fieldset mb-2">
-                  <label>
-                    <input type="text" name="quest[name]" value="" class="w-full input" placeholder="e.g. WCAG Hourly Scan"/>
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label class="text-sm font-medium">
-                  Description
-                </label>
-                <div class="fieldset mb-2">
-                  <label>
-                    <input type="text" name="quest[description]" value="" class="w-full input" placeholder="Optional"/>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div>
-                <label class="text-sm font-medium">
-                  Who runs it
-                </label>
-                <select name="quest[who]" class="w-full text-sm border rounded px-2 py-1 bg-background">
-                  <option value="all">
-                    Everyone
-                  </option>
-                  <option value="apprentice">
-                    Apprentice tier
-                  </option>
-                  <option value="journeyman">
-                    Journeyman tier
-                  </option>
-                  <option value="master">
-                    Master tier
-                  </option>
-                  <optgroup label="Cloud escalation">
-                    <option value="claude_haiku">
-                      Claude Haiku
-                    </option>
-                    <option value="claude_sonnet">
-                      Claude Sonnet
-                    </option>
-                    <option value="claude_opus">
-                      Claude Opus
-                    </option>
-                  </optgroup>
-                </select>
-              </div>
-              <div>
-                <label class="text-sm font-medium">
-                  How
-                </label>
-                <select name="quest[how]" class="w-full text-sm border rounded px-2 py-1 bg-background">
-                  <option value="consensus">
-                    Consensus
-                  </option>
-                  <option value="solo">
-                    Solo
-                  </option>
-                  <option value="majority">
-                    Majority
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="text-sm font-medium">
-                  Escalate on
-                </label>
-                <select name="quest[escalate_on]" class="w-full text-sm border rounded px-2 py-1 bg-background">
-                  <option value="never">
-                    Never
-                  </option>
-                  <option value="warn_or_fail">
-                    Warn or fail
-                  </option>
-                  <option value="fail_only">
-                    Fail only
-                  </option>
-                  <option value="always">
-                    Always
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label class="text-sm font-medium">
-                  Trigger
-                </label>
-                <select name="quest[trigger]" class="w-full text-sm border rounded px-2 py-1 bg-background">
-                  <option value="manual">
-                    Manual
-                  </option>
-                  <option value="source">
-                    Source
-                  </option>
-                  <option value="scheduled">
-                    Scheduled
-                  </option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label class="text-sm font-medium">
-                Context (optional)
-              </label>
-              <div class="mt-1 space-y-1">
-                <select name="quest[context_type]" class="w-full text-sm border rounded px-2 py-1 bg-background">
-                  <option value="">
-                    None
-                  </option>
-                  <option value="static">
-                    Static text
-                  </option>
-                  <option value="quest_history">
-                    Quest history
-                  </option>
-                  <option value="member_stats">
-                    Member roster
-                  </option>
-                </select>
-                <div class="fieldset mb-2">
-                  <label>
-                    <textarea name="quest[context_content]" class="w-full textarea" rows="2" placeholder="Static context text (if Static selected)">
-                    </textarea>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div class="flex justify-end gap-2">
-              <button type="button" class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="cancel_new">
-                Cancel
-              </button>
-              <button type="submit" class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs bg-primary text-primary-foreground shadow hover:bg-primary/90">
-                Create Quest
-              </button>
-            </div>
-          </form>
+          <p class="text-muted-foreground mt-1.5">
+            Evaluation pipelines — configure who runs them, how, and on what trigger.
+          </p>
         </div>
         <div>
-          <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            Campaigns
-          </h2>
-          <div class="space-y-2">
+          <div class="flex items-center justify-between mb-1">
+            <h2 class="text-lg font-semibold">
+              Campaigns
+            </h2>
+            <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="add_campaign">
+              + Campaign
+            </button>
+          </div>
+          <p class="text-sm text-muted-foreground mb-5">
+            Ordered sequences of quests run together.
+          </p>
+          <div class="space-y-3">
             <div class="border rounded-lg bg-card ">
-              <div class="flex items-center gap-3 px-4 py-3">
-                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="campaign-5">
+              <div class="flex items-center gap-3 px-5 py-4">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="campaign-1">
+                  <span class="transition-transform text-muted-foreground ">
+                    ›
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-medium">
+                      Monthly Accessibility Review
+                    </span>
+                    <span class="text-xs text-muted-foreground ml-2">
+                      2 quests
+                    </span>
+                  </div>
+                  <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground text-xs shrink-0">
+                    scheduled
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_campaign_status" phx-value-id="1">
+                    Pause
+                  </button>
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_campaign" phx-value-id="1" data-confirm="Delete this campaign?">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="border rounded-lg bg-card ">
+              <div class="flex items-center gap-3 px-5 py-4">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="campaign-61">
                   <span class="transition-transform text-muted-foreground ">
                     ›
                   </span>
@@ -192,10 +80,10 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_campaign_status" phx-value-id="5">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_campaign_status" phx-value-id="61">
                     Pause
                   </button>
-                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_campaign" phx-value-id="5" data-confirm="Delete this campaign?">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_campaign" phx-value-id="61" data-confirm="Delete this campaign?">
                     Delete
                   </button>
                 </div>
@@ -204,14 +92,214 @@
           </div>
         </div>
         <div>
-          <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            Quests
-          </h2>
-          <div class="space-y-2">
-            <div class="border rounded-lg bg-card ">
-              <div class="flex items-center gap-3 px-4 py-3">
-                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="quest-8">
-                  <span class="transition-transform text-muted-foreground ">
+          <div class="flex items-center justify-between mb-1">
+            <h2 class="text-lg font-semibold">
+              Quests
+            </h2>
+            <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="add_quest">
+              + Quest
+            </button>
+          </div>
+          <p class="text-sm text-muted-foreground mb-5">
+            Individual evaluation runs — trigger manually, on a schedule, or from a source.
+          </p>
+          <div class="mb-3">
+            <div class="border rounded-lg border-dashed p-4">
+              <form phx-submit="create_quest" phx-change="preview_new_quest_trigger" class="space-y-3">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="text-sm font-medium">
+                      Name
+                    </label>
+                    <div class="fieldset mb-2">
+                      <label>
+                        <input type="text" name="quest[name]" value="" class="w-full input" placeholder="e.g. WCAG Hourly Scan"/>
+                      </label>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">
+                      Description
+                    </label>
+                    <div class="fieldset mb-2">
+                      <label>
+                        <input type="text" name="quest[description]" value="" class="w-full input" placeholder="Optional"/>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+                  <div>
+                    <label for="quest-who" class="text-sm font-medium">
+                      Who runs it
+                    </label>
+                    <select id="quest-who" name="quest[who]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+                      <option value="all">
+                        Everyone
+                      </option>
+                      <option value="apprentice">
+                        Apprentice tier
+                      </option>
+                      <option value="journeyman">
+                        Journeyman tier
+                      </option>
+                      <option value="master">
+                        Master tier
+                      </option>
+                      <optgroup label="Cloud escalation">
+                        <option value="claude_haiku">
+                          Claude Haiku
+                        </option>
+                        <option value="claude_sonnet">
+                          Claude Sonnet
+                        </option>
+                        <option value="claude_opus">
+                          Claude Opus
+                        </option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="quest-how" class="text-sm font-medium">
+                      How
+                    </label>
+                    <select id="quest-how" name="quest[how]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+                      <option value="consensus">
+                        Consensus
+                      </option>
+                      <option value="solo">
+                        Solo
+                      </option>
+                      <option value="majority">
+                        Majority
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="quest-escalate-on" class="text-sm font-medium">
+                      Escalate on
+                    </label>
+                    <select id="quest-escalate-on" name="quest[escalate_on]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+                      <option value="never">
+                        Never
+                      </option>
+                      <option value="warn_or_fail">
+                        Warn or fail
+                      </option>
+                      <option value="fail_only">
+                        Fail only
+                      </option>
+                      <option value="always">
+                        Always
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="quest-trigger-new" class="text-sm font-medium">
+                      Trigger
+                    </label>
+                    <select id="quest-trigger-new" name="quest[trigger]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+                      <option value="manual">
+                        Manual
+                      </option>
+                      <option value="source">
+                        Source
+                      </option>
+                      <option value="scheduled">
+                        Scheduled
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label for="quest-context-type" class="text-sm font-medium">
+                    Context (optional)
+                  </label>
+                  <div class="mt-1 space-y-1">
+                    <select id="quest-context-type" name="quest[context_type]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+                      <option value="">
+                        None
+                      </option>
+                      <option value="static">
+                        Static text
+                      </option>
+                      <option value="quest_history">
+                        Quest history
+                      </option>
+                      <option value="member_stats">
+                        Member roster
+                      </option>
+                      <option value="lore">
+                        Knowledge board
+                      </option>
+                    </select>
+                    <div class="fieldset mb-2">
+                      <label>
+                        <textarea name="quest[context_content]" class="w-full textarea" rows="2" placeholder="Static context text (if Static selected)">
+                        </textarea>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-sm font-medium">
+                    Output
+                  </label>
+                  <select name="quest[output_type]" class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring">
+                    <option value="verdict" selected="">
+                      Verdict (pass/warn/fail)
+                    </option>
+                    <option value="artifact">
+                      Artifact (write to Grimoire)
+                    </option>
+                  </select>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <button type="button" class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground" phx-click="cancel_new">
+                    Cancel
+                  </button>
+                  <button type="submit" class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs bg-primary text-primary-foreground shadow hover:bg-primary/90">
+                    Create Quest
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="space-y-3">
+            <div class="border rounded-lg bg-card shadow-sm ">
+              <div class="flex items-center gap-3 px-5 py-3.5">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="quest-2">
+                  <span class="transition-transform duration-150 text-muted-foreground text-lg leading-none ">
+                    ›
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-medium">
+                      Full Accessibility Audit
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground text-xs">
+                      manual
+                    </div>
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs">
+                      all · consensus
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0 ml-2">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_quest_status" phx-value-id="2">
+                    Pause
+                  </button>
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_quest" phx-value-id="2" data-confirm="Delete this quest?">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="border rounded-lg bg-card shadow-sm ">
+              <div class="flex items-center gap-3 px-5 py-3.5">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="quest-75">
+                  <span class="transition-transform duration-150 text-muted-foreground text-lg leading-none ">
                     ›
                   </span>
                   <div class="flex-1 min-w-0">
@@ -225,11 +313,41 @@
                     </div>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 shrink-0">
-                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_quest_status" phx-value-id="8">
+                <div class="flex items-center gap-1 shrink-0 ml-2">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_quest_status" phx-value-id="75">
                     Pause
                   </button>
-                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_quest" phx-value-id="8" data-confirm="Delete this quest?">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_quest" phx-value-id="75" data-confirm="Delete this quest?">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="border rounded-lg bg-card shadow-sm ">
+              <div class="flex items-center gap-3 px-5 py-3.5">
+                <div class="flex flex-1 items-center gap-3 cursor-pointer min-w-0" phx-click="toggle_expand" phx-value-id="quest-1">
+                  <span class="transition-transform duration-150 text-muted-foreground text-lg leading-none ">
+                    ›
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <span class="font-medium">
+                      WCAG Hourly Scan
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground text-xs">
+                      scheduled
+                    </div>
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs">
+                      apprentice · solo
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0 ml-2">
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="toggle_quest_status" phx-value-id="1">
+                    Pause
+                  </button>
+                  <button class="phx-submit-loading:opacity-75 inline-flex items-center justify-center whitespace-nowrap font-medium transition-colors focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-8 rounded-md px-3 text-xs hover:bg-accent hover:text-accent-foreground" phx-click="delete_quest" phx-value-id="1" data-confirm="Delete this quest?">
                     Delete
                   </button>
                 </div>
