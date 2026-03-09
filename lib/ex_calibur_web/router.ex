@@ -22,15 +22,16 @@ defmodule ExCaliburWeb.Router do
   scope "/", ExCaliburWeb do
     pipe_through :browser
 
-    live "/", LodgeLive, :index
-    live "/guild-hall", GuildHallLive, :index
-    live "/town-square", TownSquareLive, :index
-    live "/members", MembersLive, :index
-    live "/quests", QuestsLive, :index
-    live "/quest-board", QuestBoardLive, :index
-    live "/grimoire", GrimoireLive, :index
-    live "/library", LibraryLive, :index
-live "/evaluate", EvaluateLive, :index
-    live "/lodge", LodgeLive, :index
+    live_session :default, layout: {ExCaliburWeb.Layouts, :app} do
+      live "/", LodgeLive, :index
+      live "/town-square", TownSquareLive, :index
+      live "/guild-hall", GuildHallLive, :index
+      live "/quests", QuestsLive, :index
+      live "/quest-board", QuestBoardLive, :index
+      live "/grimoire", GrimoireLive, :index
+      live "/library", LibraryLive, :index
+      live "/evaluate", EvaluateLive, :index
+      live "/lodge", LodgeLive, :index
+    end
   end
 end

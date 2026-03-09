@@ -5,156 +5,244 @@ defmodule ExCaliburWeb.TownSquareLive do
   import SaladUI.Badge
 
   alias Excellence.Schemas.Member
-  alias ExCalibur.Evaluator
-  alias ExCalibur.Members.BuiltinMember
+  alias ExCalibur.Quests
+  alias ExCalibur.Quests.Campaign
+  alias ExCalibur.Quests.Quest
+  alias ExCalibur.Sources.Book
+  alias ExCalibur.Sources.Source
+
+  @charters %{
+    "Content Moderation" => Excellence.Charters.ContentModeration,
+    "Code Review" => Excellence.Charters.CodeReview,
+    "Risk Assessment" => Excellence.Charters.RiskAssessment,
+    "Accessibility Review" => Excellence.Charters.AccessibilityReview,
+    "Performance Audit" => Excellence.Charters.PerformanceAudit,
+    "Incident Triage" => Excellence.Charters.IncidentTriage,
+    "Contract Review" => Excellence.Charters.ContractReview,
+    "Dependency Audit" => Excellence.Charters.DependencyAudit
+  }
+
+  @post_install_redirect "/stacks"
 
   @impl true
   def mount(_params, _session, socket) do
-    has_guild = Evaluator.current_guild() != nil
+    guilds =
+      Enum.map(@charters, fn {_name, mod} ->
+        meta = mod.metadata()
+
+        %{
+          name: meta.name,
+          description: meta.description,
+          roles: Enum.map(meta.roles, & &1.name),
+          strategy: inspect(meta.strategy)
+        }
+      end)
+
+    current = current_guild_name()
 
     {:ok,
      assign(socket,
        page_title: "Town Square",
-       editors: BuiltinMember.editors(),
-       analysts: BuiltinMember.analysts(),
-       specialists: BuiltinMember.specialists(),
-       advisors: BuiltinMember.advisors(),
-       has_guild: has_guild
+       guilds: guilds,
+       current_guild: current,
+       confirming: nil
      )}
   end
 
   @impl true
-  def handle_event("recruit", %{"member-id" => member_id, "rank" => rank}, socket) do
-    member = BuiltinMember.get(member_id)
-    rank_atom = String.to_existing_atom(rank)
-    rank_config = member.ranks[rank_atom]
+  def handle_event("select_guild", %{"guild" => guild_name}, socket) do
+    if guild_name == socket.assigns.current_guild do
+      {:noreply, put_flash(socket, :info, "#{guild_name} Guild is already active.")}
+    else
+      {:noreply, assign(socket, confirming: guild_name)}
+    end
+  end
 
-    attrs = %{
-      type: "role",
-      name: member.name,
-      status: "active",
-      source: "db",
-      team: member.category,
-      config: %{
-        "member_id" => member_id,
-        "system_prompt" => member.system_prompt,
-        "rank" => rank,
-        "model" => rank_config.model,
-        "strategy" => rank_config.strategy
-      }
-    }
+  @impl true
+  def handle_event("confirm_install", %{"guild" => guild_name}, socket) do
+    case Map.get(@charters, guild_name) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Guild not found")}
 
-    %Member{}
-    |> Member.changeset(attrs)
-    |> ExCalibur.Repo.insert(on_conflict: :nothing)
+      mod ->
+        import Ecto.Query
+
+        ExCalibur.Repo.delete_all(from(r in ExCalibur.Quests.CampaignRun))
+
+        ExCalibur.Repo.delete_all(from(r in ExCalibur.Quests.QuestRun))
+
+        ExCalibur.Repo.delete_all(from(c in Campaign))
+        ExCalibur.Repo.delete_all(from(q in Quest))
+        ExCalibur.Repo.delete_all(from(r in Member))
+        ExCalibur.Repo.delete_all(from(s in Source))
+
+        install_guild(mod)
+        install_quests(mod)
+        install_campaigns(mod)
+        create_default_sources(guild_name)
+
+        {:noreply,
+         socket
+         |> assign(confirming: nil)
+         |> put_flash(:info, "#{guild_name} Guild installed!")
+         |> push_navigate(to: @post_install_redirect)}
+    end
+  end
+
+  @impl true
+  def handle_event("cancel_install", _params, socket) do
+    {:noreply, assign(socket, confirming: nil)}
+  end
+
+  @impl true
+  def handle_event("build_own_guild", _, socket) do
+    import Ecto.Query
+
+    ExCalibur.Repo.delete_all(from(r in Member))
+    ExCalibur.Repo.delete_all(from(q in Quest))
+    ExCalibur.Repo.delete_all(from(c in Campaign))
 
     {:noreply,
      socket
-     |> put_flash(:info, "#{member.name} (#{rank}) recruited!")
-     |> push_navigate(to: "/members")}
+     |> assign(current_guild: nil, confirming: nil)
+     |> put_flash(:info, "Blank guild ready. Add members and quests to get started.")
+     |> push_navigate(to: "/guild-hall")}
+  end
+
+  defp install_guild(mod) do
+    resource_defs = mod.resource_definitions()
+
+    Enum.each(resource_defs, fn attrs ->
+      %Member{}
+      |> Member.changeset(attrs)
+      |> ExCalibur.Repo.insert(on_conflict: :nothing)
+    end)
+  end
+
+  defp install_quests(mod) do
+    if function_exported?(mod, :quest_definitions, 0) do
+      Enum.each(mod.quest_definitions(), fn attrs ->
+        Quests.create_quest(attrs)
+      end)
+    end
+  end
+
+  defp install_campaigns(mod) do
+    if function_exported?(mod, :campaign_definitions, 0) do
+      quest_by_name = Map.new(Quests.list_quests(), &{&1.name, &1.id})
+
+      Enum.each(mod.campaign_definitions(), fn attrs ->
+        steps =
+          Enum.map(attrs.steps, fn step ->
+            %{"quest_id" => Map.get(quest_by_name, step["quest_name"]), "flow" => step["flow"]}
+          end)
+
+        Quests.create_campaign(Map.put(attrs, :steps, steps))
+      end)
+    end
+  end
+
+  defp create_default_sources(guild_name) do
+    books = Book.for_guild(guild_name)
+
+    Enum.each(books, fn book ->
+      %Source{}
+      |> Source.changeset(%{
+        source_type: book.source_type,
+        config: book.default_config,
+        book_id: book.id,
+        status: "paused"
+      })
+      |> ExCalibur.Repo.insert()
+    end)
+  end
+
+  defp current_guild_name do
+    import Ecto.Query
+
+    names =
+      ExCalibur.Repo.all(from(r in Member, where: r.type == "role", select: r.name))
+
+    Enum.find_value(@charters, fn {_name, mod} ->
+      meta = mod.metadata()
+      role_names = Enum.map(meta.roles, & &1.name)
+
+      if Enum.all?(role_names, &(&1 in names)) do
+        meta.name
+      end
+    end)
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-10">
+    <div class="space-y-8">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Town Square</h1>
         <p class="text-muted-foreground mt-1.5">
-          Recruit individual members — pick a role and rank.
+          Choose your guild. Installing a new guild replaces the current one.
         </p>
       </div>
 
-      <%= unless @has_guild do %>
-        <div class="rounded-lg border p-4">
-          <p class="text-muted-foreground text-sm">
-            No guild installed yet. Visit the <a href="/guild-hall" class="underline">Guild Hall</a>
-            to install a guild first.
-          </p>
-        </div>
-      <% end %>
-
-      <.member_section
-        title="Editors"
-        description="Text quality and writing review"
-        members={@editors}
-        has_guild={@has_guild}
-      />
-      <.member_section
-        title="Analysts"
-        description="Data interpretation and pattern recognition"
-        members={@analysts}
-        has_guild={@has_guild}
-      />
-      <.member_section
-        title="Specialists"
-        description="Domain-specific technical expertise"
-        members={@specialists}
-        has_guild={@has_guild}
-      />
-      <.member_section
-        title="Advisors"
-        description="Perspective, judgment, and risk assessment"
-        members={@advisors}
-        has_guild={@has_guild}
-      />
-    </div>
-    """
-  end
-
-  defp member_section(assigns) do
-    ~H"""
-    <div>
-      <h2 class="text-xl font-semibold mb-1">{@title}</h2>
-      <p class="text-muted-foreground text-sm mb-5">{@description}</p>
       <div class="space-y-3">
-        <%= for member <- @members do %>
-          <.member_row member={member} has_guild={@has_guild} />
+        <%= for guild <- @guilds do %>
+          <div class={[
+            "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between",
+            @current_guild == guild.name && "border-primary bg-accent/50"
+          ]}>
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="font-semibold">{guild.name} Guild</span>
+                <%= if @current_guild == guild.name do %>
+                  <.badge variant="default">Active</.badge>
+                <% end %>
+              </div>
+              <p class="text-sm text-muted-foreground">{guild.description}</p>
+              <div class="flex flex-wrap gap-1.5 mt-1">
+                <%= for role <- guild.roles do %>
+                  <.badge variant="outline">{role}</.badge>
+                <% end %>
+              </div>
+            </div>
+            <div class="ml-4 shrink-0">
+              <%= if @confirming == guild.name do %>
+                <div class="flex gap-2">
+                  <.button
+                    variant="destructive"
+                    size="sm"
+                    phx-click="confirm_install"
+                    phx-value-guild={guild.name}
+                  >
+                    Confirm
+                  </.button>
+                  <.button variant="outline" size="sm" phx-click="cancel_install">
+                    Cancel
+                  </.button>
+                </div>
+              <% else %>
+                <.button
+                  variant={if @current_guild == guild.name, do: "outline", else: "default"}
+                  size="sm"
+                  phx-click="select_guild"
+                  phx-value-guild={guild.name}
+                >
+                  {if @current_guild == guild.name, do: "Active", else: "Install"}
+                </.button>
+              <% end %>
+            </div>
+          </div>
         <% end %>
       </div>
-    </div>
-    """
-  end
 
-  defp member_row(assigns) do
-    ~H"""
-    <div class="flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <span class="font-medium">{@member.name}</span>
-          <.badge variant="secondary">{@member.category}</.badge>
+      <div class="flex flex-col gap-4 rounded-lg border border-dashed p-5 mt-2 sm:flex-row sm:items-center sm:justify-between">
+        <div class="space-y-1">
+          <span class="font-semibold">Build Your Own Guild</span>
+          <p class="text-sm text-muted-foreground">
+            Start from scratch — add your own members and quests.
+          </p>
         </div>
-        <p class="text-sm text-muted-foreground">{@member.description}</p>
-      </div>
-      <div class="shrink-0 flex gap-2 self-start sm:self-auto">
-        <.button
-          size="sm"
-          variant="outline"
-          phx-click="recruit"
-          phx-value-member-id={@member.id}
-          phx-value-rank="apprentice"
-          disabled={!@has_guild}
-        >
-          Apprentice
-        </.button>
-        <.button
-          size="sm"
-          variant="outline"
-          phx-click="recruit"
-          phx-value-member-id={@member.id}
-          phx-value-rank="journeyman"
-          disabled={!@has_guild}
-        >
-          Journeyman
-        </.button>
-        <.button
-          size="sm"
-          phx-click="recruit"
-          phx-value-member-id={@member.id}
-          phx-value-rank="master"
-          disabled={!@has_guild}
-        >
-          Master
+        <.button variant="outline" size="sm" phx-click="build_own_guild">
+          Start Fresh
         </.button>
       </div>
     </div>
