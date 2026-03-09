@@ -27,6 +27,7 @@ defmodule ExCaliburWeb.Router do
     live "/town-square", TownSquareLive, :index
     live "/members", MembersLive, :index
     live "/quests", QuestsLive, :index
+    live "/quest-board", QuestBoardLive, :index
     live "/grimoire", GrimoireLive, :index
     live "/library", LibraryLive, :index
     get "/stacks", RedirectController, :stacks
