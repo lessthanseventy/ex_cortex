@@ -13,11 +13,24 @@ defmodule ExCalibur.Quests.Quest do
     field :roster, {:array, :map}, default: []
     field :context_providers, {:array, :map}, default: []
     field :source_ids, {:array, :string}, default: []
+    field :output_type, :string, default: "verdict"
+    field :write_mode, :string, default: "append"
+    field :entry_title_template, :string
     timestamps()
   end
 
   @required [:name, :trigger]
-  @optional [:description, :status, :schedule, :roster, :context_providers, :source_ids]
+  @optional [
+    :description,
+    :status,
+    :schedule,
+    :roster,
+    :context_providers,
+    :source_ids,
+    :output_type,
+    :write_mode,
+    :entry_title_template
+  ]
 
   def changeset(quest, attrs) do
     quest
@@ -25,6 +38,8 @@ defmodule ExCalibur.Quests.Quest do
     |> validate_required(@required)
     |> validate_inclusion(:status, ["active", "paused"])
     |> validate_inclusion(:trigger, ["manual", "source", "scheduled"])
+    |> validate_inclusion(:output_type, ["verdict", "artifact"])
+    |> validate_inclusion(:write_mode, ["append", "replace"])
     |> unique_constraint(:name)
   end
 end
