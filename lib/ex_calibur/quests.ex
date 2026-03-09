@@ -15,6 +15,16 @@ defmodule ExCalibur.Quests do
     Repo.all(from q in Quest, order_by: [asc: q.name])
   end
 
+  def list_quests_for_source(source_id) do
+    Repo.all(
+      from q in Quest,
+        where:
+          q.trigger == "source" and
+            q.status == "active" and
+            fragment("? = ANY(?)", ^source_id, q.source_ids)
+    )
+  end
+
   def get_quest!(id), do: Repo.get!(Quest, id)
 
   def create_quest(attrs) do

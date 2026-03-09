@@ -3,6 +3,8 @@ defmodule ExCalibur.Sources.SourceWorker do
   use GenServer, restart: :transient
 
   alias ExCalibur.Evaluator
+  alias ExCalibur.QuestRunner
+  alias ExCalibur.Quests
   alias ExCalibur.Sandbox
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
@@ -63,7 +65,16 @@ defmodule ExCalibur.Sources.SourceWorker do
     Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
       try do
         content = maybe_run_sandbox(item.content, source)
-        Evaluator.evaluate(content)
+        quests = Quests.list_quests_for_source(to_string(source.id))
+
+        if quests == [] do
+          Evaluator.evaluate(content)
+        else
+          Enum.each(quests, fn quest ->
+            Logger.info("[SourceWorker] Running quest #{quest.id} (#{quest.name}) for source #{source.id}")
+            QuestRunner.run(quest, content)
+          end)
+        end
       rescue
         e -> Logger.error("Source evaluation failed: #{Exception.message(e)}")
       end
