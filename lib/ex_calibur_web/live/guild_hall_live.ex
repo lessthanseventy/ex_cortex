@@ -453,7 +453,7 @@ defmodule ExCaliburWeb.GuildHallLive do
       name: member.name,
       status: "active",
       source: "db",
-      team: member.category,
+      team: to_string(member.category),
       config: %{
         "member_id" => member_id,
         "system_prompt" => member.system_prompt,
@@ -470,7 +470,7 @@ defmodule ExCaliburWeb.GuildHallLive do
     {:noreply,
      socket
      |> put_flash(:info, "#{member.name} (#{rank}) recruited!")
-     |> push_navigate(to: "/guild-hall")}
+     |> assign(members: list_members())}
   end
 
   @impl true
