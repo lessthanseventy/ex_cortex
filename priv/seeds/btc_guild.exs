@@ -220,6 +220,11 @@ inserted_sources =
   end)
 
 source_ids = Enum.map(inserted_sources, &to_string(&1.id))
+
+Enum.each(inserted_sources, fn source ->
+  ExCalibur.Sources.SourceSupervisor.start_source(source)
+end)
+
 IO.puts("  ✓ Created #{length(inserted_sources)} sources")
 
 # ─── Quests ─────────────────────────────────────────────────────────────────
