@@ -10,6 +10,7 @@ defmodule ExCalibur.ScheduledQuestRunner do
 
   use GenServer
 
+  alias ExCalibur.CampaignRunner
   alias ExCalibur.QuestRunner
   alias ExCalibur.Quests
 
@@ -30,6 +31,7 @@ defmodule ExCalibur.ScheduledQuestRunner do
   @impl true
   def handle_info(:tick, state) do
     run_due_quests()
+    run_due_campaigns()
     schedule_tick()
     {:noreply, state}
   end
@@ -63,6 +65,31 @@ defmodule ExCalibur.ScheduledQuestRunner do
       _ ->
         false
     end
+  end
+
+  defp run_due_campaigns do
+    now = DateTime.utc_now()
+
+    Quests.list_campaigns()
+    |> Enum.filter(&campaign_scheduled_and_due?(&1, now))
+    |> Enum.each(&run_campaign/1)
+  end
+
+  defp campaign_scheduled_and_due?(campaign, now) do
+    campaign.trigger == "scheduled" and
+      campaign.status == "active" and
+      is_binary(campaign.schedule) and
+      campaign.schedule != "" and
+      cron_matches?(campaign.schedule, now)
+  end
+
+  defp run_campaign(campaign) do
+    Logger.info("[ScheduledQuestRunner] Running campaign #{campaign.id} (#{campaign.name})")
+
+    Task.start(fn ->
+      {:ok, result} = CampaignRunner.run(campaign, "")
+      Logger.info("[ScheduledQuestRunner] Campaign #{campaign.id} complete: #{inspect(result)}")
+    end)
   end
 
   defp run_quest(quest) do
