@@ -285,12 +285,63 @@ defmodule ExCalibur.QuestRunner do
     ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
     ollama = Ollama.new(base_url: ollama_url)
 
-    members =
-      case quest.roster do
-        [first | _] -> resolve_members(first)
-        _ -> resolve_members("all")
-      end
+    roster = quest.roster || []
 
+    case roster do
+      [] ->
+        {:error, :no_roster}
+
+      [single_step] ->
+        # Single step — original behaviour
+        run_artifact_step(single_step, input_text, quest, ollama)
+
+      steps ->
+        # Multi-step: run all but last in reasoning mode, thread outputs to final step
+        {prelim_steps, [final_step]} = Enum.split(steps, length(steps) - 1)
+
+        reasoning_context =
+          Enum.map_join(prelim_steps, "\n\n", fn step ->
+            members = resolve_members(step)
+            label = step["label"] || step["who"] || "Analyst"
+
+            member_outputs =
+              Enum.map_join(members, "\n\n", fn member ->
+                reasoning_prompt = reasoning_system_prompt(member, step)
+
+                messages = [
+                  %{role: :system, content: reasoning_prompt},
+                  %{role: :user, content: input_text}
+                ]
+
+                text =
+                  case member do
+                    %{type: :claude, tier: tier} ->
+                      case ClaudeClient.complete(tier, reasoning_prompt, input_text) do
+                        {:ok, t} -> t
+                        _ -> "(no response)"
+                      end
+
+                    %{type: :ollama, model: model} ->
+                      case Ollama.chat(ollama, model, messages) do
+                        {:ok, %{content: t}} -> t
+                        {:ok, t} when is_binary(t) -> t
+                        _ -> "(no response)"
+                      end
+                  end
+
+                "**#{member.name}:** #{text}"
+              end)
+
+            "### #{label}\n#{member_outputs}"
+          end)
+
+        augmented = "#{input_text}\n\n---\n## Team Analysis\n#{reasoning_context}"
+        run_artifact_step(final_step, augmented, quest, ollama)
+    end
+  end
+
+  defp run_artifact_step(step, input_text, quest, ollama) do
+    members = resolve_members(step)
     member = List.first(members)
 
     if is_nil(member) do
@@ -328,6 +379,19 @@ defmodule ExCalibur.QuestRunner do
         {:error, :llm_failed}
       end
     end
+  end
+
+  defp reasoning_system_prompt(member, step) do
+    base = member.system_prompt || ""
+    label = step["label"] || member.name
+
+    """
+    #{base}
+
+    You are #{label}. Provide your analysis and perspective on the data below.
+    Be direct and opinionated. Your output will be read by a synthesizer.
+    Do NOT use the TITLE/IMPORTANCE/TAGS/BODY format — just write your raw analysis.
+    """
   end
 
   defp artifact_system_prompt(quest) do
