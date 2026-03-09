@@ -176,21 +176,21 @@ defmodule ExCaliburWeb.GuildHallLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div class="space-y-8">
       <div>
-        <h1 class="text-2xl font-bold">Guild Hall</h1>
-        <p class="text-muted-foreground mt-1">
+        <h1 class="text-3xl font-bold tracking-tight">Guild Hall</h1>
+        <p class="text-muted-foreground mt-1.5">
           Choose your guild. Installing a new guild replaces the current one.
         </p>
       </div>
 
-      <div class="space-y-2">
+      <div class="space-y-3">
         <%= for guild <- @guilds do %>
           <div class={[
-            "flex items-center justify-between rounded-lg border p-4",
+            "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between",
             @current_guild == guild.name && "border-primary bg-accent/50"
           ]}>
-            <div class="space-y-1">
+            <div class="space-y-1.5">
               <div class="flex items-center gap-2">
                 <span class="font-semibold">{guild.name} Guild</span>
                 <%= if @current_guild == guild.name do %>
@@ -198,7 +198,7 @@ defmodule ExCaliburWeb.GuildHallLive do
                 <% end %>
               </div>
               <p class="text-sm text-muted-foreground">{guild.description}</p>
-              <div class="flex flex-wrap gap-1 mt-1">
+              <div class="flex flex-wrap gap-1.5 mt-1">
                 <%= for role <- guild.roles do %>
                   <.badge variant="outline">{role}</.badge>
                 <% end %>
@@ -234,7 +234,7 @@ defmodule ExCaliburWeb.GuildHallLive do
         <% end %>
       </div>
 
-      <div class="flex items-center justify-between rounded-lg border border-dashed p-4 mt-4">
+      <div class="flex flex-col gap-4 rounded-lg border border-dashed p-5 mt-2 sm:flex-row sm:items-center sm:justify-between">
         <div class="space-y-1">
           <span class="font-semibold">Build Your Own Guild</span>
           <p class="text-sm text-muted-foreground">

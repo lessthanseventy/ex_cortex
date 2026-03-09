@@ -22,10 +22,16 @@ import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
-import {hooks as colocatedHooks} from "phoenix-colocated/ex_cellence_server"
+import {hooks as colocatedHooks} from "phoenix-colocated/ex_calibur"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+window.addEventListener("phx:reset-form", ({detail: {id}}) => {
+  const form = document.getElementById(id)
+  if (form) form.reset()
+})
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},

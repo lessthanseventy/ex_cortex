@@ -10,12 +10,36 @@ defmodule ExCaliburWeb.MembersLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, members: list_members(), expanded: MapSet.new(), adding_new: false)}
+    members = list_members()
+
+    strategy_previews =
+      Map.new(members, fn m -> {m.id, m.strategy} end)
+
+    {:ok,
+     assign(socket,
+       members: members,
+       expanded: MapSet.new(),
+       adding_new: false,
+       ollama_models: list_ollama_models(),
+       strategy_previews: strategy_previews
+     )}
   end
 
   @impl true
   def handle_params(_params, _url, socket) do
     {:noreply, assign(socket, page_title: "Members")}
+  end
+
+  defp list_ollama_models do
+    url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+
+    case Req.get("#{url}/api/tags") do
+      {:ok, %{status: 200, body: %{"models" => models}}} ->
+        models |> Enum.map(& &1["name"]) |> Enum.sort()
+
+      _ ->
+        []
+    end
   end
 
   defp list_members do
@@ -55,21 +79,30 @@ defmodule ExCaliburWeb.MembersLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Members</h1>
-        <.button variant="outline" size="sm" phx-click="add_new">+ New Member</.button>
+    <div class="space-y-8">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">Members</h1>
+          <p class="text-muted-foreground mt-1.5">
+            Guild roles — each member runs evaluations with their own model and strategy.
+          </p>
+        </div>
+        <.button variant="outline" size="sm" phx-click="add_new" class="shrink-0 sm:mt-1 self-start">
+          + New Member
+        </.button>
       </div>
 
       <%= if @adding_new do %>
-        <.new_member_card />
+        <.new_member_card ollama_models={@ollama_models} strategy_preview={@strategy_previews["new"] || "cod"} />
       <% end %>
 
-      <div class="space-y-2">
+      <div class="space-y-3">
         <.member_card
           :for={member <- @members}
           member={member}
           expanded={MapSet.member?(@expanded, member.id)}
+          ollama_models={@ollama_models}
+          strategy_preview={Map.get(@strategy_previews, member.id, member.strategy)}
         />
       </div>
     </div>
@@ -78,6 +111,8 @@ defmodule ExCaliburWeb.MembersLive do
 
   attr :member, :map, required: true
   attr :expanded, :boolean, required: true
+  attr :ollama_models, :list, required: true
+  attr :strategy_preview, :string, required: true
 
   defp member_card(assigns) do
     ~H"""
@@ -85,9 +120,9 @@ defmodule ExCaliburWeb.MembersLive do
       "border rounded-lg bg-card transition-opacity",
       if(!@member.active, do: "opacity-60")
     ]}>
-      <div class="flex items-center gap-3 px-4 py-3">
+      <div class="flex items-stretch">
         <div
-          class="flex flex-1 items-center gap-3 cursor-pointer min-w-0"
+          class="flex flex-1 items-center gap-3 cursor-pointer min-w-0 px-5 py-4"
           phx-click="toggle_expand"
           phx-value-id={@member.id}
         >
@@ -103,11 +138,12 @@ defmodule ExCaliburWeb.MembersLive do
           <.rank_pill rank={@member.rank} model={@member.model} />
         </div>
         <button
-          class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+          class="relative inline-flex self-center h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 mr-5"
           style={"background-color: #{if @member.active, do: "hsl(var(--primary))", else: "hsl(var(--input))"}"}
           phx-click="toggle_active"
           phx-value-id={@member.id}
           phx-value-active={if @member.active, do: "true", else: "false"}
+          aria-label={if @member.active, do: "Deactivate #{@member.name}", else: "Activate #{@member.name}"}
           type="button"
         >
           <span
@@ -119,8 +155,8 @@ defmodule ExCaliburWeb.MembersLive do
       </div>
 
       <%= if @expanded do %>
-        <div class="border-t px-4 py-4">
-          <form phx-submit="save_member" class="space-y-4">
+        <div class="border-t px-5 py-5">
+          <form phx-submit="save_member" phx-change="preview_strategy" class="space-y-4">
             <input type="hidden" name="member[id]" value={@member.id} />
             <input
               type="hidden"
@@ -155,10 +191,11 @@ defmodule ExCaliburWeb.MembersLive do
               />
             </div>
 
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <label class="text-sm font-medium">Rank</label>
+                <label for="member-rank-edit" class="text-sm font-medium">Rank</label>
                 <select
+                  id="member-rank-edit"
                   name="member[rank]"
                   class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
                 >
@@ -172,17 +209,30 @@ defmodule ExCaliburWeb.MembersLive do
                 </select>
               </div>
               <div>
-                <label class="text-sm font-medium">Model</label>
-                <.input
-                  type="text"
+                <label for={"member-model-edit-#{@member.id}"} class="text-sm font-medium">
+                  Model
+                </label>
+                <select
+                  id={"member-model-edit-#{@member.id}"}
                   name="member[model]"
-                  value={@member.model}
-                  placeholder="e.g. gemma3:4b"
-                />
+                  class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+                >
+                  <option value="" selected={@member.model == ""}>— select model —</option>
+                  <option
+                    :for={model <- @ollama_models}
+                    value={model}
+                    selected={@member.model == model}
+                  >
+                    {model}
+                  </option>
+                </select>
               </div>
               <div>
-                <label class="text-sm font-medium">Strategy</label>
+                <label for={"member-strategy-edit-#{@member.id}"} class="text-sm font-medium">
+                  Strategy
+                </label>
                 <select
+                  id={"member-strategy-edit-#{@member.id}"}
                   name="member[strategy]"
                   class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
                 >
@@ -191,7 +241,7 @@ defmodule ExCaliburWeb.MembersLive do
                   <option value="default" selected={@member.strategy == "default"}>default</option>
                 </select>
                 <p class="text-xs text-muted-foreground mt-1">
-                  <%= case @member.strategy do %>
+                  <%= case @strategy_preview do %>
                     <% "cot" -> %>
                       Chain of Thought — reason step by step before answering. Better accuracy, more tokens.
                     <% "cod" -> %>
@@ -223,12 +273,15 @@ defmodule ExCaliburWeb.MembersLive do
     """
   end
 
+  attr :ollama_models, :list, required: true
+  attr :strategy_preview, :string, required: true
+
   defp new_member_card(assigns) do
     ~H"""
     <div class="border rounded-lg bg-card border-dashed">
       <div class="px-4 py-4">
-        <form phx-submit="create_member" class="space-y-4">
-          <div class="grid grid-cols-2 gap-3">
+        <form phx-submit="create_member" phx-change="preview_strategy_new" class="space-y-4">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="text-sm font-medium">Name</label>
               <.input type="text" name="member[name]" value="" placeholder="e.g. safety-reviewer" />
@@ -248,10 +301,11 @@ defmodule ExCaliburWeb.MembersLive do
               placeholder="You are a..."
             />
           </div>
-          <div class="grid grid-cols-3 gap-3">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
-              <label class="text-sm font-medium">Rank</label>
+              <label for="member-rank-new" class="text-sm font-medium">Rank</label>
               <select
+                id="member-rank-new"
                 name="member[rank]"
                 class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
               >
@@ -261,19 +315,37 @@ defmodule ExCaliburWeb.MembersLive do
               </select>
             </div>
             <div>
-              <label class="text-sm font-medium">Model</label>
-              <.input type="text" name="member[model]" value="" placeholder="e.g. gemma3:4b" />
+              <label for="member-model-new" class="text-sm font-medium">Model</label>
+              <select
+                id="member-model-new"
+                name="member[model]"
+                class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+              >
+                <option value="">— select model —</option>
+                <option :for={model <- @ollama_models} value={model}>{model}</option>
+              </select>
             </div>
             <div>
-              <label class="text-sm font-medium">Strategy</label>
+              <label for="member-strategy-new" class="text-sm font-medium">Strategy</label>
               <select
+                id="member-strategy-new"
                 name="member[strategy]"
                 class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
               >
-                <option value="cot">cot — step by step reasoning</option>
-                <option value="cod" selected>cod — compact, high-signal</option>
-                <option value="default">default — model default</option>
+                <option value="cot">cot</option>
+                <option value="cod" selected>cod</option>
+                <option value="default">default</option>
               </select>
+              <p class="text-xs text-muted-foreground mt-1">
+                <%= case @strategy_preview do %>
+                  <% "cot" -> %>
+                    Chain of Thought — reason step by step before answering. Better accuracy, more tokens.
+                  <% "cod" -> %>
+                    Chain of Density — compact, high-signal reasoning. Faster, lower cost.
+                  <% _ -> %>
+                    Uses the model's default prompting style.
+                <% end %>
+              </p>
             </div>
           </div>
           <div class="flex justify-end gap-2 pt-2">
@@ -337,6 +409,22 @@ defmodule ExCaliburWeb.MembersLive do
   end
 
   @impl true
+  def handle_event("preview_strategy", %{"member" => %{"id" => id, "strategy" => strategy}}, socket) do
+    previews = Map.put(socket.assigns.strategy_previews, id, strategy)
+    {:noreply, assign(socket, strategy_previews: previews)}
+  end
+
+  def handle_event("preview_strategy", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("preview_strategy_new", %{"member" => %{"strategy" => strategy}}, socket) do
+    previews = Map.put(socket.assigns.strategy_previews, "new", strategy)
+    {:noreply, assign(socket, strategy_previews: previews)}
+  end
+
+  def handle_event("preview_strategy_new", _params, socket), do: {:noreply, socket}
+
+  @impl true
   def handle_event("add_new", _params, socket) do
     {:noreply, assign(socket, adding_new: true)}
   end
@@ -369,8 +457,13 @@ defmodule ExCaliburWeb.MembersLive do
     }
 
     case %Member{} |> Member.changeset(attrs) |> ExCalibur.Repo.insert() do
-      {:ok, _} -> {:noreply, assign(socket, members: list_members(), adding_new: false)}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to create member")}
+      {:ok, _} ->
+        members = list_members()
+        previews = Map.new(members, fn m -> {m.id, m.strategy} end)
+        {:noreply, assign(socket, members: members, adding_new: false, strategy_previews: previews)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to create member")}
     end
   end
 

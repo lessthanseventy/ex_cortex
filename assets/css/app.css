@@ -5,7 +5,9 @@
 @import "./salad_ui.css";
 @source "../css";
 @source "../js";
-@source "../../lib/ex_cellence_server_web";
+@source "../../lib/ex_calibur_web";
+@source "../../lib/ex_calibur_web.ex";
+@source "../../lib/ex_calibur.ex";
 @source "../../deps/salad_ui/lib";
 @source "../../deps/ex_cellence_ui/lib";
 @source "../../deps/ex_cellence_dashboard/lib";

@@ -17,6 +17,8 @@ services:
 
   ollama:
     image: docker.io/ollama/ollama
+    stop_signal: SIGKILL
+    stop_grace_period: 0s
     volumes:
       - ollama_data:/root/.ollama
       - ./docker/init-ollama.sh:/init-ollama.sh

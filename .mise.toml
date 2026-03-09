@@ -1,9 +1,30 @@
+[env]
+DATABASE_URL = "ecto://excellence:excellence@localhost:5433/ex_calibur"
+
+[tasks.dev]
+description = "Start db in docker, run app locally with live reload (uses local Ollama)"
+run = """
+docker compose up -d db
+until pg_isready -h localhost -p 5433 -U excellence -q; do sleep 1; done
+OLLAMA_URL=http://localhost:11434 \
+PORT=${PORT:-4001} \
+mix phx.server
+"""
+
 [tasks.up]
-description = "Start the stack"
+description = "Start the full stack in docker (no live reload)"
 run = "PORT=${PORT:-4001} docker compose up"
 
+[tasks.start]
+description = "Start the full stack in docker background (no live reload)"
+run = "PORT=${PORT:-4001} docker compose up -d"
+
+[tasks.stop]
+description = "Stop the background stack"
+run = "docker compose down --remove-orphans"
+
 [tasks.down]
-description = "Stop the stack"
+description = "Stop the stack and remove containers"
 run = "docker compose down"
 
 [tasks.rebuild]
@@ -14,9 +35,13 @@ run = "docker compose down && docker compose build app && PORT=${PORT:-4001} doc
 description = "Stop and destroy all data (volumes)"
 run = "docker compose down -v"
 
+[tasks.restart]
+description = "Restart app container only (picks up code changes; db and ollama stay up)"
+run = "docker compose restart app"
+
 [tasks.logs]
 description = "Tail app logs"
-run = "podman logs -f ex_cellence_server_app_1"
+run = "docker compose logs -f app"
 
 [tasks.build]
 description = "Build app image only"

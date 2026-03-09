@@ -125,15 +125,75 @@ defmodule ExCaliburWeb.LodgeLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
-      <h1 class="text-2xl font-bold">Lodge</h1>
+    <div class="space-y-8">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Lodge</h1>
+        <p class="text-muted-foreground mt-1.5">
+          Monitoring, decisions, and learning loop proposals.
+        </p>
+      </div>
+
+      <.card>
+        <.card_header>
+          <.card_title>Proposals</.card_title>
+          <.card_description>Suggested improvements from the learning loop</.card_description>
+        </.card_header>
+        <.card_content>
+          <%= if @proposals == [] do %>
+            <p class="text-muted-foreground text-sm">
+              No pending proposals. Proposals appear here after scheduled quests complete.
+            </p>
+          <% else %>
+            <div class="space-y-3">
+              <%= for proposal <- @proposals do %>
+                <div class="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1.5">
+                      <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {proposal.type}
+                      </span>
+                      <span class="text-xs text-muted-foreground">
+                        {proposal.quest && proposal.quest.name}
+                      </span>
+                    </div>
+                    <p class="text-sm font-medium">{proposal.description}</p>
+                    <%= if proposal.details["suggestion"] && proposal.details["suggestion"] != "" do %>
+                      <p class="text-xs text-muted-foreground mt-1">
+                        {proposal.details["suggestion"]}
+                      </p>
+                    <% end %>
+                  </div>
+                  <div class="flex gap-2 shrink-0 self-start sm:self-auto">
+                    <.button
+                      size="sm"
+                      variant="outline"
+                      phx-click="approve_proposal"
+                      phx-value-id={proposal.id}
+                    >
+                      Approve
+                    </.button>
+                    <.button
+                      size="sm"
+                      variant="ghost"
+                      phx-click="reject_proposal"
+                      phx-value-id={proposal.id}
+                    >
+                      Reject
+                    </.button>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </.card_content>
+      </.card>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <.card>
           <.card_header>
             <.card_title>Recent Decisions</.card_title>
           </.card_header>
-          <.card_content>
+          <.card_content class="overflow-x-auto">
             <.replay_viewer decisions={@decisions} />
           </.card_content>
         </.card>
@@ -183,59 +243,6 @@ defmodule ExCaliburWeb.LodgeLive do
         </.card>
       <% end %>
     </div>
-
-    <.card>
-      <.card_header>
-        <.card_title>Proposals</.card_title>
-        <.card_description>Suggested improvements from the learning loop</.card_description>
-      </.card_header>
-      <.card_content>
-        <%= if @proposals == [] do %>
-          <p class="text-muted-foreground text-sm">
-            No pending proposals. Proposals appear here after scheduled quests complete.
-          </p>
-        <% else %>
-          <div class="space-y-3">
-            <%= for proposal <- @proposals do %>
-              <div class="flex items-start justify-between gap-4 rounded-lg border p-3">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                      {proposal.type}
-                    </span>
-                    <span class="text-xs text-muted-foreground">
-                      {proposal.quest && proposal.quest.name}
-                    </span>
-                  </div>
-                  <p class="text-sm font-medium">{proposal.description}</p>
-                  <%= if proposal.details["suggestion"] && proposal.details["suggestion"] != "" do %>
-                    <p class="text-xs text-muted-foreground mt-1">{proposal.details["suggestion"]}</p>
-                  <% end %>
-                </div>
-                <div class="flex gap-2 shrink-0">
-                  <.button
-                    size="sm"
-                    variant="outline"
-                    phx-click="approve_proposal"
-                    phx-value-id={proposal.id}
-                  >
-                    Approve
-                  </.button>
-                  <.button
-                    size="sm"
-                    variant="ghost"
-                    phx-click="reject_proposal"
-                    phx-value-id={proposal.id}
-                  >
-                    Reject
-                  </.button>
-                </div>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-      </.card_content>
-    </.card>
     """
   end
 end

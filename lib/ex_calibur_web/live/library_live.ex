@@ -7,6 +7,7 @@ defmodule ExCaliburWeb.LibraryLive do
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
   alias ExCalibur.Sources.SourceSupervisor
+  alias ExCalibur.Sources.SourceWorker
 
   @impl true
   def mount(_params, _session, socket) do
@@ -78,6 +79,19 @@ defmodule ExCaliburWeb.LibraryLive do
   # ── Events ────────────────────────────────────────────────────────────────
 
   @impl true
+  def handle_event("sync", %{"id" => id}, socket) do
+    SourceWorker.sync(id)
+    {:noreply, socket}
+  end
+
+  def handle_event("sync_all", _params, socket) do
+    Enum.each(socket.assigns.sources, fn source ->
+      if source.status == "active", do: SourceWorker.sync(source.id)
+    end)
+
+    {:noreply, socket}
+  end
+
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, tab: String.to_existing_atom(tab), expanding: nil)}
   end
@@ -276,6 +290,7 @@ defmodule ExCaliburWeb.LibraryLive do
           <h2 class="text-xl font-semibold">Active Sources</h2>
           <%= if @sources != [] do %>
             <.badge variant="secondary">{length(@sources)}</.badge>
+            <.button variant="outline" size="sm" phx-click="sync_all" class="ml-auto">Sync All</.button>
           <% end %>
         </div>
 
@@ -757,6 +772,9 @@ defmodule ExCaliburWeb.LibraryLive do
         </div>
         <div class="flex gap-2 shrink-0 self-start sm:self-auto" phx-click="" phx-click-stop="">
           <%= if @source.status == "active" do %>
+            <.button variant="outline" size="sm" phx-click="sync" phx-value-id={@source.id}>
+              Sync
+            </.button>
             <.button variant="outline" size="sm" phx-click="pause" phx-value-id={@source.id}>
               Pause
             </.button>

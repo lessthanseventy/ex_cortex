@@ -57,10 +57,10 @@ defmodule ExCaliburWeb.TownSquareLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-8">
+    <div class="space-y-10">
       <div>
-        <h1 class="text-2xl font-bold">Town Square</h1>
-        <p class="text-muted-foreground mt-1">
+        <h1 class="text-3xl font-bold tracking-tight">Town Square</h1>
+        <p class="text-muted-foreground mt-1.5">
           Recruit individual members — pick a role and rank.
         </p>
       </div>
@@ -105,9 +105,9 @@ defmodule ExCaliburWeb.TownSquareLive do
   defp member_section(assigns) do
     ~H"""
     <div>
-      <h2 class="text-lg font-semibold mb-1">{@title}</h2>
-      <p class="text-muted-foreground text-sm mb-4">{@description}</p>
-      <div class="space-y-2">
+      <h2 class="text-xl font-semibold mb-1">{@title}</h2>
+      <p class="text-muted-foreground text-sm mb-5">{@description}</p>
+      <div class="space-y-3">
         <%= for member <- @members do %>
           <.member_row member={member} has_guild={@has_guild} />
         <% end %>
@@ -118,7 +118,7 @@ defmodule ExCaliburWeb.TownSquareLive do
 
   defp member_row(assigns) do
     ~H"""
-    <div class="flex items-center justify-between rounded-lg border p-4">
+    <div class="flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
           <span class="font-medium">{@member.name}</span>
@@ -126,7 +126,7 @@ defmodule ExCaliburWeb.TownSquareLive do
         </div>
         <p class="text-sm text-muted-foreground">{@member.description}</p>
       </div>
-      <div class="ml-4 shrink-0 flex gap-2">
+      <div class="shrink-0 flex gap-2 self-start sm:self-auto">
         <.button
           size="sm"
           variant="outline"

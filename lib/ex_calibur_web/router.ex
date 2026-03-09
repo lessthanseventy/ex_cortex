@@ -30,8 +30,7 @@ defmodule ExCaliburWeb.Router do
     live "/quest-board", QuestBoardLive, :index
     live "/grimoire", GrimoireLive, :index
     live "/library", LibraryLive, :index
-    get "/stacks", RedirectController, :stacks
-    live "/evaluate", EvaluateLive, :index
+live "/evaluate", EvaluateLive, :index
     live "/lodge", LodgeLive, :index
   end
 end

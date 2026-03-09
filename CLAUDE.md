@@ -1,4 +1,4 @@
-# CLAUDE.md — Ex_cellence Server
+# CLAUDE.md — ExCalibur
 
 ## Shell Commands
 Always use tmux-cli for shell commands. Pane layout:

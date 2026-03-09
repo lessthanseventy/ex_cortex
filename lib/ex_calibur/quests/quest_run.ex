@@ -16,7 +16,7 @@ defmodule ExCalibur.Quests.QuestRun do
   def changeset(run, attrs) do
     run
     |> cast(attrs, [:quest_id, :campaign_run_id, :input, :status, :results])
-    |> validate_required([:quest_id, :input])
+    |> validate_required([:quest_id])
     |> validate_inclusion(:status, ["pending", "running", "complete", "failed"])
   end
 end
