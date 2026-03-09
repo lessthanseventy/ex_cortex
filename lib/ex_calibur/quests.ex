@@ -37,6 +37,16 @@ defmodule ExCalibur.Quests do
 
   def delete_quest(%Quest{} = quest), do: Repo.delete(quest)
 
+  def list_campaigns_for_source(source_id) do
+    Repo.all(
+      from c in Campaign,
+        where:
+          c.trigger == "source" and
+            c.status == "active" and
+            fragment("? = ANY(?)", ^source_id, c.source_ids)
+    )
+  end
+
   # --- Campaigns ---
 
   def list_campaigns do

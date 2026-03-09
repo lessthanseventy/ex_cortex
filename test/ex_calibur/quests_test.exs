@@ -52,5 +52,36 @@ defmodule ExCalibur.QuestsTest do
       assert {:ok, %Campaign{name: "My Campaign"}} =
                Quests.create_campaign(%{name: "My Campaign", trigger: "manual"})
     end
+
+    test "list_campaigns_for_source returns active source-triggered campaigns" do
+      {:ok, c1} =
+        Quests.create_campaign(%{
+          name: "Campaign Source",
+          trigger: "source",
+          source_ids: ["src-abc"],
+          status: "active"
+        })
+
+      # Paused campaign — should NOT appear
+      {:ok, _c2} =
+        Quests.create_campaign(%{
+          name: "Paused Campaign",
+          trigger: "source",
+          source_ids: ["src-abc"],
+          status: "paused"
+        })
+
+      # Different source — should NOT appear
+      {:ok, _c3} =
+        Quests.create_campaign(%{
+          name: "Other Campaign",
+          trigger: "source",
+          source_ids: ["src-xyz"],
+          status: "active"
+        })
+
+      assert [%Campaign{id: id}] = Quests.list_campaigns_for_source("src-abc")
+      assert id == c1.id
+    end
   end
 end
