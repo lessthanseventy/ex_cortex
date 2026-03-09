@@ -7,18 +7,40 @@ defmodule ExCaliburWeb.QuestsLive do
   alias Excellence.Schemas.Member
   alias ExCalibur.Quests
   alias ExCalibur.Quests.Quest
+  alias ExCalibur.Sources.Book
+  alias ExCalibur.Sources.Source
 
   @impl true
   def mount(_params, _session, socket) do
+    import Ecto.Query
+    quests = Quests.list_quests()
+    campaigns = Quests.list_campaigns()
+    sources = ExCalibur.Repo.all(from(s in Source, order_by: [asc: s.inserted_at]))
+
+    trigger_previews =
+      Map.new(quests, fn q -> {"quest-#{q.id}", q.trigger} end)
+      |> Map.merge(Map.new(campaigns, fn c -> {"campaign-#{c.id}", c.trigger} end))
+      |> Map.put("new-quest", "manual")
+      |> Map.put("new-campaign", "manual")
+
+    output_previews =
+      quests
+      |> Map.new(fn q -> {"quest-#{q.id}", q.output_type || "verdict"} end)
+      |> Map.put("new-quest", "verdict")
+
     {:ok,
      assign(socket,
-       quests: Quests.list_quests(),
-       campaigns: Quests.list_campaigns(),
+       quests: quests,
+       campaigns: campaigns,
        teams: list_teams(),
+       sources: sources,
        expanded: MapSet.new(),
        adding_quest: false,
        adding_campaign: false,
-       running: %{}
+       running: %{},
+       quest_runs: %{},
+       trigger_previews: trigger_previews,
+       output_previews: output_previews
      )}
   end
 
@@ -28,6 +50,23 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
+  def handle_event("toggle_expand", %{"id" => "quest-" <> quest_id_str = id}, socket) do
+    expanded =
+      if MapSet.member?(socket.assigns.expanded, id),
+        do: MapSet.delete(socket.assigns.expanded, id),
+        else: MapSet.put(socket.assigns.expanded, id)
+
+    quest_runs =
+      if MapSet.member?(socket.assigns.expanded, id) do
+        socket.assigns.quest_runs
+      else
+        quest = Quests.get_quest!(String.to_integer(quest_id_str))
+        Map.put(socket.assigns.quest_runs, quest_id_str, Quests.list_quest_runs(quest))
+      end
+
+    {:noreply, assign(socket, expanded: expanded, quest_runs: quest_runs)}
+  end
+
   def handle_event("toggle_expand", %{"id" => id}, socket) do
     expanded =
       if MapSet.member?(socket.assigns.expanded, id),
@@ -50,6 +89,101 @@ defmodule ExCaliburWeb.QuestsLive do
   @impl true
   def handle_event("cancel_new", _, socket) do
     {:noreply, assign(socket, adding_quest: false, adding_campaign: false)}
+  end
+
+  @impl true
+  def handle_event("preview_quest_trigger", %{"quest_id" => id} = params, socket) do
+    t = get_in(params, ["quest", "trigger"])
+    o = get_in(params, ["quest", "output_type"])
+
+    socket =
+      if t,
+        do: assign(socket, trigger_previews: Map.put(socket.assigns.trigger_previews, "quest-#{id}", t)),
+        else: socket
+
+    socket =
+      if o,
+        do: assign(socket, output_previews: Map.put(socket.assigns.output_previews, "quest-#{id}", o)),
+        else: socket
+
+    {:noreply, socket}
+  end
+
+  def handle_event("preview_quest_trigger", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("preview_new_quest_trigger", params, socket) do
+    t = get_in(params, ["quest", "trigger"])
+    o = get_in(params, ["quest", "output_type"])
+
+    socket =
+      if t,
+        do: assign(socket, trigger_previews: Map.put(socket.assigns.trigger_previews, "new-quest", t)),
+        else: socket
+
+    socket =
+      if o,
+        do: assign(socket, output_previews: Map.put(socket.assigns.output_previews, "new-quest", o)),
+        else: socket
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("preview_campaign_trigger", %{"campaign_id" => id, "campaign" => %{"trigger" => t}}, socket) do
+    {:noreply, assign(socket, trigger_previews: Map.put(socket.assigns.trigger_previews, "campaign-#{id}", t))}
+  end
+
+  def handle_event("preview_campaign_trigger", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("preview_new_campaign_trigger", %{"campaign" => %{"trigger" => t}}, socket) do
+    {:noreply, assign(socket, trigger_previews: Map.put(socket.assigns.trigger_previews, "new-campaign", t))}
+  end
+
+  def handle_event("preview_new_campaign_trigger", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("move_campaign_quest_up", %{"campaign_id" => id, "index" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    steps = campaign.steps
+    {a, b} = {Enum.at(steps, idx - 1), Enum.at(steps, idx)}
+    new_steps = steps |> List.replace_at(idx - 1, b) |> List.replace_at(idx, a)
+    Quests.update_campaign(campaign, %{steps: new_steps})
+    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+  end
+
+  @impl true
+  def handle_event("move_campaign_quest_down", %{"campaign_id" => id, "index" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    steps = campaign.steps
+    {a, b} = {Enum.at(steps, idx), Enum.at(steps, idx + 1)}
+    new_steps = steps |> List.replace_at(idx, b) |> List.replace_at(idx + 1, a)
+    Quests.update_campaign(campaign, %{steps: new_steps})
+    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+  end
+
+  @impl true
+  def handle_event("remove_campaign_quest", %{"campaign_id" => id, "index" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    new_steps = List.delete_at(campaign.steps, idx)
+    Quests.update_campaign(campaign, %{steps: new_steps})
+    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
+  end
+
+  @impl true
+  def handle_event("add_campaign_quest", %{"campaign_id" => _id, "quest_id" => ""}, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("add_campaign_quest", %{"campaign_id" => id, "quest_id" => quest_id}, socket) do
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    new_step = %{"quest_id" => quest_id, "flow" => "always"}
+    Quests.update_campaign(campaign, %{steps: campaign.steps ++ [new_step]})
+    {:noreply, assign(socket, campaigns: Quests.list_campaigns())}
   end
 
   @impl true
@@ -87,19 +221,40 @@ defmodule ExCaliburWeb.QuestsLive do
           []
       end
 
+    trigger = params["trigger"] || "manual"
+
+    schedule =
+      if trigger == "scheduled" do
+        interval = String.to_integer(params["schedule_interval"] || "1")
+        build_schedule(interval, params["schedule_unit"] || "hours")
+      end
+
+    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
+
+    output_type = params["output_type"] || "verdict"
+    write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
+    entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
+
     attrs = %{
       name: params["name"],
       description: params["description"],
-      trigger: params["trigger"] || "manual",
-      schedule: params["schedule"],
+      trigger: trigger,
+      schedule: schedule,
+      source_ids: source_ids,
       roster: roster,
       context_providers: context_providers,
-      status: "active"
+      status: "active",
+      output_type: output_type,
+      write_mode: write_mode,
+      entry_title_template: entry_title_template
     }
 
     case Quests.create_quest(attrs) do
       {:ok, _} ->
-        {:noreply, assign(socket, quests: Quests.list_quests(), adding_quest: false)}
+        quests = Quests.list_quests()
+        previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
+        output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
+        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create quest")}
@@ -108,29 +263,68 @@ defmodule ExCaliburWeb.QuestsLive do
 
   @impl true
   def handle_event("create_campaign", %{"campaign" => params}, socket) do
-    quest_ids =
-      params
-      |> Map.get("quest_ids", "")
-      |> String.split(",", trim: true)
-      |> Enum.map(&String.trim/1)
+    quest_ids = params |> Map.get("quest_ids", []) |> List.wrap()
+    steps = Enum.map(quest_ids, &%{"quest_id" => &1, "flow" => "always"})
+    trigger = params["trigger"] || "manual"
 
-    steps =
-      Enum.map(quest_ids, &%{"quest_id" => &1, "flow" => "always"})
+    schedule =
+      if trigger == "scheduled" do
+        interval = String.to_integer(params["schedule_interval"] || "1")
+        build_schedule(interval, params["schedule_unit"] || "hours")
+      end
+
+    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
 
     attrs = %{
       name: params["name"],
       description: params["description"],
-      trigger: params["trigger"] || "manual",
+      trigger: trigger,
+      schedule: schedule,
+      source_ids: source_ids,
       steps: steps,
       status: "active"
     }
 
     case Quests.create_campaign(attrs) do
       {:ok, _} ->
-        {:noreply, assign(socket, campaigns: Quests.list_campaigns(), adding_campaign: false)}
+        campaigns = Quests.list_campaigns()
+        previews = rebuild_trigger_previews(socket.assigns.quests, campaigns, socket.assigns.trigger_previews)
+        {:noreply, assign(socket, campaigns: campaigns, adding_campaign: false, trigger_previews: previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create campaign")}
+    end
+  end
+
+  @impl true
+  def handle_event("update_campaign", %{"campaign" => params, "campaign_id" => id}, socket) do
+    campaign = Quests.get_campaign!(String.to_integer(id))
+    trigger = params["trigger"] || "manual"
+
+    schedule =
+      if trigger == "scheduled" do
+        interval = String.to_integer(params["schedule_interval"] || "1")
+        build_schedule(interval, params["schedule_unit"] || "hours")
+      end
+
+    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
+
+    attrs = %{
+      name: params["name"],
+      description: params["description"],
+      trigger: trigger,
+      schedule: schedule,
+      source_ids: source_ids
+    }
+
+    case Quests.update_campaign(campaign, attrs) do
+      {:ok, _} ->
+        campaigns = Quests.list_campaigns()
+        previews = rebuild_trigger_previews(socket.assigns.quests, campaigns, socket.assigns.trigger_previews)
+        {:noreply, assign(socket, campaigns: campaigns, trigger_previews: previews)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update campaign")}
     end
   end
 
@@ -180,11 +374,90 @@ defmodule ExCaliburWeb.QuestsLive do
       send(parent, {:quest_run_complete, run_id, quest_run.id, result})
     end)
 
-    {:noreply, assign(socket, running: running)}
+    {:noreply,
+     socket
+     |> assign(running: running)
+     |> push_event("reset-form", %{id: "run-form-#{quest.id}"})}
   end
 
   def handle_event("run_quest", _, socket) do
     {:noreply, put_flash(socket, :error, "Please enter some input to evaluate")}
+  end
+
+  @impl true
+  def handle_event("update_quest", %{"quest" => params, "quest_id" => id}, socket) do
+    quest = Quests.get_quest!(String.to_integer(id))
+
+    escalate_on =
+      case params["escalate_on"] do
+        "warn_or_fail" -> %{"type" => "verdict", "values" => ["warn", "fail"]}
+        "fail_only" -> %{"type" => "verdict", "values" => ["fail"]}
+        "always" -> "always"
+        _ -> "never"
+      end
+
+    roster = [
+      %{
+        "who" => params["who"] || "all",
+        "when" => "on_trigger",
+        "how" => params["how"] || "consensus",
+        "escalate_on" => escalate_on
+      }
+    ]
+
+    context_providers =
+      case params["context_type"] do
+        "static" ->
+          content = String.trim(params["context_content"] || "")
+          if content == "", do: [], else: [%{"type" => "static", "content" => content}]
+
+        "quest_history" ->
+          [%{"type" => "quest_history", "limit" => 5}]
+
+        "member_stats" ->
+          [%{"type" => "member_stats"}]
+
+        _ ->
+          []
+      end
+
+    trigger = params["trigger"] || "manual"
+
+    schedule =
+      if trigger == "scheduled" do
+        interval = String.to_integer(params["schedule_interval"] || "1")
+        build_schedule(interval, params["schedule_unit"] || "hours")
+      end
+
+    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
+
+    output_type = params["output_type"] || "verdict"
+    write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
+    entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
+
+    attrs = %{
+      name: params["name"],
+      description: params["description"],
+      trigger: trigger,
+      schedule: schedule,
+      source_ids: source_ids,
+      roster: roster,
+      context_providers: context_providers,
+      output_type: output_type,
+      write_mode: write_mode,
+      entry_title_template: entry_title_template
+    }
+
+    case Quests.update_quest(quest, attrs) do
+      {:ok, _} ->
+        quests = Quests.list_quests()
+        previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
+        output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
+        {:noreply, assign(socket, quests: quests, trigger_previews: previews, output_previews: output_previews)}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update quest")}
+    end
   end
 
   @impl true
@@ -204,55 +477,82 @@ defmodule ExCaliburWeb.QuestsLive do
     end
 
     running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
-    {:noreply, assign(socket, running: running)}
+
+    quest_runs =
+      Map.put(
+        socket.assigns.quest_runs,
+        run_id,
+        Quests.list_quest_runs(Quests.get_quest!(updated_run.quest_id))
+      )
+
+    {:noreply, assign(socket, running: running, quest_runs: quest_runs)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Quests</h1>
-        <div class="flex gap-2">
-          <.button variant="outline" size="sm" phx-click="add_campaign">+ New Campaign</.button>
-          <.button variant="outline" size="sm" phx-click="add_quest">+ New Quest</.button>
+    <div class="space-y-10">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Quests</h1>
+        <p class="text-muted-foreground mt-1.5">
+          Evaluation pipelines — configure who runs them, how, and on what trigger.
+        </p>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-lg font-semibold">Campaigns</h2>
+          <.button variant="outline" size="sm" phx-click="add_campaign">+ Campaign</.button>
+        </div>
+        <p class="text-sm text-muted-foreground mb-5">
+          Ordered sequences of quests run together.
+        </p>
+        <%= if @adding_campaign do %>
+          <div class="mb-3">
+            <.new_campaign_form quests={@quests} sources={@sources} trigger_preview={@trigger_previews["new-campaign"] || "manual"} />
+          </div>
+        <% end %>
+        <div class="space-y-3">
+          <.campaign_card
+            :for={campaign <- @campaigns}
+            campaign={campaign}
+            quests={@quests}
+            sources={@sources}
+            expanded={MapSet.member?(@expanded, "campaign-#{campaign.id}")}
+            trigger_preview={@trigger_previews["campaign-#{campaign.id}"] || campaign.trigger}
+          />
         </div>
       </div>
 
-      <%= if @adding_quest do %>
-        <.new_quest_form teams={@teams} />
-      <% end %>
-
-      <%= if @adding_campaign do %>
-        <.new_campaign_form quests={@quests} />
-      <% end %>
-
-      <%= if @campaigns != [] do %>
-        <div>
-          <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-            Campaigns
-          </h2>
-          <div class="space-y-2">
-            <.campaign_card
-              :for={campaign <- @campaigns}
-              campaign={campaign}
-              quests={@quests}
-              expanded={MapSet.member?(@expanded, "campaign-#{campaign.id}")}
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-lg font-semibold">Quests</h2>
+          <.button variant="outline" size="sm" phx-click="add_quest">+ Quest</.button>
+        </div>
+        <p class="text-sm text-muted-foreground mb-5">
+          Individual evaluation runs — trigger manually, on a schedule, or from a source.
+        </p>
+        <%= if @adding_quest do %>
+          <div class="mb-3">
+            <.new_quest_form
+              teams={@teams}
+              sources={@sources}
+              trigger_preview={@trigger_previews["new-quest"] || "manual"}
+              output_preview={@output_previews["new-quest"] || "verdict"}
             />
           </div>
-        </div>
-      <% end %>
-
-      <div>
-        <h2 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-          Quests
-        </h2>
-        <div class="space-y-2">
+        <% end %>
+        <div class="space-y-3">
           <.quest_card
             :for={quest <- @quests}
             quest={quest}
             expanded={MapSet.member?(@expanded, "quest-#{quest.id}")}
             run_state={Map.get(@running, to_string(quest.id))}
+            past_runs={Map.get(@quest_runs, to_string(quest.id), [])}
+            teams={@teams}
+            sources={@sources}
+            trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
+            output_preview={@output_previews["quest-#{quest.id}"] || quest.output_type || "verdict"}
           />
         </div>
       </div>
@@ -261,12 +561,15 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   attr :teams, :list, default: []
+  attr :sources, :list, default: []
+  attr :trigger_preview, :string, default: "manual"
+  attr :output_preview, :string, default: "verdict"
 
   defp new_quest_form(assigns) do
     ~H"""
     <div class="border rounded-lg border-dashed p-4">
-      <form phx-submit="create_quest" class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
+      <form phx-submit="create_quest" phx-change="preview_new_quest_trigger" class="space-y-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label class="text-sm font-medium">Name</label>
             <.input type="text" name="quest[name]" value="" placeholder="e.g. WCAG Hourly Scan" />
@@ -276,10 +579,10 @@ defmodule ExCaliburWeb.QuestsLive do
             <.input type="text" name="quest[description]" value="" placeholder="Optional" />
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
           <div>
-            <label class="text-sm font-medium">Who runs it</label>
-            <select name="quest[who]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+            <label for="quest-who" class="text-sm font-medium">Who runs it</label>
+            <select id="quest-who" name="quest[who]" class="w-full text-sm border rounded px-2 py-1 bg-background">
               <option value="all">Everyone</option>
               <option value="apprentice">Apprentice tier</option>
               <option value="journeyman">Journeyman tier</option>
@@ -299,16 +602,17 @@ defmodule ExCaliburWeb.QuestsLive do
             </select>
           </div>
           <div>
-            <label class="text-sm font-medium">How</label>
-            <select name="quest[how]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+            <label for="quest-how" class="text-sm font-medium">How</label>
+            <select id="quest-how" name="quest[how]" class="w-full text-sm border rounded px-2 py-1 bg-background">
               <option value="consensus">Consensus</option>
               <option value="solo">Solo</option>
               <option value="majority">Majority</option>
             </select>
           </div>
           <div>
-            <label class="text-sm font-medium">Escalate on</label>
+            <label for="quest-escalate-on" class="text-sm font-medium">Escalate on</label>
             <select
+              id="quest-escalate-on"
               name="quest[escalate_on]"
               class="w-full text-sm border rounded px-2 py-1 bg-background"
             >
@@ -319,8 +623,9 @@ defmodule ExCaliburWeb.QuestsLive do
             </select>
           </div>
           <div>
-            <label class="text-sm font-medium">Trigger</label>
+            <label for="quest-trigger-new" class="text-sm font-medium">Trigger</label>
             <select
+              id="quest-trigger-new"
               name="quest[trigger]"
               class="w-full text-sm border rounded px-2 py-1 bg-background"
             >
@@ -330,10 +635,17 @@ defmodule ExCaliburWeb.QuestsLive do
             </select>
           </div>
         </div>
+        <%= if @trigger_preview == "scheduled" do %>
+          <.schedule_picker unit="hours" interval={1} id_prefix="new-quest" />
+        <% end %>
+        <%= if @trigger_preview == "source" do %>
+          <.source_picker sources={@sources} namespace="quest" selected_ids={[]} />
+        <% end %>
         <div>
-          <label class="text-sm font-medium">Context (optional)</label>
+          <label for="quest-context-type" class="text-sm font-medium">Context (optional)</label>
           <div class="mt-1 space-y-1">
             <select
+              id="quest-context-type"
               name="quest[context_type]"
               class="w-full text-sm border rounded px-2 py-1 bg-background"
             >
@@ -351,6 +663,43 @@ defmodule ExCaliburWeb.QuestsLive do
             />
           </div>
         </div>
+        <div>
+          <label class="text-sm font-medium">Output</label>
+          <select
+            name="quest[output_type]"
+            class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="verdict" selected={@output_preview == "verdict"}>
+              Verdict (pass/warn/fail)
+            </option>
+            <option value="artifact" selected={@output_preview == "artifact"}>
+              Artifact (write to Grimoire)
+            </option>
+          </select>
+        </div>
+        <%= if @output_preview == "artifact" do %>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label class="text-sm font-medium">Write mode</label>
+              <select
+                name="quest[write_mode]"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="append">Append (each run adds an entry)</option>
+                <option value="replace">Replace (overwrite previous entry)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Title template</label>
+              <input
+                type="text"
+                name="quest[entry_title_template]"
+                placeholder="Summary — {date}"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          </div>
+        <% end %>
         <div class="flex justify-end gap-2">
           <.button type="button" variant="outline" size="sm" phx-click="cancel_new">
             Cancel
@@ -362,13 +711,80 @@ defmodule ExCaliburWeb.QuestsLive do
     """
   end
 
+  attr :id_prefix, :string, required: true
+  attr :namespace, :string, default: "quest"
+  attr :unit, :string, default: "hours"
+  attr :interval, :integer, default: 1
+
+  defp schedule_picker(assigns) do
+    ~H"""
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-muted-foreground shrink-0">Every</span>
+      <input
+        type="number"
+        name={@namespace <> "[schedule_interval]"}
+        value={@interval}
+        min="1"
+        class="w-20 h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+      />
+      <select
+        id={"schedule-unit-#{@id_prefix}"}
+        name={@namespace <> "[schedule_unit]"}
+        class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+      >
+        <option value="minutes" selected={@unit == "minutes"}>minutes</option>
+        <option value="hours" selected={@unit == "hours"}>hours</option>
+      </select>
+    </div>
+    """
+  end
+
+  attr :sources, :list, default: []
+  attr :namespace, :string, default: "quest"
+  attr :selected_ids, :list, default: []
+
+  defp source_picker(assigns) do
+    ~H"""
+    <div class="space-y-1.5">
+      <p class="text-sm font-medium">Sources</p>
+      <%= if @sources == [] do %>
+        <p class="text-xs text-muted-foreground">
+          No active sources. <a href="/stacks" class="underline">Add sources in Stacks.</a>
+        </p>
+      <% else %>
+        <div class="rounded-md border border-input divide-y divide-border">
+          <%= for source <- @sources do %>
+            <% checked = source.id in @selected_ids %>
+            <label class={[
+              "flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors",
+              if(checked, do: "bg-primary/5", else: "hover:bg-muted/50")
+            ]}>
+              <input
+                type="checkbox"
+                name={@namespace <> "[source_ids][]"}
+                value={source.id}
+                checked={checked}
+                class="h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring checked:bg-primary checked:text-primary-foreground"
+              />
+              <span class="flex-1 text-sm">{source_label(source)}</span>
+              <.badge variant="outline" class="text-xs shrink-0">{source.source_type}</.badge>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
   attr :quests, :list, required: true
+  attr :sources, :list, default: []
+  attr :trigger_preview, :string, default: "manual"
 
   defp new_campaign_form(assigns) do
     ~H"""
     <div class="border rounded-lg border-dashed p-4">
-      <form phx-submit="create_campaign" class="space-y-3">
-        <div class="grid grid-cols-2 gap-3">
+      <form phx-submit="create_campaign" phx-change="preview_new_campaign_trigger" class="space-y-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label class="text-sm font-medium">Name</label>
             <.input type="text" name="campaign[name]" value="" placeholder="e.g. Monthly Audit" />
@@ -379,9 +795,27 @@ defmodule ExCaliburWeb.QuestsLive do
           </div>
         </div>
         <div>
+          <label for="campaign-trigger-new" class="text-sm font-medium">Trigger</label>
+          <select
+            id="campaign-trigger-new"
+            name="campaign[trigger]"
+            class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="manual">Manual</option>
+            <option value="source">Source</option>
+            <option value="scheduled">Scheduled</option>
+          </select>
+        </div>
+        <%= if @trigger_preview == "scheduled" do %>
+          <.schedule_picker namespace="campaign" unit="hours" interval={1} id_prefix="new-campaign" />
+        <% end %>
+        <%= if @trigger_preview == "source" do %>
+          <.source_picker sources={@sources} namespace="campaign" selected_ids={[]} />
+        <% end %>
+        <div>
           <label class="text-sm font-medium">Quests (select in order)</label>
           <select
-            name="campaign[quest_ids]"
+            name="campaign[quest_ids][]"
             multiple
             class="w-full text-sm border rounded px-2 py-1 bg-background h-24"
           >
@@ -404,12 +838,14 @@ defmodule ExCaliburWeb.QuestsLive do
 
   attr :campaign, :map, required: true
   attr :quests, :list, required: true
+  attr :sources, :list, default: []
   attr :expanded, :boolean, required: true
+  attr :trigger_preview, :string, required: true
 
   defp campaign_card(assigns) do
     ~H"""
     <div class={["border rounded-lg bg-card", if(@campaign.status == "paused", do: "opacity-60")]}>
-      <div class="flex items-center gap-3 px-4 py-3">
+      <div class="flex items-center gap-3 px-5 py-4">
         <div
           class="flex flex-1 items-center gap-3 cursor-pointer min-w-0"
           phx-click="toggle_expand"
@@ -450,20 +886,116 @@ defmodule ExCaliburWeb.QuestsLive do
         </div>
       </div>
       <%= if @expanded do %>
-        <div class="border-t px-4 py-3 space-y-2">
-          <%= if @campaign.description do %>
-            <p class="text-sm text-muted-foreground">{@campaign.description}</p>
-          <% end %>
-          <div class="space-y-1">
-            <%= for {step, idx} <- Enum.with_index(@campaign.steps) do %>
-              <div class="flex items-center gap-2 text-sm">
-                <span class="text-muted-foreground">{idx + 1}.</span>
-                <span>{quest_name_for_step(step, @quests)}</span>
-                <%= if idx < length(@campaign.steps) - 1 do %>
-                  <.badge variant="secondary" class="text-xs">{step["flow"]}</.badge>
+        <div class="border-t px-5 py-5">
+          <form phx-submit="update_campaign" phx-change="preview_campaign_trigger" class="space-y-4">
+            <input type="hidden" name="campaign_id" value={@campaign.id} />
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="space-y-1.5">
+                <label for={"cname-#{@campaign.id}"} class="text-sm font-medium">Name</label>
+                <.input
+                  id={"cname-#{@campaign.id}"}
+                  type="text"
+                  name="campaign[name]"
+                  value={@campaign.name}
+                />
+              </div>
+              <div class="space-y-1.5">
+                <label for={"cdesc-#{@campaign.id}"} class="text-sm font-medium">Description</label>
+                <.input
+                  id={"cdesc-#{@campaign.id}"}
+                  type="text"
+                  name="campaign[description]"
+                  value={@campaign.description || ""}
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+            <div class="space-y-1.5">
+              <label for={"ctrigger-#{@campaign.id}"} class="text-sm font-medium">Trigger</label>
+              <select
+                id={"ctrigger-#{@campaign.id}"}
+                name="campaign[trigger]"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="manual" selected={@campaign.trigger == "manual"}>Manual</option>
+                <option value="source" selected={@campaign.trigger == "source"}>Source</option>
+                <option value="scheduled" selected={@campaign.trigger == "scheduled"}>
+                  Scheduled
+                </option>
+              </select>
+            </div>
+            <%= if @trigger_preview == "scheduled" do %>
+              <% {interval, unit} = parse_schedule(@campaign.schedule) %>
+              <.schedule_picker namespace="campaign" unit={unit} interval={interval} id_prefix={"campaign-#{@campaign.id}"} />
+            <% end %>
+            <%= if @trigger_preview == "source" do %>
+              <.source_picker sources={@sources} namespace="campaign" selected_ids={@campaign.source_ids} />
+            <% end %>
+            <div class="flex justify-end pt-1">
+              <.button type="submit" size="sm" variant="outline">Save changes</.button>
+            </div>
+          </form>
+          <div class="space-y-1.5 mt-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Quests (in order)
+            </p>
+            <%= if @campaign.steps == [] do %>
+              <p class="text-sm text-muted-foreground italic">No quests added yet.</p>
+            <% else %>
+              <div class="rounded-md border divide-y divide-border">
+                <%= for {step, idx} <- Enum.with_index(@campaign.steps) do %>
+                  <div class="flex items-center gap-2 text-sm px-3 py-2 bg-card hover:bg-muted/30">
+                    <span class="text-muted-foreground text-xs w-5 shrink-0 text-center select-none">
+                      {idx + 1}
+                    </span>
+                    <span class="flex-1 truncate font-medium">
+                      {quest_name_for_step(step, @quests)}
+                    </span>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                        phx-click="move_campaign_quest_up"
+                        phx-value-campaign_id={@campaign.id}
+                        phx-value-index={idx}
+                        disabled={idx == 0}
+                        aria-label="Move up"
+                      >▲</button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                        phx-click="move_campaign_quest_down"
+                        phx-value-campaign_id={@campaign.id}
+                        phx-value-index={idx}
+                        disabled={idx == length(@campaign.steps) - 1}
+                        aria-label="Move down"
+                      >▼</button>
+                      <button
+                        type="button"
+                        class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs transition-colors border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                        phx-click="remove_campaign_quest"
+                        phx-value-campaign_id={@campaign.id}
+                        phx-value-index={idx}
+                        aria-label="Remove"
+                      >✕</button>
+                    </div>
+                  </div>
                 <% end %>
               </div>
             <% end %>
+            <form phx-submit="add_campaign_quest" class="flex gap-2 mt-2">
+              <input type="hidden" name="campaign_id" value={@campaign.id} />
+              <select
+                name="quest_id"
+                class="flex-1 text-sm border border-input rounded-md px-2 py-1 bg-background"
+              >
+                <option value="">Add quest…</option>
+                <%= for quest <- @quests do %>
+                  <option value={quest.id}>{quest.name}</option>
+                <% end %>
+              </select>
+              <.button type="submit" size="sm" variant="outline">Add</.button>
+            </form>
           </div>
         </div>
       <% end %>
@@ -509,6 +1041,41 @@ defmodule ExCaliburWeb.QuestsLive do
     """
   end
 
+  attr :run, :map, required: true
+
+  defp past_run_row(assigns) do
+    results = assigns.run.results || %{}
+    verdict = results[:verdict] || results["verdict"]
+    assigns = assign(assigns, verdict: verdict)
+
+    ~H"""
+    <div class="flex items-start gap-3 text-xs py-2 border-t border-border/50">
+      <span class="text-muted-foreground whitespace-nowrap mt-0.5">
+        {Calendar.strftime(@run.inserted_at, "%b %d %H:%M")}
+      </span>
+      <span class="flex-1 text-muted-foreground truncate">
+        {if @run.input && @run.input != "", do: @run.input, else: "(scheduled)"}
+      </span>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span class={[
+          "px-1.5 py-0.5 rounded text-xs font-medium",
+          case @run.status do
+            "complete" -> "bg-green-100 text-green-700"
+            "failed" -> "bg-red-100 text-red-700"
+            "running" -> "bg-blue-100 text-blue-700"
+            _ -> "bg-muted text-muted-foreground"
+          end
+        ]}>
+          {@run.status}
+        </span>
+        <%= if @verdict do %>
+          <.verdict_badge verdict={@verdict} />
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
   attr :verdict, :string, required: true
 
   defp verdict_badge(assigns) do
@@ -530,18 +1097,51 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :quest, :map, required: true
   attr :expanded, :boolean, required: true
   attr :run_state, :map, default: nil
+  attr :past_runs, :list, default: []
+  attr :teams, :list, default: []
+  attr :sources, :list, default: []
+  attr :trigger_preview, :string, default: "manual"
+  attr :output_preview, :string, default: "verdict"
 
   defp quest_card(assigns) do
+    first_step = List.first(assigns.quest.roster || []) || %{}
+
+    escalate_on_val =
+      case first_step["escalate_on"] do
+        %{"type" => "verdict", "values" => values} ->
+          if "warn" in values, do: "warn_or_fail", else: "fail_only"
+
+        "always" ->
+          "always"
+
+        _ ->
+          "never"
+      end
+
+    {context_type_val, context_content_val} =
+      case List.first(assigns.quest.context_providers || []) do
+        %{"type" => "static", "content" => c} -> {"static", c}
+        %{"type" => type} -> {type, ""}
+        _ -> {"", ""}
+      end
+
+    assigns =
+      assigns
+      |> assign(:first_step, first_step)
+      |> assign(:escalate_on_val, escalate_on_val)
+      |> assign(:context_type_val, context_type_val)
+      |> assign(:context_content_val, context_content_val)
+
     ~H"""
-    <div class={["border rounded-lg bg-card", if(@quest.status == "paused", do: "opacity-60")]}>
-      <div class="flex items-center gap-3 px-4 py-3">
+    <div class={["border rounded-lg bg-card shadow-sm", if(@quest.status == "paused", do: "opacity-60")]}>
+      <div class="flex items-center gap-3 px-5 py-3.5">
         <div
           class="flex flex-1 items-center gap-3 cursor-pointer min-w-0"
           phx-click="toggle_expand"
           phx-value-id={"quest-#{@quest.id}"}
         >
           <span class={[
-            "transition-transform text-muted-foreground",
+            "transition-transform duration-150 text-muted-foreground text-lg leading-none",
             if(@expanded, do: "rotate-90")
           ]}>
             ›
@@ -556,7 +1156,7 @@ defmodule ExCaliburWeb.QuestsLive do
             <% end %>
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1 shrink-0 ml-2">
           <.button
             size="sm"
             variant="ghost"
@@ -577,32 +1177,280 @@ defmodule ExCaliburWeb.QuestsLive do
         </div>
       </div>
       <%= if @expanded do %>
-        <div class="border-t px-4 py-4 space-y-3">
-          <%= if @quest.description do %>
-            <p class="text-sm text-muted-foreground">{@quest.description}</p>
-          <% end %>
-          <form phx-submit="run_quest" class="flex gap-2">
-            <input type="hidden" name="quest_id" value={@quest.id} />
-            <.input
-              type="textarea"
-              name="input"
-              value=""
-              rows={3}
-              placeholder="Paste content to evaluate..."
-              class="flex-1 text-sm"
-            />
-            <div class="flex flex-col justify-end">
-              <.button type="submit" size="sm">Run Now</.button>
-            </div>
-          </form>
-          <%= if @run_state do %>
-            <.run_result run_state={@run_state} />
-          <% end %>
+        <div class="border-t grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x">
+          <%!-- Setup --%>
+          <div class="px-5 py-5 space-y-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Setup
+            </p>
+            <form phx-submit="update_quest" phx-change="preview_quest_trigger" class="space-y-4">
+              <input type="hidden" name="quest_id" value={@quest.id} />
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                  <label for={"qname-#{@quest.id}"} class="text-sm font-medium">Name</label>
+                  <.input id={"qname-#{@quest.id}"} type="text" name="quest[name]" value={@quest.name} />
+                </div>
+                <div class="space-y-1.5">
+                  <label for={"qdesc-#{@quest.id}"} class="text-sm font-medium">Description</label>
+                  <.input
+                    id={"qdesc-#{@quest.id}"}
+                    type="text"
+                    name="quest[description]"
+                    value={@quest.description || ""}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <label for={"qtrigger-#{@quest.id}"} class="text-sm font-medium">Trigger</label>
+                <select
+                  id={"qtrigger-#{@quest.id}"}
+                  name="quest[trigger]"
+                  class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="manual" selected={@quest.trigger == "manual"}>Manual</option>
+                  <option value="source" selected={@quest.trigger == "source"}>Source</option>
+                  <option value="scheduled" selected={@quest.trigger == "scheduled"}>
+                    Scheduled
+                  </option>
+                </select>
+              </div>
+              <%= if @trigger_preview == "scheduled" do %>
+                <% {interval, unit} = parse_schedule(@quest.schedule) %>
+                <.schedule_picker namespace="quest" unit={unit} interval={interval} id_prefix={"quest-#{@quest.id}"} />
+              <% end %>
+              <%= if @trigger_preview == "source" do %>
+                <.source_picker sources={@sources} namespace="quest" selected_ids={@quest.source_ids} />
+              <% end %>
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div class="space-y-1.5">
+                  <label for={"qwho-#{@quest.id}"} class="text-sm font-medium">Who</label>
+                  <select
+                    id={"qwho-#{@quest.id}"}
+                    name="quest[who]"
+                    class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="all" selected={@first_step["who"] == "all"}>Everyone</option>
+                    <option value="apprentice" selected={@first_step["who"] == "apprentice"}>
+                      Apprentice
+                    </option>
+                    <option value="journeyman" selected={@first_step["who"] == "journeyman"}>
+                      Journeyman
+                    </option>
+                    <option value="master" selected={@first_step["who"] == "master"}>
+                      Master
+                    </option>
+                    <optgroup label="Cloud">
+                      <option
+                        value="claude_haiku"
+                        selected={@first_step["who"] == "claude_haiku"}
+                      >
+                        Claude Haiku
+                      </option>
+                      <option
+                        value="claude_sonnet"
+                        selected={@first_step["who"] == "claude_sonnet"}
+                      >
+                        Claude Sonnet
+                      </option>
+                    </optgroup>
+                    <%= if @teams != [] do %>
+                      <optgroup label="Teams">
+                        <%= for team <- @teams do %>
+                          <option
+                            value={"team:#{team}"}
+                            selected={@first_step["who"] == "team:#{team}"}
+                          >
+                            {team}
+                          </option>
+                        <% end %>
+                      </optgroup>
+                    <% end %>
+                  </select>
+                </div>
+                <div class="space-y-1.5">
+                  <label for={"qhow-#{@quest.id}"} class="text-sm font-medium">How</label>
+                  <select
+                    id={"qhow-#{@quest.id}"}
+                    name="quest[how]"
+                    class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="consensus" selected={@first_step["how"] == "consensus"}>
+                      Consensus
+                    </option>
+                    <option value="solo" selected={@first_step["how"] == "solo"}>Solo</option>
+                    <option value="majority" selected={@first_step["how"] == "majority"}>
+                      Majority
+                    </option>
+                  </select>
+                </div>
+                <%= if @output_preview == "verdict" do %>
+                  <div class="space-y-1.5">
+                    <label for={"qescalate-#{@quest.id}"} class="text-sm font-medium">
+                      Escalate on
+                    </label>
+                    <select
+                      id={"qescalate-#{@quest.id}"}
+                      name="quest[escalate_on]"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="never" selected={@escalate_on_val == "never"}>Never</option>
+                      <option value="warn_or_fail" selected={@escalate_on_val == "warn_or_fail"}>
+                        Warn or fail
+                      </option>
+                      <option value="fail_only" selected={@escalate_on_val == "fail_only"}>
+                        Fail only
+                      </option>
+                      <option value="always" selected={@escalate_on_val == "always"}>Always</option>
+                    </select>
+                  </div>
+                <% end %>
+              </div>
+              <div class="space-y-1.5">
+                <label for={"qctx-#{@quest.id}"} class="text-sm font-medium">Context</label>
+                <select
+                  id={"qctx-#{@quest.id}"}
+                  name="quest[context_type]"
+                  class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="" selected={@context_type_val == ""}>None</option>
+                  <option value="static" selected={@context_type_val == "static"}>
+                    Static text
+                  </option>
+                  <option value="quest_history" selected={@context_type_val == "quest_history"}>
+                    Quest history
+                  </option>
+                  <option value="member_stats" selected={@context_type_val == "member_stats"}>
+                    Member roster
+                  </option>
+                </select>
+                <%= if @context_type_val == "static" do %>
+                  <.input
+                    type="textarea"
+                    name="quest[context_content]"
+                    value={@context_content_val}
+                    rows={2}
+                    placeholder="Static context text"
+                  />
+                <% end %>
+              </div>
+              <div class="space-y-1.5">
+                <label for={"qoutput-#{@quest.id}"} class="text-sm font-medium">Output</label>
+                <select
+                  id={"qoutput-#{@quest.id}"}
+                  name="quest[output_type]"
+                  class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="verdict" selected={@output_preview == "verdict"}>
+                    Verdict (pass/warn/fail)
+                  </option>
+                  <option value="artifact" selected={@output_preview == "artifact"}>
+                    Artifact (write to Grimoire)
+                  </option>
+                </select>
+              </div>
+              <%= if @output_preview == "artifact" do %>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div class="space-y-1.5">
+                    <label for={"qwritemode-#{@quest.id}"} class="text-sm font-medium">
+                      Write mode
+                    </label>
+                    <select
+                      id={"qwritemode-#{@quest.id}"}
+                      name="quest[write_mode]"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="append" selected={@quest.write_mode == "append"}>
+                        Append (each run adds an entry)
+                      </option>
+                      <option value="replace" selected={@quest.write_mode == "replace"}>
+                        Replace (overwrite previous entry)
+                      </option>
+                    </select>
+                  </div>
+                  <div class="space-y-1.5">
+                    <label for={"qtitletempl-#{@quest.id}"} class="text-sm font-medium">
+                      Title template
+                    </label>
+                    <input
+                      id={"qtitletempl-#{@quest.id}"}
+                      type="text"
+                      name="quest[entry_title_template]"
+                      value={@quest.entry_title_template || ""}
+                      placeholder="Summary — {date}"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                </div>
+              <% end %>
+              <div class="flex justify-end pt-1">
+                <.button type="submit" size="sm" variant="outline">Save changes</.button>
+              </div>
+            </form>
+          </div>
+          <%!-- Run --%>
+          <div class="px-5 py-5 space-y-4">
+            <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Run</p>
+            <form id={"run-form-#{@quest.id}"} phx-submit="run_quest" class="space-y-2">
+              <input type="hidden" name="quest_id" value={@quest.id} />
+              <.input
+                type="textarea"
+                name="input"
+                value=""
+                rows={4}
+                placeholder="Paste content to evaluate…"
+              />
+              <div class="flex justify-end">
+                <.button type="submit" size="sm">Run Now</.button>
+              </div>
+            </form>
+            <%= if @run_state do %>
+              <.run_result run_state={@run_state} />
+            <% end %>
+            <%= if @past_runs != [] do %>
+              <div class="space-y-0 pt-2">
+                <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Log
+                </p>
+                <%= for run <- @past_runs do %>
+                  <.past_run_row run={run} />
+                <% end %>
+              </div>
+            <% end %>
+          </div>
         </div>
       <% end %>
     </div>
     """
   end
+
+  defp rebuild_trigger_previews(quests, campaigns, existing) do
+    existing
+    |> Map.merge(Map.new(quests, fn q -> {"quest-#{q.id}", q.trigger} end))
+    |> Map.merge(Map.new(campaigns, fn c -> {"campaign-#{c.id}", c.trigger} end))
+  end
+
+  defp rebuild_output_previews(quests, existing) do
+    Map.merge(existing, Map.new(quests, fn q -> {"quest-#{q.id}", q.output_type || "verdict"} end))
+  end
+
+  # "*/5 * * * *" → {5, "minutes"}, "0 */2 * * *" → {2, "hours"}
+  defp parse_schedule(nil), do: {1, "hours"}
+  defp parse_schedule(""), do: {1, "hours"}
+
+  defp parse_schedule(cron) do
+    case String.split(cron) do
+      ["*/" <> n, "*", "*", "*", "*"] -> {String.to_integer(n), "minutes"}
+      ["*", "*", "*", "*", "*"] -> {1, "minutes"}
+      ["0", "*/" <> n, "*", "*", "*"] -> {String.to_integer(n), "hours"}
+      ["0", "*", "*", "*", "*"] -> {1, "hours"}
+      _ -> {1, "hours"}
+    end
+  end
+
+  defp build_schedule(interval, "minutes"), do: "*/#{interval} * * * *"
+  defp build_schedule(interval, "hours"), do: "0 */#{interval} * * *"
+  defp build_schedule(_, _), do: nil
 
   defp roster_summary(%Quest{roster: []}), do: ""
   defp roster_summary(%Quest{roster: [first | _]}), do: "#{first["who"]} · #{first["how"]}"
@@ -623,6 +1471,17 @@ defmodule ExCaliburWeb.QuestsLive do
   defp run_state_class("complete"), do: "bg-green-50 text-green-700 border border-green-200"
   defp run_state_class("failed"), do: "bg-red-50 text-red-700 border border-red-200"
   defp run_state_class(_), do: "bg-muted text-muted-foreground"
+
+  defp source_label(%Source{name: name}) when is_binary(name) and name != "", do: name
+
+  defp source_label(%Source{book_id: book_id}) when is_binary(book_id) do
+    case Book.get(book_id) do
+      nil -> book_id
+      book -> book.name
+    end
+  end
+
+  defp source_label(%Source{source_type: type}), do: String.capitalize(type) <> " source"
 
   defp quest_name_for_step(step, quests) do
     quest = Enum.find(quests, &(to_string(&1.id) == to_string(step["quest_id"])))
