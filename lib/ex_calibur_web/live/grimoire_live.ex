@@ -9,6 +9,10 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
+    end
+
     {:ok,
      assign(socket,
        page_title: "Grimoire",
@@ -24,6 +28,9 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   @impl true
   def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_info(_msg, socket), do: {:noreply, reload(socket)}
 
   @impl true
   def handle_event("toggle_tag_filter", %{"tag" => tag}, socket) do

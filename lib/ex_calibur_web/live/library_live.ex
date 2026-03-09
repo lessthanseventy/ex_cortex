@@ -34,6 +34,10 @@ defmodule ExCaliburWeb.LibraryLive do
   def handle_info(:refresh, socket), do: {:noreply, load_data(socket)}
   def handle_info(_msg, socket), do: {:noreply, load_data(socket)}
 
+  defp broadcast_sources do
+    Phoenix.PubSub.broadcast(ExCalibur.PubSub, "sources", :refresh)
+  end
+
   defp load_data(socket) do
     import Ecto.Query
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [desc: s.inserted_at]))
@@ -97,6 +101,8 @@ defmodule ExCaliburWeb.LibraryLive do
         status: "paused"
       })
       |> ExCalibur.Repo.insert()
+
+      broadcast_sources()
     end
 
     {:noreply, load_data(socket)}
@@ -117,6 +123,8 @@ defmodule ExCaliburWeb.LibraryLive do
         status: "paused"
       })
       |> ExCalibur.Repo.insert()
+
+      broadcast_sources()
     end
 
     {:noreply, socket |> assign(expanding: nil) |> load_data()}
@@ -132,6 +140,7 @@ defmodule ExCaliburWeb.LibraryLive do
     |> Source.changeset(%{config: config})
     |> ExCalibur.Repo.update()
 
+    broadcast_sources()
     {:noreply, load_data(socket)}
   end
 
@@ -144,6 +153,7 @@ defmodule ExCaliburWeb.LibraryLive do
     |> ExCalibur.Repo.update!()
 
     SourceSupervisor.start_source(source)
+    broadcast_sources()
     {:noreply, load_data(socket)}
   end
 
@@ -152,6 +162,7 @@ defmodule ExCaliburWeb.LibraryLive do
     source = ExCalibur.Repo.get!(Source, id)
     source |> Source.changeset(%{status: "paused"}) |> ExCalibur.Repo.update!()
     SourceSupervisor.stop_source(id)
+    broadcast_sources()
     {:noreply, load_data(socket)}
   end
 
@@ -160,6 +171,7 @@ defmodule ExCaliburWeb.LibraryLive do
     source = ExCalibur.Repo.get!(Source, id)
     SourceSupervisor.stop_source(id)
     ExCalibur.Repo.delete!(source)
+    broadcast_sources()
     {:noreply, load_data(socket)}
   end
 

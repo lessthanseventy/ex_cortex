@@ -27,6 +27,7 @@ defmodule ExCaliburWeb.StacksLive do
     |> ExCalibur.Repo.update!()
 
     SourceSupervisor.start_source(source)
+    broadcast_sources()
     {:noreply, load_sources(socket)}
   end
 
@@ -35,6 +36,15 @@ defmodule ExCaliburWeb.StacksLive do
     source = ExCalibur.Repo.get!(Source, id)
     source |> Source.changeset(%{status: "paused"}) |> ExCalibur.Repo.update!()
     SourceSupervisor.stop_source(id)
+    broadcast_sources()
+    {:noreply, load_sources(socket)}
+  end
+
+  @impl true
+  def handle_event("rename", %{"source_id" => id, "source" => %{"name" => name}}, socket) do
+    source = ExCalibur.Repo.get!(Source, id)
+    source |> Source.changeset(%{name: String.trim(name)}) |> ExCalibur.Repo.update!()
+    broadcast_sources()
     {:noreply, load_sources(socket)}
   end
 
@@ -43,6 +53,7 @@ defmodule ExCaliburWeb.StacksLive do
     source = ExCalibur.Repo.get!(Source, id)
     SourceSupervisor.stop_source(id)
     ExCalibur.Repo.delete!(source)
+    broadcast_sources()
     {:noreply, load_sources(put_flash(socket, :info, "Source removed from stacks."))}
   end
 
@@ -52,12 +63,18 @@ defmodule ExCaliburWeb.StacksLive do
   @impl true
   def handle_info(_msg, socket), do: {:noreply, load_sources(socket)}
 
+  defp broadcast_sources do
+    Phoenix.PubSub.broadcast(ExCalibur.PubSub, "sources", :refresh)
+  end
+
   defp load_sources(socket) do
     import Ecto.Query
 
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [desc: s.inserted_at]))
     assign(socket, sources: sources)
   end
+
+  defp source_name(%Source{name: name}) when is_binary(name) and name != "", do: name
 
   defp source_name(%Source{book_id: book_id}) when is_binary(book_id) do
     case Book.get(book_id) do
@@ -79,10 +96,15 @@ defmodule ExCaliburWeb.StacksLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">Stacks</h1>
-        <a href="/library">
+    <div class="space-y-8">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">Stacks</h1>
+          <p class="text-muted-foreground mt-1.5">
+            Active sources feeding content into your guild for evaluation.
+          </p>
+        </div>
+        <a href="/library" class="self-start sm:mt-1">
           <.button variant="outline">Browse Library</.button>
         </a>
       </div>
@@ -95,56 +117,54 @@ defmodule ExCaliburWeb.StacksLive do
           </p>
         </div>
       <% else %>
-        <div class="space-y-2">
+        <div class="space-y-3">
           <%= for source <- @sources do %>
-            <div class="flex items-center justify-between rounded-lg border p-4">
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <span class="font-medium">{source_name(source)}</span>
-                  <.badge variant="outline">{source.source_type}</.badge>
-                  <.badge variant={status_variant(source.status)}>{source.status}</.badge>
-                </div>
-                <p class="text-xs text-muted-foreground">
-                  Last run: {format_time(source.last_run_at)}
-                </p>
-                <%= if source.source_type == "webhook" do %>
-                  <p class="text-xs text-muted-foreground font-mono">
-                    POST /api/webhooks/{source.id}
+            <div class="rounded-lg border p-5 space-y-3">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium">{source_name(source)}</span>
+                    <.badge variant="outline">{source.source_type}</.badge>
+                    <.badge variant={status_variant(source.status)}>{source.status}</.badge>
+                  </div>
+                  <p class="text-xs text-muted-foreground">
+                    Last run: {format_time(source.last_run_at)}
                   </p>
-                <% end %>
-                <%= if source.error_message do %>
-                  <p class="text-xs text-destructive">{source.error_message}</p>
-                <% end %>
-              </div>
-              <div class="ml-4 shrink-0 flex gap-2">
-                <%= if source.status == "active" do %>
-                  <.button
-                    variant="outline"
-                    size="sm"
-                    phx-click="pause"
-                    phx-value-id={source.id}
-                  >
-                    Pause
+                  <%= if source.source_type == "webhook" do %>
+                    <p class="text-xs text-muted-foreground font-mono">
+                      POST /api/webhooks/{source.id}
+                    </p>
+                  <% end %>
+                  <%= if source.error_message do %>
+                    <p class="text-xs text-destructive">{source.error_message}</p>
+                  <% end %>
+                </div>
+                <div class="shrink-0 flex gap-2 self-start sm:self-auto">
+                  <%= if source.status == "active" do %>
+                    <.button variant="outline" size="sm" phx-click="pause" phx-value-id={source.id}>
+                      Pause
+                    </.button>
+                  <% else %>
+                    <.button variant="outline" size="sm" phx-click="resume" phx-value-id={source.id}>
+                      Resume
+                    </.button>
+                  <% end %>
+                  <.button variant="destructive" size="sm" phx-click="delete" phx-value-id={source.id}>
+                    Delete
                   </.button>
-                <% else %>
-                  <.button
-                    variant="outline"
-                    size="sm"
-                    phx-click="resume"
-                    phx-value-id={source.id}
-                  >
-                    Resume
-                  </.button>
-                <% end %>
-                <.button
-                  variant="destructive"
-                  size="sm"
-                  phx-click="delete"
-                  phx-value-id={source.id}
-                >
-                  Delete
-                </.button>
+                </div>
               </div>
+              <form phx-submit="rename" class="flex items-center gap-2">
+                <input type="hidden" name="source_id" value={source.id} />
+                <input
+                  type="text"
+                  name="source[name]"
+                  value={source.name || ""}
+                  placeholder={source_name(source)}
+                  class="flex-1 h-7 text-sm border border-input rounded-md px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring text-muted-foreground focus:text-foreground"
+                />
+                <.button type="submit" variant="outline" size="sm">Rename</.button>
+              </form>
             </div>
           <% end %>
         </div>

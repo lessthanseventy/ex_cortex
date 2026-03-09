@@ -12,6 +12,10 @@ defmodule ExCaliburWeb.QuestsLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "quest_runs")
+    end
+
     import Ecto.Query
     quests = Quests.list_quests()
     campaigns = Quests.list_campaigns()
@@ -576,6 +580,14 @@ defmodule ExCaliburWeb.QuestsLive do
 
     {:noreply, assign(socket, running: running, quest_runs: quest_runs)}
   end
+
+  @impl true
+  def handle_info(:refresh, socket) do
+    {:noreply, assign(socket, quests: Quests.list_quests(), campaigns: Quests.list_campaigns())}
+  end
+
+  @impl true
+  def handle_info(_msg, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do

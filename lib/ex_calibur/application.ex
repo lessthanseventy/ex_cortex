@@ -24,6 +24,7 @@ defmodule ExCalibur.Application do
       {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor},
       SourceSupervisor,
       {Task, fn -> SourceSupervisor.start_all_active() end},
+      ExCalibur.PubSubBridge,
       ExCalibur.ScheduledQuestRunner,
       ExCaliburWeb.Endpoint
     ]
