@@ -14,6 +14,11 @@ defmodule ExCaliburWeb.LodgeLiveTest do
   end
 
   describe "index" do
+    setup do
+      ExCalibur.Repo.delete_all(Member)
+      :ok
+    end
+
     test "redirects to guild hall when no members exist", %{conn: conn} do
       {:error, {:live_redirect, %{to: "/guild-hall"}}} = live(conn, "/lodge")
     end

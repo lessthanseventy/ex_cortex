@@ -8,6 +8,11 @@ defmodule ExCaliburWeb.LibraryLiveTest do
   alias ExCalibur.Sources.Source
 
   describe "active sources section" do
+    setup do
+      ExCalibur.Repo.delete_all(Source)
+      :ok
+    end
+
     test "shows empty state when no sources exist", %{conn: conn} do
       {:ok, view, html} = live(conn, "/library")
       html_snapshot(view)

@@ -150,7 +150,7 @@ defmodule ExCaliburWeb.MembersLiveTest do
             "name" => "Brand New Role",
             "system_prompt" => "You do new things.",
             "rank" => "journeyman",
-            "model" => "phi4-mini",
+            "model" => "phi4-mini:latest",
             "strategy" => "cot"
           }
         })

@@ -6,6 +6,11 @@ defmodule ExCalibur.QuestsTest do
   alias ExCalibur.Quests.Quest
 
   describe "quests" do
+    setup do
+      ExCalibur.Repo.delete_all(Quest)
+      :ok
+    end
+
     test "list_quests returns all quests" do
       {:ok, _} = Quests.create_quest(%{name: "Test Quest", trigger: "manual"})
       assert [%Quest{}] = Quests.list_quests()
@@ -33,6 +38,11 @@ defmodule ExCalibur.QuestsTest do
   end
 
   describe "campaigns" do
+    setup do
+      ExCalibur.Repo.delete_all(Campaign)
+      :ok
+    end
+
     test "list_campaigns returns all campaigns" do
       {:ok, _} = Quests.create_campaign(%{name: "Campaign A", trigger: "manual"})
       assert [%Campaign{}] = Quests.list_campaigns()
