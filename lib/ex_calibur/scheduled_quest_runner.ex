@@ -1,17 +1,16 @@
 defmodule ExCalibur.ScheduledQuestRunner do
   @moduledoc """
-  GenServer that wakes up every minute and runs any scheduled quests whose
+  GenServer that wakes up every minute and runs any scheduled campaigns whose
   cron expression matches the current time.
 
-  Quests with `trigger: "scheduled"` and a valid `schedule` cron string
-  (e.g. "0 * * * *") will be run against an empty input string, which is
-  useful for housekeeping quests that synthesize from context providers.
+  Campaigns with `trigger: "scheduled"` and a valid `schedule` cron string
+  (e.g. "*/15 * * * *") will be run with an empty input string.
+  Wrap a single quest in a one-step campaign to schedule it.
   """
 
   use GenServer
 
   alias ExCalibur.CampaignRunner
-  alias ExCalibur.QuestRunner
   alias ExCalibur.Quests
 
   require Logger
@@ -30,7 +29,6 @@ defmodule ExCalibur.ScheduledQuestRunner do
 
   @impl true
   def handle_info(:tick, state) do
-    run_due_quests()
     run_due_campaigns()
     schedule_tick()
     {:noreply, state}
@@ -38,33 +36,6 @@ defmodule ExCalibur.ScheduledQuestRunner do
 
   defp schedule_tick do
     Process.send_after(self(), :tick, @tick_ms)
-  end
-
-  defp run_due_quests do
-    now = DateTime.utc_now()
-
-    Quests.list_quests()
-    |> Enum.filter(&scheduled_and_due?(&1, now))
-    |> Enum.each(&run_quest/1)
-  end
-
-  defp scheduled_and_due?(quest, now) do
-    quest.trigger == "scheduled" and
-      quest.status == "active" and
-      is_binary(quest.schedule) and
-      quest.schedule != "" and
-      cron_matches?(quest.schedule, now)
-  end
-
-  defp cron_matches?(schedule, now) do
-    case Crontab.CronExpression.Parser.parse(schedule) do
-      {:ok, expr} ->
-        naive = DateTime.to_naive(now)
-        Crontab.DateChecker.matches_date?(expr, naive)
-
-      _ ->
-        false
-    end
   end
 
   defp run_due_campaigns do
@@ -83,36 +54,23 @@ defmodule ExCalibur.ScheduledQuestRunner do
       cron_matches?(campaign.schedule, now)
   end
 
+  defp cron_matches?(schedule, now) do
+    case Crontab.CronExpression.Parser.parse(schedule) do
+      {:ok, expr} ->
+        naive = DateTime.to_naive(now)
+        Crontab.DateChecker.matches_date?(expr, naive)
+
+      _ ->
+        false
+    end
+  end
+
   defp run_campaign(campaign) do
     Logger.info("[ScheduledQuestRunner] Running campaign #{campaign.id} (#{campaign.name})")
 
     Task.start(fn ->
       {:ok, result} = CampaignRunner.run(campaign, "")
       Logger.info("[ScheduledQuestRunner] Campaign #{campaign.id} complete: #{inspect(result)}")
-    end)
-  end
-
-  defp run_quest(quest) do
-    Logger.info("[ScheduledQuestRunner] Running quest #{quest.id} (#{quest.name})")
-
-    {:ok, quest_run} =
-      Quests.create_quest_run(%{quest_id: quest.id, input: "", status: "running"})
-
-    Task.start(fn ->
-      result = QuestRunner.run(quest, "")
-
-      {status, results} =
-        case result do
-          {:ok, r} -> {"complete", r}
-          {:error, e} -> {"failed", %{error: inspect(e)}}
-        end
-
-      quest_run_fresh = ExCalibur.Repo.get!(ExCalibur.Quests.QuestRun, quest_run.id)
-      Quests.update_quest_run(quest_run_fresh, %{status: status, results: results})
-
-      if status == "complete" do
-        ExCalibur.LearningLoop.retrospect(quest, %{quest_run_fresh | results: results})
-      end
     end)
   end
 end
