@@ -41,6 +41,11 @@ defmodule ExCaliburWeb.QuestsLive do
       end)
       |> Map.put("new-quest", "none")
 
+    write_mode_previews =
+      quests
+      |> Map.new(fn q -> {"quest-#{q.id}", q.write_mode || "append"} end)
+      |> Map.put("new-quest", "append")
+
     {:ok,
      assign(socket,
        quests: quests,
@@ -54,7 +59,8 @@ defmodule ExCaliburWeb.QuestsLive do
        quest_runs: %{},
        trigger_previews: trigger_previews,
        output_previews: output_previews,
-       context_previews: context_previews
+       context_previews: context_previews,
+       write_mode_previews: write_mode_previews
      )}
   end
 
@@ -110,6 +116,7 @@ defmodule ExCaliburWeb.QuestsLive do
     t = get_in(params, ["quest", "trigger"])
     o = get_in(params, ["quest", "output_type"])
     c = get_in(params, ["quest", "context_type"])
+    wm = get_in(params, ["quest", "write_mode"])
 
     socket =
       if t,
@@ -126,6 +133,11 @@ defmodule ExCaliburWeb.QuestsLive do
         do: assign(socket, context_previews: Map.put(socket.assigns.context_previews, "quest-#{id}", c)),
         else: socket
 
+    socket =
+      if wm,
+        do: assign(socket, write_mode_previews: Map.put(socket.assigns.write_mode_previews, "quest-#{id}", wm)),
+        else: socket
+
     {:noreply, socket}
   end
 
@@ -136,6 +148,7 @@ defmodule ExCaliburWeb.QuestsLive do
     t = get_in(params, ["quest", "trigger"])
     o = get_in(params, ["quest", "output_type"])
     c = get_in(params, ["quest", "context_type"])
+    wm = get_in(params, ["quest", "write_mode"])
 
     socket =
       if t,
@@ -150,6 +163,11 @@ defmodule ExCaliburWeb.QuestsLive do
     socket =
       if c,
         do: assign(socket, context_previews: Map.put(socket.assigns.context_previews, "new-quest", c)),
+        else: socket
+
+    socket =
+      if wm,
+        do: assign(socket, write_mode_previews: Map.put(socket.assigns.write_mode_previews, "new-quest", wm)),
         else: socket
 
     {:noreply, socket}
@@ -276,6 +294,7 @@ defmodule ExCaliburWeb.QuestsLive do
     output_type = params["output_type"] || "verdict"
     write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
     entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
+    log_title_template = if output_type == "artifact", do: params["log_title_template"], else: nil
 
     attrs = %{
       name: params["name"],
@@ -288,7 +307,8 @@ defmodule ExCaliburWeb.QuestsLive do
       status: "active",
       output_type: output_type,
       write_mode: write_mode,
-      entry_title_template: entry_title_template
+      entry_title_template: entry_title_template,
+      log_title_template: log_title_template
     }
 
     case Quests.create_quest(attrs) do
@@ -297,7 +317,8 @@ defmodule ExCaliburWeb.QuestsLive do
         previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
         context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
-        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews)}
+        write_mode_previews = rebuild_write_mode_previews(quests, socket.assigns.write_mode_previews)
+        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create quest")}
@@ -493,6 +514,7 @@ defmodule ExCaliburWeb.QuestsLive do
     output_type = params["output_type"] || "verdict"
     write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
     entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
+    log_title_template = if output_type == "artifact", do: params["log_title_template"], else: nil
 
     attrs = %{
       name: params["name"],
@@ -504,7 +526,8 @@ defmodule ExCaliburWeb.QuestsLive do
       context_providers: context_providers,
       output_type: output_type,
       write_mode: write_mode,
-      entry_title_template: entry_title_template
+      entry_title_template: entry_title_template,
+      log_title_template: log_title_template
     }
 
     case Quests.update_quest(quest, attrs) do
@@ -513,7 +536,8 @@ defmodule ExCaliburWeb.QuestsLive do
         previews = rebuild_trigger_previews(quests, socket.assigns.campaigns, socket.assigns.trigger_previews)
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
         context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
-        {:noreply, assign(socket, quests: quests, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews)}
+        write_mode_previews = rebuild_write_mode_previews(quests, socket.assigns.write_mode_previews)
+        {:noreply, assign(socket, quests: quests, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update quest")}
@@ -600,6 +624,7 @@ defmodule ExCaliburWeb.QuestsLive do
               trigger_preview={@trigger_previews["new-quest"] || "manual"}
               output_preview={@output_previews["new-quest"] || "verdict"}
               context_preview={@context_previews["new-quest"] || "none"}
+              write_mode_preview={@write_mode_previews["new-quest"] || "append"}
             />
           </div>
         <% end %>
@@ -615,6 +640,7 @@ defmodule ExCaliburWeb.QuestsLive do
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
             output_preview={@output_previews["quest-#{quest.id}"] || quest.output_type || "verdict"}
             context_preview={@context_previews["quest-#{quest.id}"] || "none"}
+            write_mode_preview={@write_mode_previews["quest-#{quest.id}"] || quest.write_mode || "append"}
           />
         </div>
       </div>
@@ -627,6 +653,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :trigger_preview, :string, default: "manual"
   attr :output_preview, :string, default: "verdict"
   attr :context_preview, :string, default: "none"
+  attr :write_mode_preview, :string, default: "append"
 
   defp new_quest_form(assigns) do
     ~H"""
@@ -782,8 +809,9 @@ defmodule ExCaliburWeb.QuestsLive do
                 name="quest[write_mode]"
                 class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                <option value="append">Append (each run adds an entry)</option>
-                <option value="replace">Replace (overwrite previous entry)</option>
+                <option value="append" selected={@write_mode_preview == "append"}>Append (each run adds an entry)</option>
+                <option value="replace" selected={@write_mode_preview == "replace"}>Replace (overwrite previous entry)</option>
+                <option value="both" selected={@write_mode_preview == "both"}>Both (update summary + append log)</option>
               </select>
             </div>
             <div>
@@ -796,6 +824,18 @@ defmodule ExCaliburWeb.QuestsLive do
               />
             </div>
           </div>
+          <%= if @write_mode_preview == "both" do %>
+            <div>
+              <label class="text-sm font-medium">Log title template</label>
+              <input
+                type="text"
+                name="quest[log_title_template]"
+                value=""
+                placeholder="Log — {date}"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          <% end %>
         <% end %>
         <div class="flex justify-end gap-2">
           <.button type="button" variant="outline" size="sm" phx-click="cancel_new">
@@ -1200,6 +1240,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :trigger_preview, :string, default: "manual"
   attr :output_preview, :string, default: "verdict"
   attr :context_preview, :string, default: "none"
+  attr :write_mode_preview, :string, default: "append"
 
   defp quest_card(assigns) do
     first_step = List.first(assigns.quest.roster || []) || %{}
@@ -1500,11 +1541,14 @@ defmodule ExCaliburWeb.QuestsLive do
                       name="quest[write_mode]"
                       class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                     >
-                      <option value="append" selected={@quest.write_mode == "append"}>
+                      <option value="append" selected={@write_mode_preview == "append"}>
                         Append (each run adds an entry)
                       </option>
-                      <option value="replace" selected={@quest.write_mode == "replace"}>
+                      <option value="replace" selected={@write_mode_preview == "replace"}>
                         Replace (overwrite previous entry)
+                      </option>
+                      <option value="both" selected={@write_mode_preview == "both"}>
+                        Both (update summary + append log)
                       </option>
                     </select>
                   </div>
@@ -1522,6 +1566,18 @@ defmodule ExCaliburWeb.QuestsLive do
                     />
                   </div>
                 </div>
+                <%= if @write_mode_preview == "both" do %>
+                  <div>
+                    <label class="text-sm font-medium">Log title template</label>
+                    <input
+                      type="text"
+                      name="quest[log_title_template]"
+                      value={@quest.log_title_template || ""}
+                      placeholder="Log — {date}"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                <% end %>
               <% end %>
               <div class="flex justify-end pt-1">
                 <.button type="submit" size="sm" variant="outline">Save changes</.button>
@@ -1572,6 +1628,10 @@ defmodule ExCaliburWeb.QuestsLive do
 
   defp rebuild_output_previews(quests, existing) do
     Map.merge(existing, Map.new(quests, fn q -> {"quest-#{q.id}", q.output_type || "verdict"} end))
+  end
+
+  defp rebuild_write_mode_previews(quests, existing) do
+    Map.merge(existing, Map.new(quests, fn q -> {"quest-#{q.id}", q.write_mode || "append"} end))
   end
 
   defp rebuild_context_previews(quests, existing) do
