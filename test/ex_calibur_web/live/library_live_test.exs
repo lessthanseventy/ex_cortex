@@ -122,6 +122,11 @@ defmodule ExCaliburWeb.LibraryLiveTest do
   end
 
   describe "heralds tab" do
+    setup do
+      ExCalibur.Repo.delete_all(ExCalibur.Heralds.Herald)
+      :ok
+    end
+
     test "shows heralds tab", %{conn: conn} do
       {:ok, _view, html} = live(conn, ~p"/library")
       assert html =~ "Heralds"
@@ -149,10 +154,12 @@ defmodule ExCaliburWeb.LibraryLiveTest do
     end
 
     test "can delete a herald", %{conn: conn} do
-      {:ok, _} = ExCalibur.Heralds.create_herald(%{name: "slack:eng", type: "slack", config: %{}})
+      {:ok, h} = ExCalibur.Heralds.create_herald(%{name: "slack:eng", type: "slack", config: %{}})
       {:ok, view, _html} = live(conn, ~p"/library")
       view |> element("[phx-value-tab=heralds]") |> render_click()
-      view |> element("[phx-click=delete_herald]") |> render_click()
+      # expand the herald row first to reveal the delete button
+      view |> element("[phx-click=configure_herald][phx-value-id='#{h.id}']") |> render_click()
+      view |> element("[phx-click=delete_herald][phx-value-id='#{h.id}']") |> render_click()
       assert ExCalibur.Heralds.list_heralds() == []
     end
   end

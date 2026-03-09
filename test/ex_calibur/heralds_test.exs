@@ -1,6 +1,12 @@
 defmodule ExCalibur.HeraldsTest do
   use ExCalibur.DataCase, async: true
   alias ExCalibur.Heralds
+  alias ExCalibur.Heralds.Herald
+
+  setup do
+    ExCalibur.Repo.delete_all(Herald)
+    :ok
+  end
 
   test "create and list heralds" do
     {:ok, _} = Heralds.create_herald(%{name: "slack:eng", type: "slack", config: %{"webhook_url" => "https://hooks.slack.com/x"}})

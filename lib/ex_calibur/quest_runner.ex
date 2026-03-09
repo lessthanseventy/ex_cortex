@@ -36,8 +36,8 @@ defmodule ExCalibur.QuestRunner do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    with {:ok, attrs} <- run_artifact(quest, augmented),
-         {:ok, herald} <- ExCalibur.Heralds.get_by_name(quest.herald_name || ""),
+    with {:ok, herald} <- ExCalibur.Heralds.get_by_name(quest.herald_name || ""),
+         {:ok, attrs} <- run_artifact(quest, augmented),
          :ok <- ExCalibur.Heralds.deliver(herald, quest, attrs) do
       {:ok, %{delivered: true, type: type, title: attrs.title}}
     end

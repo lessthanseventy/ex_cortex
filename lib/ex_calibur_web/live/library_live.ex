@@ -15,7 +15,16 @@ defmodule ExCaliburWeb.LibraryLive do
       :timer.send_interval(10_000, self(), :refresh)
     end
 
-    {:ok, load_data(assign(socket, page_title: "Library", tab: :scrolls, expanding: nil, herald_type_preview: "slack"))}
+    {:ok,
+     load_data(
+       assign(socket,
+         page_title: "Library",
+         tab: :scrolls,
+         expanding: nil,
+         herald_type_preview: "slack",
+         editing_herald: nil
+       )
+     )}
   end
 
   @impl true
@@ -179,6 +188,24 @@ defmodule ExCaliburWeb.LibraryLive do
 
     ExCalibur.Heralds.create_herald(attrs)
     {:noreply, socket |> assign(herald_type_preview: "slack") |> load_data()}
+  end
+
+  @impl true
+  def handle_event("configure_herald", %{"id" => id}, socket) do
+    editing = if socket.assigns.editing_herald == id, do: nil, else: id
+    {:noreply, assign(socket, editing_herald: editing)}
+  end
+
+  @impl true
+  def handle_event("save_herald_config", %{"herald" => params, "_herald_id" => id}, socket) do
+    herald = ExCalibur.Repo.get!(ExCalibur.Heralds.Herald, id)
+    config = build_herald_config(Map.put(params, "type", herald.type))
+
+    herald
+    |> ExCalibur.Heralds.Herald.changeset(%{config: config})
+    |> ExCalibur.Repo.update()
+
+    {:noreply, socket |> assign(editing_herald: nil) |> load_data()}
   end
 
   @impl true
@@ -352,20 +379,47 @@ defmodule ExCaliburWeb.LibraryLive do
             <%!-- Existing heralds --%>
             <div class="space-y-2">
               <%= for herald <- @heralds do %>
-                <div class="flex items-center justify-between border rounded-lg px-4 py-3 bg-card">
-                  <div>
-                    <span class="font-medium text-sm">{herald.name}</span>
-                    <.badge variant="outline" class="ml-2 text-xs">{herald.type}</.badge>
+                <div class="rounded-lg border overflow-hidden">
+                  <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="space-y-1 min-w-0">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-medium">{herald.name}</span>
+                        <.badge variant="secondary">{herald.type}</.badge>
+                        <%= if herald.config == %{} or Enum.all?(herald.config, fn {_, v} -> v == "" end) do %>
+                          <.badge variant="destructive" class="text-xs">needs config</.badge>
+                        <% end %>
+                      </div>
+                    </div>
+                    <div class="shrink-0 self-start sm:self-auto">
+                      <.button
+                        variant="outline"
+                        size="sm"
+                        phx-click="configure_herald"
+                        phx-value-id={herald.id}
+                      >
+                        {if @editing_herald == to_string(herald.id), do: "Cancel", else: "Configure"}
+                      </.button>
+                    </div>
                   </div>
-                  <.button
-                    size="sm"
-                    variant="ghost"
-                    phx-click="delete_herald"
-                    phx-value-id={herald.id}
-                    data-confirm="Delete this herald?"
-                  >
-                    Delete
-                  </.button>
+                  <%= if @editing_herald == to_string(herald.id) do %>
+                    <div class="border-t bg-muted/30 px-4 py-4">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                        Configure
+                      </p>
+                      <.herald_config_form herald={herald} />
+                      <div class="pt-3">
+                        <.button
+                          size="sm"
+                          variant="destructive"
+                          phx-click="delete_herald"
+                          phx-value-id={herald.id}
+                          data-confirm="Delete this herald?"
+                        >
+                          Delete herald
+                        </.button>
+                      </div>
+                    </div>
+                  <% end %>
                 </div>
               <% end %>
               <%= if @heralds == [] do %>
@@ -810,4 +864,155 @@ defmodule ExCaliburWeb.LibraryLive do
   defp placeholder_for("message_path"), do: "$.message"
   defp placeholder_for("patterns"), do: "*.ex, *.heex"
   defp placeholder_for(_), do: ""
+
+  attr :herald, :map, required: true
+
+  defp herald_config_form(assigns) do
+    ~H"""
+    <form phx-submit="save_herald_config" class="space-y-3">
+      <input type="hidden" name="_herald_id" value={@herald.id} />
+      <%= if @herald.type == "slack" do %>
+        <div>
+          <label class="text-xs text-muted-foreground">Webhook URL</label>
+          <input
+            type="text"
+            name="herald[webhook_url]"
+            value={@herald.config["webhook_url"]}
+            placeholder="https://hooks.slack.com/services/..."
+            class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+          />
+        </div>
+      <% end %>
+      <%= if @herald.type == "webhook" do %>
+        <div>
+          <label class="text-xs text-muted-foreground">URL</label>
+          <input
+            type="text"
+            name="herald[url]"
+            value={@herald.config["url"]}
+            placeholder="https://..."
+            class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+          />
+        </div>
+      <% end %>
+      <%= if @herald.type in ["github_issue", "github_pr"] do %>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-muted-foreground">Owner</label>
+            <input
+              type="text"
+              name="herald[owner]"
+              value={@herald.config["owner"]}
+              placeholder="org-or-user"
+              class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-muted-foreground">Repo</label>
+            <input
+              type="text"
+              name="herald[repo]"
+              value={@herald.config["repo"]}
+              placeholder="repo-name"
+              class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-muted-foreground">Token</label>
+          <input
+            type="password"
+            name="herald[token]"
+            value={@herald.config["token"]}
+            placeholder="ghp_..."
+            class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+          />
+        </div>
+        <%= if @herald.type == "github_pr" do %>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-muted-foreground">Base Branch</label>
+              <input
+                type="text"
+                name="herald[base_branch]"
+                value={@herald.config["base_branch"] || "main"}
+                class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-muted-foreground">File Path</label>
+              <input
+                type="text"
+                name="herald[file_path]"
+                value={@herald.config["file_path"]}
+                placeholder="docs/report.md"
+                class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+              />
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+      <%= if @herald.type == "email" do %>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-muted-foreground">From</label>
+            <input
+              type="text"
+              name="herald[from]"
+              value={@herald.config["from"]}
+              placeholder="no-reply@example.com"
+              class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-muted-foreground">To</label>
+            <input
+              type="text"
+              name="herald[to]"
+              value={@herald.config["to"]}
+              placeholder="team@example.com"
+              class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="text-xs text-muted-foreground">Resend API Key</label>
+          <input
+            type="password"
+            name="herald[api_key]"
+            value={@herald.config["api_key"]}
+            placeholder="re_..."
+            class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+          />
+        </div>
+      <% end %>
+      <%= if @herald.type == "pagerduty" do %>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-muted-foreground">Routing Key</label>
+            <input
+              type="password"
+              name="herald[routing_key]"
+              value={@herald.config["routing_key"]}
+              placeholder="PD routing key"
+              class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+            />
+          </div>
+          <div>
+            <label class="text-xs text-muted-foreground">Severity</label>
+            <select
+              name="herald[severity]"
+              class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+            >
+              <%= for sev <- ~w(critical error warning info) do %>
+                <option value={sev} selected={@herald.config["severity"] == sev}>{sev}</option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+      <% end %>
+      <.button type="submit" size="sm">Save</.button>
+    </form>
+    """
+  end
 end
