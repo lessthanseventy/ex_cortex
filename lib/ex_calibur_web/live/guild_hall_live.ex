@@ -197,7 +197,7 @@ defmodule ExCaliburWeb.GuildHallLive do
         </div>
 
         <% sections = catalog_sections(assigns) %>
-        <div class="min-h-[520px]">
+        <div class="min-h-[1100px]">
           <%= if @active_section == "all" do %>
             <div class="space-y-10">
               <%= for {_id, title, members, description} <- sections do %>
