@@ -1358,6 +1358,14 @@ defmodule ExCaliburWeb.QuestsLive do
             <span class="text-xs text-muted-foreground ml-2">
               {length(@quest.steps)} steps
             </span>
+            <%= if @quest.trigger == "lore" && @quest.lore_trigger_tags != [] do %>
+              <span class="text-xs text-muted-foreground ml-1">
+                · listening for: <span class="font-mono">{Enum.join(@quest.lore_trigger_tags, ", ")}</span>
+              </span>
+            <% end %>
+            <%= if @quest.trigger == "lore" && (@quest.lore_trigger_tags == nil || @quest.lore_trigger_tags == []) do %>
+              <span class="text-xs text-muted-foreground ml-1">· listening for all Grimoire entries</span>
+            <% end %>
           </div>
           <.badge variant="outline" class="text-xs shrink-0">{trigger_label(@quest.trigger)}</.badge>
         </div>
