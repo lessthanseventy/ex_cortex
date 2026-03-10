@@ -24,13 +24,6 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
 
 config :ex_calibur, :sql_sandbox, true
 
-config :ex_cellence, Excellence.Repo,
-  username: "andrew",
-  hostname: "localhost",
-  database: "ex_calibur_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Sandbox,
-  pool_size: 5
-
 config :ex_cellence, Oban, testing: :manual
 
 config :excessibility,

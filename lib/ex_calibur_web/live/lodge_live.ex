@@ -168,6 +168,7 @@ defmodule ExCaliburWeb.LodgeLive do
                   </div>
                   <div class="flex gap-2 shrink-0 self-start sm:self-auto">
                     <.button
+                      type="button"
                       size="sm"
                       variant="outline"
                       phx-click="approve_proposal"
@@ -176,6 +177,7 @@ defmodule ExCaliburWeb.LodgeLive do
                       Approve
                     </.button>
                     <.button
+                      type="button"
                       size="sm"
                       variant="ghost"
                       phx-click="reject_proposal"

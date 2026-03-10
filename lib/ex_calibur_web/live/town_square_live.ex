@@ -219,6 +219,7 @@ defmodule ExCaliburWeb.TownSquareLive do
               <%= if @confirming == guild.name do %>
                 <div class="flex gap-2">
                   <.button
+                    type="button"
                     variant="destructive"
                     size="sm"
                     phx-click="confirm_install"
@@ -226,12 +227,13 @@ defmodule ExCaliburWeb.TownSquareLive do
                   >
                     Confirm
                   </.button>
-                  <.button variant="outline" size="sm" phx-click="cancel_install">
+                  <.button type="button" variant="outline" size="sm" phx-click="cancel_install">
                     Cancel
                   </.button>
                 </div>
               <% else %>
                 <.button
+                  type="button"
                   variant={if @current_guild == guild.name, do: "outline", else: "default"}
                   size="sm"
                   phx-click="select_guild"
@@ -252,7 +254,7 @@ defmodule ExCaliburWeb.TownSquareLive do
             Start from scratch — add your own members and quests.
           </p>
         </div>
-        <.button variant="outline" size="sm" phx-click="build_own_guild">
+        <.button type="button" variant="outline" size="sm" phx-click="build_own_guild">
           Start Fresh
         </.button>
       </div>

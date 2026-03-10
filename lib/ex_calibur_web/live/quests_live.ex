@@ -450,6 +450,7 @@ defmodule ExCaliburWeb.QuestsLive do
             {"custom", "Custom"}
           ] do %>
             <button
+              type="button"
               phx-click="board_set_tab"
               phx-value-tab={tab_id}
               class={[
@@ -465,6 +466,7 @@ defmodule ExCaliburWeb.QuestsLive do
           <% end %>
           <div class="ml-auto flex items-center pr-2">
             <button
+              type="button"
               phx-click="board_toggle_unavailable"
               class="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
             >
@@ -533,7 +535,12 @@ defmodule ExCaliburWeb.QuestsLive do
                         >
                           Confirm
                         </.button>
-                        <.button variant="outline" size="sm" phx-click="board_cancel_install">
+                        <.button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          phx-click="board_cancel_install"
+                        >
                           Cancel
                         </.button>
                       </div>
@@ -565,7 +572,9 @@ defmodule ExCaliburWeb.QuestsLive do
             <%= if board_visible(@board_templates, board_tab_category(@board_tab), @board_show_unavailable) == [] do %>
               <p class="text-sm text-muted-foreground py-6 text-center">
                 No templates in this category.
-                <button phx-click="board_toggle_unavailable" class="underline ml-1">Show all</button>
+                <button type="button" phx-click="board_toggle_unavailable" class="underline ml-1">
+                  Show all
+                </button>
               </p>
             <% end %>
           </div>

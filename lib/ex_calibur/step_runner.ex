@@ -60,7 +60,8 @@ defmodule ExCalibur.StepRunner do
     threshold = quest.escalate_threshold || 0.6
     escalate_on = quest.escalate_on_verdict || []
 
-    Enum.reduce_while(["apprentice", "journeyman", "master"], nil, fn rank, _acc ->
+    ["apprentice", "journeyman", "master"]
+    |> Enum.reduce_while(nil, fn rank, _acc ->
       members = resolve_members(rank)
 
       if members == [] do
@@ -461,8 +462,7 @@ defmodule ExCalibur.StepRunner do
   # Reflect mode helpers
   # ---------------------------------------------------------------------------
 
-  defp do_reflect(quest, input_text, _tools, _threshold, _reflect_on, max_iter, iter)
-       when iter >= max_iter do
+  defp do_reflect(quest, input_text, _tools, _threshold, _reflect_on, max_iter, iter) when iter >= max_iter do
     run(quest.roster, input_text)
   end
 

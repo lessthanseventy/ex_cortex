@@ -252,7 +252,13 @@ defmodule ExCaliburWeb.GrimoireLive do
               </p>
             </div>
             <div class="flex gap-2 shrink-0">
-              <.button variant="outline" size="sm" phx-click="edit_entry" phx-value-id={@augury.id}>
+              <.button
+                type="button"
+                variant="outline"
+                size="sm"
+                phx-click="edit_entry"
+                phx-value-id={@augury.id}
+              >
                 Edit
               </.button>
             </div>
@@ -286,6 +292,7 @@ defmodule ExCaliburWeb.GrimoireLive do
         </select>
         <div class="flex gap-1">
           <button
+            type="button"
             phx-click="set_sort"
             phx-value-sort="newest"
             class={[
@@ -299,6 +306,7 @@ defmodule ExCaliburWeb.GrimoireLive do
             Newest
           </button>
           <button
+            type="button"
             phx-click="set_sort"
             phx-value-sort="importance"
             class={[
@@ -316,7 +324,7 @@ defmodule ExCaliburWeb.GrimoireLive do
           <div class="flex flex-wrap gap-1 items-center">
             <span class="text-xs text-muted-foreground">Filtered:</span>
             <%= for tag <- @filter_tags do %>
-              <button phx-click="toggle_tag_filter" phx-value-tag={tag}>
+              <button type="button" phx-click="toggle_tag_filter" phx-value-tag={tag}>
                 <.badge variant="default" class="text-xs cursor-pointer">{tag} ✕</.badge>
               </button>
             <% end %>
@@ -326,7 +334,7 @@ defmodule ExCaliburWeb.GrimoireLive do
 
       <%!-- Manual entry creation --%>
       <div class="flex justify-end">
-        <.button variant="outline" size="sm" phx-click="add_entry">
+        <.button type="button" variant="outline" size="sm" phx-click="add_entry">
           + Add Entry
         </.button>
       </div>
@@ -384,7 +392,7 @@ defmodule ExCaliburWeb.GrimoireLive do
           <%= if @entry.tags != [] do %>
             <div class="flex flex-wrap gap-1">
               <%= for tag <- @entry.tags do %>
-                <button phx-click="toggle_tag_filter" phx-value-tag={tag}>
+                <button type="button" phx-click="toggle_tag_filter" phx-value-tag={tag}>
                   <.badge
                     variant={if tag in @active_tags, do: "default", else: "outline"}
                     class="text-xs cursor-pointer"
@@ -397,7 +405,13 @@ defmodule ExCaliburWeb.GrimoireLive do
           <% end %>
         </div>
         <div class="flex gap-2 shrink-0">
-          <.button variant="outline" size="sm" phx-click="edit_entry" phx-value-id={@entry.id}>
+          <.button
+            type="button"
+            variant="outline"
+            size="sm"
+            phx-click="edit_entry"
+            phx-value-id={@entry.id}
+          >
             Edit
           </.button>
           <.button

@@ -34,13 +34,14 @@ config :ex_calibur,
   ecto_repos: [ExCalibur.Repo],
   generators: [timestamp_type: :utc_datetime]
 
-# ex_cellence Oban config — uses Excellence.Repo (started by ex_cellence app)
 config :ex_cellence, Oban,
   engine: Oban.Engines.Basic,
   queues: [default: 10, learning: 5, tuning: 3, mining: 2],
-  repo: Excellence.Repo
+  repo: ExCalibur.Repo
 
-# Excellence core config
+# ex_cellence uses ExCalibur.Repo — single DB connection pool
+config :ex_cellence, :repo, ExCalibur.Repo
+
 config :ex_cellence,
   ecto_repos: [ExCalibur.Repo]
 

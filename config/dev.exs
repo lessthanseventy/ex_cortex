@@ -71,15 +71,6 @@ config :ex_calibur, dev_routes: true
 config :ex_calibur,
   ollama_url: "http://127.0.0.1:11434"
 
-# Configure ex_cellence Repo to use our database
-config :ex_cellence, Excellence.Repo,
-  username: "andrew",
-  hostname: "localhost",
-  database: "ex_calibur_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
-
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

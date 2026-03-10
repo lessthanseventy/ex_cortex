@@ -4,8 +4,7 @@ defmodule ExCalibur.Tools.QueryLore do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "query_lore",
-      description:
-        "Search the lore store for entries matching the given tags. Returns recent matching entries.",
+      description: "Search the lore store for entries matching the given tags. Returns recent matching entries.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -24,7 +23,7 @@ defmodule ExCalibur.Tools.QueryLore do
 
   def call(%{"tags" => tags} = input) do
     limit = Map.get(input, "limit", 5)
-    entries = ExCalibur.Lore.list_entries(tags: tags) |> Enum.take(limit)
+    entries = [tags: tags] |> ExCalibur.Lore.list_entries() |> Enum.take(limit)
     summaries = Enum.map(entries, fn e -> "#{e.title}: #{String.slice(e.body || "", 0, 200)}" end)
     {:ok, Enum.join(summaries, "\n---\n")}
   end

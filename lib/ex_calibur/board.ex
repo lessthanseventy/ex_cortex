@@ -118,8 +118,10 @@ defmodule ExCalibur.Board do
       |> Enum.map(fn step ->
         resolved_id = Map.get(step_by_name, step["step_name"])
 
-        unless resolved_id do
-          Logger.warning("[Board] Could not resolve step \"#{step["step_name"]}\" for template #{template.id} — step missing from DB")
+        if !resolved_id do
+          Logger.warning(
+            "[Board] Could not resolve step \"#{step["step_name"]}\" for template #{template.id} — step missing from DB"
+          )
         end
 
         %{"step_id" => resolved_id, "flow" => step["flow"]}

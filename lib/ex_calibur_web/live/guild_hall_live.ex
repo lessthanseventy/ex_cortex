@@ -98,6 +98,7 @@ defmodule ExCaliburWeb.GuildHallLive do
           </p>
         </div>
         <.button
+          type="button"
           variant="outline"
           size="sm"
           phx-click="set_section"
@@ -119,6 +120,7 @@ defmodule ExCaliburWeb.GuildHallLive do
               <div class="flex items-center justify-between mb-2">
                 <span class="font-medium text-sm">{guild_name}</span>
                 <.button
+                  type="button"
                   phx-click="edit_charter"
                   phx-value-guild={guild_name}
                   variant="ghost"
@@ -169,7 +171,13 @@ defmodule ExCaliburWeb.GuildHallLive do
               </form>
             </div>
           <% end %>
-          <.button phx-click="edit_charter" phx-value-guild="default" variant="outline" size="sm">
+          <.button
+            type="button"
+            phx-click="edit_charter"
+            phx-value-guild="default"
+            variant="outline"
+            size="sm"
+          >
             + Add Charter
           </.button>
         </div>
@@ -194,6 +202,7 @@ defmodule ExCaliburWeb.GuildHallLive do
         <div class="flex overflow-x-auto border-b mb-6">
           <%= for {section_id, label} <- catalog_tabs() do %>
             <button
+              type="button"
               phx-click="set_section"
               phx-value-section={section_id}
               class={[
@@ -584,6 +593,7 @@ defmodule ExCaliburWeb.GuildHallLive do
       </div>
       <div class="shrink-0 flex gap-2 self-start sm:self-auto">
         <.button
+          type="button"
           size="sm"
           variant="outline"
           phx-click="recruit"
@@ -593,6 +603,7 @@ defmodule ExCaliburWeb.GuildHallLive do
           Apprentice
         </.button>
         <.button
+          type="button"
           size="sm"
           variant="outline"
           phx-click="recruit"
@@ -602,6 +613,7 @@ defmodule ExCaliburWeb.GuildHallLive do
           Journeyman
         </.button>
         <.button
+          type="button"
           size="sm"
           phx-click="recruit"
           phx-value-member-id={@member.id}
@@ -610,6 +622,7 @@ defmodule ExCaliburWeb.GuildHallLive do
           Master
         </.button>
         <.button
+          type="button"
           size="sm"
           variant="ghost"
           phx-click="customize_builtin"

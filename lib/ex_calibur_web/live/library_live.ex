@@ -430,7 +430,10 @@ defmodule ExCaliburWeb.LibraryLive do
           <h2 class="text-xl font-semibold">Active Sources</h2>
           <%= if @sources != [] do %>
             <.badge variant="secondary">{length(@sources)}</.badge>
+          <% end %>
+          <%= if Enum.any?(@sources, &(&1.status == "active")) do %>
             <.button
+              type="button"
               variant="outline"
               size="sm"
               phx-click="sync_all"
@@ -464,6 +467,7 @@ defmodule ExCaliburWeb.LibraryLive do
         <%!-- Tabs --%>
         <div class="flex gap-1 border-b">
           <button
+            type="button"
             phx-click="switch_tab"
             phx-value-tab="scrolls"
             class={[
@@ -477,6 +481,7 @@ defmodule ExCaliburWeb.LibraryLive do
             Scrolls
           </button>
           <button
+            type="button"
             phx-click="switch_tab"
             phx-value-tab="books"
             class={[
@@ -490,6 +495,7 @@ defmodule ExCaliburWeb.LibraryLive do
             Books
           </button>
           <button
+            type="button"
             phx-click="switch_tab"
             phx-value-tab="heralds"
             class={[
@@ -503,6 +509,7 @@ defmodule ExCaliburWeb.LibraryLive do
             Heralds
           </button>
           <button
+            type="button"
             phx-click="switch_tab"
             phx-value-tab="dictionaries"
             class={[
@@ -605,7 +612,8 @@ defmodule ExCaliburWeb.LibraryLive do
                           <%= if dict.content && dict.content != "" do %>
                             <p class="text-xs text-muted-foreground font-mono truncate max-w-md">
                               {String.slice(dict.content, 0, 120)}{if String.length(dict.content) >
-                                                                        120, do: "…"}
+                                                                        120,
+                                                                      do: "…"}
                             </p>
                           <% end %>
                         </div>
@@ -1073,7 +1081,13 @@ defmodule ExCaliburWeb.LibraryLive do
         <p class="text-sm text-muted-foreground">{@item.description}</p>
       </div>
       <div class="shrink-0 self-start sm:self-auto">
-        <.button variant="outline" size="sm" phx-click="add_scroll" phx-value-book-id={@item.id}>
+        <.button
+          type="button"
+          variant="outline"
+          size="sm"
+          phx-click="add_scroll"
+          phx-value-book-id={@item.id}
+        >
           Add
         </.button>
       </div>
@@ -1166,14 +1180,32 @@ defmodule ExCaliburWeb.LibraryLive do
         </div>
         <div class="flex gap-2 shrink-0 self-start sm:self-auto" phx-click="" phx-click-stop="">
           <%= if @source.status == "active" do %>
-            <.button variant="outline" size="sm" phx-click="sync" phx-value-id={@source.id}>
+            <.button
+              type="button"
+              variant="outline"
+              size="sm"
+              phx-click="sync"
+              phx-value-id={@source.id}
+            >
               Sync
             </.button>
-            <.button variant="outline" size="sm" phx-click="pause" phx-value-id={@source.id}>
+            <.button
+              type="button"
+              variant="outline"
+              size="sm"
+              phx-click="pause"
+              phx-value-id={@source.id}
+            >
               Pause
             </.button>
           <% else %>
-            <.button variant="outline" size="sm" phx-click="resume" phx-value-id={@source.id}>
+            <.button
+              type="button"
+              variant="outline"
+              size="sm"
+              phx-click="resume"
+              phx-value-id={@source.id}
+            >
               Resume
             </.button>
           <% end %>

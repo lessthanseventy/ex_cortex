@@ -18,6 +18,7 @@ defmodule ExCalibur.Application do
     children = [
       ExCaliburWeb.Telemetry,
       ExCalibur.Repo,
+      {Oban, Application.fetch_env!(:ex_cellence, Oban)},
       {DNSCluster, query: Application.get_env(:ex_calibur, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ExCalibur.PubSub},
       {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
