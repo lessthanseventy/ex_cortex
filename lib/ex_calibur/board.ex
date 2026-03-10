@@ -22,15 +22,16 @@ defmodule ExCalibur.Board do
     :suggested_team,
     :requires,
     :step_definitions,
-    :quest_definition
+    :quest_definition,
+    source_definitions: []
   ]
 
-  @categories [:triage, :reporting, :generation, :review, :onboarding]
+  @categories [:triage, :reporting, :generation, :review, :onboarding, :lifestyle]
 
   def categories, do: @categories
 
   def all do
-    triage() ++ reporting() ++ generation() ++ review() ++ onboarding()
+    triage() ++ reporting() ++ generation() ++ review() ++ onboarding() ++ lifestyle()
   end
 
   def by_category(cat), do: Enum.filter(all(), &(&1.category == cat))
@@ -89,18 +90,44 @@ defmodule ExCalibur.Board do
   Returns {:ok, quest} or {:error, reason}.
   """
   def install(%__MODULE__{} = template) do
-    Enum.each(template.step_definitions, fn attrs ->
+    Enum.each(template.step_definitions || [], fn attrs ->
       ExCalibur.Quests.create_step(attrs)
     end)
 
     step_by_name = Map.new(ExCalibur.Quests.list_steps(), &{&1.name, &1.id})
 
     steps =
-      Enum.map(template.quest_definition.steps, fn step ->
+      Enum.map((template.quest_definition || %{steps: []}).steps || [], fn step ->
         %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
       end)
 
-    ExCalibur.Quests.create_quest(Map.put(template.quest_definition, :steps, steps))
+    result =
+      if template.quest_definition do
+        ExCalibur.Quests.create_quest(Map.put(template.quest_definition, :steps, steps))
+      else
+        {:ok, nil}
+      end
+
+    Enum.each(template.source_definitions || [], fn source_def ->
+      existing =
+        Repo.exists?(
+          from(s in Source,
+            where: s.name == ^source_def.name and s.source_type == ^source_def.source_type
+          )
+        )
+
+      if !existing do
+        Repo.insert(%Source{
+          name: source_def.name,
+          source_type: source_def.source_type,
+          config: source_def.config,
+          status: "active",
+          book_id: source_def[:book_id]
+        })
+      end
+    end)
+
+    result
   end
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
@@ -114,4 +141,5 @@ defmodule ExCalibur.Board do
   defp generation, do: ExCalibur.Board.Generation.templates()
   defp review, do: ExCalibur.Board.Review.templates()
   defp onboarding, do: ExCalibur.Board.Onboarding.templates()
+  defp lifestyle, do: ExCalibur.Board.Lifestyle.templates()
 end

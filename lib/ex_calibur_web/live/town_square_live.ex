@@ -24,7 +24,13 @@ defmodule ExCaliburWeb.TownSquareLive do
     "Platform Guild" => ExCalibur.Charters.PlatformGuild,
     "The Skeptics" => ExCalibur.Charters.TheSkeptics,
     "Product Intelligence" => ExCalibur.Charters.ProductIntelligence,
-    "Creative Studio" => ExCalibur.Charters.CreativeStudio
+    "Creative Studio" => ExCalibur.Charters.CreativeStudio,
+    "Everyday Council" => ExCalibur.Charters.EverydayCouncil,
+    "Tech Dispatch" => ExCalibur.Charters.TechDispatch,
+    "Sports Corner" => ExCalibur.Charters.SportsCorner,
+    "Market Signals" => ExCalibur.Charters.MarketSignals,
+    "Culture Desk" => ExCalibur.Charters.CultureDesk,
+    "Science Watch" => ExCalibur.Charters.ScienceWatch
   }
 
   @post_install_redirect "/guild-hall"

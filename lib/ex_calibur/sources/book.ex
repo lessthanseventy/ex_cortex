@@ -2,7 +2,7 @@ defmodule ExCalibur.Sources.Book do
   @moduledoc false
   defstruct [:id, :name, :description, :source_type, :default_config, :suggested_guild, :kind, :sandbox]
 
-  def all, do: books() ++ scrolls()
+  def all, do: books() ++ scrolls() ++ digest_feeds()
 
   def books do
     [
@@ -489,6 +489,181 @@ defmodule ExCalibur.Sources.Book do
           "interval" => 86_400_000
         },
         suggested_guild: nil,
+        kind: :scroll
+      }
+    ]
+  end
+
+  def digest_feeds do
+    [
+      # Tech
+      %__MODULE__{
+        id: "hacker_news_rss",
+        name: "Hacker News",
+        description: "Top stories from Hacker News",
+        source_type: "feed",
+        default_config: %{"url" => "https://news.ycombinator.com/rss", "interval" => 1_800_000},
+        suggested_guild: "Tech Dispatch",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "the_verge_rss",
+        name: "The Verge",
+        description: "Technology news and reviews from The Verge.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://www.theverge.com/rss/index.xml",
+          "interval" => 1_800_000
+        },
+        suggested_guild: "Tech Dispatch",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "ars_technica_rss",
+        name: "Ars Technica",
+        description: "In-depth technology news and analysis from Ars Technica.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://feeds.arstechnica.com/arstechnica/index",
+          "interval" => 1_800_000
+        },
+        suggested_guild: "Tech Dispatch",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "techcrunch_rss",
+        name: "TechCrunch",
+        description: "Startup and technology news from TechCrunch.",
+        source_type: "feed",
+        default_config: %{"url" => "https://techcrunch.com/feed/", "interval" => 1_800_000},
+        suggested_guild: "Tech Dispatch",
+        kind: :scroll
+      },
+      # Business
+      %__MODULE__{
+        id: "reuters_business_rss",
+        name: "Reuters Business",
+        description: "Business and financial news from Reuters.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://feeds.reuters.com/reuters/businessNews",
+          "interval" => 1_800_000
+        },
+        suggested_guild: "Market Signals",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "ft_rss",
+        name: "Financial Times",
+        description: "Global business and financial news from the Financial Times.",
+        source_type: "feed",
+        default_config: %{"url" => "https://www.ft.com/rss/home", "interval" => 1_800_000},
+        suggested_guild: "Market Signals",
+        kind: :scroll
+      },
+      # Sports
+      %__MODULE__{
+        id: "espn_rss",
+        name: "ESPN",
+        description: "Sports news and scores from ESPN.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://www.espn.com/espn/rss/news",
+          "interval" => 1_800_000
+        },
+        suggested_guild: "Sports Corner",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "bbc_sport_rss",
+        name: "BBC Sport",
+        description: "Sports news and results from BBC Sport.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "http://feeds.bbci.co.uk/sport/rss.xml",
+          "interval" => 1_800_000
+        },
+        suggested_guild: "Sports Corner",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "the_athletic_rss",
+        name: "The Athletic",
+        description: "In-depth sports journalism from The Athletic.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://theathletic.com/rss-feed/",
+          "interval" => 1_800_000
+        },
+        suggested_guild: "Sports Corner",
+        kind: :scroll
+      },
+      # Culture
+      %__MODULE__{
+        id: "pitchfork_rss",
+        name: "Pitchfork",
+        description: "Music news and reviews from Pitchfork.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://pitchfork.com/rss/news/",
+          "interval" => 3_600_000
+        },
+        suggested_guild: "Culture Desk",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "av_club_rss",
+        name: "AV Club",
+        description: "Pop culture and entertainment reviews from The AV Club.",
+        source_type: "feed",
+        default_config: %{"url" => "https://www.avclub.com/rss", "interval" => 3_600_000},
+        suggested_guild: "Culture Desk",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "vulture_rss",
+        name: "Vulture",
+        description: "Entertainment and culture coverage from Vulture.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://www.vulture.com/rss/all.xml",
+          "interval" => 3_600_000
+        },
+        suggested_guild: "Culture Desk",
+        kind: :scroll
+      },
+      # Science
+      %__MODULE__{
+        id: "science_daily_rss",
+        name: "Science Daily",
+        description: "Breaking science news from ScienceDaily.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://www.sciencedaily.com/rss/all.xml",
+          "interval" => 3_600_000
+        },
+        suggested_guild: "Science Watch",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "nature_news_rss",
+        name: "Nature News",
+        description: "Science news and research from Nature.",
+        source_type: "feed",
+        default_config: %{"url" => "https://www.nature.com/nature.rss", "interval" => 3_600_000},
+        suggested_guild: "Science Watch",
+        kind: :scroll
+      },
+      %__MODULE__{
+        id: "ars_science_rss",
+        name: "Ars Technica Science",
+        description: "Science and technology research coverage from Ars Technica.",
+        source_type: "feed",
+        default_config: %{
+          "url" => "https://feeds.arstechnica.com/arstechnica/science",
+          "interval" => 3_600_000
+        },
+        suggested_guild: "Science Watch",
         kind: :scroll
       }
     ]

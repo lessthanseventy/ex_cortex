@@ -13,7 +13,7 @@ defmodule ExCalibur.BoardTest do
         assert is_binary(t.id), "#{t.id} missing id"
         assert is_binary(t.name), "#{t.id} missing name"
 
-        assert t.category in [:triage, :reporting, :generation, :review, :onboarding],
+        assert t.category in [:triage, :reporting, :generation, :review, :onboarding, :lifestyle],
                "#{t.id} has invalid category #{t.category}"
 
         assert is_list(t.step_definitions), "#{t.id} missing step_definitions"
