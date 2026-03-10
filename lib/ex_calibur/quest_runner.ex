@@ -90,6 +90,26 @@ defmodule ExCalibur.QuestRunner do
     end
   end
 
+  def run(%{output_type: "freeform"} = quest, input_text) do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+
+    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    ollama = Ollama.new(base_url: ollama_url)
+
+    roster = quest.roster || []
+
+    with [step | _] <- roster,
+         [member | _] <- resolve_members(step),
+         raw when is_binary(raw) <- call_member_raw(member, augmented, ollama) do
+      {:ok, %{output: raw, member: member.name}}
+    else
+      [] -> {:error, :no_roster}
+      nil -> {:error, :llm_failed}
+      error -> error
+    end
+  end
+
   def run(quest, input_text) when is_struct(quest) do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
@@ -248,6 +268,34 @@ defmodule ExCalibur.QuestRunner do
         {:ok, %{content: text}} -> {:halt, parse_verdict(text)}
         {:ok, text} when is_binary(text) -> {:halt, parse_verdict(text)}
         _ -> {:cont, acc}
+      end
+    end)
+  end
+
+  # Like call_member but returns raw text — used for freeform quests.
+  defp call_member_raw(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
+    prompt = system_prompt || ""
+
+    case ClaudeClient.complete(tier, prompt, input_text) do
+      {:ok, text} -> text
+      _ -> nil
+    end
+  end
+
+  defp call_member_raw(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
+    chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
+    models = fallback_models_for(model, chain)
+
+    messages = [
+      %{role: :system, content: system_prompt || ""},
+      %{role: :user, content: input_text}
+    ]
+
+    Enum.reduce_while(models, nil, fn m, _acc ->
+      case Ollama.chat(ollama, m, messages) do
+        {:ok, %{content: text}} -> {:halt, text}
+        {:ok, text} when is_binary(text) -> {:halt, text}
+        _ -> {:cont, nil}
       end
     end)
   end
