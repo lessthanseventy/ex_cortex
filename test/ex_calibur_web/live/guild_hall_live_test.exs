@@ -30,7 +30,7 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
       {:ok, view, html} = live(conn, "/guild-hall")
       html_snapshot(view)
       assert html =~ "Guild Hall"
-      assert html =~ "phx-click=\"add_new\""
+      assert html =~ "+ Custom Member"
     end
 
     test "shows empty state when no members in DB", %{conn: conn} do
@@ -127,21 +127,21 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
 
     test "add_new shows new member form", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/guild-hall")
-      html = view |> element("[phx-click=\"add_new\"]") |> render_click()
+      html = render_click(view, "set_section", %{"section" => "custom"})
       html_snapshot(view)
       assert html =~ "Create Member"
     end
 
     test "cancel_new hides new member form", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/guild-hall")
-      view |> element("[phx-click=\"add_new\"]") |> render_click()
-      html = view |> element("[phx-click=\"cancel_new\"]") |> render_click()
+      render_click(view, "set_section", %{"section" => "custom"})
+      html = render_click(view, "set_section", %{"section" => "all"})
       refute html =~ "Create Member"
     end
 
     test "create_member inserts a new DB member", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/guild-hall")
-      view |> element("[phx-click=\"add_new\"]") |> render_click()
+      render_click(view, "set_section", %{"section" => "custom"})
 
       html =
         view

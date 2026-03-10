@@ -73,7 +73,6 @@ defmodule ExCaliburWeb.QuestsLive do
        heralds: ExCalibur.Heralds.list_heralds(),
        expanded: MapSet.new(),
        adding_step: false,
-       adding_quest: false,
        running: %{},
        step_runs: %{},
        trigger_previews: trigger_previews,
@@ -84,7 +83,9 @@ defmodule ExCaliburWeb.QuestsLive do
        board_category: nil,
        board_show_unavailable: false,
        board_installing: nil,
-       board_installed: MapSet.new()
+       board_installed: MapSet.new(),
+       board_tab: "all",
+       quest_prefill: %{name: "", description: ""}
      )}
   end
 
@@ -186,12 +187,33 @@ defmodule ExCaliburWeb.QuestsLive do
 
   @impl true
   def handle_event("add_quest", _, socket) do
-    {:noreply, assign(socket, adding_quest: true, adding_step: false)}
+    {:noreply, assign(socket, board_tab: "custom", adding_step: false)}
   end
 
   @impl true
   def handle_event("cancel_new", _, socket) do
-    {:noreply, assign(socket, adding_step: false, adding_quest: false)}
+    {:noreply, assign(socket, adding_step: false, board_tab: "all")}
+  end
+
+  @impl true
+  def handle_event("board_set_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, board_tab: tab)}
+  end
+
+  @impl true
+  def handle_event("board_customize_template", %{"id" => id}, socket) do
+    case Board.get(id) do
+      nil ->
+        {:noreply, socket}
+
+      template ->
+        prefill = %{
+          name: template.name,
+          description: template.description
+        }
+
+        {:noreply, assign(socket, board_tab: "custom", quest_prefill: prefill)}
+    end
   end
 
   @impl true
@@ -450,7 +472,14 @@ defmodule ExCaliburWeb.QuestsLive do
       {:ok, _} ->
         quests = Quests.list_quests()
         previews = rebuild_trigger_previews(socket.assigns.steps, quests, socket.assigns.trigger_previews)
-        {:noreply, assign(socket, quests: quests, adding_quest: false, trigger_previews: previews)}
+
+        {:noreply,
+         assign(socket,
+           quests: quests,
+           board_tab: "all",
+           quest_prefill: %{name: "", description: ""},
+           trigger_previews: previews
+         )}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create quest")}
@@ -739,19 +768,6 @@ defmodule ExCaliburWeb.QuestsLive do
 
       <%!-- Quests --%>
       <div>
-        <div class="flex items-center justify-between mb-5">
-          <div />
-          <.button variant="outline" size="sm" phx-click="add_quest">+ Quest</.button>
-        </div>
-        <%= if @adding_quest do %>
-          <div class="mb-3">
-            <.new_quest_form_comp
-              steps={@steps}
-              sources={@sources}
-              trigger_preview={@trigger_previews["new-quest"] || "manual"}
-            />
-          </div>
-        <% end %>
         <div class="space-y-3">
           <.quest_card_comp
             :for={quest <- @quests}
@@ -761,9 +777,11 @@ defmodule ExCaliburWeb.QuestsLive do
             expanded={MapSet.member?(@expanded, "quest-#{quest.id}")}
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
           />
-          <%= if @quests == [] && !@adding_quest do %>
+          <%= if @quests == [] do %>
             <div class="text-center py-12 text-muted-foreground">
-              <p class="text-sm">No quests yet. Install a template below or create one.</p>
+              <p class="text-sm">
+                No quests yet. Create one in Quest Templates → Custom below.
+              </p>
             </div>
           <% end %>
         </div>
@@ -778,115 +796,136 @@ defmodule ExCaliburWeb.QuestsLive do
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 mb-4">
-          <button
-            phx-click="board_filter_category"
-            phx-value-category=""
-            class={[
-              "px-3 py-1.5 text-sm rounded-md transition-colors",
-              (is_nil(@board_category) && "bg-accent text-foreground font-medium") ||
-                "text-muted-foreground hover:bg-accent hover:text-foreground"
-            ]}
-          >
-            All
-          </button>
-          <%= for {cat, label} <- [triage: "Triage", reporting: "Reporting", generation: "Generation", review: "Review", onboarding: "Onboarding"] do %>
+        <div class="flex overflow-x-auto border-b mb-6">
+          <%= for {tab_id, label} <- [
+            {"all", "All"},
+            {"triage", "Triage"},
+            {"reporting", "Reporting"},
+            {"generation", "Generation"},
+            {"review", "Review"},
+            {"onboarding", "Onboarding"},
+            {"custom", "Custom"}
+          ] do %>
             <button
-              phx-click="board_filter_category"
-              phx-value-category={cat}
+              phx-click="board_set_tab"
+              phx-value-tab={tab_id}
               class={[
-                "px-3 py-1.5 text-sm rounded-md transition-colors",
-                (@board_category == cat && "bg-accent text-foreground font-medium") ||
-                  "text-muted-foreground hover:bg-accent hover:text-foreground"
+                "px-4 py-2 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors",
+                if(@board_tab == tab_id,
+                  do: "border-foreground text-foreground font-medium",
+                  else: "border-transparent text-muted-foreground hover:text-foreground"
+                )
               ]}
             >
               {label}
             </button>
           <% end %>
-          <div class="ml-auto">
+          <div class="ml-auto flex items-center pr-2">
             <button
               phx-click="board_toggle_unavailable"
-              class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              class="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
             >
               {if @board_show_unavailable, do: "Hide unavailable", else: "Show all"}
             </button>
           </div>
         </div>
 
-        <div class="space-y-3">
-          <%= for %{template: t, requirements: reqs, readiness: r} <- board_visible(@board_templates, @board_category, @board_show_unavailable) do %>
-            <div class={[
-              "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-start sm:justify-between",
-              MapSet.member?(@board_installed, t.id) && "border-primary bg-accent/50",
-              r == :unavailable && "opacity-60"
-            ]}>
-              <div class="space-y-2 flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-semibold">{t.name}</span>
-                  <.badge variant="outline" class="text-xs capitalize">
-                    {board_category_label(t.category)}
-                  </.badge>
-                  <%= if MapSet.member?(@board_installed, t.id) do %>
-                    <.badge variant="default">Installed</.badge>
-                  <% else %>
-                    <% {label, variant} = board_readiness_badge(r) %>
-                    <.badge variant={variant}>{label}</.badge>
-                  <% end %>
-                </div>
-                <p class="text-sm text-muted-foreground">{t.description}</p>
-                <%= if t.suggested_team && t.suggested_team != "" do %>
-                  <p class="text-xs text-muted-foreground italic">Team: {t.suggested_team}</p>
-                <% end %>
-                <%= if length(reqs) > 0 do %>
-                  <div class="flex flex-wrap gap-1.5 mt-1">
-                    <%= for {met, req_label} <- reqs do %>
-                      <.badge variant={if met, do: "secondary", else: "outline"} class="text-xs gap-1">
-                        {if met, do: "✓", else: "○"} {req_label}
-                      </.badge>
+        <%= if @board_tab == "custom" do %>
+          <.new_quest_form_comp
+            steps={@steps}
+            sources={@sources}
+            trigger_preview={@trigger_previews["new-quest"] || "manual"}
+            prefill={@quest_prefill}
+          />
+        <% else %>
+          <div class="space-y-3">
+            <%= for %{template: t, requirements: reqs, readiness: r} <- board_visible(@board_templates, board_tab_category(@board_tab), @board_show_unavailable) do %>
+              <div class={[
+                "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-start sm:justify-between",
+                MapSet.member?(@board_installed, t.id) && "border-primary bg-accent/50",
+                r == :unavailable && "opacity-60"
+              ]}>
+                <div class="space-y-2 flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-semibold">{t.name}</span>
+                    <.badge variant="outline" class="text-xs capitalize">
+                      {board_category_label(t.category)}
+                    </.badge>
+                    <%= if MapSet.member?(@board_installed, t.id) do %>
+                      <.badge variant="default">Installed</.badge>
+                    <% else %>
+                      <% {label, variant} = board_readiness_badge(r) %>
+                      <.badge variant={variant}>{label}</.badge>
                     <% end %>
                   </div>
-                <% end %>
-              </div>
-              <div class="ml-4 shrink-0 self-center">
-                <%= if MapSet.member?(@board_installed, t.id) do %>
-                  <.button variant="outline" size="sm" disabled>Installed</.button>
-                <% else %>
-                  <%= if @board_installing == t.id do %>
-                    <div class="flex gap-2">
-                      <.button
-                        variant="destructive"
-                        size="sm"
-                        phx-click="board_install_template"
-                        phx-value-id={t.id}
-                      >
-                        Confirm
-                      </.button>
-                      <.button variant="outline" size="sm" phx-click="board_cancel_install">
-                        Cancel
-                      </.button>
-                    </div>
-                  <% else %>
-                    <.button
-                      variant={if r == :ready, do: "default", else: "outline"}
-                      size="sm"
-                      phx-click="board_confirm_install"
-                      phx-value-id={t.id}
-                      disabled={r == :unavailable}
-                    >
-                      Install
-                    </.button>
+                  <p class="text-sm text-muted-foreground">{t.description}</p>
+                  <%= if t.suggested_team && t.suggested_team != "" do %>
+                    <p class="text-xs text-muted-foreground italic">Team: {t.suggested_team}</p>
                   <% end %>
-                <% end %>
+                  <%= if length(reqs) > 0 do %>
+                    <div class="flex flex-wrap gap-1.5 mt-1">
+                      <%= for {met, req_label} <- reqs do %>
+                        <.badge
+                          variant={if met, do: "secondary", else: "outline"}
+                          class="text-xs gap-1"
+                        >
+                          {if met, do: "✓", else: "○"} {req_label}
+                        </.badge>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+                <div class="ml-4 shrink-0 self-center">
+                  <%= if MapSet.member?(@board_installed, t.id) do %>
+                    <.button variant="outline" size="sm" disabled>Installed</.button>
+                  <% else %>
+                    <%= if @board_installing == t.id do %>
+                      <div class="flex gap-2">
+                        <.button
+                          variant="destructive"
+                          size="sm"
+                          phx-click="board_install_template"
+                          phx-value-id={t.id}
+                        >
+                          Confirm
+                        </.button>
+                        <.button variant="outline" size="sm" phx-click="board_cancel_install">
+                          Cancel
+                        </.button>
+                      </div>
+                    <% else %>
+                      <div class="flex gap-2">
+                        <.button
+                          variant={if r == :ready, do: "default", else: "outline"}
+                          size="sm"
+                          phx-click="board_confirm_install"
+                          phx-value-id={t.id}
+                          disabled={r == :unavailable}
+                        >
+                          Install
+                        </.button>
+                        <.button
+                          variant="ghost"
+                          size="sm"
+                          phx-click="board_customize_template"
+                          phx-value-id={t.id}
+                        >
+                          Customize
+                        </.button>
+                      </div>
+                    <% end %>
+                  <% end %>
+                </div>
               </div>
-            </div>
-          <% end %>
-          <%= if board_visible(@board_templates, @board_category, @board_show_unavailable) == [] do %>
-            <p class="text-sm text-muted-foreground py-6 text-center">
-              No templates in this category.
-              <button phx-click="board_toggle_unavailable" class="underline ml-1">Show all</button>
-            </p>
-          <% end %>
-        </div>
+            <% end %>
+            <%= if board_visible(@board_templates, board_tab_category(@board_tab), @board_show_unavailable) == [] do %>
+              <p class="text-sm text-muted-foreground py-6 text-center">
+                No templates in this category.
+                <button phx-click="board_toggle_unavailable" class="underline ml-1">Show all</button>
+              </p>
+            <% end %>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -960,6 +999,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :steps, :list, required: true
   attr :sources, :list, default: []
   attr :trigger_preview, :string, default: "manual"
+  attr :prefill, :map, default: %{name: "", description: ""}
 
   defp new_quest_form_comp(assigns) do
     ~H"""
@@ -968,11 +1008,21 @@ defmodule ExCaliburWeb.QuestsLive do
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label class="text-sm font-medium">Name</label>
-            <.input type="text" name="quest[name]" value="" placeholder="e.g. Monthly Audit" />
+            <.input
+              type="text"
+              name="quest[name]"
+              value={@prefill[:name]}
+              placeholder="e.g. Monthly Audit"
+            />
           </div>
           <div>
             <label class="text-sm font-medium">Description</label>
-            <.input type="text" name="quest[description]" value="" placeholder="Optional" />
+            <.input
+              type="text"
+              name="quest[description]"
+              value={@prefill[:description]}
+              placeholder="Optional"
+            />
           </div>
         </div>
         <div>
@@ -1007,7 +1057,13 @@ defmodule ExCaliburWeb.QuestsLive do
           <p class="text-xs text-muted-foreground mt-1">Hold Ctrl/Cmd to select multiple</p>
         </div>
         <div class="flex justify-end gap-2">
-          <.button type="button" variant="outline" size="sm" phx-click="cancel_new">
+          <.button
+            type="button"
+            variant="outline"
+            size="sm"
+            phx-click="board_set_tab"
+            phx-value-tab="all"
+          >
             Cancel
           </.button>
           <.button type="submit" size="sm">Create Quest</.button>
@@ -1275,6 +1331,10 @@ defmodule ExCaliburWeb.QuestsLive do
     readiness = Board.readiness(template)
     %{template: template, requirements: requirements, readiness: readiness}
   end
+
+  defp board_tab_category("all"), do: nil
+  defp board_tab_category("custom"), do: nil
+  defp board_tab_category(tab), do: String.to_existing_atom(tab)
 
   defp board_visible(templates, category, show_unavailable) do
     Enum.filter(templates, fn %{template: t, readiness: r} ->

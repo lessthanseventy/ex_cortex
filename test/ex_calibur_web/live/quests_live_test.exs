@@ -26,9 +26,9 @@ defmodule ExCaliburWeb.QuestsLiveTest do
       assert html =~ quest.name
     end
 
-    test "shows + Quest button", %{conn: conn} do
+    test "shows Custom tab in Quest Templates", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/quests")
-      assert html =~ "+ Quest"
+      assert html =~ "board_set_tab"
     end
 
     test "new quest form renders", %{conn: conn} do

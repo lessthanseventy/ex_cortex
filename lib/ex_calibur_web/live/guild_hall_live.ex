@@ -20,7 +20,7 @@ defmodule ExCaliburWeb.GuildHallLive do
      assign(socket,
        members: members,
        expanded: MapSet.new(),
-       adding_new: false,
+       custom_prefill: %{name: "", team: "", system_prompt: ""},
        ollama_models: list_ollama_models(),
        strategy_previews: strategy_previews,
        editors: BuiltinMember.editors(),
@@ -97,8 +97,14 @@ defmodule ExCaliburWeb.GuildHallLive do
             Guild roles — each member runs evaluations with their own model and strategy.
           </p>
         </div>
-        <.button variant="outline" size="sm" phx-click="add_new" class="shrink-0 sm:mt-1 self-start">
-          + New Member
+        <.button
+          variant="outline"
+          size="sm"
+          phx-click="set_section"
+          phx-value-section="custom"
+          class="shrink-0 sm:mt-1 self-start"
+        >
+          + Custom Member
         </.button>
       </div>
 
@@ -169,13 +175,6 @@ defmodule ExCaliburWeb.GuildHallLive do
         </div>
       </div>
 
-      <%= if @adding_new do %>
-        <.new_member_card
-          ollama_models={@ollama_models}
-          strategy_preview={@strategy_previews["new"] || "cod"}
-        />
-      <% end %>
-
       <div class="space-y-3">
         <.member_card
           :for={member <- @members}
@@ -219,11 +218,19 @@ defmodule ExCaliburWeb.GuildHallLive do
               <% end %>
             </div>
           <% else %>
-            <% {_id, _title, members, _description} =
-              Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <.member_row :for={member <- members} member={member} />
-            </div>
+            <%= if @active_section == "custom" do %>
+              <.new_member_card
+                ollama_models={@ollama_models}
+                strategy_preview={@strategy_previews["new"] || "cod"}
+                prefill={@custom_prefill}
+              />
+            <% else %>
+              <% {_id, _title, members, _description} =
+                Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <.member_row :for={member <- members} member={member} />
+              </div>
+            <% end %>
           <% end %>
         </div>
       </div>
@@ -399,6 +406,7 @@ defmodule ExCaliburWeb.GuildHallLive do
 
   attr :ollama_models, :list, required: true
   attr :strategy_preview, :string, required: true
+  attr :prefill, :map, default: %{name: "", team: "", system_prompt: ""}
 
   defp new_member_card(assigns) do
     ~H"""
@@ -408,11 +416,21 @@ defmodule ExCaliburWeb.GuildHallLive do
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label class="text-sm font-medium">Name</label>
-              <.input type="text" name="member[name]" value="" placeholder="e.g. safety-reviewer" />
+              <.input
+                type="text"
+                name="member[name]"
+                value={@prefill[:name]}
+                placeholder="e.g. safety-reviewer"
+              />
             </div>
             <div>
               <label class="text-sm font-medium">Team</label>
-              <.input type="text" name="member[team]" value="" placeholder="e.g. security" />
+              <.input
+                type="text"
+                name="member[team]"
+                value={@prefill[:team]}
+                placeholder="e.g. security"
+              />
             </div>
           </div>
           <div>
@@ -420,7 +438,7 @@ defmodule ExCaliburWeb.GuildHallLive do
             <.input
               type="textarea"
               name="member[system_prompt]"
-              value=""
+              value={@prefill[:system_prompt]}
               rows={4}
               placeholder="You are a..."
             />
@@ -473,7 +491,13 @@ defmodule ExCaliburWeb.GuildHallLive do
             </div>
           </div>
           <div class="flex justify-end gap-2 pt-2">
-            <.button type="button" variant="outline" size="sm" phx-click="cancel_new">
+            <.button
+              type="button"
+              variant="outline"
+              size="sm"
+              phx-click="set_section"
+              phx-value-section="all"
+            >
               Cancel
             </.button>
             <.button type="submit" size="sm">Create Member</.button>
@@ -518,7 +542,8 @@ defmodule ExCaliburWeb.GuildHallLive do
       {"specialists", "Specialists"},
       {"advisors", "Advisors"},
       {"validators", "Validators"},
-      {"wildcards", "Wildcards"}
+      {"wildcards", "Wildcards"},
+      {"custom", "Custom"}
     ]
   end
 
@@ -583,6 +608,14 @@ defmodule ExCaliburWeb.GuildHallLive do
           phx-value-rank="master"
         >
           Master
+        </.button>
+        <.button
+          size="sm"
+          variant="ghost"
+          phx-click="customize_builtin"
+          phx-value-member-id={@member.id}
+        >
+          Add Custom
         </.button>
       </div>
     </div>
@@ -660,12 +693,25 @@ defmodule ExCaliburWeb.GuildHallLive do
 
   @impl true
   def handle_event("add_new", _params, socket) do
-    {:noreply, assign(socket, adding_new: true)}
+    {:noreply, assign(socket, active_section: "custom")}
   end
 
   @impl true
   def handle_event("cancel_new", _params, socket) do
-    {:noreply, assign(socket, adding_new: false)}
+    {:noreply, assign(socket, active_section: "all", custom_prefill: %{name: "", team: "", system_prompt: ""})}
+  end
+
+  @impl true
+  def handle_event("customize_builtin", %{"member-id" => member_id}, socket) do
+    member = BuiltinMember.get(member_id)
+
+    prefill = %{
+      name: member.name,
+      team: to_string(member.category),
+      system_prompt: member.system_prompt
+    }
+
+    {:noreply, assign(socket, active_section: "custom", custom_prefill: prefill)}
   end
 
   @impl true
@@ -694,7 +740,14 @@ defmodule ExCaliburWeb.GuildHallLive do
       {:ok, _} ->
         members = list_members()
         previews = Map.new(members, fn m -> {m.id, m.strategy} end)
-        {:noreply, assign(socket, members: members, adding_new: false, strategy_previews: previews)}
+
+        {:noreply,
+         assign(socket,
+           members: members,
+           active_section: "all",
+           custom_prefill: %{name: "", team: "", system_prompt: ""},
+           strategy_previews: previews
+         )}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create member")}
