@@ -1762,7 +1762,8 @@ defmodule ExCaliburWeb.QuestsLive do
       reporting: "Reporting",
       generation: "Generation",
       review: "Review",
-      onboarding: "Onboarding"
+      onboarding: "Onboarding",
+      lifestyle: "Lifestyle"
     ]
 
     labels[cat] || to_string(cat)
