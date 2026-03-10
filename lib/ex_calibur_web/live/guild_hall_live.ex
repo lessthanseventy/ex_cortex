@@ -27,6 +27,9 @@ defmodule ExCaliburWeb.GuildHallLive do
        analysts: BuiltinMember.analysts(),
        specialists: BuiltinMember.specialists(),
        advisors: BuiltinMember.advisors(),
+       validators: BuiltinMember.validators(),
+       wildcards: BuiltinMember.wildcards(),
+       active_section: "all",
        charters: GuildCharters.list_charters() |> Map.new(&{&1.guild_name, &1.charter_text}),
        editing_charter: nil
      )}
@@ -171,15 +174,41 @@ defmodule ExCaliburWeb.GuildHallLive do
 
       <div>
         <h2 class="text-lg font-semibold mb-1">Recruit a Member</h2>
-        <p class="text-sm text-muted-foreground mb-5">
+        <p class="text-sm text-muted-foreground mb-4">
           Add a pre-configured member role to your guild.
         </p>
-        <div class="space-y-10">
-          <.member_section title="Editors" description="Text quality and writing review" members={@editors} />
-          <.member_section title="Analysts" description="Data interpretation and pattern recognition" members={@analysts} />
-          <.member_section title="Specialists" description="Domain-specific technical expertise" members={@specialists} />
-          <.member_section title="Advisors" description="Perspective, judgment, and risk assessment" members={@advisors} />
+
+        <div class="flex overflow-x-auto border-b mb-6">
+          <%= for {section_id, label} <- catalog_tabs() do %>
+            <button
+              phx-click="set_section"
+              phx-value-section={section_id}
+              class={[
+                "px-4 py-2 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors",
+                if(@active_section == section_id,
+                  do: "border-foreground text-foreground font-medium",
+                  else: "border-transparent text-muted-foreground hover:text-foreground"
+                )
+              ]}
+            >
+              {label}
+            </button>
+          <% end %>
         </div>
+
+        <% sections = catalog_sections(assigns) %>
+        <%= if @active_section == "all" do %>
+          <div class="space-y-10">
+            <%= for {_id, title, members, description} <- sections do %>
+              <.member_section title={title} description={description} members={members} />
+            <% end %>
+          </div>
+        <% else %>
+          <% {_id, _title, members, _description} = Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <.member_row :for={member <- members} member={member} />
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -462,6 +491,30 @@ defmodule ExCaliburWeb.GuildHallLive do
     """
   end
 
+  defp catalog_tabs do
+    [
+      {"all", "All"},
+      {"editors", "Editors"},
+      {"analysts", "Analysts"},
+      {"specialists", "Specialists"},
+      {"advisors", "Advisors"},
+      {"validators", "Validators"},
+      {"wildcards", "Wildcards"}
+    ]
+  end
+
+  defp catalog_sections(assigns) do
+    [
+      {"editors", "Editors", assigns.editors, "Text quality and writing review"},
+      {"analysts", "Analysts", assigns.analysts, "Data interpretation and pattern recognition"},
+      {"specialists", "Specialists", assigns.specialists, "Domain-specific technical expertise"},
+      {"advisors", "Advisors", assigns.advisors, "Perspective, judgment, and risk assessment"},
+      {"validators", "Validators", assigns.validators, "Evidence standards and quality gates"},
+      {"wildcards", "Wildcards", assigns.wildcards,
+       "Creative perspectives and personality-driven evaluation"}
+    ]
+  end
+
   defp member_section(assigns) do
     ~H"""
     <div>
@@ -659,6 +712,11 @@ defmodule ExCaliburWeb.GuildHallLive do
         ExCalibur.Repo.delete(db)
         {:noreply, assign(socket, members: list_members())}
     end
+  end
+
+  @impl true
+  def handle_event("set_section", %{"section" => section}, socket) do
+    {:noreply, assign(socket, active_section: section)}
   end
 
   @impl true
