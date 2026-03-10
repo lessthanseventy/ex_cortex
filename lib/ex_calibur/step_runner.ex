@@ -206,7 +206,7 @@ defmodule ExCalibur.StepRunner do
   end
 
   defp resolve_members(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
-    [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil}]
+    [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil, tools: []}]
   end
 
   defp resolve_members(member_id) when is_binary(member_id) do
@@ -231,9 +231,16 @@ defmodule ExCalibur.StepRunner do
       type: :ollama,
       model: db.config["model"] || "phi4-mini",
       system_prompt: db.config["system_prompt"] || "",
-      name: db.name
+      name: db.name,
+      tools: resolve_member_tools(db.config["tools"])
     }
   end
+
+  defp resolve_member_tools(nil), do: []
+  defp resolve_member_tools("all_safe"), do: ExCalibur.Tools.Registry.resolve_tools(:all_safe)
+  defp resolve_member_tools("yolo"), do: ExCalibur.Tools.Registry.resolve_tools(:yolo)
+  defp resolve_member_tools(names) when is_list(names), do: ExCalibur.Tools.Registry.resolve_tools(names)
+  defp resolve_member_tools(_), do: []
 
   # ---------------------------------------------------------------------------
   # Running a step
@@ -244,6 +251,19 @@ defmodule ExCalibur.StepRunner do
       result = call_member(member, input_text, ollama)
       Map.put(result, :member, member.name)
     end)
+  end
+
+  defp call_member(
+         %{type: :claude, tier: tier, system_prompt: system_prompt, tools: [_ | _] = tools},
+         input_text,
+         _ollama
+       ) do
+    prompt = system_prompt || default_claude_prompt()
+
+    case ClaudeClient.complete_with_tools(tier, prompt, input_text, tools) do
+      {:ok, text} -> parse_verdict(text)
+      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "Claude agent loop error"}
+    end
   end
 
   defp call_member(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
@@ -274,6 +294,19 @@ defmodule ExCalibur.StepRunner do
   end
 
   # Like call_member but returns raw text — used for freeform quests.
+  defp call_member_raw(
+         %{type: :claude, tier: tier, system_prompt: system_prompt, tools: [_ | _] = tools},
+         input_text,
+         _ollama
+       ) do
+    prompt = system_prompt || ""
+
+    case ClaudeClient.complete_with_tools(tier, prompt, input_text, tools) do
+      {:ok, text} -> text
+      _ -> nil
+    end
+  end
+
   defp call_member_raw(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
     prompt = system_prompt || ""
 
