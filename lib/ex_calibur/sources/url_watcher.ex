@@ -18,7 +18,9 @@ defmodule ExCalibur.Sources.UrlWatcher do
         body_str = if is_binary(body), do: body, else: Jason.encode!(body)
         hash = :sha256 |> :crypto.hash(body_str) |> Base.encode16()
 
-        if hash == state.last_hash do
+        always_fire = Map.get(config, "always_fire", false)
+
+        if hash == state.last_hash and not always_fire do
           {:ok, [], state}
         else
           item = %SourceItem{
