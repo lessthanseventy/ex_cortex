@@ -19,6 +19,7 @@ defmodule ExCalibur.Quests.Step do
     field :log_title_template, :string
     field :herald_name, :string
     field :min_rank, :string
+    field :lore_tags, {:array, :string}, default: []
     timestamps()
   end
 
@@ -35,7 +36,8 @@ defmodule ExCalibur.Quests.Step do
     :entry_title_template,
     :log_title_template,
     :herald_name,
-    :min_rank
+    :min_rank,
+    :lore_tags
   ]
 
   def changeset(step, attrs) do

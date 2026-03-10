@@ -56,14 +56,36 @@ defmodule ExCalibur.Quests do
   def get_quest!(id), do: Repo.get!(Quest, id)
 
   def create_quest(attrs) do
-    %Quest{} |> Quest.changeset(attrs) |> Repo.insert()
+    case %Quest{} |> Quest.changeset(attrs) |> Repo.insert() do
+      {:ok, quest} = result ->
+        maybe_schedule_once_job(quest)
+        result
+
+      error ->
+        error
+    end
   end
 
   def update_quest(%Quest{} = quest, attrs) do
-    quest |> Quest.changeset(attrs) |> Repo.update()
+    case quest |> Quest.changeset(attrs) |> Repo.update() do
+      {:ok, updated} = result ->
+        maybe_schedule_once_job(updated)
+        result
+
+      error ->
+        error
+    end
   end
 
   def delete_quest(%Quest{} = quest), do: Repo.delete(quest)
+
+  defp maybe_schedule_once_job(%Quest{trigger: "once", run_at: run_at, id: id}) when not is_nil(run_at) do
+    %{quest_id: id}
+    |> ExCalibur.Workers.QuestWorker.new(scheduled_at: run_at)
+    |> Oban.insert()
+  end
+
+  defp maybe_schedule_once_job(_quest), do: :ok
 
   # --- Step Runs (formerly QuestRuns) ---
 

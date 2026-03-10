@@ -38,6 +38,8 @@ defmodule ExCaliburWeb.QuestsLive do
       |> Map.put("new-step", "manual")
       |> Map.put("new-quest", "manual")
 
+    schedule_mode_previews = build_schedule_mode_previews(quests)
+
     output_previews =
       steps
       |> Map.new(fn q -> {"step-#{q.id}", q.output_type || "verdict"} end)
@@ -74,18 +76,20 @@ defmodule ExCaliburWeb.QuestsLive do
        expanded: MapSet.new(),
        adding_step: false,
        running: %{},
-       step_runs: %{},
+       quest_runs: %{},
        trigger_previews: trigger_previews,
        output_previews: output_previews,
        context_previews: context_previews,
        write_mode_previews: write_mode_previews,
+       schedule_mode_previews: schedule_mode_previews,
        board_templates: board_templates,
        board_category: nil,
        board_show_unavailable: false,
        board_installing: nil,
        board_installed: MapSet.new(),
        board_tab: "all",
-       quest_prefill: %{name: "", description: ""}
+       quest_prefill: %{name: "", description: ""},
+       dictionaries: ExCalibur.Library.list_dictionaries()
      )}
   end
 
@@ -154,21 +158,21 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
-  def handle_event("toggle_expand", %{"id" => "quest-" <> step_id_str = id}, socket) do
+  def handle_event("toggle_expand", %{"id" => "quest-" <> quest_id_str = id}, socket) do
     expanded =
       if MapSet.member?(socket.assigns.expanded, id),
         do: MapSet.delete(socket.assigns.expanded, id),
         else: MapSet.put(socket.assigns.expanded, id)
 
-    step_runs =
+    quest_runs =
       if MapSet.member?(socket.assigns.expanded, id) do
-        socket.assigns.step_runs
+        socket.assigns.quest_runs
       else
-        quest = Quests.get_step!(String.to_integer(step_id_str))
-        Map.put(socket.assigns.step_runs, step_id_str, Quests.list_step_runs(quest))
+        quest = Quests.get_quest!(String.to_integer(quest_id_str))
+        Map.put(socket.assigns.quest_runs, quest_id_str, Quests.list_quest_runs(quest))
       end
 
-    {:noreply, assign(socket, expanded: expanded, step_runs: step_runs)}
+    {:noreply, assign(socket, expanded: expanded, quest_runs: quest_runs)}
   end
 
   def handle_event("toggle_expand", %{"id" => id}, socket) do
@@ -293,6 +297,11 @@ defmodule ExCaliburWeb.QuestsLive do
   def handle_event("preview_new_quest_trigger", _params, socket), do: {:noreply, socket}
 
   @impl true
+  def handle_event("update_schedule_mode", %{"mode" => mode, "id" => form_id}, socket) do
+    {:noreply, assign(socket, schedule_mode_previews: Map.put(socket.assigns.schedule_mode_previews, form_id, mode))}
+  end
+
+  @impl true
   def handle_event("move_quest_step_up", %{"quest_id" => id, "index" => idx_str}, socket) do
     idx = String.to_integer(idx_str)
     quest = Quests.get_quest!(String.to_integer(id))
@@ -382,6 +391,15 @@ defmodule ExCaliburWeb.QuestsLive do
           sort = params["kb_sort"] || "newest"
           [%{"type" => "lore", "tags" => tags, "limit" => limit, "sort" => sort}]
 
+        "dictionary" ->
+          dict_id = params["dictionary_id"]
+
+          if dict_id && dict_id != "" do
+            [%{"type" => "dictionary", "dictionary_id" => String.to_integer(dict_id)}]
+          else
+            []
+          end
+
         _ ->
           []
       end
@@ -390,8 +408,7 @@ defmodule ExCaliburWeb.QuestsLive do
 
     schedule =
       if trigger == "scheduled" do
-        interval = String.to_integer(params["schedule_interval"] || "1")
-        build_schedule(interval, params["schedule_unit"] || "hours")
+        build_schedule_from_params(params)
       end
 
     source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
@@ -452,18 +469,31 @@ defmodule ExCaliburWeb.QuestsLive do
 
     schedule =
       if trigger == "scheduled" do
-        interval = String.to_integer(params["schedule_interval"] || "1")
-        build_schedule(interval, params["schedule_unit"] || "hours")
+        build_schedule_from_params(params)
+      end
+
+    run_at =
+      if trigger == "once" && params["run_at"] && params["run_at"] != "" do
+        naive = NaiveDateTime.from_iso8601!(params["run_at"] <> ":00")
+        DateTime.from_naive!(naive, "Etc/UTC")
       end
 
     source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
+
+    lore_trigger_tags =
+      (params["lore_trigger_tags"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
 
     attrs = %{
       name: params["name"],
       description: params["description"],
       trigger: trigger,
       schedule: schedule,
+      run_at: run_at,
       source_ids: source_ids,
+      lore_trigger_tags: lore_trigger_tags,
       steps: steps,
       status: "active"
     }
@@ -472,13 +502,15 @@ defmodule ExCaliburWeb.QuestsLive do
       {:ok, _} ->
         quests = Quests.list_quests()
         previews = rebuild_trigger_previews(socket.assigns.steps, quests, socket.assigns.trigger_previews)
+        schedule_mode_previews = build_schedule_mode_previews(quests)
 
         {:noreply,
          assign(socket,
            quests: quests,
            board_tab: "all",
            quest_prefill: %{name: "", description: ""},
-           trigger_previews: previews
+           trigger_previews: previews,
+           schedule_mode_previews: schedule_mode_previews
          )}
 
       {:error, _} ->
@@ -493,25 +525,41 @@ defmodule ExCaliburWeb.QuestsLive do
 
     schedule =
       if trigger == "scheduled" do
-        interval = String.to_integer(params["schedule_interval"] || "1")
-        build_schedule(interval, params["schedule_unit"] || "hours")
+        build_schedule_from_params(params)
+      end
+
+    run_at =
+      if trigger == "once" && params["run_at"] && params["run_at"] != "" do
+        naive = NaiveDateTime.from_iso8601!(params["run_at"] <> ":00")
+        DateTime.from_naive!(naive, "Etc/UTC")
       end
 
     source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
+
+    lore_trigger_tags =
+      (params["lore_trigger_tags"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
 
     attrs = %{
       name: params["name"],
       description: params["description"],
       trigger: trigger,
       schedule: schedule,
-      source_ids: source_ids
+      run_at: run_at,
+      source_ids: source_ids,
+      lore_trigger_tags: lore_trigger_tags
     }
 
     case Quests.update_quest(quest, attrs) do
       {:ok, _} ->
         quests = Quests.list_quests()
         previews = rebuild_trigger_previews(socket.assigns.steps, quests, socket.assigns.trigger_previews)
-        {:noreply, assign(socket, quests: quests, trigger_previews: previews)}
+        schedule_mode_previews = build_schedule_mode_previews(quests)
+
+        {:noreply,
+         assign(socket, quests: quests, trigger_previews: previews, schedule_mode_previews: schedule_mode_previews)}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update quest")}
@@ -611,6 +659,24 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
+  def handle_event("run_quest_now", %{"id" => id}, socket) do
+    quest = Quests.get_quest!(String.to_integer(id))
+    run_id = "quest-#{quest.id}"
+
+    {:ok, quest_run} = Quests.create_quest_run(%{quest_id: quest.id, status: "running"})
+
+    running = Map.put(socket.assigns.running, run_id, %{status: "running", result: nil})
+    parent = self()
+
+    Task.start(fn ->
+      result = ExCalibur.QuestRunner.run(quest, "")
+      send(parent, {:quest_run_complete, run_id, quest_run.id, result})
+    end)
+
+    {:noreply, assign(socket, running: running)}
+  end
+
+  @impl true
   def handle_event("update_step", %{"quest" => params, "step_id" => id}, socket) do
     quest = Quests.get_step!(String.to_integer(id))
 
@@ -659,6 +725,15 @@ defmodule ExCaliburWeb.QuestsLive do
           sort = params["kb_sort"] || "newest"
           [%{"type" => "lore", "tags" => tags, "limit" => limit, "sort" => sort}]
 
+        "dictionary" ->
+          dict_id = params["dictionary_id"]
+
+          if dict_id && dict_id != "" do
+            [%{"type" => "dictionary", "dictionary_id" => String.to_integer(dict_id)}]
+          else
+            []
+          end
+
         _ ->
           []
       end
@@ -667,8 +742,7 @@ defmodule ExCaliburWeb.QuestsLive do
 
     schedule =
       if trigger == "scheduled" do
-        interval = String.to_integer(params["schedule_interval"] || "1")
-        build_schedule(interval, params["schedule_unit"] || "hours")
+        build_schedule_from_params(params)
       end
 
     source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
@@ -720,6 +794,32 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
+  def handle_event("update_step_grimoire", %{"step_id" => step_id, "tags" => tags_str}, socket) do
+    step = Quests.get_step!(String.to_integer(step_id))
+    tags = tags_str |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+
+    new_providers =
+      case tags do
+        [] ->
+          Enum.reject(step.context_providers, &(&1["type"] == "lore"))
+
+        tags ->
+          existing = Enum.reject(step.context_providers, &(&1["type"] == "lore"))
+          existing ++ [%{"type" => "lore", "tags" => tags, "limit" => 10, "sort" => "top"}]
+      end
+
+    Quests.update_step(step, %{context_providers: new_providers})
+    {:noreply, assign_steps(socket)}
+  end
+
+  def handle_event("update_step_lore_tags", %{"step_id" => step_id, "lore_tags" => tags_str}, socket) do
+    step = Quests.get_step!(String.to_integer(step_id))
+    tags = tags_str |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+    Quests.update_step(step, %{lore_tags: tags})
+    {:noreply, assign_steps(socket)}
+  end
+
+  @impl true
   def handle_info({:step_run_complete, run_id, step_run_id, result}, socket) do
     {status, results} =
       case result do
@@ -737,14 +837,22 @@ defmodule ExCaliburWeb.QuestsLive do
 
     running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
 
-    step_runs =
-      Map.put(
-        socket.assigns.step_runs,
-        run_id,
-        Quests.list_step_runs(Quests.get_step!(updated_run.step_id))
-      )
+    {:noreply, assign(socket, running: running)}
+  end
 
-    {:noreply, assign(socket, running: running, step_runs: step_runs)}
+  @impl true
+  def handle_info({:quest_run_complete, run_id, quest_run_id, result}, socket) do
+    {status, results} =
+      case result do
+        {:ok, outcome} -> {"complete", outcome}
+        {:error, reason} -> {"failed", %{error: inspect(reason)}}
+      end
+
+    quest_run = ExCalibur.Repo.get!(ExCalibur.Quests.QuestRun, quest_run_id)
+    Quests.update_quest_run(quest_run, %{status: status, step_results: results})
+
+    running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
+    {:noreply, assign(socket, running: running)}
   end
 
   @impl true
@@ -776,6 +884,8 @@ defmodule ExCaliburWeb.QuestsLive do
             sources={@sources}
             expanded={MapSet.member?(@expanded, "quest-#{quest.id}")}
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
+            schedule_mode_previews={@schedule_mode_previews}
+            run_state={@running["quest-#{quest.id}"]}
           />
           <%= if @quests == [] do %>
             <div class="text-center py-12 text-muted-foreground">
@@ -836,6 +946,7 @@ defmodule ExCaliburWeb.QuestsLive do
             sources={@sources}
             trigger_preview={@trigger_previews["new-quest"] || "manual"}
             prefill={@quest_prefill}
+            schedule_mode_previews={@schedule_mode_previews}
           />
         <% else %>
           <div class="space-y-3">
@@ -933,29 +1044,139 @@ defmodule ExCaliburWeb.QuestsLive do
 
   attr :id_prefix, :string, required: true
   attr :namespace, :string, default: "quest"
-  attr :unit, :string, default: "hours"
-  attr :interval, :integer, default: 1
+  attr :mode, :string, default: "interval"
+  attr :schedule, :string, default: ""
 
   defp schedule_picker(assigns) do
+    info = parse_schedule_info(assigns.schedule)
+    assigns = assign(assigns, :info, info)
+
     ~H"""
-    <div class="flex items-center gap-2">
-      <span class="text-sm text-muted-foreground shrink-0">Every</span>
-      <input
-        type="number"
-        name={@namespace <> "[schedule_interval]"}
-        value={@interval}
-        min="1"
-        class="w-20 h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-      />
-      <select
-        id={"schedule-unit-#{@id_prefix}"}
-        name={@namespace <> "[schedule_unit]"}
-        class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-      >
-        <option value="minutes" selected={@unit == "minutes"}>minutes</option>
-        <option value="hours" selected={@unit == "hours"}>hours</option>
-      </select>
+    <div class="space-y-2">
+      <input type="hidden" name={@namespace <> "[schedule_mode]"} value={@mode} />
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-muted-foreground shrink-0">Mode:</span>
+        <select
+          id={"schedule-mode-#{@id_prefix}"}
+          class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          phx-change="update_schedule_mode"
+          phx-value-id={@id_prefix}
+          name={"_schedule_mode_ui_#{@id_prefix}"}
+        >
+          <option value="interval" selected={@mode == "interval"}>Every interval</option>
+          <option value="daily" selected={@mode == "daily"}>Daily at time</option>
+          <option value="weekdays" selected={@mode == "weekdays"}>Weekdays at time</option>
+          <option value="weekly" selected={@mode == "weekly"}>Weekly on day</option>
+          <option value="monthly" selected={@mode == "monthly"}>Monthly on day</option>
+        </select>
+      </div>
+      <%= if @mode == "interval" do %>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground shrink-0">Every</span>
+          <input
+            type="number"
+            name={@namespace <> "[schedule_interval]"}
+            value={@info.interval}
+            min="1"
+            class="w-20 h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <select
+            id={"schedule-unit-#{@id_prefix}"}
+            name={@namespace <> "[schedule_unit]"}
+            class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="minutes" selected={@info.unit == "minutes"}>minutes</option>
+            <option value="hours" selected={@info.unit == "hours"}>hours</option>
+          </select>
+        </div>
+      <% end %>
+      <%= if @mode in ["daily", "weekdays"] do %>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground shrink-0">
+            {if @mode == "daily", do: "Daily at", else: "Weekdays (Mon–Fri) at"}
+          </span>
+          <.time_selects
+            namespace={@namespace}
+            id_prefix={@id_prefix}
+            hour={@info.hour}
+            minute={@info.minute}
+          />
+        </div>
+      <% end %>
+      <%= if @mode == "weekly" do %>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground shrink-0">Every</span>
+          <select
+            name={@namespace <> "[schedule_day]"}
+            class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="0" selected={@info.day == "0"}>Sun</option>
+            <option value="1" selected={@info.day == "1"}>Mon</option>
+            <option value="2" selected={@info.day == "2"}>Tue</option>
+            <option value="3" selected={@info.day == "3"}>Wed</option>
+            <option value="4" selected={@info.day == "4"}>Thu</option>
+            <option value="5" selected={@info.day == "5"}>Fri</option>
+            <option value="6" selected={@info.day == "6"}>Sat</option>
+          </select>
+          <span class="text-sm text-muted-foreground shrink-0">at</span>
+          <.time_selects
+            namespace={@namespace}
+            id_prefix={@id_prefix}
+            hour={@info.hour}
+            minute={@info.minute}
+          />
+        </div>
+      <% end %>
+      <%= if @mode == "monthly" do %>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-muted-foreground shrink-0">On day</span>
+          <input
+            type="number"
+            name={@namespace <> "[schedule_day]"}
+            value={@info.day}
+            min="1"
+            max="28"
+            class="w-20 h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <span class="text-sm text-muted-foreground shrink-0">of every month at</span>
+          <.time_selects
+            namespace={@namespace}
+            id_prefix={@id_prefix}
+            hour={@info.hour}
+            minute={@info.minute}
+          />
+        </div>
+      <% end %>
     </div>
+    """
+  end
+
+  attr :namespace, :string, required: true
+  attr :id_prefix, :string, required: true
+  attr :hour, :integer, default: 8
+  attr :minute, :integer, default: 0
+
+  defp time_selects(assigns) do
+    ~H"""
+    <select
+      id={"schedule-hour-#{@id_prefix}"}
+      name={@namespace <> "[schedule_hour]"}
+      class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+    >
+      <%= for h <- 0..23 do %>
+        <option value={h} selected={@hour == h}>{hour_label(h)}</option>
+      <% end %>
+    </select>
+    <select
+      id={"schedule-minute-#{@id_prefix}"}
+      name={@namespace <> "[schedule_minute]"}
+      class="h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+    >
+      <option value="0" selected={@minute == 0}>:00</option>
+      <option value="15" selected={@minute == 15}>:15</option>
+      <option value="30" selected={@minute == 30}>:30</option>
+      <option value="45" selected={@minute == 45}>:45</option>
+    </select>
     """
   end
 
@@ -969,7 +1190,7 @@ defmodule ExCaliburWeb.QuestsLive do
       <p class="text-sm font-medium">Sources</p>
       <%= if @sources == [] do %>
         <p class="text-xs text-muted-foreground">
-          No active sources. <a href="/stacks" class="underline">Add sources in Stacks.</a>
+          No active sources. <a href="/library" class="underline">Add sources in Library.</a>
         </p>
       <% else %>
         <div class="rounded-md border border-input divide-y divide-border">
@@ -1000,6 +1221,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :sources, :list, default: []
   attr :trigger_preview, :string, default: "manual"
   attr :prefill, :map, default: %{name: "", description: ""}
+  attr :schedule_mode_previews, :map, default: %{}
 
   defp new_quest_form_comp(assigns) do
     ~H"""
@@ -1035,13 +1257,45 @@ defmodule ExCaliburWeb.QuestsLive do
             <option value="manual">Manual</option>
             <option value="source">Source</option>
             <option value="scheduled">Scheduled</option>
+            <option value="once">Once (specific time)</option>
+            <option value="lore">Lore (Grimoire trigger)</option>
           </select>
         </div>
         <%= if @trigger_preview == "scheduled" do %>
-          <.schedule_picker namespace="quest" unit="hours" interval={1} id_prefix="new-quest" />
+          <.schedule_picker
+            namespace="quest"
+            id_prefix="new-quest"
+            mode={Map.get(@schedule_mode_previews, "new-quest", "interval")}
+            schedule=""
+          />
+        <% end %>
+        <%= if @trigger_preview == "once" do %>
+          <div>
+            <label class="text-sm font-medium">Run at</label>
+            <input
+              type="datetime-local"
+              name="quest[run_at]"
+              class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background"
+            />
+          </div>
         <% end %>
         <%= if @trigger_preview == "source" do %>
           <.source_picker sources={@sources} namespace="quest" selected_ids={[]} />
+        <% end %>
+        <%= if @trigger_preview == "lore" do %>
+          <div>
+            <label class="text-sm font-medium">Trigger on tags</label>
+            <input
+              type="text"
+              name="quest[lore_trigger_tags]"
+              value=""
+              placeholder="journal, decisions… (empty = all entries)"
+              class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            <p class="text-xs text-muted-foreground mt-1">
+              Fires when a Grimoire entry with matching tags is created.
+            </p>
+          </div>
         <% end %>
         <div>
           <label class="text-sm font-medium">Quests (select in order)</label>
@@ -1078,6 +1332,8 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :sources, :list, default: []
   attr :expanded, :boolean, required: true
   attr :trigger_preview, :string, required: true
+  attr :schedule_mode_previews, :map, default: %{}
+  attr :run_state, :map, default: nil
 
   defp quest_card_comp(assigns) do
     ~H"""
@@ -1103,6 +1359,15 @@ defmodule ExCaliburWeb.QuestsLive do
           <.badge variant="outline" class="text-xs shrink-0">{@quest.trigger}</.badge>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          <.button
+            size="sm"
+            variant="outline"
+            phx-click="run_quest_now"
+            phx-value-id={@quest.id}
+            disabled={@run_state && @run_state.status == "running"}
+          >
+            {if @run_state && @run_state.status == "running", do: "Running…", else: "▶ Run Now"}
+          </.button>
           <.button
             size="sm"
             variant="ghost"
@@ -1159,16 +1424,37 @@ defmodule ExCaliburWeb.QuestsLive do
                 <option value="scheduled" selected={@quest.trigger == "scheduled"}>
                   Scheduled
                 </option>
+                <option value="once" selected={@quest.trigger == "once"}>
+                  Once (specific time)
+                </option>
+                <option value="lore" selected={@quest.trigger == "lore"}>
+                  Lore (Grimoire trigger)
+                </option>
               </select>
             </div>
             <%= if @trigger_preview == "scheduled" do %>
-              <% {interval, unit} = parse_schedule(@quest.schedule) %>
               <.schedule_picker
                 namespace="quest"
-                unit={unit}
-                interval={interval}
                 id_prefix={"quest-#{@quest.id}"}
+                mode={
+                  Map.get(
+                    @schedule_mode_previews,
+                    "quest-#{@quest.id}",
+                    detect_schedule_mode(@quest.schedule)
+                  )
+                }
+                schedule={@quest.schedule}
               />
+            <% end %>
+            <%= if @trigger_preview == "once" do %>
+              <div>
+                <label class="text-sm font-medium">Run at</label>
+                <input
+                  type="datetime-local"
+                  name="quest[run_at]"
+                  class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background"
+                />
+              </div>
             <% end %>
             <%= if @trigger_preview == "source" do %>
               <.source_picker
@@ -1176,6 +1462,21 @@ defmodule ExCaliburWeb.QuestsLive do
                 namespace="quest"
                 selected_ids={@quest.source_ids}
               />
+            <% end %>
+            <%= if @trigger_preview == "lore" do %>
+              <div>
+                <label class="text-sm font-medium">Trigger on tags</label>
+                <input
+                  type="text"
+                  name="quest[lore_trigger_tags]"
+                  value={Enum.join(@quest.lore_trigger_tags || [], ", ")}
+                  placeholder="journal, decisions… (empty = all entries)"
+                  class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <p class="text-xs text-muted-foreground mt-1">
+                  Fires when a Grimoire entry with matching tags is created.
+                </p>
+              </div>
             <% end %>
             <div class="flex justify-end pt-1">
               <.button type="submit" size="sm" variant="outline">Save changes</.button>
@@ -1190,46 +1491,84 @@ defmodule ExCaliburWeb.QuestsLive do
             <% else %>
               <div class="rounded-md border divide-y divide-border">
                 <%= for {step, idx} <- Enum.with_index(@quest.steps) do %>
-                  <div class="flex items-center gap-2 text-sm px-3 py-2 bg-card hover:bg-muted/30">
-                    <span class="text-muted-foreground text-xs w-5 shrink-0 text-center select-none">
-                      {idx + 1}
-                    </span>
-                    <span class="flex-1 truncate font-medium">
-                      {quest_name_for_step(step, @steps)}
-                    </span>
-                    <div class="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-                        phx-click="move_quest_step_up"
-                        phx-value-quest_id={@quest.id}
-                        phx-value-index={idx}
-                        disabled={idx == 0}
-                        aria-label="Move up"
-                      >
-                        ▲
-                      </button>
-                      <button
-                        type="button"
-                        class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-                        phx-click="move_quest_step_down"
-                        phx-value-quest_id={@quest.id}
-                        phx-value-index={idx}
-                        disabled={idx == length(@quest.steps) - 1}
-                        aria-label="Move down"
-                      >
-                        ▼
-                      </button>
-                      <button
-                        type="button"
-                        class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs transition-colors border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                        phx-click="remove_quest_step"
-                        phx-value-quest_id={@quest.id}
-                        phx-value-index={idx}
-                        aria-label="Remove"
-                      >
-                        ✕
-                      </button>
+                  <% step_struct =
+                    Enum.find(@steps, &(to_string(&1.id) == to_string(step["step_id"]))) %>
+                  <% sub_tags =
+                    if step_struct do
+                      case Enum.find(step_struct.context_providers || [], &(&1["type"] == "lore")) do
+                        nil -> []
+                        p -> p["tags"] || []
+                      end
+                    else
+                      []
+                    end %>
+                  <% out_tags = if step_struct, do: step_struct.lore_tags || [], else: [] %>
+                  <div class="text-sm px-3 py-2 bg-card hover:bg-muted/30">
+                    <div class="flex items-center gap-2">
+                      <span class="text-muted-foreground text-xs w-5 shrink-0 text-center select-none">
+                        {idx + 1}
+                      </span>
+                      <span class="flex-1 truncate font-medium">
+                        {quest_name_for_step(step, @steps)}
+                      </span>
+                      <div class="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                          phx-click="move_quest_step_up"
+                          phx-value-quest_id={@quest.id}
+                          phx-value-index={idx}
+                          disabled={idx == 0}
+                          aria-label="Move up"
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                          phx-click="move_quest_step_down"
+                          phx-value-quest_id={@quest.id}
+                          phx-value-index={idx}
+                          disabled={idx == length(@quest.steps) - 1}
+                          aria-label="Move down"
+                        >
+                          ▼
+                        </button>
+                        <button
+                          type="button"
+                          class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs transition-colors border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                          phx-click="remove_quest_step"
+                          phx-value-quest_id={@quest.id}
+                          phx-value-index={idx}
+                          aria-label="Remove"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    <div class="ml-5 mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
+                      <form phx-submit="update_step_lore_tags" class="flex items-center gap-1">
+                        <input type="hidden" name="step_id" value={step["step_id"]} />
+                        <span class="text-xs text-muted-foreground shrink-0">Tags output:</span>
+                        <input
+                          type="text"
+                          name="lore_tags"
+                          value={Enum.join(out_tags, ", ")}
+                          placeholder="journal, finance…"
+                          class="flex-1 text-xs border-0 border-b border-border bg-transparent px-1 py-0.5 focus:outline-none focus:border-primary"
+                        />
+                      </form>
+                      <form phx-submit="update_step_grimoire" class="flex items-center gap-1">
+                        <input type="hidden" name="step_id" value={step["step_id"]} />
+                        <span class="text-xs text-muted-foreground shrink-0">Reads from:</span>
+                        <input
+                          type="text"
+                          name="tags"
+                          value={Enum.join(sub_tags, ", ")}
+                          placeholder="subscribe to tags…"
+                          class="flex-1 text-xs border-0 border-b border-border bg-transparent px-1 py-0.5 focus:outline-none focus:border-primary"
+                        />
+                      </form>
                     </div>
                   </div>
                 <% end %>
@@ -1284,23 +1623,68 @@ defmodule ExCaliburWeb.QuestsLive do
     )
   end
 
-  # "*/5 * * * *" → {5, "minutes"}, "0 */2 * * *" → {2, "hours"}
-  defp parse_schedule(nil), do: {1, "hours"}
-  defp parse_schedule(""), do: {1, "hours"}
+  defp parse_schedule_info(nil), do: %{mode: "interval", interval: 1, unit: "hours", hour: 8, minute: 0, day: "1"}
+  defp parse_schedule_info(""), do: %{mode: "interval", interval: 1, unit: "hours", hour: 8, minute: 0, day: "1"}
 
-  defp parse_schedule(cron) do
+  defp parse_schedule_info(cron) do
+    base = %{mode: "interval", interval: 1, unit: "hours", hour: 8, minute: 0, day: "1"}
+
     case String.split(cron) do
-      ["*/" <> n, "*", "*", "*", "*"] -> {String.to_integer(n), "minutes"}
-      ["*", "*", "*", "*", "*"] -> {1, "minutes"}
-      ["0", "*/" <> n, "*", "*", "*"] -> {String.to_integer(n), "hours"}
-      ["0", "*", "*", "*", "*"] -> {1, "hours"}
-      _ -> {1, "hours"}
+      ["*/" <> n, "*", "*", "*", "*"] -> %{base | mode: "interval", interval: String.to_integer(n), unit: "minutes"}
+      ["0", "*/" <> n, "*", "*", "*"] -> %{base | mode: "interval", interval: String.to_integer(n), unit: "hours"}
+      [m, h, "*", "*", "*"] -> %{base | mode: "daily", hour: to_int(h), minute: to_int(m)}
+      [m, h, "*", "*", "1-5"] -> %{base | mode: "weekdays", hour: to_int(h), minute: to_int(m)}
+      [m, h, "*", "*", d] -> %{base | mode: "weekly", hour: to_int(h), minute: to_int(m), day: d}
+      [m, h, d, "*", "*"] -> %{base | mode: "monthly", hour: to_int(h), minute: to_int(m), day: d}
+      _ -> base
+    end
+  end
+
+  defp to_int(s), do: String.to_integer(s)
+
+  defp detect_schedule_mode(schedule) do
+    %{mode: mode} = parse_schedule_info(schedule)
+    mode
+  end
+
+  defp build_schedule_from_params(params) do
+    case params["schedule_mode"] do
+      "daily" ->
+        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} * * *"
+
+      "weekdays" ->
+        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} * * 1-5"
+
+      "weekly" ->
+        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} * * #{params["schedule_day"] || "1"}"
+
+      "monthly" ->
+        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} #{params["schedule_day"] || "1"} * *"
+
+      _ ->
+        interval = String.to_integer(params["schedule_interval"] || "1")
+        build_schedule(interval, params["schedule_unit"] || "hours")
     end
   end
 
   defp build_schedule(interval, "minutes"), do: "*/#{interval} * * * *"
   defp build_schedule(interval, "hours"), do: "0 */#{interval} * * *"
   defp build_schedule(_, _), do: nil
+
+  defp build_schedule_mode_previews(quests) do
+    quests
+    |> Map.new(fn q -> {"quest-#{q.id}", detect_schedule_mode(q.schedule)} end)
+    |> Map.put("new-quest", "interval")
+  end
+
+  defp hour_label(h) do
+    case h do
+      0 -> "12am"
+      12 -> "12pm"
+      h when h < 12 -> "#{h}am"
+      h -> "#{h - 12}pm"
+    end
+  end
 
   defp assign_quests(socket) do
     quests = Quests.list_quests()

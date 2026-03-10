@@ -5,10 +5,14 @@ defmodule ExCaliburWeb.LibraryLive do
   import SaladUI.Badge
 
   alias ExCalibur.Heralds.Herald
+  alias ExCalibur.Library
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
   alias ExCalibur.Sources.SourceSupervisor
   alias ExCalibur.Sources.SourceWorker
+
+  # Reference :dictionaries atom so String.to_existing_atom("dictionaries") works
+  @valid_tabs [:scrolls, :books, :heralds, :dictionaries]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,6 +23,13 @@ defmodule ExCaliburWeb.LibraryLive do
       :timer.send_interval(10_000, self(), :refresh)
     end
 
+    socket =
+      allow_upload(socket, :dictionary_file,
+        accept: ~w(.txt .md .csv .json),
+        max_entries: 1,
+        max_file_size: 5_000_000
+      )
+
     {:ok,
      load_data(
        assign(socket,
@@ -27,7 +38,8 @@ defmodule ExCaliburWeb.LibraryLive do
          expanding: nil,
          herald_type_preview: "slack",
          editing_herald: nil,
-         syncing: false
+         syncing: false,
+         editing_dictionary: nil
        )
      )}
   end
@@ -75,7 +87,15 @@ defmodule ExCaliburWeb.LibraryLive do
       |> group_by_guild()
 
     heralds = ExCalibur.Heralds.list_heralds()
-    assign(socket, sources: sources, scroll_groups: scroll_groups, book_groups: book_groups, heralds: heralds)
+    dictionaries = Library.list_dictionaries()
+
+    assign(socket,
+      sources: sources,
+      scroll_groups: scroll_groups,
+      book_groups: book_groups,
+      heralds: heralds,
+      dictionaries: dictionaries
+    )
   end
 
   defp group_by_guild(items) do
@@ -119,8 +139,92 @@ defmodule ExCaliburWeb.LibraryLive do
   end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
-    {:noreply, assign(socket, tab: String.to_existing_atom(tab), expanding: nil)}
+    valid_tab = if tab in Enum.map(@valid_tabs, &to_string/1), do: String.to_existing_atom(tab), else: :scrolls
+    {:noreply, assign(socket, tab: valid_tab, expanding: nil)}
   end
+
+  @impl true
+  def handle_event("create_dictionary", %{"dictionary" => params}, socket) do
+    attrs = %{
+      name: params["name"],
+      description: params["description"],
+      content: params["content"] || "",
+      content_type: params["content_type"] || "text",
+      tags: parse_tags(params["tags"] || "")
+    }
+
+    case Library.create_dictionary(attrs) do
+      {:ok, _} -> {:noreply, socket |> put_flash(:info, "Dictionary created.") |> load_data()}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to create dictionary.")}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_dictionary", %{"id" => id}, socket) do
+    dict = Library.get_dictionary!(String.to_integer(id))
+    Library.delete_dictionary(dict)
+    {:noreply, socket |> put_flash(:info, "Dictionary deleted.") |> load_data()}
+  end
+
+  @impl true
+  def handle_event("edit_dictionary", %{"id" => id}, socket) do
+    editing = if socket.assigns.editing_dictionary == id, do: nil, else: id
+    {:noreply, assign(socket, editing_dictionary: editing)}
+  end
+
+  @impl true
+  def handle_event("update_dictionary", %{"dictionary" => params, "_dictionary_id" => id}, socket) do
+    dict = Library.get_dictionary!(String.to_integer(id))
+
+    attrs = %{
+      name: params["name"],
+      description: params["description"],
+      content: params["content"] || "",
+      content_type: params["content_type"] || "text",
+      tags: parse_tags(params["tags"] || "")
+    }
+
+    case Library.update_dictionary(dict, attrs) do
+      {:ok, _} ->
+        {:noreply, socket |> assign(editing_dictionary: nil) |> put_flash(:info, "Dictionary saved.") |> load_data()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to update dictionary.")}
+    end
+  end
+
+  @impl true
+  def handle_event("upload_dictionary", %{"dictionary" => params}, socket) do
+    entries =
+      consume_uploaded_entries(socket, :dictionary_file, fn %{path: path}, entry ->
+        {:ok, {File.read!(path), entry.client_name}}
+      end)
+
+    case entries do
+      [{content, filename}] ->
+        content_type = detect_content_type(filename)
+
+        attrs = %{
+          name: if(params["name"] && params["name"] != "", do: params["name"], else: Path.rootname(filename)),
+          description: params["description"],
+          content: content,
+          content_type: content_type,
+          filename: filename,
+          tags: parse_tags(params["tags"] || "")
+        }
+
+        case Library.create_dictionary(attrs) do
+          {:ok, _} -> {:noreply, socket |> put_flash(:info, "#{filename} uploaded.") |> load_data()}
+          {:error, _} -> {:noreply, put_flash(socket, :error, "Upload failed.")}
+        end
+
+      _ ->
+        {:noreply, put_flash(socket, :error, "Please select a file to upload.")}
+    end
+  end
+
+  @impl true
+  def handle_event("validate_upload", _params, socket), do: {:noreply, socket}
 
   @impl true
   def handle_event("expand_book", %{"book-id" => id}, socket) do
@@ -294,6 +398,19 @@ defmodule ExCaliburWeb.LibraryLive do
     end)
   end
 
+  defp detect_content_type(filename) do
+    case Path.extname(filename) do
+      ".md" -> "markdown"
+      ".csv" -> "csv"
+      ".json" -> "json"
+      _ -> "text"
+    end
+  end
+
+  defp parse_tags(str) do
+    str |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+  end
+
   # ── Render ────────────────────────────────────────────────────────────────
 
   @impl true
@@ -385,6 +502,19 @@ defmodule ExCaliburWeb.LibraryLive do
           >
             Heralds
           </button>
+          <button
+            phx-click="switch_tab"
+            phx-value-tab="dictionaries"
+            class={[
+              "px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors",
+              if(@tab == :dictionaries,
+                do: "border-primary text-foreground",
+                else: "border-transparent text-muted-foreground hover:text-foreground"
+              )
+            ]}
+          >
+            Dictionaries
+          </button>
         </div>
         <p class="text-sm text-muted-foreground mt-3 mb-6">
           <%= if @tab == :scrolls do %>
@@ -395,6 +525,9 @@ defmodule ExCaliburWeb.LibraryLive do
           <% end %>
           <%= if @tab == :heralds do %>
             Named delivery integrations. Quests use heralds to send results to Slack, GitHub, webhooks, email, or PagerDuty.
+          <% end %>
+          <%= if @tab == :dictionaries do %>
+            Static reference datasets — glossaries, taxonomies, knowledge base docs — wired to steps as context.
           <% end %>
         </p>
 
@@ -430,6 +563,232 @@ defmodule ExCaliburWeb.LibraryLive do
               <% end %>
             </div>
           <% end %>
+        <% end %>
+
+        <%= if @tab == :dictionaries do %>
+          <div class="space-y-6">
+            <%!-- Existing dictionaries --%>
+            <%= if @dictionaries == [] do %>
+              <p class="text-sm text-muted-foreground">No dictionaries yet. Add one below.</p>
+            <% else %>
+              <div class="space-y-2">
+                <%= for dict <- @dictionaries do %>
+                  <div class="rounded-lg border overflow-hidden">
+                    <div
+                      class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between cursor-pointer hover:bg-muted/20 transition-colors"
+                      phx-click="edit_dictionary"
+                      phx-value-id={dict.id}
+                    >
+                      <div class="flex items-center gap-3 min-w-0 flex-1">
+                        <span class={[
+                          "transition-transform inline-block text-muted-foreground shrink-0 text-lg leading-none",
+                          if(@editing_dictionary == to_string(dict.id), do: "rotate-90")
+                        ]}>
+                          ›
+                        </span>
+                        <div class="space-y-1 min-w-0">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-medium">{dict.name}</span>
+                            <.badge variant="secondary">{dict.content_type}</.badge>
+                            <%= if dict.filename do %>
+                              <.badge variant="outline" class="text-xs">{dict.filename}</.badge>
+                            <% end %>
+                          </div>
+                          <%= if dict.description do %>
+                            <p class="text-sm text-muted-foreground">{dict.description}</p>
+                          <% end %>
+                          <%= if dict.tags != [] do %>
+                            <p class="text-xs text-muted-foreground">
+                              Tags: {Enum.join(dict.tags, ", ")}
+                            </p>
+                          <% end %>
+                          <%= if dict.content && dict.content != "" do %>
+                            <p class="text-xs text-muted-foreground font-mono truncate max-w-md">
+                              {String.slice(dict.content, 0, 120)}{if String.length(dict.content) >
+                                                                        120, do: "…"}
+                            </p>
+                          <% end %>
+                        </div>
+                      </div>
+                      <div class="shrink-0 self-start sm:self-auto">
+                        <.button
+                          size="sm"
+                          variant="destructive"
+                          phx-click="delete_dictionary"
+                          phx-value-id={dict.id}
+                          data-confirm={"Delete dictionary \"#{dict.name}\"?"}
+                        >
+                          Delete
+                        </.button>
+                      </div>
+                    </div>
+                    <%= if @editing_dictionary == to_string(dict.id) do %>
+                      <div class="border-t bg-muted/30 px-4 py-4">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                          Edit
+                        </p>
+                        <form
+                          id={"dict-edit-#{dict.id}"}
+                          phx-submit="update_dictionary"
+                          class="space-y-3"
+                        >
+                          <input type="hidden" name="_dictionary_id" value={dict.id} />
+                          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <label class="text-sm font-medium">Name</label>
+                              <input
+                                type="text"
+                                name="dictionary[name]"
+                                value={dict.name}
+                                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                              />
+                            </div>
+                            <div>
+                              <label class="text-sm font-medium">Type</label>
+                              <select
+                                name="dictionary[content_type]"
+                                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                              >
+                                <%= for ct <- ~w(text markdown csv json) do %>
+                                  <option value={ct} selected={dict.content_type == ct}>{ct}</option>
+                                <% end %>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label class="text-sm font-medium">Description</label>
+                            <input
+                              type="text"
+                              name="dictionary[description]"
+                              value={dict.description || ""}
+                              placeholder="Optional"
+                              class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                            />
+                          </div>
+                          <div>
+                            <label class="text-sm font-medium">Tags</label>
+                            <input
+                              type="text"
+                              name="dictionary[tags]"
+                              value={Enum.join(dict.tags, ", ")}
+                              placeholder="comma-separated"
+                              class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                            />
+                          </div>
+                          <div>
+                            <label class="text-sm font-medium">Content</label>
+                            <textarea
+                              name="dictionary[content]"
+                              rows="8"
+                              class="w-full text-sm border border-input rounded-md px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono"
+                            >{dict.content}</textarea>
+                          </div>
+                          <div class="flex justify-end gap-2">
+                            <.button type="submit" size="sm">Save</.button>
+                          </div>
+                        </form>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+            <%!-- Add dictionary form --%>
+            <div class="border rounded-lg border-dashed p-4">
+              <p class="text-sm font-medium mb-3">Add Dictionary</p>
+              <form phx-submit="create_dictionary" class="space-y-3">
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="text-sm font-medium">Name</label>
+                    <input
+                      type="text"
+                      name="dictionary[name]"
+                      placeholder="e.g. Product Glossary"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Type</label>
+                    <select
+                      name="dictionary[content_type]"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="text">Text</option>
+                      <option value="markdown">Markdown</option>
+                      <option value="csv">CSV</option>
+                      <option value="json">JSON</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-sm font-medium">Description</label>
+                  <input
+                    type="text"
+                    name="dictionary[description]"
+                    placeholder="Optional"
+                    class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label class="text-sm font-medium">Tags</label>
+                  <input
+                    type="text"
+                    name="dictionary[tags]"
+                    placeholder="comma-separated"
+                    class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label class="text-sm font-medium">Content</label>
+                  <textarea
+                    name="dictionary[content]"
+                    rows="6"
+                    placeholder="Paste your reference content here…"
+                    class="w-full text-sm border border-input rounded-md px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring font-mono"
+                  ></textarea>
+                </div>
+                <div class="flex justify-end">
+                  <.button type="submit" size="sm">Add Dictionary</.button>
+                </div>
+              </form>
+            </div>
+
+            <%!-- File upload --%>
+            <div class="border rounded-lg border-dashed p-4">
+              <p class="text-sm font-medium mb-3">Upload File</p>
+              <form
+                phx-submit="upload_dictionary"
+                phx-change="validate_upload"
+                class="space-y-3"
+              >
+                <.live_file_input upload={@uploads.dictionary_file} class="text-sm" />
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label class="text-sm font-medium">Name (optional)</label>
+                    <input
+                      type="text"
+                      name="dictionary[name]"
+                      placeholder="Defaults to filename"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium">Tags (optional)</label>
+                    <input
+                      type="text"
+                      name="dictionary[tags]"
+                      placeholder="tags, comma-separated"
+                      class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                  </div>
+                </div>
+                <div class="flex justify-end">
+                  <.button type="submit" size="sm">Upload</.button>
+                </div>
+              </form>
+            </div>
+          </div>
         <% end %>
 
         <%= if @tab == :heralds do %>

@@ -81,6 +81,8 @@ defmodule ExCalibur.StepRunner do
 
     case result do
       {:ok, attrs} ->
+        forced_tags = quest.lore_tags || []
+        attrs = Map.update(attrs, :tags, forced_tags, &Enum.uniq(&1 ++ forced_tags))
         ExCalibur.Lore.write_artifact(quest, attrs)
         {:ok, %{artifact: attrs}}
 

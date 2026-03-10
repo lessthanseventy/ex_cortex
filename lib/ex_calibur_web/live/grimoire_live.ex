@@ -6,6 +6,7 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   alias ExCalibur.Lore
   alias ExCalibur.Quests
+  alias ExCalibur.StepRunner
 
   @impl true
   def mount(_params, _session, socket) do
@@ -22,8 +23,9 @@ defmodule ExCaliburWeb.GrimoireLive do
        filter_tags: [],
        filter_quest_id: nil,
        sort: "newest",
-       adding: false,
-       editing_id: nil
+       editing_id: nil,
+       intake_steps: Enum.filter(Quests.list_steps(), &(&1.status == "active")),
+       running: false
      )
      |> reload()}
   end
@@ -43,6 +45,26 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   def handle_info({:lore_updated, title}, socket) do
     {:noreply, socket |> reload() |> put_flash(:info, "New entry: #{title}")}
+  end
+
+  def handle_info({:drop_in_complete, step_run_id, result}, socket) do
+    step_run = ExCalibur.Repo.get!(ExCalibur.Quests.StepRun, step_run_id)
+
+    {status, results} =
+      case result do
+        {:ok, outcome} -> {"complete", outcome}
+        {:error, reason} -> {"failed", %{error: inspect(reason)}}
+      end
+
+    Quests.update_step_run(step_run, %{status: status, results: results})
+    socket = assign(socket, running: false)
+
+    socket =
+      if status == "complete",
+        do: put_flash(socket, :info, "Processed — check below for the new entry."),
+        else: put_flash(socket, :error, "Processing failed.")
+
+    {:noreply, reload(socket)}
   end
 
   def handle_info(_msg, socket), do: {:noreply, reload(socket)}
@@ -70,34 +92,51 @@ defmodule ExCaliburWeb.GrimoireLive do
   end
 
   def handle_event("add_entry", _, socket) do
-    {:noreply, assign(socket, adding: true, editing_id: nil)}
-  end
-
-  def handle_event("cancel", _, socket) do
-    {:noreply, assign(socket, adding: false, editing_id: nil)}
+    {:noreply, assign(socket, editing_id: :new)}
   end
 
   def handle_event("create_entry", %{"entry" => params}, socket) do
-    attrs = params |> parse_entry_params() |> Map.put(:source, "manual")
+    attrs = parse_entry_params(params)
 
-    case Lore.create_entry(attrs) do
-      {:ok, _} -> {:noreply, reload(assign(socket, adding: false))}
+    case Lore.create_entry(Map.put(attrs, :source, "manual")) do
+      {:ok, _} -> {:noreply, reload(assign(socket, editing_id: nil))}
       {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to create entry")}
     end
   end
 
+  def handle_event("cancel", _, socket) do
+    {:noreply, assign(socket, editing_id: nil)}
+  end
+
   def handle_event("edit_entry", %{"id" => id}, socket) do
-    {:noreply, assign(socket, editing_id: String.to_integer(id), adding: false)}
+    {:noreply, assign(socket, editing_id: String.to_integer(id))}
   end
 
   def handle_event("update_entry", %{"_id" => id, "entry" => params}, socket) do
     entry = Lore.get_entry!(String.to_integer(id))
-    attrs = params |> parse_entry_params() |> Map.put(:source, "manual")
+    attrs = parse_entry_params(params)
 
     case Lore.update_entry(entry, attrs) do
       {:ok, _} -> {:noreply, reload(assign(socket, editing_id: nil))}
       {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to update entry")}
     end
+  end
+
+  def handle_event("drop_in", %{"step_id" => step_id, "input" => input}, socket) when input != "" do
+    step = Quests.get_step!(String.to_integer(step_id))
+    {:ok, step_run} = Quests.create_step_run(%{step_id: step.id, input: input, status: "running"})
+    parent = self()
+
+    Task.start(fn ->
+      result = StepRunner.run(step, input)
+      send(parent, {:drop_in_complete, step_run.id, result})
+    end)
+
+    {:noreply, assign(socket, running: true)}
+  end
+
+  def handle_event("drop_in", _, socket) do
+    {:noreply, put_flash(socket, :error, "Please enter something to process")}
   end
 
   def handle_event("delete_entry", %{"id" => id}, socket) do
@@ -155,16 +194,40 @@ defmodule ExCaliburWeb.GrimoireLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 class="text-3xl font-bold tracking-tight">Grimoire</h1>
-          <p class="text-muted-foreground mt-1.5">
-            Synthesized artifacts and curated entries from your guild's quests.
-          </p>
-        </div>
-        <.button variant="outline" phx-click="add_entry" class="self-start sm:mt-1">
-          + New Entry
-        </.button>
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Grimoire</h1>
+        <p class="text-muted-foreground mt-1.5">
+          Synthesized artifacts and curated entries from your guild's quests.
+        </p>
+      </div>
+
+      <%!-- Drop In form --%>
+      <div class="rounded-lg border p-5 space-y-3 bg-card">
+        <p class="text-sm font-semibold">Drop In</p>
+        <p class="text-xs text-muted-foreground">
+          Paste a link, note, thought, or doc. Choose how to process it and it'll land here.
+        </p>
+        <form phx-submit="drop_in" class="space-y-3">
+          <textarea
+            name="input"
+            rows="3"
+            placeholder="https://... or paste text, a note, anything"
+            class="w-full text-sm border border-input rounded-md px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          ></textarea>
+          <div class="flex gap-2 items-center">
+            <select
+              name="step_id"
+              class="flex-1 h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              <%= for step <- @intake_steps do %>
+                <option value={step.id}>{step.name}</option>
+              <% end %>
+            </select>
+            <.button type="submit" size="sm" disabled={@running}>
+              {if @running, do: "Processing…", else: "Process"}
+            </.button>
+          </div>
+        </form>
       </div>
 
       <%!-- The Augury — pinned world thesis hero --%>
@@ -261,8 +324,14 @@ defmodule ExCaliburWeb.GrimoireLive do
         <% end %>
       </div>
 
-      <%!-- New entry form --%>
-      <%= if @adding do %>
+      <%!-- Manual entry creation --%>
+      <div class="flex justify-end">
+        <.button variant="outline" size="sm" phx-click="add_entry">
+          + Add Entry
+        </.button>
+      </div>
+
+      <%= if @editing_id == :new do %>
         <.entry_form id="new-entry" submit_event="create_entry" entry={nil} />
       <% end %>
 
@@ -270,7 +339,7 @@ defmodule ExCaliburWeb.GrimoireLive do
       <%= if @entries == [] do %>
         <div class="rounded-lg border p-8 text-center">
           <p class="text-muted-foreground text-sm">
-            No entries yet. Create one manually or run an artifact quest.
+            No entries yet. Drop something in above or run an artifact quest.
           </p>
         </div>
       <% else %>

@@ -20,12 +20,12 @@ defmodule ExCalibur.Board.Lifestyle do
       name: "Everyday Council",
       category: :lifestyle,
       description:
-        "Your personal advisory board. Decision reviews, quick advice, journaling intake, and weekly reflection.",
+        "Your personal life OS. Daily briefings at 8am, noon, and 9pm. Automatic intake for links, notes, and thoughts. Weekly news digest, reflection, and monthly review. Advisory panel on demand for decisions, gut checks, and priority resets.",
       suggested_team: "Everyday Council guild is purpose-built for this.",
       requires: [:any_members],
       source_definitions: [
         %{
-          name: "Journal Intake Webhook",
+          name: "Personal Inbox Webhook",
           source_type: "webhook",
           config: %{"secret" => ""}
         }

@@ -53,5 +53,7 @@ defmodule ExCalibur.ContextProviders.ContextProvider do
 
   defp module_for("guild_charter"), do: Module.concat([ExCalibur, ContextProviders, GuildCharter])
 
+  defp module_for("dictionary"), do: Module.concat([ExCalibur, ContextProviders, Dictionary])
+
   defp module_for(_), do: nil
 end
