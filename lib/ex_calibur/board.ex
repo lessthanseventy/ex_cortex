@@ -97,9 +97,12 @@ defmodule ExCalibur.Board do
     step_by_name = Map.new(ExCalibur.Quests.list_steps(), &{&1.name, &1.id})
 
     steps =
-      Enum.map((template.quest_definition || %{steps: []}).steps || [], fn step ->
+      (template.quest_definition || %{steps: []}).steps
+      |> Kernel.||([])
+      |> Enum.map(fn step ->
         %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
       end)
+      |> Enum.reject(fn step -> is_nil(step["step_id"]) end)
 
     result =
       if template.quest_definition do

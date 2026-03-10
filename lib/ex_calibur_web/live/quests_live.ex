@@ -8,7 +8,6 @@ defmodule ExCaliburWeb.QuestsLive do
   alias ExCalibur.Quests
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
-  alias Excellence.Schemas.Member
 
   @impl true
   def mount(_params, _session, socket) do
@@ -21,47 +20,14 @@ defmodule ExCaliburWeb.QuestsLive do
     steps = Quests.list_steps()
     quests = Quests.list_quests()
 
-    quest_step_ids =
-      quests
-      |> Enum.flat_map(fn c -> Enum.map(c.steps, & &1["step_id"]) end)
-      |> MapSet.new()
-
-    uncategorized_steps =
-      Enum.reject(steps, fn q -> MapSet.member?(quest_step_ids, to_string(q.id)) end)
-
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [asc: s.inserted_at]))
 
     trigger_previews =
-      steps
-      |> Map.new(fn q -> {"step-#{q.id}", q.trigger} end)
-      |> Map.merge(Map.new(quests, fn c -> {"quest-#{c.id}", c.trigger} end))
-      |> Map.put("new-step", "manual")
+      quests
+      |> Map.new(fn c -> {"quest-#{c.id}", c.trigger} end)
       |> Map.put("new-quest", "manual")
 
     schedule_mode_previews = build_schedule_mode_previews(quests)
-
-    output_previews =
-      steps
-      |> Map.new(fn q -> {"step-#{q.id}", q.output_type || "verdict"} end)
-      |> Map.put("new-step", "verdict")
-
-    context_previews =
-      steps
-      |> Map.new(fn q ->
-        type =
-          case q.context_providers do
-            [%{"type" => t} | _] -> t
-            _ -> "none"
-          end
-
-        {"step-#{q.id}", type}
-      end)
-      |> Map.put("new-step", "none")
-
-    write_mode_previews =
-      steps
-      |> Map.new(fn q -> {"step-#{q.id}", q.write_mode || "append"} end)
-      |> Map.put("new-step", "append")
 
     board_templates = Enum.map(Board.all(), &board_with_status/1)
 
@@ -69,39 +35,24 @@ defmodule ExCaliburWeb.QuestsLive do
      assign(socket,
        steps: steps,
        quests: quests,
-       uncategorized_steps: uncategorized_steps,
-       teams: list_teams(),
        sources: sources,
-       heralds: ExCalibur.Heralds.list_heralds(),
        expanded: MapSet.new(),
-       adding_step: false,
        running: %{},
        quest_runs: %{},
        trigger_previews: trigger_previews,
-       output_previews: output_previews,
-       context_previews: context_previews,
-       write_mode_previews: write_mode_previews,
        schedule_mode_previews: schedule_mode_previews,
        board_templates: board_templates,
-       board_category: nil,
        board_show_unavailable: false,
        board_installing: nil,
        board_installed: MapSet.new(),
        board_tab: "all",
-       quest_prefill: %{name: "", description: ""},
-       dictionaries: ExCalibur.Library.list_dictionaries()
+       quest_prefill: %{name: "", description: ""}
      )}
   end
 
   @impl true
   def handle_params(_params, _url, socket) do
     {:noreply, assign(socket, page_title: "Quests")}
-  end
-
-  @impl true
-  def handle_event("board_filter_category", %{"category" => cat}, socket) do
-    cat_atom = if cat == "", do: nil, else: String.to_existing_atom(cat)
-    {:noreply, assign(socket, board_category: cat_atom)}
   end
 
   @impl true
@@ -129,25 +80,14 @@ defmodule ExCaliburWeb.QuestsLive do
         case Board.install(template) do
           {:ok, _quest} ->
             installed = MapSet.put(socket.assigns.board_installed, id)
-            steps = Quests.list_steps()
-            quests = Quests.list_quests()
-
-            quest_step_ids =
-              quests
-              |> Enum.flat_map(fn c -> Enum.map(c.steps, & &1["step_id"]) end)
-              |> MapSet.new()
-
-            uncategorized_steps =
-              Enum.reject(steps, fn q -> MapSet.member?(quest_step_ids, to_string(q.id)) end)
 
             {:noreply,
              socket
              |> assign(
                board_installed: installed,
                board_installing: nil,
-               steps: steps,
-               quests: quests,
-               uncategorized_steps: uncategorized_steps
+               steps: Quests.list_steps(),
+               quests: Quests.list_quests()
              )
              |> put_flash(:info, "\"#{template.name}\" installed!")}
 
@@ -185,21 +125,6 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
-  def handle_event("add_step", _, socket) do
-    {:noreply, assign(socket, adding_step: true, adding_quest: false)}
-  end
-
-  @impl true
-  def handle_event("add_quest", _, socket) do
-    {:noreply, assign(socket, board_tab: "custom", adding_step: false)}
-  end
-
-  @impl true
-  def handle_event("cancel_new", _, socket) do
-    {:noreply, assign(socket, adding_step: false, board_tab: "all")}
-  end
-
-  @impl true
   def handle_event("board_set_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, board_tab: tab)}
   end
@@ -218,68 +143,6 @@ defmodule ExCaliburWeb.QuestsLive do
 
         {:noreply, assign(socket, board_tab: "custom", quest_prefill: prefill)}
     end
-  end
-
-  @impl true
-  def handle_event("preview_step_trigger", %{"step_id" => id} = params, socket) do
-    t = get_in(params, ["quest", "trigger"])
-    o = get_in(params, ["quest", "output_type"])
-    c = get_in(params, ["quest", "context_type"])
-    wm = get_in(params, ["quest", "write_mode"])
-
-    socket =
-      if t,
-        do: assign(socket, trigger_previews: Map.put(socket.assigns.trigger_previews, "step-#{id}", t)),
-        else: socket
-
-    socket =
-      if o,
-        do: assign(socket, output_previews: Map.put(socket.assigns.output_previews, "step-#{id}", o)),
-        else: socket
-
-    socket =
-      if c,
-        do: assign(socket, context_previews: Map.put(socket.assigns.context_previews, "step-#{id}", c)),
-        else: socket
-
-    socket =
-      if wm,
-        do: assign(socket, write_mode_previews: Map.put(socket.assigns.write_mode_previews, "step-#{id}", wm)),
-        else: socket
-
-    {:noreply, socket}
-  end
-
-  def handle_event("preview_step_trigger", _params, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_event("preview_new_step_trigger", params, socket) do
-    t = get_in(params, ["quest", "trigger"])
-    o = get_in(params, ["quest", "output_type"])
-    c = get_in(params, ["quest", "context_type"])
-    wm = get_in(params, ["quest", "write_mode"])
-
-    socket =
-      if t,
-        do: assign(socket, trigger_previews: Map.put(socket.assigns.trigger_previews, "new-step", t)),
-        else: socket
-
-    socket =
-      if o,
-        do: assign(socket, output_previews: Map.put(socket.assigns.output_previews, "new-step", o)),
-        else: socket
-
-    socket =
-      if c,
-        do: assign(socket, context_previews: Map.put(socket.assigns.context_previews, "new-step", c)),
-        else: socket
-
-    socket =
-      if wm,
-        do: assign(socket, write_mode_previews: Map.put(socket.assigns.write_mode_previews, "new-step", wm)),
-        else: socket
-
-    {:noreply, socket}
   end
 
   @impl true
@@ -342,123 +205,6 @@ defmodule ExCaliburWeb.QuestsLive do
     new_step = %{"step_id" => step_id, "flow" => "always"}
     Quests.update_quest(quest, %{steps: quest.steps ++ [new_step]})
     {:noreply, assign_quests(socket)}
-  end
-
-  @impl true
-  def handle_event("create_step", %{"quest" => params}, socket) do
-    escalate_on =
-      case params["escalate_on"] do
-        "warn_or_fail" -> %{"type" => "verdict", "values" => ["warn", "fail"]}
-        "fail_only" -> %{"type" => "verdict", "values" => ["fail"]}
-        "always" -> "always"
-        _ -> "never"
-      end
-
-    roster = [
-      %{
-        "who" => params["who"] || "all",
-        "when" => "on_trigger",
-        "how" => params["how"] || "consensus",
-        "escalate_on" => escalate_on
-      }
-    ]
-
-    context_providers =
-      case params["context_type"] do
-        "static" ->
-          content = String.trim(params["context_content"] || "")
-          if content == "", do: [], else: [%{"type" => "static", "content" => content}]
-
-        "quest_history" ->
-          [%{"type" => "quest_history", "limit" => 5}]
-
-        "member_stats" ->
-          [%{"type" => "member_stats"}]
-
-        "lore" ->
-          tags =
-            (params["kb_tags"] || "")
-            |> String.split(",")
-            |> Enum.map(&String.trim/1)
-            |> Enum.reject(&(&1 == ""))
-
-          limit =
-            case Integer.parse(params["kb_limit"] || "10") do
-              {n, _} -> max(1, n)
-              _ -> 10
-            end
-
-          sort = params["kb_sort"] || "newest"
-          [%{"type" => "lore", "tags" => tags, "limit" => limit, "sort" => sort}]
-
-        "dictionary" ->
-          dict_id = params["dictionary_id"]
-
-          if dict_id && dict_id != "" do
-            [%{"type" => "dictionary", "dictionary_id" => String.to_integer(dict_id)}]
-          else
-            []
-          end
-
-        _ ->
-          []
-      end
-
-    trigger = params["trigger"] || "manual"
-
-    schedule =
-      if trigger == "scheduled" do
-        build_schedule_from_params(params)
-      end
-
-    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
-
-    output_type = params["output_type"] || "verdict"
-    write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
-    entry_title_template = if output_type == "artifact", do: params["entry_title_template"]
-    log_title_template = if output_type == "artifact", do: params["log_title_template"]
-    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"]
-
-    attrs = %{
-      name: params["name"],
-      description: params["description"],
-      trigger: trigger,
-      schedule: schedule,
-      source_ids: source_ids,
-      roster: roster,
-      context_providers: context_providers,
-      status: "active",
-      output_type: output_type,
-      write_mode: write_mode,
-      entry_title_template: entry_title_template,
-      log_title_template: log_title_template,
-      herald_name: herald_name
-    }
-
-    case Quests.create_step(attrs) do
-      {:ok, _} ->
-        steps = Quests.list_steps()
-        quests = socket.assigns.quests
-        uncategorized_steps = compute_uncategorized_steps(quests, steps)
-        previews = rebuild_trigger_previews(steps, quests, socket.assigns.trigger_previews)
-        output_previews = rebuild_output_previews(steps, socket.assigns.output_previews)
-        context_previews = rebuild_context_previews(steps, socket.assigns.context_previews)
-        write_mode_previews = rebuild_write_mode_previews(steps, socket.assigns.write_mode_previews)
-
-        {:noreply,
-         assign(socket,
-           steps: steps,
-           uncategorized_steps: uncategorized_steps,
-           adding_step: false,
-           trigger_previews: previews,
-           output_previews: output_previews,
-           context_previews: context_previews,
-           write_mode_previews: write_mode_previews
-         )}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to create quest")}
-    end
   end
 
   @impl true
@@ -567,14 +313,6 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
-  def handle_event("toggle_step_status", %{"id" => id}, socket) do
-    quest = Quests.get_step!(String.to_integer(id))
-    new_status = if quest.status == "active", do: "paused", else: "active"
-    Quests.update_step(quest, %{status: new_status})
-    {:noreply, assign_steps(socket)}
-  end
-
-  @impl true
   def handle_event("toggle_quest_status", %{"id" => id}, socket) do
     quest = Quests.get_quest!(String.to_integer(id))
     new_status = if quest.status == "active", do: "paused", else: "active"
@@ -583,79 +321,10 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
-  def handle_event("delete_step", %{"id" => id}, socket) do
-    quest = Quests.get_step!(String.to_integer(id))
-    Quests.delete_step(quest)
-    {:noreply, assign_steps(socket)}
-  end
-
-  @impl true
   def handle_event("delete_quest", %{"id" => id}, socket) do
     quest = Quests.get_quest!(String.to_integer(id))
     Quests.delete_quest(quest)
     {:noreply, assign_quests(socket)}
-  end
-
-  @impl true
-  def handle_event("pause_quest", %{"id" => id}, socket) do
-    quest = Quests.get_quest!(String.to_integer(id))
-    {:ok, _} = Quests.update_quest(quest, %{status: "paused"})
-    {:noreply, assign_quests(socket)}
-  end
-
-  @impl true
-  def handle_event("resume_quest", %{"id" => id}, socket) do
-    quest = Quests.get_quest!(String.to_integer(id))
-    {:ok, _} = Quests.update_quest(quest, %{status: "active"})
-    {:noreply, assign_quests(socket)}
-  end
-
-  @impl true
-  def handle_event("run_step", %{"step_id" => id, "input" => input}, socket) when input != "" do
-    quest = Quests.get_step!(String.to_integer(id))
-    run_id = to_string(quest.id)
-
-    {:ok, step_run} =
-      Quests.create_step_run(%{step_id: quest.id, input: input, status: "running"})
-
-    running = Map.put(socket.assigns.running, run_id, %{status: "running", result: nil})
-    parent = self()
-
-    Task.start(fn ->
-      result = ExCalibur.StepRunner.run(quest, input)
-      send(parent, {:step_run_complete, run_id, step_run.id, result})
-    end)
-
-    {:noreply,
-     socket
-     |> assign(running: running)
-     |> push_event("reset-form", %{id: "run-form-#{quest.id}"})}
-  end
-
-  def handle_event("run_step", _, socket) do
-    {:noreply, put_flash(socket, :error, "Please enter some input to evaluate")}
-  end
-
-  def handle_event("run_step_now", %{"step_id" => id}, socket) do
-    quest = Quests.get_step!(String.to_integer(id))
-    run_id = to_string(quest.id)
-
-    {:ok, step_run} =
-      Quests.create_step_run(%{step_id: quest.id, input: "", status: "running"})
-
-    parent = self()
-
-    Task.start(fn ->
-      result = ExCalibur.StepRunner.run(quest, "")
-      send(parent, {:step_run_complete, run_id, step_run.id, result})
-    end)
-
-    running = Map.put(socket.assigns.running, run_id, %{status: "running", result: nil})
-
-    {:noreply,
-     socket
-     |> assign(running: running)
-     |> put_flash(:info, "Running #{quest.name}…")}
   end
 
   @impl true
@@ -674,123 +343,6 @@ defmodule ExCaliburWeb.QuestsLive do
     end)
 
     {:noreply, assign(socket, running: running)}
-  end
-
-  @impl true
-  def handle_event("update_step", %{"quest" => params, "step_id" => id}, socket) do
-    quest = Quests.get_step!(String.to_integer(id))
-
-    escalate_on =
-      case params["escalate_on"] do
-        "warn_or_fail" -> %{"type" => "verdict", "values" => ["warn", "fail"]}
-        "fail_only" -> %{"type" => "verdict", "values" => ["fail"]}
-        "always" -> "always"
-        _ -> "never"
-      end
-
-    roster = [
-      %{
-        "who" => params["who"] || "all",
-        "when" => "on_trigger",
-        "how" => params["how"] || "consensus",
-        "escalate_on" => escalate_on
-      }
-    ]
-
-    context_providers =
-      case params["context_type"] do
-        "static" ->
-          content = String.trim(params["context_content"] || "")
-          if content == "", do: [], else: [%{"type" => "static", "content" => content}]
-
-        "quest_history" ->
-          [%{"type" => "quest_history", "limit" => 5}]
-
-        "member_stats" ->
-          [%{"type" => "member_stats"}]
-
-        "lore" ->
-          tags =
-            (params["kb_tags"] || "")
-            |> String.split(",")
-            |> Enum.map(&String.trim/1)
-            |> Enum.reject(&(&1 == ""))
-
-          limit =
-            case Integer.parse(params["kb_limit"] || "10") do
-              {n, _} -> max(1, n)
-              _ -> 10
-            end
-
-          sort = params["kb_sort"] || "newest"
-          [%{"type" => "lore", "tags" => tags, "limit" => limit, "sort" => sort}]
-
-        "dictionary" ->
-          dict_id = params["dictionary_id"]
-
-          if dict_id && dict_id != "" do
-            [%{"type" => "dictionary", "dictionary_id" => String.to_integer(dict_id)}]
-          else
-            []
-          end
-
-        _ ->
-          []
-      end
-
-    trigger = params["trigger"] || "manual"
-
-    schedule =
-      if trigger == "scheduled" do
-        build_schedule_from_params(params)
-      end
-
-    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
-
-    output_type = params["output_type"] || "verdict"
-    write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
-    entry_title_template = if output_type == "artifact", do: params["entry_title_template"]
-    log_title_template = if output_type == "artifact", do: params["log_title_template"]
-    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"]
-
-    attrs = %{
-      name: params["name"],
-      description: params["description"],
-      trigger: trigger,
-      schedule: schedule,
-      source_ids: source_ids,
-      roster: roster,
-      context_providers: context_providers,
-      output_type: output_type,
-      write_mode: write_mode,
-      entry_title_template: entry_title_template,
-      log_title_template: log_title_template,
-      herald_name: herald_name
-    }
-
-    case Quests.update_step(quest, attrs) do
-      {:ok, _} ->
-        steps = Quests.list_steps()
-        quests = socket.assigns.quests
-        uncategorized_steps = compute_uncategorized_steps(quests, steps)
-        previews = rebuild_trigger_previews(steps, quests, socket.assigns.trigger_previews)
-        output_previews = rebuild_output_previews(steps, socket.assigns.output_previews)
-        context_previews = rebuild_context_previews(steps, socket.assigns.context_previews)
-        write_mode_previews = rebuild_write_mode_previews(steps, socket.assigns.write_mode_previews)
-
-        {:noreply,
-         assign(socket,
-           steps: steps,
-           uncategorized_steps: uncategorized_steps,
-           trigger_previews: previews,
-           output_previews: output_previews,
-           context_previews: context_previews,
-           write_mode_previews: write_mode_previews
-         )}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to update quest")}
-    end
   end
 
   @impl true
@@ -820,27 +372,6 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
-  def handle_info({:step_run_complete, run_id, step_run_id, result}, socket) do
-    {status, results} =
-      case result do
-        {:ok, outcome} -> {"complete", outcome}
-        {:error, reason} -> {"failed", %{error: inspect(reason)}}
-      end
-
-    step_run = ExCalibur.Repo.get!(ExCalibur.Quests.StepRun, step_run_id)
-    {:ok, updated_run} = Quests.update_step_run(step_run, %{status: status, results: results})
-
-    if status == "complete" do
-      quest = Quests.get_step!(updated_run.step_id)
-      Task.start(fn -> ExCalibur.LearningLoop.retrospect(quest, updated_run) end)
-    end
-
-    running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
-
-    {:noreply, assign(socket, running: running)}
-  end
-
-  @impl true
   def handle_info({:quest_run_complete, run_id, quest_run_id, result}, socket) do
     {status, results} =
       case result do
@@ -857,7 +388,7 @@ defmodule ExCaliburWeb.QuestsLive do
 
   @impl true
   def handle_info(:refresh, socket) do
-    {:noreply, assign_uncategorized_steps(socket, Quests.list_quests(), Quests.list_steps())}
+    {:noreply, assign(socket, quests: Quests.list_quests(), steps: Quests.list_steps())}
   end
 
   @impl true
@@ -1300,7 +831,7 @@ defmodule ExCaliburWeb.QuestsLive do
           </div>
         <% end %>
         <div>
-          <label class="text-sm font-medium">Quests (select in order)</label>
+          <label class="text-sm font-medium">Steps (select in order)</label>
           <select
             name="quest[step_ids][]"
             multiple
@@ -1360,11 +891,14 @@ defmodule ExCaliburWeb.QuestsLive do
             </span>
             <%= if @quest.trigger == "lore" && @quest.lore_trigger_tags != [] do %>
               <span class="text-xs text-muted-foreground ml-1">
-                · listening for: <span class="font-mono">{Enum.join(@quest.lore_trigger_tags, ", ")}</span>
+                · listening for:
+                <span class="font-mono">{Enum.join(@quest.lore_trigger_tags, ", ")}</span>
               </span>
             <% end %>
             <%= if @quest.trigger == "lore" && (@quest.lore_trigger_tags == nil || @quest.lore_trigger_tags == []) do %>
-              <span class="text-xs text-muted-foreground ml-1">· listening for all Grimoire entries</span>
+              <span class="text-xs text-muted-foreground ml-1">
+                · listening for all Grimoire entries
+              </span>
             <% end %>
           </div>
           <.badge variant="outline" class="text-xs shrink-0">{trigger_label(@quest.trigger)}</.badge>
@@ -1495,7 +1029,7 @@ defmodule ExCaliburWeb.QuestsLive do
           </form>
           <div class="space-y-1.5 mt-4">
             <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Quests (in order)
+              Steps (in order)
             </p>
             <%= if @quest.steps == [] do %>
               <p class="text-sm text-muted-foreground italic">No steps added yet.</p>
@@ -1591,7 +1125,7 @@ defmodule ExCaliburWeb.QuestsLive do
                 name="step_id"
                 class="flex-1 text-sm border border-input rounded-md px-2 py-1 bg-background"
               >
-                <option value="">Add quest…</option>
+                <option value="">Add step…</option>
                 <%= for quest <- @steps do %>
                   <option value={quest.id}>{quest.name}</option>
                 <% end %>
@@ -1634,29 +1168,6 @@ defmodule ExCaliburWeb.QuestsLive do
     existing
     |> Map.merge(Map.new(steps, fn q -> {"step-#{q.id}", q.trigger} end))
     |> Map.merge(Map.new(quests, fn c -> {"quest-#{c.id}", c.trigger} end))
-  end
-
-  defp rebuild_output_previews(steps, existing) do
-    Map.merge(existing, Map.new(steps, fn q -> {"step-#{q.id}", q.output_type || "verdict"} end))
-  end
-
-  defp rebuild_write_mode_previews(steps, existing) do
-    Map.merge(existing, Map.new(steps, fn q -> {"step-#{q.id}", q.write_mode || "append"} end))
-  end
-
-  defp rebuild_context_previews(steps, existing) do
-    Map.merge(
-      existing,
-      Map.new(steps, fn q ->
-        type =
-          case q.context_providers do
-            [%{"type" => t} | _] -> t
-            _ -> "none"
-          end
-
-        {"step-#{q.id}", type}
-      end)
-    )
   end
 
   defp parse_schedule_info(nil), do: %{mode: "interval", interval: 1, unit: "hours", hour: 8, minute: 0, day: "1"}
@@ -1723,27 +1234,11 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   defp assign_quests(socket) do
-    quests = Quests.list_quests()
-    assign_uncategorized_steps(socket, quests, socket.assigns.steps)
+    assign(socket, quests: Quests.list_quests())
   end
 
   defp assign_steps(socket) do
-    steps = Quests.list_steps()
-    assign_uncategorized_steps(socket, socket.assigns.quests, steps)
-  end
-
-  defp compute_uncategorized_steps(quests, steps) do
-    quest_step_ids =
-      quests
-      |> Enum.flat_map(fn c -> Enum.map(c.steps, & &1["step_id"]) end)
-      |> MapSet.new()
-
-    Enum.reject(steps, fn q -> MapSet.member?(quest_step_ids, to_string(q.id)) end)
-  end
-
-  defp assign_uncategorized_steps(socket, quests, steps) do
-    uncategorized_steps = compute_uncategorized_steps(quests, steps)
-    assign(socket, quests: quests, steps: steps, uncategorized_steps: uncategorized_steps)
+    assign(socket, steps: Quests.list_steps())
   end
 
   defp board_with_status(template) do
@@ -1781,18 +1276,6 @@ defmodule ExCaliburWeb.QuestsLive do
   defp board_readiness_badge(:almost), do: {"Almost", "secondary"}
   defp board_readiness_badge(:unavailable), do: {"Missing", "outline"}
 
-  defp list_teams do
-    import Ecto.Query
-
-    ExCalibur.Repo.all(
-      from m in Member,
-        where: m.type == "role" and m.status == "active" and not is_nil(m.team),
-        select: m.team,
-        distinct: true,
-        order_by: m.team
-    )
-  end
-
   defp source_label(%Source{name: name}) when is_binary(name) and name != "", do: name
 
   defp source_label(%Source{book_id: book_id}) when is_binary(book_id) do
@@ -1812,7 +1295,9 @@ defmodule ExCaliburWeb.QuestsLive do
   defp trigger_label(other), do: other
 
   defp quest_name_for_step(step, steps) do
-    quest = Enum.find(steps, &(to_string(&1.id) == to_string(step["step_id"])))
-    if quest, do: quest.name, else: "Unknown Quest"
+    case step["step_id"] do
+      nil -> "(deleted step)"
+      id -> Enum.find_value(steps, "(deleted step)", &(to_string(&1.id) == to_string(id) && &1.name))
+    end
   end
 end

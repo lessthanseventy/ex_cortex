@@ -33,7 +33,7 @@ defmodule ExCaliburWeb.QuestsLiveTest do
 
     test "new quest form renders", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/quests")
-      render_click(view, "add_quest", %{})
+      render_click(view, "board_set_tab", %{"tab" => "custom"})
       html_snapshot(view)
       html = render(view)
       assert html =~ "form"
@@ -43,7 +43,7 @@ defmodule ExCaliburWeb.QuestsLiveTest do
   test "create_quest event adds a quest", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/quests")
 
-    render_click(view, "add_quest", %{})
+    render_click(view, "board_set_tab", %{"tab" => "custom"})
 
     html =
       view
