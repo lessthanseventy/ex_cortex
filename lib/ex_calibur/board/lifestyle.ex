@@ -415,7 +415,10 @@ defmodule ExCalibur.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "freeform"
+          output_type: "artifact",
+          write_mode: "append",
+          entry_title_template: "Culture Brief — {date}",
+          lore_tags: ["culture", "entertainment"]
         },
         %{
           name: "Weekly Arts Roundup Step",

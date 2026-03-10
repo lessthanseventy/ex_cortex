@@ -503,8 +503,11 @@ defmodule ExCalibur.StepRunner do
 
   defp artifact_system_prompt(quest) do
     instruction = quest.description || "Synthesize the provided content."
+    today = Calendar.strftime(Date.utc_today(), "%B %d, %Y")
 
     """
+    Today's date is #{today}.
+
     #{instruction}
 
     Respond in this exact format:

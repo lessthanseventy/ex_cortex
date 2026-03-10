@@ -58,7 +58,10 @@ defmodule ExCalibur.QuestRunner do
 
             case resolve_step(step_id) do
               nil ->
-                Logger.warning("[QuestRunner] Step #{step_id} not found, skipping")
+                if is_nil(step_id),
+                  do: Logger.warning("[QuestRunner] Quest has a step with nil step_id — remove it via the Quests UI"),
+                  else: Logger.warning("[QuestRunner] Step #{step_id} not found, skipping")
+
                 {acc_results ++ [{:error, :step_not_found}], current_input}
 
               resolved_step ->
