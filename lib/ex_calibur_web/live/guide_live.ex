@@ -31,6 +31,12 @@ defmodule ExCaliburWeb.GuideLive do
           You can run a quest manually any time, set it to run on a schedule (like every morning at
           9am), or have it trigger automatically when new information arrives.
         </p>
+        <p class="text-base text-muted-foreground">
+          Some quests produce a verdict (pass / warn / fail). Others produce a written output — a
+          summary, a report, an analysis — which gets saved automatically to the
+          <.link navigate={~p"/grimoire"} class="underline text-foreground">Grimoire</.link>
+          for your whole team to see and build on later.
+        </p>
       </section>
 
       <section class="space-y-3">
@@ -160,6 +166,33 @@ defmodule ExCaliburWeb.GuideLive do
       </section>
 
       <section class="space-y-3">
+        <h2 class="text-xl font-semibold">The Grimoire — Your guild's shared notebook</h2>
+        <p class="text-base text-muted-foreground">
+          The <.link navigate={~p"/grimoire"} class="underline text-foreground">Grimoire</.link> is
+          where your guild's knowledge accumulates. Every time a quest produces a written output, it
+          lands here as an entry. Over time it becomes a living record of everything your helpers
+          have figured out — reports, summaries, analyses, decisions.
+        </p>
+        <p class="text-base text-muted-foreground">
+          You can also write entries yourself, the same way you'd jot a note in a shared notebook.
+          Each entry can have tags (like sticky-note labels) and an importance rating from 1 to 5,
+          so the most critical findings don't get buried under routine updates.
+        </p>
+        <p class="text-base text-muted-foreground">
+          <strong>The Augury</strong> sits pinned at the top — your guild's current "big picture"
+          read on the world. Think of it as the one-page briefing you'd hand someone walking in the
+          door. Quests set to "replace" mode keep it current automatically, so it always reflects
+          your latest thinking without needing you to update it by hand.
+        </p>
+        <p class="text-base text-muted-foreground">
+          The really useful part: your helpers can <em>read</em> the Grimoire before they start
+          working. You can configure any quest to pull in recent entries first, so your helpers
+          arrive already briefed on what the guild has learned. It's the difference between asking
+          a new temp and asking someone who's been on the team for months.
+        </p>
+      </section>
+
+      <section class="space-y-3">
         <h2 class="text-xl font-semibold">The Lodge — Your dashboard</h2>
         <p class="text-base text-muted-foreground">
           The <.link navigate={~p"/lodge"} class="underline text-foreground">Lodge</.link> is your
@@ -250,6 +283,29 @@ defmodule ExCaliburWeb.GuideLive do
             <code class="bg-muted px-1 rounded">decay/1</code> called, which upserts into
             <code class="bg-muted px-1 rounded">member_trust_scores</code> with score × 0.97 and
             increments <code class="bg-muted px-1 rounded">decay_count</code>.
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="font-semibold text-sm">Grimoire &amp; Lore Context Provider</h3>
+          <p class="text-sm text-muted-foreground">
+            Artifact quests write to <code class="bg-muted px-1 rounded">lore_entries</code> via
+            <code class="bg-muted px-1 rounded">Lore.write_artifact/2</code>. Write mode controls
+            behaviour: <code class="bg-muted px-1 rounded">append</code> always inserts,
+            <code class="bg-muted px-1 rounded">replace</code> upserts the quest-owned entry
+            (never overwrites <code class="bg-muted px-1 rounded">source: "manual"</code>),
+            <code class="bg-muted px-1 rounded">both</code> does a replace on the pinned entry
+            and also appends a dated log entry. Repetitive/garbled LLM output is rejected before
+            insert via a word-repetition regex.
+            The Augury is the first entry tagged <code class="bg-muted px-1 rounded">augury</code>,
+            sorted by newest. PubSub broadcasts <code class="bg-muted px-1 rounded">&lbrace;:lore_updated, title&rbrace;</code>
+            on write so GrimoireLive updates live.
+            The <code class="bg-muted px-1 rounded">lore</code> context provider pulls entries by
+            tag + sort into the prompt preamble (1 500-char total cap). Sort
+            <code class="bg-muted px-1 rounded">top</code> blends
+            <code class="bg-muted px-1 rounded">importance</code> and
+            <code class="bg-muted px-1 rounded">newest</code> halves, deduped, to prevent
+            high-signal historical entries from being crowded out by recent noise.
           </p>
         </div>
 
