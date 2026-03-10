@@ -97,7 +97,7 @@ defmodule ExCalibur.Board.Lifestyle do
           output_type: "artifact",
           write_mode: "append",
           entry_title_template: "Weekly Reflection — {date}",
-          context_providers: [%{"type" => "lore", "limit" => 20}]
+          context_providers: [%{"type" => "lore", "limit" => 20, "sort" => "newest"}]
         }
       ],
       quest_definition: %{
@@ -187,7 +187,7 @@ defmodule ExCalibur.Board.Lifestyle do
           output_type: "artifact",
           write_mode: "append",
           entry_title_template: "Weekly Tech Trends — {date}",
-          context_providers: [%{"type" => "lore", "limit" => 30}]
+          context_providers: [%{"type" => "lore", "limit" => 30, "sort" => "newest"}]
         }
       ],
       quest_definition: %{
@@ -273,7 +273,7 @@ defmodule ExCalibur.Board.Lifestyle do
           source_ids: [],
           output_type: "artifact",
           entry_title_template: "Weekend Roundup — {date}",
-          context_providers: [%{"type" => "lore", "limit" => 10}]
+          context_providers: [%{"type" => "lore", "limit" => 10, "sort" => "newest"}]
         }
       ],
       quest_definition: %{
@@ -352,7 +352,7 @@ defmodule ExCalibur.Board.Lifestyle do
           ],
           source_ids: [],
           output_type: "artifact",
-          context_providers: [%{"type" => "lore", "limit" => 10}],
+          context_providers: [%{"type" => "lore", "limit" => 10, "sort" => "newest"}],
           entry_title_template: "Market Roundup — {date}"
         }
       ],
@@ -434,7 +434,7 @@ defmodule ExCalibur.Board.Lifestyle do
           source_ids: [],
           output_type: "artifact",
           entry_title_template: "Arts Roundup — {date}",
-          context_providers: [%{"type" => "lore", "limit" => 10}]
+          context_providers: [%{"type" => "lore", "limit" => 10, "sort" => "newest"}]
         }
       ],
       quest_definition: %{
@@ -524,7 +524,7 @@ defmodule ExCalibur.Board.Lifestyle do
           source_ids: [],
           output_type: "artifact",
           entry_title_template: "Research Roundup — {date}",
-          context_providers: [%{"type" => "lore", "limit" => 20}]
+          context_providers: [%{"type" => "lore", "limit" => 20, "sort" => "newest"}]
         }
       ],
       quest_definition: %{
