@@ -90,8 +90,24 @@ defmodule ExCalibur.Board do
   Returns {:ok, quest} or {:error, reason}.
   """
   def install(%__MODULE__{} = template) do
+    require Logger
+
     Enum.each(template.step_definitions || [], fn attrs ->
-      ExCalibur.Quests.create_step(attrs)
+      case ExCalibur.Quests.create_step(attrs) do
+        {:ok, step} ->
+          Logger.debug("[Board] Created step #{step.id} (#{step.name})")
+
+        {:error, changeset} ->
+          errors = ExCalibur.Board.changeset_errors(changeset)
+
+          if Enum.any?(changeset.errors, fn {field, {_, opts}} ->
+               field == :name && opts[:constraint] == :unique
+             end) do
+            Logger.debug("[Board] Step already exists: #{attrs[:name] || attrs["name"]}")
+          else
+            Logger.warning("[Board] Failed to create step #{inspect(attrs[:name] || attrs["name"])}: #{inspect(errors)}")
+          end
+      end
     end)
 
     step_by_name = Map.new(ExCalibur.Quests.list_steps(), &{&1.name, &1.id})
@@ -100,7 +116,13 @@ defmodule ExCalibur.Board do
       (template.quest_definition || %{steps: []}).steps
       |> Kernel.||([])
       |> Enum.map(fn step ->
-        %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
+        resolved_id = Map.get(step_by_name, step["step_name"])
+
+        unless resolved_id do
+          Logger.warning("[Board] Could not resolve step \"#{step["step_name"]}\" for template #{template.id} — step missing from DB")
+        end
+
+        %{"step_id" => resolved_id, "flow" => step["flow"]}
       end)
       |> Enum.reject(fn step -> is_nil(step["step_id"]) end)
 
@@ -131,6 +153,15 @@ defmodule ExCalibur.Board do
     end)
 
     result
+  end
+
+  @doc false
+  def changeset_errors(changeset) do
+    Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+      Enum.reduce(opts, msg, fn {key, value}, acc ->
+        String.replace(acc, "%{#{key}}", to_string(value))
+      end)
+    end)
   end
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
