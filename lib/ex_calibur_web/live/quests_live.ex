@@ -1187,10 +1187,10 @@ defmodule ExCaliburWeb.QuestsLive do
   defp source_picker(assigns) do
     ~H"""
     <div class="space-y-1.5">
-      <p class="text-sm font-medium">Sources</p>
+      <p class="text-sm font-medium">Library Sources</p>
       <%= if @sources == [] do %>
         <p class="text-xs text-muted-foreground">
-          No active sources. <a href="/library" class="underline">Add sources in Library.</a>
+          No active library sources. <a href="/library" class="underline">Add sources in Library.</a>
         </p>
       <% else %>
         <div class="rounded-md border border-input divide-y divide-border">
@@ -1255,10 +1255,10 @@ defmodule ExCaliburWeb.QuestsLive do
             class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
           >
             <option value="manual">Manual</option>
-            <option value="source">Source</option>
+            <option value="source">Library Source</option>
             <option value="scheduled">Scheduled</option>
             <option value="once">Once (specific time)</option>
-            <option value="lore">Lore (Grimoire trigger)</option>
+            <option value="lore">Grimoire</option>
           </select>
         </div>
         <%= if @trigger_preview == "scheduled" do %>
@@ -1356,7 +1356,7 @@ defmodule ExCaliburWeb.QuestsLive do
               {length(@quest.steps)} steps
             </span>
           </div>
-          <.badge variant="outline" class="text-xs shrink-0">{@quest.trigger}</.badge>
+          <.badge variant="outline" class="text-xs shrink-0">{trigger_label(@quest.trigger)}</.badge>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <.button
@@ -1420,7 +1420,7 @@ defmodule ExCaliburWeb.QuestsLive do
                 class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="manual" selected={@quest.trigger == "manual"}>Manual</option>
-                <option value="source" selected={@quest.trigger == "source"}>Source</option>
+                <option value="source" selected={@quest.trigger == "source"}>Library Source</option>
                 <option value="scheduled" selected={@quest.trigger == "scheduled"}>
                   Scheduled
                 </option>
@@ -1428,7 +1428,7 @@ defmodule ExCaliburWeb.QuestsLive do
                   Once (specific time)
                 </option>
                 <option value="lore" selected={@quest.trigger == "lore"}>
-                  Lore (Grimoire trigger)
+                  Grimoire
                 </option>
               </select>
             </div>
@@ -1766,6 +1766,13 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   defp source_label(%Source{source_type: type}), do: String.capitalize(type) <> " source"
+
+  defp trigger_label("source"), do: "Library Source"
+  defp trigger_label("lore"), do: "Grimoire"
+  defp trigger_label("once"), do: "Once"
+  defp trigger_label("scheduled"), do: "Scheduled"
+  defp trigger_label("manual"), do: "Manual"
+  defp trigger_label(other), do: other
 
   defp quest_name_for_step(step, steps) do
     quest = Enum.find(steps, &(to_string(&1.id) == to_string(step["step_id"])))
