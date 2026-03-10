@@ -18,6 +18,7 @@ defmodule ExCalibur.Quests.Quest do
     field :entry_title_template, :string
     field :log_title_template, :string
     field :herald_name, :string
+    field :min_rank, :string
     timestamps()
   end
 
@@ -33,7 +34,8 @@ defmodule ExCalibur.Quests.Quest do
     :write_mode,
     :entry_title_template,
     :log_title_template,
-    :herald_name
+    :herald_name,
+    :min_rank
   ]
 
   def changeset(quest, attrs) do
@@ -44,6 +46,9 @@ defmodule ExCalibur.Quests.Quest do
     |> validate_inclusion(:trigger, ["manual", "source", "scheduled"])
     |> validate_inclusion(:output_type, ["verdict", "artifact", "slack", "webhook", "github_issue", "github_pr", "email", "pagerduty"])
     |> validate_inclusion(:write_mode, ["append", "replace", "both"])
+    |> validate_inclusion(:min_rank, ~w(apprentice journeyman master),
+      message: "must be apprentice, journeyman, or master"
+    )
     |> unique_constraint(:name)
   end
 end
