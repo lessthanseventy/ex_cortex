@@ -20,6 +20,16 @@ defmodule ExCalibur.Quests.Step do
     field :herald_name, :string
     field :min_rank, :string
     field :lore_tags, {:array, :string}, default: []
+    # Escalate mode — rank ladder retry
+    field :escalate, :boolean, default: false
+    field :escalate_threshold, :float, default: 0.6
+    field :escalate_on_verdict, {:array, :string}, default: []
+    # Reflect mode — tool-assisted context gathering + retry
+    field :loop_mode, :string
+    field :loop_tools, {:array, :string}, default: []
+    field :reflect_threshold, :float, default: 0.6
+    field :reflect_on_verdict, {:array, :string}, default: []
+    field :max_iterations, :integer, default: 3
     timestamps()
   end
 
@@ -37,7 +47,15 @@ defmodule ExCalibur.Quests.Step do
     :log_title_template,
     :herald_name,
     :min_rank,
-    :lore_tags
+    :lore_tags,
+    :escalate,
+    :escalate_threshold,
+    :escalate_on_verdict,
+    :loop_mode,
+    :loop_tools,
+    :reflect_threshold,
+    :reflect_on_verdict,
+    :max_iterations
   ]
 
   def changeset(step, attrs) do

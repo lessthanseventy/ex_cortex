@@ -38,6 +38,61 @@ defmodule ExCalibur.StepRunner do
   Accepts either a `Step` struct or just a bare roster list.
   Returns `{:ok, result}` or `{:error, reason}`.
   """
+
+  # Reflect mode — run members, if unsatisfied gather context via tools and retry
+  def run(%{loop_mode: "reflect"} = quest, input_text) do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+
+    threshold = quest.reflect_threshold || 0.6
+    reflect_on = quest.reflect_on_verdict || []
+    max_iter = quest.max_iterations || 3
+    tools = ExCalibur.Tools.Registry.resolve_tools(quest.loop_tools || [])
+
+    do_reflect(quest, augmented, tools, threshold, reflect_on, max_iter, 0)
+  end
+
+  # Escalate mode — try ranks in order until result is satisfying
+  def run(%{escalate: true} = quest, input_text) do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+
+    threshold = quest.escalate_threshold || 0.6
+    escalate_on = quest.escalate_on_verdict || []
+
+    Enum.reduce_while(["apprentice", "journeyman", "master"], nil, fn rank, _acc ->
+      members = resolve_members(rank)
+
+      if members == [] do
+        {:cont, nil}
+      else
+        result = run(quest.roster, augmented)
+
+        case result do
+          {:ok, %{verdict: v, steps: steps}} = ok ->
+            avg_confidence =
+              steps
+              |> Enum.flat_map(& &1.results)
+              |> Enum.map(&Map.get(&1, :confidence, 0.5))
+              |> then(fn
+                [] -> 0.5
+                cs -> Enum.sum(cs) / length(cs)
+              end)
+
+            satisfied = avg_confidence >= threshold and v not in escalate_on
+            if satisfied, do: {:halt, ok}, else: {:cont, ok}
+
+          other ->
+            {:cont, other}
+        end
+      end
+    end)
+    |> then(fn
+      nil -> {:ok, %{verdict: "abstain", steps: []}}
+      result -> result
+    end)
+  end
+
   def run(%{min_rank: min_rank} = quest, input_text) when is_binary(min_rank) and min_rank != "" do
     min_order = Map.get(@rank_order, min_rank, 0)
 
@@ -401,6 +456,65 @@ defmodule ExCalibur.StepRunner do
   end
 
   defp should_escalate?(_, _), do: false
+
+  # ---------------------------------------------------------------------------
+  # Reflect mode helpers
+  # ---------------------------------------------------------------------------
+
+  defp do_reflect(quest, input_text, _tools, _threshold, _reflect_on, max_iter, iter)
+       when iter >= max_iter do
+    run(quest.roster, input_text)
+  end
+
+  defp do_reflect(quest, input_text, tools, threshold, reflect_on, max_iter, iter) do
+    result = run(quest.roster, input_text)
+
+    case result do
+      {:ok, %{verdict: v, steps: steps}} = ok ->
+        avg_confidence =
+          steps
+          |> Enum.flat_map(& &1.results)
+          |> Enum.map(&Map.get(&1, :confidence, 0.5))
+          |> then(fn
+            [] -> 0.5
+            cs -> Enum.sum(cs) / length(cs)
+          end)
+
+        satisfied = avg_confidence >= threshold and v not in reflect_on
+
+        if satisfied or tools == [] do
+          ok
+        else
+          extra_context = gather_reflect_context(tools, v)
+          augmented = "#{input_text}\n\n## Reflection Context\n#{extra_context}"
+          do_reflect(quest, augmented, tools, threshold, reflect_on, max_iter, iter + 1)
+        end
+
+      other ->
+        other
+    end
+  end
+
+  defp gather_reflect_context(tools, verdict) do
+    lore_tool = Enum.find(tools, &(&1.name == "query_lore"))
+
+    if lore_tool do
+      case ReqLLM.Tool.execute(lore_tool, %{"tags" => [], "limit" => 3}) do
+        {:ok, content} -> "Prior lore context (verdict was #{verdict}):\n#{content}"
+        _ -> ""
+      end
+    else
+      tools
+      |> Enum.map(fn tool ->
+        case ReqLLM.Tool.execute(tool, %{}) do
+          {:ok, result} -> to_string(result)
+          _ -> ""
+        end
+      end)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.join("\n")
+    end
+  end
 
   # ---------------------------------------------------------------------------
   # Helpers

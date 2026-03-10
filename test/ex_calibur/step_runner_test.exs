@@ -112,4 +112,51 @@ defmodule ExCalibur.StepRunnerTest do
       assert result != {:error, {:rank_insufficient, "Step requires master or higher — no eligible members found"}}
     end
   end
+
+  describe "escalate mode" do
+    test "run/2 with escalate: true and no members returns abstain verdict" do
+      step = %Step{
+        id: 99,
+        name: "Escalate Test",
+        output_type: "verdict",
+        roster: [%{"who" => "apprentice", "how" => "solo", "when" => "sequential"}],
+        escalate: true,
+        escalate_threshold: 0.9,
+        context_providers: []
+      }
+
+      result = ExCalibur.StepRunner.run(step, "test input")
+      assert match?({:ok, %{verdict: _}}, result)
+    end
+
+    test "run/2 without escalate: true behaves as before" do
+      step = %Step{
+        id: 100,
+        name: "No Escalate",
+        output_type: "verdict",
+        roster: [],
+        escalate: false,
+        context_providers: []
+      }
+
+      assert {:ok, %{verdict: "pass"}} = ExCalibur.StepRunner.run(step, "test")
+    end
+  end
+
+  describe "reflect mode" do
+    test "run/2 with loop_mode: reflect and no tools returns normal result" do
+      step = %Step{
+        id: 101,
+        name: "Reflect Test",
+        output_type: "verdict",
+        roster: [],
+        loop_mode: "reflect",
+        loop_tools: [],
+        reflect_threshold: 0.9,
+        context_providers: []
+      }
+
+      assert {:ok, %{verdict: "pass"}} = ExCalibur.StepRunner.run(step, "test")
+    end
+  end
 end
