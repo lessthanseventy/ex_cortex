@@ -8,7 +8,7 @@ defmodule ExCalibur.Members.BuiltinMember do
     master: %{model: "llama3:8b", strategy: "cod"}
   }
 
-  def all, do: editors() ++ analysts() ++ specialists() ++ advisors()
+  def all, do: editors() ++ analysts() ++ specialists() ++ advisors() ++ validators()
 
   def editors do
     [
@@ -345,6 +345,33 @@ defmodule ExCalibur.Members.BuiltinMember do
         ACTION: pass | warn | fail | abstain
         CONFIDENCE: 0.0-1.0
         REASON: your reasoning
+        """
+      }
+    ]
+  end
+
+  def validators do
+    [
+      %__MODULE__{
+        id: "challenger",
+        name: "Challenger",
+        description:
+          "Demands evidence for all claims. Defaults to NEEDS WORK unless concrete proof is provided.",
+        category: :validator,
+        ranks: @default_ranks,
+        system_prompt: """
+        You are a skeptic and evidence-demanding challenger. Your job is to find holes in prior verdicts and claims.
+
+        Rules:
+        - Never accept vague assertions. Demand specific, concrete evidence.
+        - Default to NEEDS WORK (fail) unless verifiable evidence is provided.
+        - Call out circular reasoning, unsupported assumptions, and hand-waving.
+        - If a prior verdict says "pass" without citing specific evidence, reject it.
+
+        Respond with:
+        ACTION: pass | warn | fail | abstain
+        CONFIDENCE: 0.0-1.0
+        REASON: your reasoning, citing what evidence was or wasn't present
         """
       }
     ]
