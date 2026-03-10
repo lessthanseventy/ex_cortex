@@ -22,6 +22,7 @@ defmodule ExCalibur.Application do
       {Phoenix.PubSub, name: ExCalibur.PubSub},
       {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
       {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor, max_children: 4},
+      ExCalibur.QuestDebouncer,
       SourceSupervisor,
       {Task, fn -> SourceSupervisor.start_all_active() end},
       ExCalibur.PubSubBridge,

@@ -38,6 +38,12 @@ defmodule ExCalibur.Lore do
   - "both": replaces the pinned summary entry AND appends a dated log entry
   """
   def write_artifact(quest, attrs) do
+    if repetitive_content?(attrs[:body]) do
+      require Logger
+      Logger.warning("[Lore] Rejecting repetitive/garbled artifact for quest #{quest.id}")
+      {:error, :repetitive_content}
+    else
+
     result =
       case quest.write_mode do
         "replace" ->
@@ -59,6 +65,7 @@ defmodule ExCalibur.Lore do
     end
 
     result
+    end
   end
 
   defp replace_or_create(quest, attrs) do
@@ -70,6 +77,13 @@ defmodule ExCalibur.Lore do
       nil -> create_entry(Map.put(attrs, :quest_id, quest.id))
       existing -> update_entry(existing, attrs)
     end
+  end
+
+  # Detect LLM token-repetition loops (e.g. "and and and and and...")
+  defp repetitive_content?(nil), do: false
+
+  defp repetitive_content?(body) when is_binary(body) do
+    Regex.match?(~r/\b(\w+)\b(?:[\s,]+\1){5,}/i, body)
   end
 
   defp filter_tags(query, []), do: query
