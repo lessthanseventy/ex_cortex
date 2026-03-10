@@ -197,18 +197,20 @@ defmodule ExCaliburWeb.GuildHallLive do
         </div>
 
         <% sections = catalog_sections(assigns) %>
-        <%= if @active_section == "all" do %>
-          <div class="space-y-10">
-            <%= for {_id, title, members, description} <- sections do %>
-              <.member_section title={title} description={description} members={members} />
-            <% end %>
-          </div>
-        <% else %>
-          <% {_id, _title, members, _description} = Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <.member_row :for={member <- members} member={member} />
-          </div>
-        <% end %>
+        <div class="min-h-[520px]">
+          <%= if @active_section == "all" do %>
+            <div class="space-y-10">
+              <%= for {_id, title, members, description} <- sections do %>
+                <.member_section title={title} description={description} members={members} />
+              <% end %>
+            </div>
+          <% else %>
+            <% {_id, _title, members, _description} = Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <.member_row :for={member <- members} member={member} />
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
     """
