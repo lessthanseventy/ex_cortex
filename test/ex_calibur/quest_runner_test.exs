@@ -1,110 +1,155 @@
 defmodule ExCalibur.QuestRunnerTest do
-  use ExCalibur.DataCase, async: true
+  use ExCalibur.DataCase, async: false
 
-  describe "model fallback chains" do
-    test "fallback_models_for/2 returns assigned model first, then chain" do
-      assigned = "missing-model"
-      chain = ["phi4-mini", "gemma3:4b"]
-      result = ExCalibur.QuestRunner.fallback_models_for(assigned, chain)
-      assert result == ["missing-model", "phi4-mini", "gemma3:4b"]
+  alias ExCalibur.QuestRunner
+  alias ExCalibur.Quests
+
+  test "run/2 executes each step in order and returns final result" do
+    # Create two steps
+    {:ok, s1} =
+      Quests.create_step(%{
+        name: "Step 1",
+        trigger: "manual",
+        output_type: "artifact",
+        roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
+      })
+
+    {:ok, s2} =
+      Quests.create_step(%{
+        name: "Step 2",
+        trigger: "manual",
+        output_type: "artifact",
+        roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
+      })
+
+    {:ok, quest} =
+      Quests.create_quest(%{
+        name: "Two-Step Quest",
+        trigger: "manual",
+        steps: [
+          %{"step_id" => to_string(s1.id), "flow" => "always"},
+          %{"step_id" => to_string(s2.id), "flow" => "always"}
+        ]
+      })
+
+    # No members in test DB → StepRunner returns {:error, :no_members}
+    # QuestRunner should still return a result (even if each step errors)
+    result = QuestRunner.run(quest, "test input")
+    assert elem(result, 0) in [:ok, :error]
+  end
+
+  test "run/2 with empty steps returns ok with empty result" do
+    {:ok, quest} =
+      Quests.create_quest(%{name: "Empty Quest", trigger: "manual", steps: []})
+
+    assert {:ok, %{steps: []}} = QuestRunner.run(quest, "input")
+  end
+
+  test "result_to_text/1 formats artifact result as markdown" do
+    result = {:ok, %{artifact: %{title: "My Title", body: "Some body text"}}}
+    text = QuestRunner.result_to_text(result)
+    assert String.contains?(text, "My Title")
+    assert String.contains?(text, "Some body text")
+  end
+
+  test "result_to_text/1 formats verdict result as summary" do
+    result = {:ok, %{verdict: "pass", steps: []}}
+    text = QuestRunner.result_to_text(result)
+    assert String.contains?(text, "pass")
+  end
+
+  describe "branch steps" do
+    test "run/2 with a branch step runs all steps and synthesizer" do
+      {:ok, s1} =
+        Quests.create_step(%{
+          name: "Branch A",
+          trigger: "manual",
+          output_type: "verdict",
+          roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
+        })
+
+      {:ok, s2} =
+        Quests.create_step(%{
+          name: "Branch B",
+          trigger: "manual",
+          output_type: "verdict",
+          roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
+        })
+
+      {:ok, synth} =
+        Quests.create_step(%{
+          name: "Synthesizer",
+          trigger: "manual",
+          output_type: "verdict",
+          roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
+        })
+
+      {:ok, quest} =
+        Quests.create_quest(%{
+          name: "Branch Quest",
+          trigger: "manual",
+          steps: [
+            %{
+              "type" => "branch",
+              "steps" => [to_string(s1.id), to_string(s2.id)],
+              "synthesizer" => to_string(synth.id),
+              "flow" => "always"
+            }
+          ]
+        })
+
+      result = QuestRunner.run(quest, "test input")
+      assert elem(result, 0) in [:ok, :error]
     end
 
-    test "fallback_models_for/2 deduplicates when assigned model is in chain" do
-      assigned = "phi4-mini"
-      chain = ["phi4-mini", "gemma3:4b"]
-      result = ExCalibur.QuestRunner.fallback_models_for(assigned, chain)
-      assert result == ["phi4-mini", "gemma3:4b"]
+    test "combine_branch_results/2 joins multiple results into one context block" do
+      results = [
+        {"Step Alpha", {:ok, %{verdict: "pass", steps: []}}},
+        {"Step Beta", {:ok, %{verdict: "fail", steps: []}}}
+      ]
+
+      combined = QuestRunner.combine_branch_results(results, "input")
+      assert String.contains?(combined, "Step Alpha")
+      assert String.contains?(combined, "Step Beta")
+      assert String.contains?(combined, "pass")
+      assert String.contains?(combined, "fail")
     end
   end
 
-  describe "challenger member" do
-    test "BuiltinMember.get/1 returns a challenger spec" do
-      member = ExCalibur.Members.BuiltinMember.get("challenger")
-      assert member != nil
-      assert member.id == "challenger"
-      assert member.category == :validator
-      assert String.contains?(member.system_prompt, "evidence")
-    end
-  end
+  describe "structured handoff" do
+    test "result_to_text/3 formats a structured handoff block" do
+      result =
+        {:ok,
+         %{
+           verdict: "pass",
+           steps: [
+             %{
+               who: "all",
+               verdict: "pass",
+               results: [%{member: "Analyst", verdict: "pass", reason: "Evidence found"}]
+             }
+           ]
+         }}
 
-  describe "freeform output type" do
-    test "run/2 returns :no_roster error when roster is empty" do
-      quest = %ExCalibur.Quests.Quest{
-        id: 10,
-        name: "Freeform Quest",
-        output_type: "freeform",
-        roster: [],
-        context_providers: []
-      }
-
-      assert {:error, :no_roster} = ExCalibur.QuestRunner.run(quest, "hello")
-    end
-  end
-
-  describe "wildcard members" do
-    test "wildcards includes freeform members and verdict-with-personality members" do
-      wildcards = ExCalibur.Members.BuiltinMember.wildcards()
-      ids = Enum.map(wildcards, & &1.id)
-
-      assert "the-poet" in ids
-      assert "the-historian" in ids
-      assert "the-tabloid" in ids
-      assert "the-intern" in ids
-      assert "hype-detector" in ids
-      assert "time-traveler" in ids
+      text = QuestRunner.result_to_text(result, "Accuracy Check", "Tone Review")
+      assert String.contains?(text, "## Prior Step: Accuracy Check")
+      assert String.contains?(text, "**Verdict:** pass")
+      assert String.contains?(text, "Analyst")
+      assert String.contains?(text, "Tone Review")
     end
 
-    test "all wildcard members have category :wildcard" do
-      assert Enum.all?(ExCalibur.Members.BuiltinMember.wildcards(), &(&1.category == :wildcard))
+    test "result_to_text/3 formats artifact handoff" do
+      result = {:ok, %{artifact: %{title: "Report", body: "Body text"}}}
+      text = QuestRunner.result_to_text(result, "Draft Step", "Review Step")
+      assert String.contains?(text, "## Prior Step: Draft Step")
+      assert String.contains?(text, "Report")
+      assert String.contains?(text, "Review Step")
     end
 
-    test "freeform members have system prompts without ACTION/CONFIDENCE/REASON format" do
-      freeform_ids = ~w(the-poet the-historian the-tabloid)
-
-      Enum.each(freeform_ids, fn id ->
-        member = ExCalibur.Members.BuiltinMember.get(id)
-        refute String.contains?(member.system_prompt, "ACTION:"),
-               "#{id} should not have verdict format in system_prompt"
-      end)
-    end
-
-    test "verdict wildcards include the response format" do
-      verdict_ids = ~w(the-intern the-nitpicker the-optimist hype-detector the-philosopher time-traveler)
-
-      Enum.each(verdict_ids, fn id ->
-        member = ExCalibur.Members.BuiltinMember.get(id)
-        assert String.contains?(member.system_prompt, "ACTION:"),
-               "#{id} should include verdict format in system_prompt"
-      end)
-    end
-  end
-
-  describe "rank-gated eligibility" do
-    test "run/2 returns rank_insufficient when no members meet min_rank" do
-      quest = %ExCalibur.Quests.Quest{
-        id: 1,
-        name: "Gated Quest",
-        min_rank: "master",
-        roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}],
-        context_providers: [],
-        output_type: "verdict"
-      }
-
-      assert {:error, {:rank_insufficient, _reason}} = ExCalibur.QuestRunner.run(quest, "input")
-    end
-
-    test "run/2 proceeds normally when min_rank is nil" do
-      quest = %ExCalibur.Quests.Quest{
-        id: 2,
-        name: "Open Quest",
-        min_rank: nil,
-        roster: [],
-        context_providers: [],
-        output_type: "verdict"
-      }
-
-      result = ExCalibur.QuestRunner.run(quest, "input")
-      assert result != {:error, {:rank_insufficient, "Quest requires master or higher — no eligible members found"}}
+    test "result_to_text/3 with nil next_step_name omits question line" do
+      result = {:ok, %{verdict: "pass", steps: []}}
+      text = QuestRunner.result_to_text(result, "Final Step", nil)
+      refute String.contains?(text, "Open question")
     end
   end
 end

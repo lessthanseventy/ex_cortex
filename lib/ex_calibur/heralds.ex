@@ -20,21 +20,15 @@ defmodule ExCalibur.Heralds do
 
   def delete_herald(%Herald{} = h), do: Repo.delete(h)
 
-  def deliver(%Herald{type: "slack"} = h, quest, body),
-    do: ExCalibur.Heralds.Slack.deliver(h, quest, body)
+  def deliver(%Herald{type: "slack"} = h, quest, body), do: ExCalibur.Heralds.Slack.deliver(h, quest, body)
 
-  def deliver(%Herald{type: "webhook"} = h, quest, body),
-    do: ExCalibur.Heralds.Webhook.deliver(h, quest, body)
+  def deliver(%Herald{type: "webhook"} = h, quest, body), do: ExCalibur.Heralds.Webhook.deliver(h, quest, body)
 
-  def deliver(%Herald{type: "github_issue"} = h, quest, body),
-    do: ExCalibur.Heralds.GithubIssue.deliver(h, quest, body)
+  def deliver(%Herald{type: "github_issue"} = h, quest, body), do: ExCalibur.Heralds.GithubIssue.deliver(h, quest, body)
 
-  def deliver(%Herald{type: "github_pr"} = h, quest, body),
-    do: ExCalibur.Heralds.GithubPR.deliver(h, quest, body)
+  def deliver(%Herald{type: "github_pr"} = h, quest, body), do: ExCalibur.Heralds.GithubPR.deliver(h, quest, body)
 
-  def deliver(%Herald{type: "email"} = h, quest, body),
-    do: ExCalibur.Heralds.Email.deliver(h, quest, body)
+  def deliver(%Herald{type: "email"} = h, quest, body), do: ExCalibur.Heralds.Email.deliver(h, quest, body)
 
-  def deliver(%Herald{type: "pagerduty"} = h, quest, body),
-    do: ExCalibur.Heralds.PagerDuty.deliver(h, quest, body)
+  def deliver(%Herald{type: "pagerduty"} = h, quest, body), do: ExCalibur.Heralds.PagerDuty.deliver(h, quest, body)
 end

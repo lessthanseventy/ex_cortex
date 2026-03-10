@@ -1,5 +1,7 @@
 defmodule ExCalibur.GuildCharters.GuildCharter do
+  @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   schema "guild_charters" do

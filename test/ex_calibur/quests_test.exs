@@ -2,8 +2,40 @@ defmodule ExCalibur.QuestsTest do
   use ExCalibur.DataCase, async: true
 
   alias ExCalibur.Quests
-  alias ExCalibur.Quests.Campaign
   alias ExCalibur.Quests.Quest
+  alias ExCalibur.Quests.Step
+
+  describe "steps" do
+    setup do
+      ExCalibur.Repo.delete_all(Step)
+      :ok
+    end
+
+    test "list_steps returns all steps" do
+      {:ok, _} = Quests.create_step(%{name: "Test Step", trigger: "manual"})
+      assert [%Step{}] = Quests.list_steps()
+    end
+
+    test "create_step with valid params" do
+      assert {:ok, %Step{name: "My Step"}} =
+               Quests.create_step(%{name: "My Step", trigger: "manual"})
+    end
+
+    test "create_step with invalid params" do
+      assert {:error, %Ecto.Changeset{}} = Quests.create_step(%{})
+    end
+
+    test "update_step changes fields" do
+      {:ok, step} = Quests.create_step(%{name: "Step A", trigger: "manual"})
+      assert {:ok, %Step{status: "paused"}} = Quests.update_step(step, %{status: "paused"})
+    end
+
+    test "delete_step removes it" do
+      {:ok, step} = Quests.create_step(%{name: "Step B", trigger: "manual"})
+      assert {:ok, _} = Quests.delete_step(step)
+      assert Quests.list_steps() == []
+    end
+  end
 
   describe "quests" do
     setup do
@@ -12,7 +44,7 @@ defmodule ExCalibur.QuestsTest do
     end
 
     test "list_quests returns all quests" do
-      {:ok, _} = Quests.create_quest(%{name: "Test Quest", trigger: "manual"})
+      {:ok, _} = Quests.create_quest(%{name: "Quest A", trigger: "manual"})
       assert [%Quest{}] = Quests.list_quests()
     end
 
@@ -21,67 +53,35 @@ defmodule ExCalibur.QuestsTest do
                Quests.create_quest(%{name: "My Quest", trigger: "manual"})
     end
 
-    test "create_quest with invalid params" do
-      assert {:error, %Ecto.Changeset{}} = Quests.create_quest(%{})
-    end
-
-    test "update_quest changes fields" do
-      {:ok, quest} = Quests.create_quest(%{name: "Quest A", trigger: "manual"})
-      assert {:ok, %Quest{status: "paused"}} = Quests.update_quest(quest, %{status: "paused"})
-    end
-
-    test "delete_quest removes it" do
-      {:ok, quest} = Quests.create_quest(%{name: "Quest B", trigger: "manual"})
-      assert {:ok, _} = Quests.delete_quest(quest)
-      assert Quests.list_quests() == []
-    end
-  end
-
-  describe "campaigns" do
-    setup do
-      ExCalibur.Repo.delete_all(Campaign)
-      :ok
-    end
-
-    test "list_campaigns returns all campaigns" do
-      {:ok, _} = Quests.create_campaign(%{name: "Campaign A", trigger: "manual"})
-      assert [%Campaign{}] = Quests.list_campaigns()
-    end
-
-    test "create_campaign with valid params" do
-      assert {:ok, %Campaign{name: "My Campaign"}} =
-               Quests.create_campaign(%{name: "My Campaign", trigger: "manual"})
-    end
-
-    test "list_campaigns_for_source returns active source-triggered campaigns" do
-      {:ok, c1} =
-        Quests.create_campaign(%{
-          name: "Campaign Source",
+    test "list_quests_for_source returns active source-triggered quests" do
+      {:ok, q1} =
+        Quests.create_quest(%{
+          name: "Quest Source",
           trigger: "source",
           source_ids: ["src-abc"],
           status: "active"
         })
 
-      # Paused campaign — should NOT appear
-      {:ok, _c2} =
-        Quests.create_campaign(%{
-          name: "Paused Campaign",
+      # Paused quest — should NOT appear
+      {:ok, _q2} =
+        Quests.create_quest(%{
+          name: "Paused Quest",
           trigger: "source",
           source_ids: ["src-abc"],
           status: "paused"
         })
 
       # Different source — should NOT appear
-      {:ok, _c3} =
-        Quests.create_campaign(%{
-          name: "Other Campaign",
+      {:ok, _q3} =
+        Quests.create_quest(%{
+          name: "Other Quest",
           trigger: "source",
           source_ids: ["src-xyz"],
           status: "active"
         })
 
-      assert [%Campaign{id: id}] = Quests.list_campaigns_for_source("src-abc")
-      assert id == c1.id
+      assert [%Quest{id: id}] = Quests.list_quests_for_source("src-abc")
+      assert id == q1.id
     end
   end
 end

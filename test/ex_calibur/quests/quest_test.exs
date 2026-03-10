@@ -4,7 +4,7 @@ defmodule ExCalibur.Quests.QuestTest do
   alias ExCalibur.Quests.Quest
 
   test "changeset valid with required fields" do
-    params = %{name: "WCAG Scan", trigger: "manual", roster: []}
+    params = %{name: "Monthly Audit", trigger: "manual", steps: []}
     assert %{valid?: true} = Quest.changeset(%Quest{}, params)
   end
 
@@ -12,7 +12,7 @@ defmodule ExCalibur.Quests.QuestTest do
     assert %{valid?: false} = Quest.changeset(%Quest{}, %{trigger: "manual"})
   end
 
-  test "changeset invalid without trigger" do
-    assert %{valid?: false} = Quest.changeset(%Quest{}, %{name: "WCAG Scan"})
+  test "changeset valid with only name (trigger defaults to manual)" do
+    assert %{valid?: true} = Quest.changeset(%Quest{}, %{name: "Monthly Audit"})
   end
 end

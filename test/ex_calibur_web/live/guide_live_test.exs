@@ -6,7 +6,7 @@ defmodule ExCaliburWeb.GuideLiveTest do
   test "renders guide page", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/guide")
     assert html =~ "Guide"
-    assert html =~ "Campaign"
+    assert html =~ "Quest"
     assert html =~ "Branch"
     assert html =~ "Challenger"
     assert html =~ "Trust"

@@ -1,6 +1,7 @@
 defmodule ExCalibur.Lore.LoreEntry do
   @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   schema "lore_entries" do

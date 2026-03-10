@@ -7,24 +7,23 @@ defmodule ExCaliburWeb.QuestsLiveTest do
   alias ExCalibur.Quests
 
   setup do
-    {:ok, quest} = Quests.create_quest(%{name: "Test Quest", trigger: "manual", roster: []})
+    {:ok, step} = Quests.create_step(%{name: "Test Step", trigger: "manual", roster: []})
 
-    {:ok, campaign} =
-      Quests.create_campaign(%{
-        name: "Test Campaign",
+    {:ok, quest} =
+      Quests.create_quest(%{
+        name: "Test Quest",
         trigger: "manual",
-        steps: [%{"quest_id" => quest.id, "flow" => "always"}]
+        steps: [%{"step_id" => step.id, "flow" => "always"}]
       })
 
-    %{quest: quest, campaign: campaign}
+    %{step: step, quest: quest}
   end
 
   describe "index" do
-    test "renders quest board with quests and campaigns", %{conn: conn, quest: quest, campaign: campaign} do
+    test "renders quests page with quests", %{conn: conn, quest: quest} do
       {:ok, view, html} = live(conn, "/quests")
       html_snapshot(view)
       assert html =~ quest.name
-      assert html =~ campaign.name
     end
 
     test "shows + Quest button", %{conn: conn} do
@@ -32,12 +31,7 @@ defmodule ExCaliburWeb.QuestsLiveTest do
       assert html =~ "+ Quest"
     end
 
-    test "shows + Campaign button", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/quests")
-      assert html =~ "+ Campaign"
-    end
-
-    test "new quest form renders with accessibility snapshot", %{conn: conn} do
+    test "new quest form renders", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/quests")
       render_click(view, "add_quest", %{})
       html_snapshot(view)
@@ -56,9 +50,7 @@ defmodule ExCaliburWeb.QuestsLiveTest do
       |> form("form[phx-submit=\"create_quest\"]", %{
         "quest" => %{
           "name" => "New Quest",
-          "trigger" => "manual",
-          "who" => "all",
-          "how" => "consensus"
+          "trigger" => "manual"
         }
       })
       |> render_submit()
@@ -69,7 +61,6 @@ defmodule ExCaliburWeb.QuestsLiveTest do
   test "toggle_quest_status toggles active/paused", %{conn: conn, quest: quest} do
     {:ok, view, _html} = live(conn, "/quests")
     html = render_click(view, "toggle_quest_status", %{"id" => to_string(quest.id)})
-    # after toggling active quest, it becomes paused — "Resume" button shows
     assert html =~ "Resume" or html =~ "Pause"
   end
 
@@ -79,70 +70,10 @@ defmodule ExCaliburWeb.QuestsLiveTest do
     refute html =~ "Test Quest"
   end
 
-  describe "herald output type" do
-    setup do
-      {:ok, herald} =
-        ExCalibur.Heralds.create_herald(%{
-          name: "slack:eng",
-          type: "slack",
-          config: %{"webhook_url" => "https://hooks.slack.com/test"}
-        })
-
-      %{herald: herald}
-    end
-
-    test "quest form shows herald options in output type select", %{conn: conn} do
-      {:ok, view, _html} = live(conn, ~p"/quests")
-      view |> element("[phx-click=add_quest]") |> render_click()
-      html = render(view)
-      assert html =~ "Slack"
-      assert html =~ "Webhook"
-      assert html =~ "GitHub Issue"
-    end
-
-    test "selecting herald output type shows herald_name select", %{conn: conn, herald: _} do
-      {:ok, view, _html} = live(conn, ~p"/quests")
-      view |> element("[phx-click=add_quest]") |> render_click()
-
-      html =
-        view
-        |> form("form[phx-change=preview_new_quest_trigger]", %{"quest" => %{"output_type" => "slack"}})
-        |> render_change()
-
-      assert html =~ "Herald"
-      assert html =~ "slack:eng"
-    end
-
-    test "can create a herald quest", %{conn: conn, herald: _} do
-      {:ok, view, _html} = live(conn, ~p"/quests")
-      view |> element("[phx-click=add_quest]") |> render_click()
-
-      # First change output_type to reveal the herald_name select
-      view
-      |> form("form[phx-change=preview_new_quest_trigger]", %{"quest" => %{"output_type" => "slack"}})
-      |> render_change()
-
-      view
-      |> form("form[phx-submit=create_quest]", %{
-        "quest" => %{
-          "name" => "Slack Notifier",
-          "output_type" => "slack",
-          "herald_name" => "slack:eng",
-          "trigger" => "manual"
-        }
-      })
-      |> render_submit()
-
-      quest = Enum.find(Quests.list_quests(), &(&1.name == "Slack Notifier"))
-      assert quest.output_type == "slack"
-      assert quest.herald_name == "slack:eng"
-    end
-  end
-
-  describe "campaign templates (quest board)" do
-    test "renders campaign templates section", %{conn: conn} do
+  describe "quest templates" do
+    test "renders quest templates section", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/quests")
-      assert html =~ "Campaign Templates"
+      assert html =~ "Quest Templates"
       assert html =~ "Triage"
       assert html =~ "Reporting"
       assert html =~ "Generation"
@@ -159,7 +90,7 @@ defmodule ExCaliburWeb.QuestsLiveTest do
 
     test "/quest-board redirects to /quests", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/quest-board")
-      assert html =~ "Campaign Templates"
+      assert html =~ "Quest Templates"
     end
 
     test "can install a no-requirement template", %{conn: conn} do

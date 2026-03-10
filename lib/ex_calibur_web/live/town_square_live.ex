@@ -4,22 +4,27 @@ defmodule ExCaliburWeb.TownSquareLive do
 
   import SaladUI.Badge
 
-  alias Excellence.Schemas.Member
   alias ExCalibur.Quests
-  alias ExCalibur.Quests.Campaign
   alias ExCalibur.Quests.Quest
+  alias ExCalibur.Quests.Step
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
+  alias Excellence.Schemas.Member
 
   @charters %{
-    "Content Moderation" => Excellence.Charters.ContentModeration,
-    "Code Review" => Excellence.Charters.CodeReview,
-    "Risk Assessment" => Excellence.Charters.RiskAssessment,
-    "Accessibility Review" => Excellence.Charters.AccessibilityReview,
-    "Performance Audit" => Excellence.Charters.PerformanceAudit,
-    "Incident Triage" => Excellence.Charters.IncidentTriage,
-    "Contract Review" => Excellence.Charters.ContractReview,
-    "Dependency Audit" => Excellence.Charters.DependencyAudit
+    "Content Moderation" => ExCalibur.Charters.ContentModeration,
+    "Code Review" => ExCalibur.Charters.CodeReview,
+    "Risk Assessment" => ExCalibur.Charters.RiskAssessment,
+    "Accessibility Review" => ExCalibur.Charters.AccessibilityReview,
+    "Performance Audit" => ExCalibur.Charters.PerformanceAudit,
+    "Incident Triage" => ExCalibur.Charters.IncidentTriage,
+    "Contract Review" => ExCalibur.Charters.ContractReview,
+    "Dependency Audit" => ExCalibur.Charters.DependencyAudit,
+    "Quality Collective" => ExCalibur.Charters.QualityCollective,
+    "Platform Guild" => ExCalibur.Charters.PlatformGuild,
+    "The Skeptics" => ExCalibur.Charters.TheSkeptics,
+    "Product Intelligence" => ExCalibur.Charters.ProductIntelligence,
+    "Creative Studio" => ExCalibur.Charters.CreativeStudio
   }
 
   @post_install_redirect "/guild-hall"
@@ -67,18 +72,18 @@ defmodule ExCaliburWeb.TownSquareLive do
       mod ->
         import Ecto.Query
 
-        ExCalibur.Repo.delete_all(from(r in ExCalibur.Quests.CampaignRun))
-
         ExCalibur.Repo.delete_all(from(r in ExCalibur.Quests.QuestRun))
 
-        ExCalibur.Repo.delete_all(from(c in Campaign))
+        ExCalibur.Repo.delete_all(from(r in ExCalibur.Quests.StepRun))
+
         ExCalibur.Repo.delete_all(from(q in Quest))
+        ExCalibur.Repo.delete_all(from(s in Step))
         ExCalibur.Repo.delete_all(from(r in Member))
         ExCalibur.Repo.delete_all(from(s in Source))
 
         install_guild(mod)
+        install_steps(mod)
         install_quests(mod)
-        install_campaigns(mod)
         create_default_sources(guild_name)
 
         {:noreply,
@@ -100,7 +105,7 @@ defmodule ExCaliburWeb.TownSquareLive do
 
     ExCalibur.Repo.delete_all(from(r in Member))
     ExCalibur.Repo.delete_all(from(q in Quest))
-    ExCalibur.Repo.delete_all(from(c in Campaign))
+    ExCalibur.Repo.delete_all(from(s in Step))
 
     {:noreply,
      socket
@@ -119,25 +124,25 @@ defmodule ExCaliburWeb.TownSquareLive do
     end)
   end
 
-  defp install_quests(mod) do
+  defp install_steps(mod) do
     if function_exported?(mod, :quest_definitions, 0) do
       Enum.each(mod.quest_definitions(), fn attrs ->
-        Quests.create_quest(attrs)
+        Quests.create_step(attrs)
       end)
     end
   end
 
-  defp install_campaigns(mod) do
+  defp install_quests(mod) do
     if function_exported?(mod, :campaign_definitions, 0) do
-      quest_by_name = Map.new(Quests.list_quests(), &{&1.name, &1.id})
+      step_by_name = Map.new(Quests.list_steps(), &{&1.name, &1.id})
 
       Enum.each(mod.campaign_definitions(), fn attrs ->
         steps =
           Enum.map(attrs.steps, fn step ->
-            %{"quest_id" => Map.get(quest_by_name, step["quest_name"]), "flow" => step["flow"]}
+            %{"step_id" => Map.get(step_by_name, step["quest_name"] || step["step_name"]), "flow" => step["flow"]}
           end)
 
-        Quests.create_campaign(Map.put(attrs, :steps, steps))
+        Quests.create_quest(Map.put(attrs, :steps, steps))
       end)
     end
   end

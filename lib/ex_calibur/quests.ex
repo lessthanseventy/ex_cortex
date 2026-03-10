@@ -2,18 +2,42 @@ defmodule ExCalibur.Quests do
   @moduledoc false
   import Ecto.Query
 
-  alias ExCalibur.Quests.Campaign
-  alias ExCalibur.Quests.CampaignRun
   alias ExCalibur.Quests.Proposal
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Quests.QuestRun
+  alias ExCalibur.Quests.Step
+  alias ExCalibur.Quests.StepRun
   alias ExCalibur.Repo
 
-  # --- Quests ---
+  # --- Steps (formerly Quests) ---
 
-  def list_quests do
-    Repo.all(from q in Quest, order_by: [asc: q.name])
+  def list_steps do
+    Repo.all(from s in Step, order_by: [asc: s.name])
   end
+
+  def list_steps_for_source(source_id) do
+    Repo.all(
+      from s in Step,
+        where:
+          s.trigger == "source" and
+            s.status == "active" and
+            fragment("? = ANY(?)", ^source_id, s.source_ids)
+    )
+  end
+
+  def get_step!(id), do: Repo.get!(Step, id)
+
+  def create_step(attrs) do
+    %Step{} |> Step.changeset(attrs) |> Repo.insert()
+  end
+
+  def update_step(%Step{} = step, attrs) do
+    step |> Step.changeset(attrs) |> Repo.update()
+  end
+
+  def delete_step(%Step{} = step), do: Repo.delete(step)
+
+  # --- Quests (formerly Campaigns) ---
 
   def list_quests_for_source(source_id) do
     Repo.all(
@@ -23,6 +47,10 @@ defmodule ExCalibur.Quests do
             q.status == "active" and
             fragment("? = ANY(?)", ^source_id, q.source_ids)
     )
+  end
+
+  def list_quests do
+    Repo.all(from q in Quest, order_by: [asc: q.name])
   end
 
   def get_quest!(id), do: Repo.get!(Quest, id)
@@ -37,35 +65,26 @@ defmodule ExCalibur.Quests do
 
   def delete_quest(%Quest{} = quest), do: Repo.delete(quest)
 
-  def list_campaigns_for_source(source_id) do
+  # --- Step Runs (formerly QuestRuns) ---
+
+  def list_step_runs(%Step{id: step_id}) do
     Repo.all(
-      from c in Campaign,
-        where:
-          c.trigger == "source" and
-            c.status == "active" and
-            fragment("? = ANY(?)", ^source_id, c.source_ids)
+      from r in StepRun,
+        where: r.step_id == ^step_id,
+        order_by: [desc: r.inserted_at],
+        limit: 10
     )
   end
 
-  # --- Campaigns ---
-
-  def list_campaigns do
-    Repo.all(from c in Campaign, order_by: [asc: c.name])
+  def create_step_run(attrs) do
+    %StepRun{} |> StepRun.changeset(attrs) |> Repo.insert()
   end
 
-  def get_campaign!(id), do: Repo.get!(Campaign, id)
-
-  def create_campaign(attrs) do
-    %Campaign{} |> Campaign.changeset(attrs) |> Repo.insert()
+  def update_step_run(%StepRun{} = run, attrs) do
+    run |> StepRun.changeset(attrs) |> Repo.update()
   end
 
-  def update_campaign(%Campaign{} = campaign, attrs) do
-    campaign |> Campaign.changeset(attrs) |> Repo.update()
-  end
-
-  def delete_campaign(%Campaign{} = campaign), do: Repo.delete(campaign)
-
-  # --- Quest Runs ---
+  # --- Quest Runs (formerly CampaignRuns) ---
 
   def list_quest_runs(%Quest{id: quest_id}) do
     Repo.all(
@@ -84,29 +103,10 @@ defmodule ExCalibur.Quests do
     run |> QuestRun.changeset(attrs) |> Repo.update()
   end
 
-  # --- Campaign Runs ---
-
-  def list_campaign_runs(%Campaign{id: campaign_id}) do
-    Repo.all(
-      from r in CampaignRun,
-        where: r.campaign_id == ^campaign_id,
-        order_by: [desc: r.inserted_at],
-        limit: 10
-    )
-  end
-
-  def create_campaign_run(attrs) do
-    %CampaignRun{} |> CampaignRun.changeset(attrs) |> Repo.insert()
-  end
-
-  def update_campaign_run(%CampaignRun{} = run, attrs) do
-    run |> CampaignRun.changeset(attrs) |> Repo.update()
-  end
-
   # --- Proposals ---
 
   def list_proposals(opts \\ []) do
-    query = from p in Proposal, order_by: [desc: p.inserted_at], preload: [:quest]
+    query = from p in Proposal, order_by: [desc: p.inserted_at], preload: [:step]
 
     query =
       case Keyword.get(opts, :status) do

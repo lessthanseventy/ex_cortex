@@ -1,6 +1,6 @@
 defmodule ExCalibur.ContextProviders.QuestHistory do
   @moduledoc """
-  Injects recent quest run results for the same quest into the preamble.
+  Injects recent step run results for the same step into the preamble.
   Config: %{"type" => "quest_history", "limit" => 5}
   """
 
@@ -8,21 +8,21 @@ defmodule ExCalibur.ContextProviders.QuestHistory do
 
   import Ecto.Query
 
-  alias ExCalibur.Quests.QuestRun
+  alias ExCalibur.Quests.StepRun
   alias ExCalibur.Repo
 
   @impl true
-  def build(config, quest, _input) do
+  def build(config, step, _input) do
     limit = Map.get(config, "limit", 5)
-    quest_id = quest[:id] || quest["id"]
+    step_id = step[:id] || step["id"]
 
-    if is_nil(quest_id) do
+    if is_nil(step_id) do
       ""
     else
       runs =
         Repo.all(
-          from r in QuestRun,
-            where: r.quest_id == ^quest_id and r.status == "complete",
+          from r in StepRun,
+            where: r.step_id == ^step_id and r.status == "complete",
             order_by: [desc: r.inserted_at],
             limit: ^limit,
             select: {r.inserted_at, r.results}
@@ -38,7 +38,7 @@ defmodule ExCalibur.ContextProviders.QuestHistory do
           end)
 
         String.trim("""
-        ## Recent Quest History (last #{length(runs)} runs)
+        ## Recent Step History (last #{length(runs)} runs)
         #{Enum.join(lines, "\n")}
         """)
       end

@@ -1,5 +1,5 @@
 defmodule ExCalibur.Board.Reporting do
-  @moduledoc "Scheduled reporting and digest campaign templates."
+  @moduledoc "Scheduled reporting and digest quest templates."
 
   alias ExCalibur.Board
 
@@ -19,13 +19,12 @@ defmodule ExCalibur.Board.Reporting do
       category: :reporting,
       description:
         "Synthesize security signals from the past week into a concise digest. Covers CVEs, threat intelligence, and risk patterns. Posted to Slack every week.",
-      suggested_team:
-        "Risk Assessment or Dependency Audit guild. Any security-aware members will do.",
+      suggested_team: "Risk Assessment or Dependency Audit guild. Any security-aware members will do.",
       requires: [
         {:source_type, "feed"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Weekly Security Synthesis",
           description: """
@@ -67,15 +66,15 @@ defmodule ExCalibur.Board.Reporting do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Weekly Security Digest Campaign",
+      quest_definition: %{
+        name: "Weekly Security Digest Quest",
         description: "Weekly security synthesis posted to Slack every Monday.",
         status: "active",
         trigger: "scheduled",
         schedule: "@weekly",
         steps: [
-          %{"quest_name" => "Weekly Security Synthesis", "flow" => "always"},
-          %{"quest_name" => "Post Security Digest", "flow" => "always"}
+          %{"step_name" => "Weekly Security Synthesis", "flow" => "always"},
+          %{"step_name" => "Post Security Digest", "flow" => "always"}
         ],
         source_ids: []
       }
@@ -94,7 +93,7 @@ defmodule ExCalibur.Board.Reporting do
         {:herald_type, "slack"},
         :any_members
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Daily Standup Synthesis",
           description: """
@@ -130,15 +129,15 @@ defmodule ExCalibur.Board.Reporting do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Daily AI Standup Campaign",
+      quest_definition: %{
+        name: "Daily AI Standup Quest",
         description: "Daily 8am standup synthesis from quest history, posted to Slack.",
         status: "active",
         trigger: "scheduled",
         schedule: "0 8 * * *",
         steps: [
-          %{"quest_name" => "Daily Standup Synthesis", "flow" => "always"},
-          %{"quest_name" => "Post Daily Standup", "flow" => "always"}
+          %{"step_name" => "Daily Standup Synthesis", "flow" => "always"},
+          %{"step_name" => "Post Daily Standup", "flow" => "always"}
         ],
         source_ids: []
       }
@@ -157,7 +156,7 @@ defmodule ExCalibur.Board.Reporting do
         {:source_type, "git"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Sprint Quality Synthesis",
           description: """
@@ -199,15 +198,15 @@ defmodule ExCalibur.Board.Reporting do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Sprint Code Quality Campaign",
+      quest_definition: %{
+        name: "Sprint Code Quality Quest",
         description: "Weekly sprint quality synthesis posted to Slack.",
         status: "active",
         trigger: "scheduled",
         schedule: "@weekly",
         steps: [
-          %{"quest_name" => "Sprint Quality Synthesis", "flow" => "always"},
-          %{"quest_name" => "Post Sprint Quality Report", "flow" => "always"}
+          %{"step_name" => "Sprint Quality Synthesis", "flow" => "always"},
+          %{"step_name" => "Post Sprint Quality Report", "flow" => "always"}
         ],
         source_ids: []
       }
@@ -225,7 +224,7 @@ defmodule ExCalibur.Board.Reporting do
       requires: [
         {:herald_type, "email"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Monthly Risk Synthesis",
           description: """
@@ -268,15 +267,15 @@ defmodule ExCalibur.Board.Reporting do
           herald_name: "email:default"
         }
       ],
-      campaign_definition: %{
-        name: "Monthly Risk Summary Campaign",
+      quest_definition: %{
+        name: "Monthly Risk Summary Quest",
         description: "First-of-month executive risk summary emailed to stakeholders.",
         status: "active",
         trigger: "scheduled",
         schedule: "0 9 1 * *",
         steps: [
-          %{"quest_name" => "Monthly Risk Synthesis", "flow" => "always"},
-          %{"quest_name" => "Email Monthly Risk Summary", "flow" => "always"}
+          %{"step_name" => "Monthly Risk Synthesis", "flow" => "always"},
+          %{"step_name" => "Email Monthly Risk Summary", "flow" => "always"}
         ],
         source_ids: []
       }

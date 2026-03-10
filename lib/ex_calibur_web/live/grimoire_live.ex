@@ -78,7 +78,7 @@ defmodule ExCaliburWeb.GrimoireLive do
   end
 
   def handle_event("create_entry", %{"entry" => params}, socket) do
-    attrs = parse_entry_params(params) |> Map.put(:source, "manual")
+    attrs = params |> parse_entry_params() |> Map.put(:source, "manual")
 
     case Lore.create_entry(attrs) do
       {:ok, _} -> {:noreply, reload(assign(socket, adding: false))}
@@ -92,7 +92,7 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   def handle_event("update_entry", %{"_id" => id, "entry" => params}, socket) do
     entry = Lore.get_entry!(String.to_integer(id))
-    attrs = parse_entry_params(params) |> Map.put(:source, "manual")
+    attrs = params |> parse_entry_params() |> Map.put(:source, "manual")
 
     case Lore.update_entry(entry, attrs) do
       {:ok, _} -> {:noreply, reload(assign(socket, editing_id: nil))}
@@ -107,14 +107,11 @@ defmodule ExCaliburWeb.GrimoireLive do
   end
 
   defp reload(socket) do
-    augury = Lore.list_entries(tags: ["augury"], sort: "newest") |> List.first()
+    augury = [tags: ["augury"], sort: "newest"] |> Lore.list_entries() |> List.first()
 
     entries =
-      Lore.list_entries(
-        tags: socket.assigns.filter_tags,
-        quest_id: socket.assigns.filter_quest_id,
-        sort: socket.assigns.sort
-      )
+      [tags: socket.assigns.filter_tags, quest_id: socket.assigns.filter_quest_id, sort: socket.assigns.sort]
+      |> Lore.list_entries()
       |> Enum.reject(&(augury && &1.id == augury.id))
 
     assign(socket, augury: augury, entries: entries)
@@ -176,9 +173,13 @@ defmodule ExCaliburWeb.GrimoireLive do
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold uppercase tracking-widest text-primary/60">The Augury</span>
+                <span class="text-xs font-semibold uppercase tracking-widest text-primary/60">
+                  The Augury
+                </span>
                 <%= if @augury.importance do %>
-                  <span class="text-xs text-muted-foreground font-mono">{importance_dots(@augury.importance)}</span>
+                  <span class="text-xs text-muted-foreground font-mono">
+                    {importance_dots(@augury.importance)}
+                  </span>
                 <% end %>
               </div>
               <h2 class="text-lg font-semibold mt-0.5">{@augury.title}</h2>

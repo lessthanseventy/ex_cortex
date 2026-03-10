@@ -1,5 +1,5 @@
 defmodule ExCalibur.Board.Triage do
-  @moduledoc "Source-triggered triage campaign templates."
+  @moduledoc "Source-triggered triage quest templates."
 
   alias ExCalibur.Board
 
@@ -8,7 +8,8 @@ defmodule ExCalibur.Board.Triage do
       jira_ticket_triage(),
       github_issue_triage(),
       error_monitor(),
-      feed_threat_triage()
+      feed_threat_triage(),
+      feedback_triage()
     ]
   end
 
@@ -25,11 +26,10 @@ defmodule ExCalibur.Board.Triage do
         {:source_type, "webhook"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Jira Quick Triage",
-          description:
-            "Quick triage of incoming Jira ticket — assess urgency and route for full review if warranted.",
+          description: "Quick triage of incoming Jira ticket — assess urgency and route for full review if warranted.",
           status: "active",
           trigger: "source",
           schedule: nil,
@@ -45,8 +45,7 @@ defmodule ExCalibur.Board.Triage do
         },
         %{
           name: "Jira Full Assessment",
-          description:
-            "Full consensus assessment of a Jira ticket — severity, root cause, and recommended response.",
+          description: "Full consensus assessment of a Jira ticket — severity, root cause, and recommended response.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -57,8 +56,7 @@ defmodule ExCalibur.Board.Triage do
         },
         %{
           name: "Jira Slack Alert",
-          description:
-            "Post a concise Jira ticket summary and recommended action to the team Slack channel.",
+          description: "Post a concise Jira ticket summary and recommended action to the team Slack channel.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -75,16 +73,16 @@ defmodule ExCalibur.Board.Triage do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Jira Ticket Triage Campaign",
+      quest_definition: %{
+        name: "Jira Ticket Triage Quest",
         description: "Source-triggered triage that escalates high-severity Jira tickets to Slack.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Jira Quick Triage", "flow" => "always"},
-          %{"quest_name" => "Jira Full Assessment", "flow" => "on_flag"},
-          %{"quest_name" => "Jira Slack Alert", "flow" => "on_flag"}
+          %{"step_name" => "Jira Quick Triage", "flow" => "always"},
+          %{"step_name" => "Jira Full Assessment", "flow" => "on_flag"},
+          %{"step_name" => "Jira Slack Alert", "flow" => "on_flag"}
         ],
         source_ids: []
       }
@@ -98,17 +96,15 @@ defmodule ExCalibur.Board.Triage do
       category: :triage,
       description:
         "Triage incoming GitHub issues via webhook — assess severity and file a tracked issue response for confirmed bugs or blockers.",
-      suggested_team:
-        "Code Review guild works well. Any guild with code-aware members will do.",
+      suggested_team: "Code Review guild works well. Any guild with code-aware members will do.",
       requires: [
         {:source_type, "webhook"},
         {:herald_type, "github_issue"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "GitHub Issue Quick Scan",
-          description:
-            "Quick triage of a GitHub issue — is it a confirmed bug, feature request, or noise?",
+          description: "Quick triage of a GitHub issue — is it a confirmed bug, feature request, or noise?",
           status: "active",
           trigger: "source",
           schedule: nil,
@@ -117,8 +113,7 @@ defmodule ExCalibur.Board.Triage do
         },
         %{
           name: "GitHub Issue Full Review",
-          description:
-            "Full consensus review of a GitHub issue — priority, label suggestions, and response.",
+          description: "Full consensus review of a GitHub issue — priority, label suggestions, and response.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -137,16 +132,16 @@ defmodule ExCalibur.Board.Triage do
           herald_name: "github_issue:default"
         }
       ],
-      campaign_definition: %{
-        name: "GitHub Issue Triage Campaign",
+      quest_definition: %{
+        name: "GitHub Issue Triage Quest",
         description: "Webhook-triggered triage that files tracked responses for confirmed bugs.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "GitHub Issue Quick Scan", "flow" => "always"},
-          %{"quest_name" => "GitHub Issue Full Review", "flow" => "on_flag"},
-          %{"quest_name" => "File GitHub Issue Response", "flow" => "on_flag"}
+          %{"step_name" => "GitHub Issue Quick Scan", "flow" => "always"},
+          %{"step_name" => "GitHub Issue Full Review", "flow" => "on_flag"},
+          %{"step_name" => "File GitHub Issue Response", "flow" => "on_flag"}
         ],
         source_ids: []
       }
@@ -160,13 +155,12 @@ defmodule ExCalibur.Board.Triage do
       category: :triage,
       description:
         "Stream errors from a log aggregator or error tracker, triage severity, and page on-call for critical incidents.",
-      suggested_team:
-        "Incident Triage guild (ImpactAssessor + RootCauseAnalyst + EscalationRouter) is the ideal fit.",
+      suggested_team: "Incident Triage guild (ImpactAssessor + RootCauseAnalyst + EscalationRouter) is the ideal fit.",
       requires: [
         {:source_type, "websocket"},
         {:herald_type, "pagerduty"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Error Stream Quick Scan",
           description: "Quick scan of incoming error stream data — is this page-worthy?",
@@ -211,16 +205,86 @@ defmodule ExCalibur.Board.Triage do
           herald_name: "pagerduty:default"
         }
       ],
-      campaign_definition: %{
-        name: "Error Monitor Campaign",
+      quest_definition: %{
+        name: "Error Monitor Quest",
         description: "Real-time error stream triage with PagerDuty escalation for critical issues.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Error Stream Quick Scan", "flow" => "always"},
-          %{"quest_name" => "Error Full Triage", "flow" => "on_flag"},
-          %{"quest_name" => "Page On-Call Engineer", "flow" => "on_flag"}
+          %{"step_name" => "Error Stream Quick Scan", "flow" => "always"},
+          %{"step_name" => "Error Full Triage", "flow" => "on_flag"},
+          %{"step_name" => "Page On-Call Engineer", "flow" => "on_flag"}
+        ],
+        source_ids: []
+      }
+    }
+  end
+
+  defp feedback_triage do
+    %Board{
+      id: "feedback_triage",
+      name: "Feedback Triage",
+      category: :triage,
+      description:
+        "Triage incoming user feedback from webhooks — quick bias and quality scan, full synthesis for high-signal items, Slack alert for urgent findings.",
+      suggested_team: "Product Intelligence guild. Any guild with analyst members works.",
+      requires: [
+        {:source_type, "webhook"},
+        {:herald_type, "slack"}
+      ],
+      step_definitions: [
+        %{
+          name: "Feedback Quick Scan",
+          description: "Quick bias and quality scan of incoming feedback — is this high-signal or noise?",
+          status: "active",
+          trigger: "source",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "apprentice",
+              "preferred_who" => "feedback-analyst",
+              "when" => "on_trigger",
+              "how" => "solo"
+            }
+          ],
+          source_ids: []
+        },
+        %{
+          name: "Feedback Full Synthesis",
+          description: "Full consensus feedback synthesis — themes, significance, and recommended action.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{"who" => "all", "when" => "on_trigger", "how" => "consensus"}
+          ],
+          source_ids: []
+        },
+        %{
+          name: "Post Feedback Alert",
+          description: "Post urgent feedback findings to team Slack.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{"who" => "master", "when" => "on_trigger", "how" => "solo"}
+          ],
+          source_ids: [],
+          output_type: "slack",
+          herald_name: "slack:default"
+        }
+      ],
+      quest_definition: %{
+        name: "Feedback Triage Quest",
+        description: "Source-triggered feedback triage with Slack alert for high-signal items.",
+        status: "active",
+        trigger: "source",
+        schedule: nil,
+        steps: [
+          %{"step_name" => "Feedback Quick Scan", "flow" => "always"},
+          %{"step_name" => "Feedback Full Synthesis", "flow" => "on_flag"},
+          %{"step_name" => "Post Feedback Alert", "flow" => "on_flag"}
         ],
         source_ids: []
       }
@@ -234,17 +298,15 @@ defmodule ExCalibur.Board.Triage do
       category: :triage,
       description:
         "Monitor industry threat intelligence feeds for signals relevant to your stack. Escalates findings to Slack.",
-      suggested_team:
-        "Risk Assessment guild (RiskScorer + ComplianceChecker + FraudDetector) is ideal.",
+      suggested_team: "Risk Assessment guild (RiskScorer + ComplianceChecker + FraudDetector) is ideal.",
       requires: [
         {:source_type, "feed"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Threat Feed Quick Scan",
-          description:
-            "Quick scan of incoming threat feed entries — is this relevant to our stack?",
+          description: "Quick scan of incoming threat feed entries — is this relevant to our stack?",
           status: "active",
           trigger: "source",
           schedule: nil,
@@ -253,8 +315,7 @@ defmodule ExCalibur.Board.Triage do
         },
         %{
           name: "Threat Full Assessment",
-          description:
-            "Full consensus assessment of threat signal — risk level and recommended response.",
+          description: "Full consensus assessment of threat signal — risk level and recommended response.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -273,16 +334,16 @@ defmodule ExCalibur.Board.Triage do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Threat Feed Monitor Campaign",
+      quest_definition: %{
+        name: "Threat Feed Monitor Quest",
         description: "Feed-triggered threat intelligence triage with Slack escalation.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Threat Feed Quick Scan", "flow" => "always"},
-          %{"quest_name" => "Threat Full Assessment", "flow" => "on_flag"},
-          %{"quest_name" => "Post Threat Alert", "flow" => "on_flag"}
+          %{"step_name" => "Threat Feed Quick Scan", "flow" => "always"},
+          %{"step_name" => "Threat Full Assessment", "flow" => "on_flag"},
+          %{"step_name" => "Post Threat Alert", "flow" => "on_flag"}
         ],
         source_ids: []
       }

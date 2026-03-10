@@ -32,7 +32,15 @@ defmodule ExCalibur.Repo.Migrations.SeedDefaultHeralds do
 
     repo().delete_all(
       from(h in "heralds",
-        where: h.name in ["slack:default", "webhook:default", "github_issue:default", "github_pr:default", "email:default", "pagerduty:default"]
+        where:
+          h.name in [
+            "slack:default",
+            "webhook:default",
+            "github_issue:default",
+            "github_pr:default",
+            "email:default",
+            "pagerduty:default"
+          ]
       )
     )
   end

@@ -150,7 +150,7 @@ defmodule ExCaliburWeb.LibraryLiveTest do
       })
       |> render_submit()
 
-      assert ExCalibur.Heralds.list_heralds() |> length() == 1
+      assert length(ExCalibur.Heralds.list_heralds()) == 1
     end
 
     test "can delete a herald", %{conn: conn} do

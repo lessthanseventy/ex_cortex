@@ -557,8 +557,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       %__MODULE__{
         id: "challenger",
         name: "Challenger",
-        description:
-          "Demands evidence for all claims. Defaults to NEEDS WORK unless concrete proof is provided.",
+        description: "Demands evidence for all claims. Defaults to NEEDS WORK unless concrete proof is provided.",
         category: :validator,
         ranks: @default_ranks,
         system_prompt: """

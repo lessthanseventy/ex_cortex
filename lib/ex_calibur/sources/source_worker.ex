@@ -56,10 +56,10 @@ defmodule ExCalibur.Sources.SourceWorker do
 
       {:ok, items, new_worker_state} ->
         maybe_write_to_lore(items, state.source)
+        steps = Quests.list_steps_for_source(to_string(state.source.id))
         quests = Quests.list_quests_for_source(to_string(state.source.id))
-        campaigns = Quests.list_campaigns_for_source(to_string(state.source.id))
-        evaluate_items(items, state.source, quests)
-        enqueue_campaigns(items, state.source, campaigns)
+        evaluate_items(items, state.source, steps)
+        enqueue_quests(items, state.source, quests)
         update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
         {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
@@ -70,18 +70,18 @@ defmodule ExCalibur.Sources.SourceWorker do
     end
   end
 
-  # Quest-linked sources: enqueue items into the debouncer, which coalesces
-  # all sources that fire in the same window into a single quest run.
-  defp evaluate_items(items, source, [_ | _] = quests) do
+  # Step-linked sources: enqueue items into the debouncer, which coalesces
+  # all sources that fire in the same window into a single step run.
+  defp evaluate_items(items, source, [_ | _] = steps) do
     label = source.config["label"] || source.source_type
-    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(quests)} quest(s)")
+    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(steps)} step(s)")
 
-    Enum.each(quests, fn quest ->
-      QuestDebouncer.enqueue(quest, label, items)
+    Enum.each(steps, fn step ->
+      QuestDebouncer.enqueue(step, label, items)
     end)
   end
 
-  # No quests: fall back to per-item evaluator (sandbox supported)
+  # No steps: fall back to per-item evaluator (sandbox supported)
   defp evaluate_items(items, source, []) do
     Enum.each(items, fn item ->
       Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
@@ -95,14 +95,14 @@ defmodule ExCalibur.Sources.SourceWorker do
     end)
   end
 
-  defp enqueue_campaigns(_items, _source, []), do: :ok
+  defp enqueue_quests(_items, _source, []), do: :ok
 
-  defp enqueue_campaigns(items, source, campaigns) do
+  defp enqueue_quests(items, source, quests) do
     label = source.config["label"] || source.source_type
-    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(campaigns)} campaign(s)")
+    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(quests)} quest(s)")
 
-    Enum.each(campaigns, fn campaign ->
-      QuestDebouncer.enqueue_campaign(campaign, label, items)
+    Enum.each(quests, fn quest ->
+      QuestDebouncer.enqueue_quest(quest, label, items)
     end)
   end
 

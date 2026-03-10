@@ -166,8 +166,7 @@ defmodule ExCalibur.Sources.Book do
       %__MODULE__{
         id: "jira_webhook",
         name: "Jira Webhook",
-        description:
-          "Receive Jira issue events via webhook — new issues, status changes, priority escalations.",
+        description: "Receive Jira issue events via webhook — new issues, status changes, priority escalations.",
         source_type: "webhook",
         default_config: %{},
         suggested_guild: "Incident Triage",

@@ -1,26 +1,26 @@
 defmodule ExCalibur.LearningLoop do
   @moduledoc """
-  Retrospective analysis: after a quest run completes, optionally asks Claude
+  Retrospective analysis: after a step run completes, optionally asks Claude
   to review the verdict trace and suggest improvements as Proposals.
 
   Small changes (schedule tweaks, roster tier adjustments) are proposed with
   status "pending" and require user approval from the Lodge.
 
   Usage:
-    LearningLoop.retrospect(quest, quest_run)
+    LearningLoop.retrospect(step, step_run)
     # => {:ok, [%Proposal{}, ...]}  (proposals created)
     # => {:error, reason}
   """
 
   alias ExCalibur.ClaudeClient
   alias ExCalibur.Quests
-  alias ExCalibur.Quests.Quest
+  alias ExCalibur.Quests.Step
 
   @system_prompt """
-  You are a learning system that reviews AI evaluation quest results and suggests
+  You are a learning system that reviews AI evaluation step results and suggests
   improvements to make future runs more accurate and efficient.
 
-  Given a quest definition and a run trace, propose up to 3 concrete changes.
+  Given a step definition and a run trace, propose up to 3 concrete changes.
   Each proposal must be one of: roster_change, schedule_change, prompt_change, other.
 
   Format each proposal as:
@@ -36,23 +36,23 @@ defmodule ExCalibur.LearningLoop do
   """
 
   @doc """
-  Run a retrospective on a completed quest run and create Proposals.
+  Run a retrospective on a completed step run and create Proposals.
   Skips silently if Claude is not configured.
   """
-  def retrospect(%Quest{} = quest, quest_run) do
+  def retrospect(%Step{} = step, step_run) do
     if ClaudeClient.configured?() do
-      do_retrospect(quest, quest_run)
+      do_retrospect(step, step_run)
     else
       {:ok, []}
     end
   end
 
-  defp do_retrospect(quest, quest_run) do
-    user_text = build_prompt(quest, quest_run)
+  defp do_retrospect(step, step_run) do
+    user_text = build_prompt(step, step_run)
 
     case ClaudeClient.complete("claude_haiku", @system_prompt, user_text) do
       {:ok, response} ->
-        proposals = parse_proposals(response, quest, quest_run)
+        proposals = parse_proposals(response, step, step_run)
         created = Enum.flat_map(proposals, &maybe_create/1)
         {:ok, created}
 
@@ -61,36 +61,36 @@ defmodule ExCalibur.LearningLoop do
     end
   end
 
-  defp build_prompt(quest, quest_run) do
-    results = quest_run.results || %{}
+  defp build_prompt(step, step_run) do
+    results = step_run.results || %{}
     verdict = results["verdict"] || "unknown"
 
     steps =
       (results["steps"] || [])
       |> Enum.with_index(1)
-      |> Enum.map_join("\n\n", fn {step, i} ->
+      |> Enum.map_join("\n\n", fn {s, i} ->
         members =
-          Enum.map_join(step["results"] || [], "\n", fn r ->
+          Enum.map_join(s["results"] || [], "\n", fn r ->
             "  - #{r["member"]}: #{r["verdict"]} (#{r["confidence"]})"
           end)
 
-        "Step #{i} (#{step["who"]} · #{step["how"]}): #{step["verdict"]}\n#{members}"
+        "Step #{i} (#{s["who"]} · #{s["how"]}): #{s["verdict"]}\n#{members}"
       end)
 
     """
-    Quest: #{quest.name}
-    Trigger: #{quest.trigger}
-    Roster: #{inspect(quest.roster)}
+    Step: #{step.name}
+    Trigger: #{step.trigger}
+    Roster: #{inspect(step.roster)}
 
     Run verdict: #{verdict}
-    Run input (truncated): #{String.slice(quest_run.input || "", 0, 300)}
+    Run input (truncated): #{String.slice(step_run.input || "", 0, 300)}
 
     Trace:
     #{steps}
     """
   end
 
-  defp parse_proposals(text, quest, quest_run) do
+  defp parse_proposals(text, step, step_run) do
     text
     |> String.split("PROPOSAL", trim: true)
     |> Enum.drop(1)
@@ -101,8 +101,8 @@ defmodule ExCalibur.LearningLoop do
 
       if type && description do
         %{
-          quest_id: quest.id,
-          quest_run_id: quest_run.id,
+          quest_id: step.id,
+          quest_run_id: step_run.id,
           type: normalize_type(type),
           description: description,
           details: %{"suggestion" => details || ""},

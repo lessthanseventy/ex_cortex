@@ -3,15 +3,6 @@ import Config
 # Configure ex_cellence to use our repo and test-mode Oban
 alias Ecto.Adapters.SQL.Sandbox
 
-config :ex_cellence, Excellence.Repo,
-  username: "andrew",
-  hostname: "localhost",
-  database: "ex_calibur_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Sandbox,
-  pool_size: 5
-
-config :ex_cellence, Oban, testing: :manual
-
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used
@@ -32,6 +23,15 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   server: false
 
 config :ex_calibur, :sql_sandbox, true
+
+config :ex_cellence, Excellence.Repo,
+  username: "andrew",
+  hostname: "localhost",
+  database: "ex_calibur_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Sandbox,
+  pool_size: 5
+
+config :ex_cellence, Oban, testing: :manual
 
 config :excessibility,
   endpoint: ExCaliburWeb.Endpoint,

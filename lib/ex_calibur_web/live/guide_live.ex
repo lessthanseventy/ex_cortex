@@ -1,4 +1,5 @@
 defmodule ExCaliburWeb.GuideLive do
+  @moduledoc false
   use ExCaliburWeb, :live_view
 
   def mount(_params, _session, socket) do
@@ -40,10 +41,10 @@ defmodule ExCaliburWeb.GuideLive do
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-xl font-semibold">Campaigns — Chaining jobs together</h2>
+        <h2 class="text-xl font-semibold">Quests — Chaining steps together</h2>
         <p class="text-base text-muted-foreground">
-          Sometimes one job isn't enough — you want the result of the first job to feed into the next.
-          That's what a <strong>Campaign</strong> is for.
+          Sometimes one step isn't enough — you want the result of the first step to feed into the next.
+          That's what a <strong>Quest</strong> is for.
         </p>
         <p class="text-base text-muted-foreground">
           Imagine asking one helper to summarise today's news, then passing that summary to a second
@@ -51,16 +52,18 @@ defmodule ExCaliburWeb.GuideLive do
           the previous step found, so nothing gets lost in the handoff.
         </p>
         <p class="text-base text-muted-foreground">
-          You create a Campaign in the <.link navigate={~p"/quests"} class="underline text-foreground">Quests</.link>
-          page, add the jobs in order, and ExCalibur runs them one after another automatically.
+          You create a Quest in the
+          <.link navigate={~p"/quests"} class="underline text-foreground">Quests</.link>
+          page, add the steps in order, and ExCalibur runs them one after another automatically.
         </p>
       </section>
 
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Branch Steps — Running jobs side-by-side</h2>
         <p class="text-base text-muted-foreground">
-          Inside a Campaign, you can have one step that runs several checks <em>at the same time</em>
-          rather than one after another. The app calls this a <strong>Branch</strong> step.
+          Inside a Quest, you can have one step that runs several checks <em>at the same time</em>
+          rather than one after another. The app calls this a <strong>Branch</strong>
+          step.
         </p>
         <p class="text-base text-muted-foreground">
           For example: one helper checks the tone of a document, another checks the facts, and a
@@ -85,8 +88,10 @@ defmodule ExCaliburWeb.GuideLive do
           list, just as you wouldn't send an Apprentice to review a legal contract.
         </p>
         <p class="text-base text-muted-foreground">
-          You manage your members in the
-          <.link navigate={~p"/guild-hall"} class="underline text-foreground">Guild Hall</.link>.
+          You manage your members in the <.link
+            navigate={~p"/guild-hall"}
+            class="underline text-foreground"
+          >Guild Hall</.link>.
         </p>
       </section>
 
@@ -128,7 +133,8 @@ defmodule ExCaliburWeb.GuideLive do
         <p class="text-base text-muted-foreground">
           You write the charter once, and every helper automatically sees it on every job — no need
           to repeat yourself. Edit or add charters at the bottom of the
-          <.link navigate={~p"/guild-hall"} class="underline text-foreground">Guild Hall</.link> page.
+          <.link navigate={~p"/guild-hall"} class="underline text-foreground">Guild Hall</.link>
+          page.
         </p>
       </section>
 
@@ -155,7 +161,8 @@ defmodule ExCaliburWeb.GuideLive do
         <p class="text-base text-muted-foreground">
           It's not a punishment — it's information. A low score might mean a helper is too
           conservative, too lenient, or just misconfigured. You can see the scores in the
-          <.link navigate={~p"/lodge"} class="underline text-foreground">Lodge</.link> under
+          <.link navigate={~p"/lodge"} class="underline text-foreground">Lodge</.link>
+          under
           "Member Trust" and use them to decide whether to retrain or replace a helper.
         </p>
         <p class="text-base text-muted-foreground">
@@ -215,14 +222,13 @@ defmodule ExCaliburWeb.GuideLive do
         </div>
 
         <div class="space-y-2">
-          <h3 class="font-semibold text-sm">Campaigns &amp; CampaignRunner</h3>
+          <h3 class="font-semibold text-sm">Quests &amp; QuestRunner</h3>
           <p class="text-sm text-muted-foreground">
-            Campaigns are Ecto-backed records with a <code class="bg-muted px-1 rounded">steps</code>
-            jsonb array. <code class="bg-muted px-1 rounded">CampaignRunner.run/2</code> sorts steps
-            by <code class="bg-muted px-1 rounded">order</code>, resolves each
-            <code class="bg-muted px-1 rounded">quest_id</code>, and threads output as a structured
+            Quests are Ecto-backed records with a <code class="bg-muted px-1 rounded">steps</code>
+            jsonb array. <code class="bg-muted px-1 rounded">QuestRunner.run/2</code>
+            resolves each <code class="bg-muted px-1 rounded">step_id</code>, and threads output as a structured
             handoff block into the next step's input. The final step's result is returned.
-            Source-triggered campaigns go through <code class="bg-muted px-1 rounded">QuestDebouncer.enqueue_campaign/3</code>;
+            Source-triggered quests go through <code class="bg-muted px-1 rounded">QuestDebouncer.enqueue_quest/3</code>;
             scheduled ones are picked up each minute by <code class="bg-muted px-1 rounded">ScheduledQuestRunner</code>.
           </p>
         </div>
@@ -230,11 +236,14 @@ defmodule ExCaliburWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">Branch Steps</h3>
           <p class="text-sm text-muted-foreground">
-            A step with <code class="bg-muted px-1 rounded">"type" =&gt; "branch"</code> runs its
-            <code class="bg-muted px-1 rounded">quests</code> list concurrently via
-            <code class="bg-muted px-1 rounded">Task.async_stream/3</code> (120s timeout), then
-            passes all results through <code class="bg-muted px-1 rounded">combine_branch_results/2</code>
-            into the <code class="bg-muted px-1 rounded">synthesizer</code> quest.
+            A step with <code class="bg-muted px-1 rounded">"type" =&gt; "branch"</code>
+            runs its <code class="bg-muted px-1 rounded">steps</code>
+            list concurrently via <code class="bg-muted px-1 rounded">Task.async_stream/3</code>
+            (120s timeout), then
+            passes all results through
+            <code class="bg-muted px-1 rounded">combine_branch_results/2</code>
+            into the <code class="bg-muted px-1 rounded">synthesizer</code>
+            step.
           </p>
         </div>
 
@@ -242,9 +251,12 @@ defmodule ExCaliburWeb.GuideLive do
           <h3 class="font-semibold text-sm">Model Fallback Chains</h3>
           <p class="text-sm text-muted-foreground">
             Configured via <code class="bg-muted px-1 rounded">config :ex_calibur, :model_fallback_chain, [...]</code>.
-            <code class="bg-muted px-1 rounded">QuestRunner.fallback_models_for/2</code> prepends the
-            member's assigned model and deduplicates. <code class="bg-muted px-1 rounded">call_member/3</code>
-            uses <code class="bg-muted px-1 rounded">Enum.reduce_while/3</code> to halt on the first
+            <code class="bg-muted px-1 rounded">QuestRunner.fallback_models_for/2</code>
+            prepends the
+            member's assigned model and deduplicates.
+            <code class="bg-muted px-1 rounded">call_member/3</code>
+            uses <code class="bg-muted px-1 rounded">Enum.reduce_while/3</code>
+            to halt on the first
             successful Ollama response.
           </p>
         </div>
@@ -252,11 +264,16 @@ defmodule ExCaliburWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">Rank-Gated Eligibility</h3>
           <p class="text-sm text-muted-foreground">
-            Quests with a non-nil <code class="bg-muted px-1 rounded">min_rank</code> field hit a
-            guard clause in <code class="bg-muted px-1 rounded">QuestRunner.run/2</code> that queries
-            <code class="bg-muted px-1 rounded">excellence_members</code> for any active role whose
-            <code class="bg-muted px-1 rounded">config-&gt;&gt;'rank'</code> is in the eligible set.
-            Returns <code class="bg-muted px-1 rounded">&lbrace;:error, &lbrace;:rank_insufficient, reason&rbrace;&rbrace;</code>
+            Steps with a non-nil <code class="bg-muted px-1 rounded">min_rank</code>
+            field hit a
+            guard clause in <code class="bg-muted px-1 rounded">StepRunner.run/2</code>
+            that queries <code class="bg-muted px-1 rounded">excellence_members</code>
+            for any active role whose <code class="bg-muted px-1 rounded">config-&gt;&gt;'rank'</code>
+            is in the eligible set.
+            Returns
+            <code class="bg-muted px-1 rounded">
+              &lbrace;:error, &lbrace;:rank_insufficient, reason&rbrace;&rbrace;
+            </code>
             if none found.
           </p>
         </div>
@@ -266,22 +283,28 @@ defmodule ExCaliburWeb.GuideLive do
           <p class="text-sm text-muted-foreground">
             Charters are stored in the <code class="bg-muted px-1 rounded">guild_charters</code>
             table (unique on <code class="bg-muted px-1 rounded">guild_name</code>).
-            Add <code class="bg-muted px-1 rounded">%&lbrace;"type" =&gt; "guild_charter", "guild_name" =&gt; "..."&rbrace;</code>
-            to a quest's <code class="bg-muted px-1 rounded">context_providers</code> array and it
-            will be prepended to every member's input via
-            <code class="bg-muted px-1 rounded">ContextProvider.assemble/3</code>.
+            Add
+            <code class="bg-muted px-1 rounded">
+              %&lbrace;"type" =&gt; "guild_charter", "guild_name" =&gt; "..."&rbrace;
+            </code>
+            to a quest's <code class="bg-muted px-1 rounded">context_providers</code>
+            array and it
+            will be prepended to every member's input via <code class="bg-muted px-1 rounded">ContextProvider.assemble/3</code>.
           </p>
         </div>
 
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">Member Trust Scoring</h3>
           <p class="text-sm text-muted-foreground">
-            <code class="bg-muted px-1 rounded">TrustScorer.record_run/1</code> is called after
-            every verdict quest run. It fires a <code class="bg-muted px-1 rounded">Task.start/1</code>
+            <code class="bg-muted px-1 rounded">TrustScorer.record_run/1</code>
+            is called after
+            every verdict quest run. It fires a
+            <code class="bg-muted px-1 rounded">Task.start/1</code>
             that iterates each step's results, comparing individual member verdicts against the
             aggregated step verdict. Contradicting members get
-            <code class="bg-muted px-1 rounded">decay/1</code> called, which upserts into
-            <code class="bg-muted px-1 rounded">member_trust_scores</code> with score × 0.97 and
+            <code class="bg-muted px-1 rounded">decay/1</code>
+            called, which upserts into <code class="bg-muted px-1 rounded">member_trust_scores</code>
+            with score × 0.97 and
             increments <code class="bg-muted px-1 rounded">decay_count</code>.
           </p>
         </div>
@@ -289,22 +312,27 @@ defmodule ExCaliburWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">Grimoire &amp; Lore Context Provider</h3>
           <p class="text-sm text-muted-foreground">
-            Artifact quests write to <code class="bg-muted px-1 rounded">lore_entries</code> via
-            <code class="bg-muted px-1 rounded">Lore.write_artifact/2</code>. Write mode controls
-            behaviour: <code class="bg-muted px-1 rounded">append</code> always inserts,
-            <code class="bg-muted px-1 rounded">replace</code> upserts the quest-owned entry
+            Artifact quests write to <code class="bg-muted px-1 rounded">lore_entries</code>
+            via <code class="bg-muted px-1 rounded">Lore.write_artifact/2</code>. Write mode controls
+            behaviour: <code class="bg-muted px-1 rounded">append</code>
+            always inserts, <code class="bg-muted px-1 rounded">replace</code>
+            upserts the quest-owned entry
             (never overwrites <code class="bg-muted px-1 rounded">source: "manual"</code>),
-            <code class="bg-muted px-1 rounded">both</code> does a replace on the pinned entry
+            <code class="bg-muted px-1 rounded">both</code>
+            does a replace on the pinned entry
             and also appends a dated log entry. Repetitive/garbled LLM output is rejected before
             insert via a word-repetition regex.
             The Augury is the first entry tagged <code class="bg-muted px-1 rounded">augury</code>,
-            sorted by newest. PubSub broadcasts <code class="bg-muted px-1 rounded">&lbrace;:lore_updated, title&rbrace;</code>
+            sorted by newest. PubSub broadcasts
+            <code class="bg-muted px-1 rounded">&lbrace;:lore_updated, title&rbrace;</code>
             on write so GrimoireLive updates live.
-            The <code class="bg-muted px-1 rounded">lore</code> context provider pulls entries by
+            The <code class="bg-muted px-1 rounded">lore</code>
+            context provider pulls entries by
             tag + sort into the prompt preamble (1 500-char total cap). Sort
-            <code class="bg-muted px-1 rounded">top</code> blends
-            <code class="bg-muted px-1 rounded">importance</code> and
-            <code class="bg-muted px-1 rounded">newest</code> halves, deduped, to prevent
+            <code class="bg-muted px-1 rounded">top</code>
+            blends <code class="bg-muted px-1 rounded">importance</code>
+            and <code class="bg-muted px-1 rounded">newest</code>
+            halves, deduped, to prevent
             high-signal historical entries from being crowded out by recent noise.
           </p>
         </div>
@@ -312,8 +340,10 @@ defmodule ExCaliburWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">The Challenger Builtin Member</h3>
           <p class="text-sm text-muted-foreground">
-            Resolved by <code class="bg-muted px-1 rounded">resolve_members("challenger")</code> in
-            QuestRunner. Backed by <code class="bg-muted px-1 rounded">BuiltinMember.validators/0</code>
+            Resolved by <code class="bg-muted px-1 rounded">resolve_members("challenger")</code>
+            in
+            QuestRunner. Backed by
+            <code class="bg-muted px-1 rounded">BuiltinMember.validators/0</code>
             — category <code class="bg-muted px-1 rounded">:validator</code>, uses the journeyman
             model from <code class="bg-muted px-1 rounded">@default_ranks</code>. Prompt is hardcoded
             to demand specific evidence and default to fail.

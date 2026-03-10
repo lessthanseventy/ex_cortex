@@ -1,7 +1,7 @@
 defmodule ExCaliburWeb.LiveAcceptance do
   @moduledoc "Allows LiveView processes to access the Ecto SQL Sandbox during tests."
-  import Phoenix.LiveView
   import Phoenix.Component
+  import Phoenix.LiveView
 
   def on_mount(:default, _params, _session, socket) do
     socket =

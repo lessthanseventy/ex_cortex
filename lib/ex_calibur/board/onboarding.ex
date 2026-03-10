@@ -1,5 +1,5 @@
 defmodule ExCalibur.Board.Onboarding do
-  @moduledoc "Initial setup and orientation campaign templates."
+  @moduledoc "Initial setup and orientation quest templates."
 
   alias ExCalibur.Board
 
@@ -23,7 +23,7 @@ defmodule ExCalibur.Board.Onboarding do
       requires: [
         :any_members
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Team Coverage Analysis",
           description:
@@ -54,15 +54,15 @@ defmodule ExCalibur.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      campaign_definition: %{
-        name: "Team Health Check Campaign",
+      quest_definition: %{
+        name: "Team Health Check Quest",
         description: "On-demand team capability assessment and gap analysis.",
         status: "active",
         trigger: "manual",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Team Coverage Analysis", "flow" => "always"},
-          %{"quest_name" => "Write Team Health Report", "flow" => "always"}
+          %{"step_name" => "Team Coverage Analysis", "flow" => "always"},
+          %{"step_name" => "Write Team Health Report", "flow" => "always"}
         ],
         source_ids: []
       }
@@ -80,7 +80,7 @@ defmodule ExCalibur.Board.Onboarding do
       requires: [
         {:source_type, "git"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Codebase Architecture Review",
           description:
@@ -113,15 +113,15 @@ defmodule ExCalibur.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      campaign_definition: %{
-        name: "Codebase First Look Campaign",
+      quest_definition: %{
+        name: "Codebase First Look Quest",
         description: "On-demand initial codebase audit and architectural summary.",
         status: "active",
         trigger: "manual",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Codebase Architecture Review", "flow" => "always"},
-          %{"quest_name" => "Write Codebase Summary", "flow" => "always"}
+          %{"step_name" => "Codebase Architecture Review", "flow" => "always"},
+          %{"step_name" => "Write Codebase Summary", "flow" => "always"}
         ],
         source_ids: []
       }
@@ -140,7 +140,7 @@ defmodule ExCalibur.Board.Onboarding do
         {:source_type, "git"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Security Baseline Assessment",
           description:
@@ -187,16 +187,16 @@ defmodule ExCalibur.Board.Onboarding do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Security Baseline Campaign",
+      quest_definition: %{
+        name: "Security Baseline Quest",
         description: "On-demand security baseline with Slack alert for critical findings.",
         status: "active",
         trigger: "manual",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Security Baseline Assessment", "flow" => "always"},
-          %{"quest_name" => "Write Security Baseline", "flow" => "always"},
-          %{"quest_name" => "Post Security Baseline Alert", "flow" => "on_flag"}
+          %{"step_name" => "Security Baseline Assessment", "flow" => "always"},
+          %{"step_name" => "Write Security Baseline", "flow" => "always"},
+          %{"step_name" => "Post Security Baseline Alert", "flow" => "on_flag"}
         ],
         source_ids: []
       }
@@ -214,7 +214,7 @@ defmodule ExCalibur.Board.Onboarding do
       requires: [
         {:source_type, "git"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Extract Initial Knowledge",
           description:
@@ -250,16 +250,15 @@ defmodule ExCalibur.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      campaign_definition: %{
-        name: "Knowledge Base Bootstrap Campaign",
-        description:
-          "On-demand knowledge base seeding from codebase — architecture + domain glossary.",
+      quest_definition: %{
+        name: "Knowledge Base Bootstrap Quest",
+        description: "On-demand knowledge base seeding from codebase — architecture + domain glossary.",
         status: "active",
         trigger: "manual",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Extract Initial Knowledge", "flow" => "always"},
-          %{"quest_name" => "Extract Domain Glossary", "flow" => "always"}
+          %{"step_name" => "Extract Initial Knowledge", "flow" => "always"},
+          %{"step_name" => "Extract Domain Glossary", "flow" => "always"}
         ],
         source_ids: []
       }

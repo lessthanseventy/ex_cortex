@@ -101,7 +101,7 @@ defmodule ExCalibur.Evaluator do
   defp build_actions_from_charter(meta) do
     mod_name = Module.concat([Excellence, DynamicActions, :Template])
 
-    unless Code.ensure_loaded?(mod_name) do
+    if !Code.ensure_loaded?(mod_name) do
       action_defs =
         Enum.map(meta.actions, fn action ->
           quote do

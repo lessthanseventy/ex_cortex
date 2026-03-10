@@ -4,6 +4,7 @@ defmodule ExCaliburWeb.LibraryLive do
 
   import SaladUI.Badge
 
+  alias ExCalibur.Heralds.Herald
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
   alias ExCalibur.Sources.SourceSupervisor
@@ -59,6 +60,7 @@ defmodule ExCaliburWeb.LibraryLive do
 
   defp load_data(socket) do
     import Ecto.Query
+
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [desc: s.inserted_at]))
     stacked_ids = MapSet.new(sources, & &1.book_id)
 
@@ -111,7 +113,9 @@ defmodule ExCaliburWeb.LibraryLive do
     Enum.each(active, fn source -> SourceWorker.sync(source.id) end)
     n = length(active)
     Process.send_after(self(), :sync_done, 15_000)
-    {:noreply, socket |> assign(syncing: true) |> put_flash(:info, "Syncing #{n} source#{if n == 1, do: "", else: "s"}...")}
+
+    {:noreply,
+     socket |> assign(syncing: true) |> put_flash(:info, "Syncing #{n} source#{if n == 1, do: "", else: "s"}...")}
   end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) do
@@ -246,11 +250,11 @@ defmodule ExCaliburWeb.LibraryLive do
 
   @impl true
   def handle_event("save_herald_config", %{"herald" => params, "_herald_id" => id}, socket) do
-    herald = ExCalibur.Repo.get!(ExCalibur.Heralds.Herald, id)
+    herald = ExCalibur.Repo.get!(Herald, id)
     config = build_herald_config(Map.put(params, "type", herald.type))
 
     herald
-    |> ExCalibur.Heralds.Herald.changeset(%{config: config})
+    |> Herald.changeset(%{config: config})
     |> ExCalibur.Repo.update()
 
     {:noreply, socket |> assign(editing_herald: nil) |> load_data()}
@@ -258,26 +262,23 @@ defmodule ExCaliburWeb.LibraryLive do
 
   @impl true
   def handle_event("delete_herald", %{"id" => id}, socket) do
-    herald = ExCalibur.Repo.get!(ExCalibur.Heralds.Herald, id)
+    herald = ExCalibur.Repo.get!(Herald, id)
     ExCalibur.Heralds.delete_herald(herald)
     {:noreply, load_data(socket)}
   end
 
-  defp build_herald_config(%{"type" => "slack"} = p),
-    do: %{"webhook_url" => p["webhook_url"]}
+  defp build_herald_config(%{"type" => "slack"} = p), do: %{"webhook_url" => p["webhook_url"]}
 
-  defp build_herald_config(%{"type" => "webhook"} = p),
-    do: %{"url" => p["url"], "headers" => %{}}
+  defp build_herald_config(%{"type" => "webhook"} = p), do: %{"url" => p["url"], "headers" => %{}}
 
-  defp build_herald_config(%{"type" => type} = p)
-       when type in ["github_issue", "github_pr"],
-       do: %{
-         "token" => p["token"],
-         "owner" => p["owner"],
-         "repo" => p["repo"],
-         "base_branch" => p["base_branch"],
-         "file_path" => p["file_path"]
-       }
+  defp build_herald_config(%{"type" => type} = p) when type in ["github_issue", "github_pr"],
+    do: %{
+      "token" => p["token"],
+      "owner" => p["owner"],
+      "repo" => p["repo"],
+      "base_branch" => p["base_branch"],
+      "file_path" => p["file_path"]
+    }
 
   defp build_herald_config(%{"type" => "email"} = p),
     do: %{"api_key" => p["api_key"], "from" => p["from"], "to" => p["to"]}
@@ -312,7 +313,13 @@ defmodule ExCaliburWeb.LibraryLive do
           <h2 class="text-xl font-semibold">Active Sources</h2>
           <%= if @sources != [] do %>
             <.badge variant="secondary">{length(@sources)}</.badge>
-            <.button variant="outline" size="sm" phx-click="sync_all" disabled={@syncing} class="ml-auto">
+            <.button
+              variant="outline"
+              size="sm"
+              phx-click="sync_all"
+              disabled={@syncing}
+              class="ml-auto"
+            >
               {if @syncing, do: "Syncing…", else: "Sync All"}
             </.button>
           <% end %>
@@ -440,7 +447,9 @@ defmodule ExCaliburWeb.LibraryLive do
                       <span class={[
                         "transition-transform inline-block text-muted-foreground shrink-0 text-lg leading-none",
                         if(@editing_herald == to_string(herald.id), do: "rotate-90")
-                      ]}>›</span>
+                      ]}>
+                        ›
+                      </span>
                       <div class="space-y-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                           <span class="font-medium">{herald.name}</span>
@@ -774,7 +783,9 @@ defmodule ExCaliburWeb.LibraryLive do
           <span class={[
             "transition-transform inline-block text-muted-foreground shrink-0 text-lg leading-none",
             if(@expanding == @source.id, do: "rotate-90")
-          ]}>›</span>
+          ]}>
+            ›
+          </span>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-medium">{@name}</span>

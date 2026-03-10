@@ -1,5 +1,7 @@
 defmodule ExCalibur.Trust.MemberTrustScore do
+  @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   schema "member_trust_scores" do

@@ -31,9 +31,9 @@ config :ex_calibur,
 # Skip in test so DATABASE_URL doesn't override the test database config
 if config_env() != :test do
   if database_url = System.get_env("DATABASE_URL") do
-    config :ex_cellence, Excellence.Repo, url: database_url
-
     config :ex_calibur, ExCalibur.Repo, url: database_url
+
+    config :ex_cellence, Excellence.Repo, url: database_url
   end
 end
 
@@ -61,13 +61,6 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
-  config :ex_cellence, Excellence.Repo,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    socket_options: maybe_ipv6
-
-  config :ex_cellence, Oban, repo: Excellence.Repo
-
   config :ex_calibur, ExCalibur.Repo,
     # ssl: true,
     url: database_url,
@@ -88,6 +81,13 @@ if config_env() == :prod do
     secret_key_base: secret_key_base
 
   config :ex_calibur, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+
+  config :ex_cellence, Excellence.Repo,
+    url: database_url,
+    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+    socket_options: maybe_ipv6
+
+  config :ex_cellence, Oban, repo: Excellence.Repo
 
   # ## SSL Support
   #

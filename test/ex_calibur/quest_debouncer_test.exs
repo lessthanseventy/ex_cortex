@@ -4,10 +4,10 @@ defmodule ExCalibur.QuestDebouncerTest do
   alias ExCalibur.QuestDebouncer
   alias ExCalibur.Quests
 
-  test "enqueue_campaign/3 accepts a campaign without crashing" do
-    {:ok, campaign} =
-      Quests.create_campaign(%{
-        name: "Debouncer Test Campaign",
+  test "enqueue_quest/3 accepts a quest without crashing" do
+    {:ok, quest} =
+      Quests.create_quest(%{
+        name: "Debouncer Test Quest",
         trigger: "source",
         source_ids: ["src-test"]
       })
@@ -15,6 +15,6 @@ defmodule ExCalibur.QuestDebouncerTest do
     items = [%ExCalibur.Sources.SourceItem{content: "test item", source_id: "src-test"}]
 
     # Should not crash
-    assert :ok = QuestDebouncer.enqueue_campaign(campaign, "test-source", items)
+    assert :ok = QuestDebouncer.enqueue_quest(quest, "test-source", items)
   end
 end

@@ -46,8 +46,8 @@ defmodule ExCalibur.ContextProviders.Lore do
   # Gives important historical signal priority while keeping fresh data present.
   defp select_entries(tags, "top", limit) do
     half = max(1, div(limit, 2))
-    by_importance = Lore.list_entries(tags: tags, sort: "importance") |> Enum.take(half)
-    by_recency = Lore.list_entries(tags: tags, sort: "newest") |> Enum.take(half)
+    by_importance = [tags: tags, sort: "importance"] |> Lore.list_entries() |> Enum.take(half)
+    by_recency = [tags: tags, sort: "newest"] |> Lore.list_entries() |> Enum.take(half)
 
     (by_importance ++ by_recency)
     |> Enum.uniq_by(& &1.id)
@@ -55,7 +55,7 @@ defmodule ExCalibur.ContextProviders.Lore do
   end
 
   defp select_entries(tags, sort, limit) do
-    Lore.list_entries(tags: tags, sort: sort) |> Enum.take(limit)
+    [tags: tags, sort: sort] |> Lore.list_entries() |> Enum.take(limit)
   end
 
   # Higher-importance entries get more body budget so signal isn't truncated.
@@ -65,7 +65,7 @@ defmodule ExCalibur.ContextProviders.Lore do
 
   defp format_entry(entry) do
     importance = if entry.importance, do: " [importance: #{entry.importance}]", else: ""
-    tags_str = if entry.tags != [], do: "\nTags: #{Enum.join(entry.tags, ", ")}", else: ""
+    tags_str = if entry.tags == [], do: "", else: "\nTags: #{Enum.join(entry.tags, ", ")}"
     body = String.slice(entry.body || "", 0, body_cap(entry))
     "### #{entry.title}#{importance}#{tags_str}\n#{body}"
   end

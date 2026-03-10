@@ -1,18 +1,18 @@
 defmodule ExCalibur.QuestDebouncer do
   @moduledoc """
-  Coalesces items from multiple sources into a single quest or campaign run.
+  Coalesces items from multiple sources into a single step or quest run.
 
-  When multiple sources fire (e.g. Sync All), each calls `enqueue/3` (for quests)
-  or `enqueue_campaign/3` (for campaigns) with their items. The debouncer waits
+  When multiple sources fire (e.g. Sync All), each calls `enqueue/3` (for steps)
+  or `enqueue_quest/3` (for quests) with their items. The debouncer waits
   for a collection window, then summarises each source's batch with a quick LLM
-  call, combines the summaries, and runs the quest or campaign exactly once.
+  call, combines the summaries, and runs the step or quest exactly once.
 
-  State keys are tagged tuples: {:quest, id} or {:campaign, id} to avoid collisions.
+  State keys are tagged tuples: {:step, id} or {:quest, id} to avoid collisions.
   """
   use GenServer
 
-  alias ExCalibur.CampaignRunner
   alias ExCalibur.QuestRunner
+  alias ExCalibur.StepRunner
   alias Excellence.LLM.Ollama
 
   require Logger
@@ -21,14 +21,14 @@ defmodule ExCalibur.QuestDebouncer do
 
   def start_link(_), do: GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
 
-  @doc "Enqueue items from a named source for a quest."
-  def enqueue(quest, source_label, items) when is_list(items) and items != [] do
-    GenServer.cast(__MODULE__, {:enqueue, {:quest, quest.id}, quest, source_label, items})
+  @doc "Enqueue items from a named source for a step."
+  def enqueue(step, source_label, items) when is_list(items) and items != [] do
+    GenServer.cast(__MODULE__, {:enqueue, {:step, step.id}, step, source_label, items})
   end
 
-  @doc "Enqueue items from a named source for a campaign."
-  def enqueue_campaign(campaign, source_label, items) when is_list(items) and items != [] do
-    GenServer.cast(__MODULE__, {:enqueue, {:campaign, campaign.id}, campaign, source_label, items})
+  @doc "Enqueue items from a named source for a quest."
+  def enqueue_quest(quest, source_label, items) when is_list(items) and items != [] do
+    GenServer.cast(__MODULE__, {:enqueue, {:quest, quest.id}, quest, source_label, items})
   end
 
   # ── GenServer callbacks ────────────────────────────────────────────────────
@@ -79,12 +79,12 @@ defmodule ExCalibur.QuestDebouncer do
             Logger.info("[QuestDebouncer] Running #{inspect(key)} (#{entity_name})")
 
             case key do
+              {:step, _} -> StepRunner.run(entity, combined)
               {:quest, _} -> QuestRunner.run(entity, combined)
-              {:campaign, _} -> CampaignRunner.run(entity, combined)
             end
           rescue
             e ->
-              Logger.error("Quest/Campaign failed: #{Exception.message(e)}")
+              Logger.error("Step/Quest failed: #{Exception.message(e)}")
 
               Phoenix.PubSub.broadcast(
                 ExCalibur.PubSub,
@@ -104,16 +104,11 @@ defmodule ExCalibur.QuestDebouncer do
     ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
     ollama = Ollama.new(base_url: ollama_url)
 
-    batches
-    |> Enum.map(fn {label, items} -> summarise_source(label, items, ollama) end)
-    |> Enum.join("\n\n")
+    Enum.map_join(batches, "\n\n", fn {label, items} -> summarise_source(label, items, ollama) end)
   end
 
   defp summarise_source(label, items, ollama) do
-    raw =
-      items
-      |> Enum.map(&item_headline/1)
-      |> Enum.join("\n")
+    raw = Enum.map_join(items, "\n", &item_headline/1)
 
     prompt = """
     You are a concise news analyst. Summarise the following items from "#{label}" in 2–4 sentences,

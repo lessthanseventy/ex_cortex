@@ -11,8 +11,8 @@ defmodule ExCalibur.Quests.Proposal do
     field :status, :string, default: "pending"
     field :applied_at, :utc_datetime
 
-    belongs_to :quest, ExCalibur.Quests.Quest
-    belongs_to :quest_run, ExCalibur.Quests.QuestRun
+    belongs_to :step, ExCalibur.Quests.Step, foreign_key: :quest_id
+    belongs_to :step_run, ExCalibur.Quests.StepRun, foreign_key: :quest_run_id
 
     timestamps()
   end

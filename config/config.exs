@@ -17,16 +17,6 @@ config :esbuild,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
-# ex_cellence Oban config — uses Excellence.Repo (started by ex_cellence app)
-config :ex_cellence, Oban,
-  engine: Oban.Engines.Basic,
-  queues: [default: 10, learning: 5, tuning: 3, mining: 2],
-  repo: Excellence.Repo
-
-# Excellence core config
-config :ex_cellence,
-  ecto_repos: [ExCalibur.Repo]
-
 # Configure the endpoint
 config :ex_calibur, ExCaliburWeb.Endpoint,
   url: [host: "localhost"],
@@ -38,11 +28,21 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   pubsub_server: ExCalibur.PubSub,
   live_view: [signing_salt: "dE89EITe"]
 
+config :ex_calibur, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
+
 config :ex_calibur,
   ecto_repos: [ExCalibur.Repo],
   generators: [timestamp_type: :utc_datetime]
 
-config :ex_calibur, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
+# ex_cellence Oban config — uses Excellence.Repo (started by ex_cellence app)
+config :ex_cellence, Oban,
+  engine: Oban.Engines.Basic,
+  queues: [default: 10, learning: 5, tuning: 3, mining: 2],
+  repo: Excellence.Repo
+
+# Excellence core config
+config :ex_cellence,
+  ecto_repos: [ExCalibur.Repo]
 
 # Configure Elixir's Logger
 config :logger, :default_formatter,

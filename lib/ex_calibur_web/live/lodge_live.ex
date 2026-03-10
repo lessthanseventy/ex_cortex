@@ -9,12 +9,12 @@ defmodule ExCaliburWeb.LodgeLive do
   import ExCellenceDashboard.Components.ReplayViewer
   import SaladUI.Card
 
-  alias Excellence.Schemas.Decision
-  alias Excellence.Schemas.Member
-  alias Excellence.Schemas.Outcome
   alias ExCalibur.Quests
   alias ExCalibur.Quests.Proposal
   alias ExCalibur.TrustScorer
+  alias Excellence.Schemas.Decision
+  alias Excellence.Schemas.Member
+  alias Excellence.Schemas.Outcome
 
   @impl true
   def mount(_params, _session, socket) do
@@ -156,7 +156,7 @@ defmodule ExCaliburWeb.LodgeLive do
                         {proposal.type}
                       </span>
                       <span class="text-xs text-muted-foreground">
-                        {proposal.quest && proposal.quest.name}
+                        {proposal.step && proposal.step.name}
                       </span>
                     </div>
                     <p class="text-sm font-medium">{proposal.description}</p>
@@ -249,11 +249,15 @@ defmodule ExCaliburWeb.LodgeLive do
       <.card>
         <.card_header>
           <.card_title>Member Trust</.card_title>
-          <.card_description>Scores decay when a member's verdict contradicts step consensus</.card_description>
+          <.card_description>
+            Scores decay when a member's verdict contradicts step consensus
+          </.card_description>
         </.card_header>
         <.card_content>
           <%= if @trust_scores == [] do %>
-            <p class="text-sm text-muted-foreground">No trust data yet — scores appear after quest runs.</p>
+            <p class="text-sm text-muted-foreground">
+              No trust data yet — scores appear after quest runs.
+            </p>
           <% else %>
             <table class="w-full text-sm">
               <thead>
@@ -266,17 +270,19 @@ defmodule ExCaliburWeb.LodgeLive do
               <tbody>
                 <%= for score <- @trust_scores do %>
                   <tr class="border-b last:border-0">
-                    <td class="py-1"><%= score.member_name %></td>
+                    <td class="py-1">{score.member_name}</td>
                     <td class="py-1">
                       <span class={[
                         "font-mono font-medium",
-                        if(score.score >= 0.9, do: "text-green-600",
-                          else: if(score.score >= 0.75, do: "text-yellow-600", else: "text-red-600"))
+                        if(score.score >= 0.9,
+                          do: "text-green-600",
+                          else: if(score.score >= 0.75, do: "text-yellow-600", else: "text-red-600")
+                        )
                       ]}>
-                        <%= Float.round(score.score, 3) %>
+                        {Float.round(score.score, 3)}
                       </span>
                     </td>
-                    <td class="py-1 text-muted-foreground"><%= score.decay_count %></td>
+                    <td class="py-1 text-muted-foreground">{score.decay_count}</td>
                   </tr>
                 <% end %>
               </tbody>

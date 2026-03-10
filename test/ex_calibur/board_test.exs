@@ -16,9 +16,9 @@ defmodule ExCalibur.BoardTest do
         assert t.category in [:triage, :reporting, :generation, :review, :onboarding],
                "#{t.id} has invalid category #{t.category}"
 
-        assert is_list(t.quest_definitions), "#{t.id} missing quest_definitions"
-        assert length(t.quest_definitions) > 0, "#{t.id} has no quest_definitions"
-        assert is_map(t.campaign_definition), "#{t.id} missing campaign_definition"
+        assert is_list(t.step_definitions), "#{t.id} missing step_definitions"
+        assert length(t.step_definitions) > 0, "#{t.id} has no step_definitions"
+        assert is_map(t.quest_definition), "#{t.id} missing quest_definition"
       end
     end
 

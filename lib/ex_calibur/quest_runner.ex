@@ -1,552 +1,216 @@
 defmodule ExCalibur.QuestRunner do
   @moduledoc """
-  Runs a Quest's roster against input text, returning a trace of verdicts.
+  Runs a Quest's ordered step definitions in sequence.
 
-  ## Roster step format
-    %{
-      "who"         => "all" | "apprentice" | "journeyman" | "master" | "team:X" | member_id | "claude_haiku" | "claude_sonnet" | "claude_opus",
-      "when"        => "parallel" | "sequential",
-      "how"         => "consensus" | "solo" | "majority",
-      "escalate_on" => "never" | "always" | %{"type" => "verdict", "values" => [...]} | %{"type" => "confidence", "threshold" => float}
-    }
+  Each step's output is formatted as a structured handoff block and prepended
+  to the next step's input. The final step's result is returned.
 
-  ## Return value
-    {:ok, %{verdict: "pass"|"warn"|"fail", steps: [step_trace, ...]}}
-    {:error, reason}
+  Steps are maps: %{"step_id" => "123", "order" => 1}
+  Branch steps: %{"type" => "branch", "steps" => [...], "synthesizer" => "...", "order" => 1}
   """
 
-  import Ecto.Query
+  alias ExCalibur.Quests
+  alias ExCalibur.StepRunner
 
-  alias ExCalibur.ClaudeClient
-  alias ExCalibur.ContextProviders.ContextProvider
-  alias ExCalibur.Repo
-  alias Excellence.LLM.Ollama
-  alias Excellence.Schemas.Member
+  require Logger
 
-  @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
-  @rank_order %{"apprentice" => 0, "journeyman" => 1, "master" => 2}
-
-  @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
-
-  @doc "Build the ordered list of models to try: assigned model first, then fallback chain (deduped)."
-  def fallback_models_for(model, chain) do
-    [model | Enum.reject(chain, &(&1 == model))]
+  @doc "Run all steps of a quest, returning the final step result."
+  def run(%{steps: steps} = quest, _input) when steps == [] do
+    Logger.info("[QuestRunner] Quest #{quest.id} (#{quest.name}) has no steps")
+    {:ok, %{steps: []}}
   end
 
-  @doc """
-  Run a quest roster against `input_text`.
-  Accepts either a `Quest` struct or just a bare roster list.
-  Returns `{:ok, result}` or `{:error, reason}`.
-  """
-  def run(%{min_rank: min_rank} = quest, input_text)
-      when is_binary(min_rank) and min_rank != "" do
-    min_order = Map.get(@rank_order, min_rank, 0)
+  def run(quest, input) do
+    ordered_steps = Enum.sort_by(quest.steps, &Map.get(&1, "order", 0))
 
-    eligible_ranks =
-      @rank_order
-      |> Enum.filter(fn {_rank, order} -> order >= min_order end)
-      |> Enum.map(fn {rank, _} -> rank end)
+    Logger.info("[QuestRunner] Running quest #{quest.id} (#{quest.name}), #{length(ordered_steps)} step(s)")
 
-    has_eligible =
-      Repo.exists?(
-        from m in Member,
-          where:
-            m.type == "role" and m.status == "active" and
-              fragment("config->>'rank' = ANY(?)", ^eligible_ranks)
-      )
+    # Zip each step with the next step for look-ahead (next step name for handoff)
+    steps_with_next = Enum.zip(ordered_steps, tl(ordered_steps) ++ [nil])
 
-    if has_eligible do
-      context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
-      augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-      run(quest.roster, augmented)
-    else
-      {:error, {:rank_insufficient, "Quest requires #{min_rank} or higher — no eligible members found"}}
-    end
-  end
+    {results, _} =
+      Enum.reduce(steps_with_next, {[], input}, fn {step, next_step}, {acc_results, current_input} ->
+        case step["type"] do
+          "branch" ->
+            next_step_name =
+              if next_step,
+                do: resolve_step_name(next_step["step_id"] || next_step["synthesizer"])
 
-  def run(%{output_type: type} = quest, input_text) when type in @herald_types do
-    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
-    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+            result = run_branch_step(step, current_input)
 
-    with {:ok, herald} <- ExCalibur.Heralds.get_by_name(quest.herald_name || ""),
-         {:ok, attrs} <- run_artifact(quest, augmented),
-         :ok <- ExCalibur.Heralds.deliver(herald, quest, attrs) do
-      {:ok, %{delivered: true, type: type, title: attrs.title}}
-    end
-  end
+            synth_step_name =
+              case resolve_step(step["synthesizer"]) do
+                nil -> "Branch"
+                s -> s.name
+              end
 
-  def run(%{output_type: "artifact"} = quest, input_text) do
-    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
-    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-    result = run_artifact(quest, augmented)
+            next_input =
+              case result_to_text(result, "Branch: #{synth_step_name}", next_step_name) do
+                "" -> current_input
+                text -> "#{current_input}\n\n#{text}"
+              end
 
-    case result do
-      {:ok, attrs} ->
-        ExCalibur.Lore.write_artifact(quest, attrs)
-        {:ok, %{artifact: attrs}}
+            {acc_results ++ [result], next_input}
 
-      error ->
-        error
-    end
-  end
+          _ ->
+            step_id = step["step_id"] || step["quest_id"]
+            next_step_name = if next_step, do: resolve_step_name(next_step["step_id"] || next_step["quest_id"])
 
-  def run(%{output_type: "freeform"} = quest, input_text) do
-    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
-    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+            case resolve_step(step_id) do
+              nil ->
+                Logger.warning("[QuestRunner] Step #{step_id} not found, skipping")
+                {acc_results ++ [{:error, :step_not_found}], current_input}
 
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
+              resolved_step ->
+                Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
+                result = StepRunner.run(resolved_step, current_input)
 
-    roster = quest.roster || []
+                next_input =
+                  case result_to_text(result, resolved_step.name, next_step_name) do
+                    "" -> current_input
+                    text -> "#{current_input}\n\n#{text}"
+                  end
 
-    with [step | _] <- roster,
-         [member | _] <- resolve_members(step),
-         raw when is_binary(raw) <- call_member_raw(member, augmented, ollama) do
-      {:ok, %{output: raw, member: member.name}}
-    else
-      [] -> {:error, :no_roster}
-      nil -> {:error, :llm_failed}
-      error -> error
-    end
-  end
-
-  def run(quest, input_text) when is_struct(quest) do
-    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
-    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-    run(quest.roster, augmented)
-  end
-
-  def run(roster, input_text) when is_list(roster) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
-
-    {steps, final_verdict} =
-      Enum.reduce_while(roster, {[], nil}, fn step, {traces, _prev_verdict} ->
-        members = resolve_members(step)
-
-        step_results = run_step(members, step["how"], input_text, ollama)
-
-        step_verdict = aggregate(step_results, step["how"])
-
-        trace = %{
-          who: step["who"],
-          how: step["how"],
-          results: step_results,
-          verdict: step_verdict
-        }
-
-        if should_escalate?(step["escalate_on"], step_verdict) do
-          {:halt, {traces ++ [trace], step_verdict}}
-        else
-          {:cont, {traces ++ [trace], step_verdict}}
+                {acc_results ++ [result], next_input}
+            end
         end
       end)
 
-    result = {:ok, %{verdict: final_verdict || "pass", steps: steps}}
-    ExCalibur.TrustScorer.record_run(steps)
-    result
-  end
-
-  # ---------------------------------------------------------------------------
-  # Member resolution
-  # ---------------------------------------------------------------------------
-
-  defp resolve_members(%{"preferred_who" => name} = step) when is_binary(name) and name != "" do
-    case from(m in Member,
-           where: m.type == "role" and m.status == "active" and m.name == ^name
-         )
-         |> Repo.all()
-         |> Enum.map(&member_to_runner_spec/1) do
-      [] -> resolve_members(%{step | "preferred_who" => nil})
-      members -> members
+    case List.last(results) do
+      {:ok, _} = ok -> ok
+      _ -> {:ok, %{steps: results}}
     end
   end
 
-  defp resolve_members(%{"who" => who}), do: resolve_members(who)
-  defp resolve_members(step) when is_map(step), do: resolve_members(Map.get(step, "who", "all"))
+  @doc "Format a StepRunner result as a structured handoff block for the next step."
+  def result_to_text(result, current_step_name, next_step_name)
 
-  defp resolve_members("all") do
-    from(m in Member, where: m.type == "role" and m.status == "active")
-    |> Repo.all()
-    |> Enum.map(&member_to_runner_spec/1)
+  def result_to_text({:ok, %{verdict: verdict, steps: steps}}, step_name, next_step_name) do
+    member_lines =
+      steps
+      |> Enum.flat_map(& &1.results)
+      |> Enum.map_join("\n", fn r ->
+        "- **#{r.member}:** #{r.verdict} — #{String.slice(r[:reason] || "", 0, 120)}"
+      end)
+
+    question =
+      if next_step_name,
+        do: "\n**Open question for #{next_step_name}:** What does this verdict imply for your evaluation?",
+        else: ""
+
+    """
+    ## Prior Step: #{step_name}
+    **Verdict:** #{verdict}
+    **Member findings:**
+    #{member_lines}#{question}
+    """
   end
 
-  defp resolve_members("apprentice"), do: resolve_by_rank("apprentice")
+  def result_to_text({:ok, %{artifact: %{title: title, body: body}}}, step_name, next_step_name) do
+    question =
+      if next_step_name,
+        do: "\n**Open question for #{next_step_name}:** How does this artifact inform your evaluation?",
+        else: ""
 
-  defp resolve_members("journeyman"), do: resolve_by_rank("journeyman")
+    """
+    ## Prior Step: #{step_name}
+    **Artifact:** #{title}
+    #{body}#{question}
+    """
+  end
 
-  defp resolve_members("master"), do: resolve_by_rank("master")
+  def result_to_text({:ok, %{delivered: true, type: type}}, step_name, _next) do
+    "## Prior Step: #{step_name}\nHerald delivered (#{type})\n"
+  end
 
-  defp resolve_members("challenger") do
-    case ExCalibur.Members.BuiltinMember.get("challenger") do
+  def result_to_text(_, _, _), do: ""
+
+  # Keep arity-1 version for backwards compatibility
+  def result_to_text(result), do: result_to_text(result, "Previous Step", nil)
+
+  @doc "Combine parallel branch results into a single context block for the synthesizer."
+  def combine_branch_results(named_results, original_input) do
+    branch_context =
+      Enum.map_join(named_results, "\n\n", fn {name, result} ->
+        result_to_text(result, name, nil)
+      end)
+
+    """
+    #{original_input}
+
+    ## Parallel Branch Results
+
+    #{branch_context}
+    """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Private
+  # ---------------------------------------------------------------------------
+
+  defp run_branch_step(step, input) do
+    step_ids = step["steps"] || step["quests"] || []
+    synthesizer_id = step["synthesizer"]
+
+    Logger.info("[QuestRunner] Running branch step: #{length(step_ids)} parallel step(s) + synthesizer")
+
+    branch_results =
+      step_ids
+      |> Task.async_stream(
+        fn step_id ->
+          case resolve_step(step_id) do
+            nil ->
+              {step_id, {:error, :step_not_found}}
+
+            resolved_step ->
+              Logger.info("[QuestRunner] Branch: running #{resolved_step.name}")
+              {resolved_step.name, StepRunner.run(resolved_step, input)}
+          end
+        end,
+        timeout: 120_000,
+        on_timeout: :kill_task
+      )
+      |> Enum.map(fn
+        {:ok, result} -> result
+        {:exit, _} -> {"unknown", {:error, :timeout}}
+      end)
+
+    combined_input = combine_branch_results(branch_results, input)
+
+    case resolve_step(synthesizer_id) do
       nil ->
-        []
+        Logger.warning("[QuestRunner] Branch synthesizer #{synthesizer_id} not found")
+        {:error, :synthesizer_not_found}
 
-      member ->
-        rank_config = member.ranks[:journeyman]
-
-        [
-          %{
-            type: :ollama,
-            model: rank_config.model,
-            system_prompt: member.system_prompt,
-            name: member.name
-          }
-        ]
+      synth ->
+        Logger.info("[QuestRunner] Branch: running synthesizer #{synth.name}")
+        StepRunner.run(synth, combined_input)
     end
   end
 
-  defp resolve_members("team:" <> team) do
-    from(m in Member,
-      where: m.type == "role" and m.status == "active" and m.team == ^team
-    )
-    |> Repo.all()
-    |> Enum.map(&member_to_runner_spec/1)
-  end
-
-  defp resolve_members(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
-    [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil}]
-  end
-
-  defp resolve_members(member_id) when is_binary(member_id) do
-    case Repo.get(Member, member_id) do
-      nil -> []
-      m -> [member_to_runner_spec(m)]
+  defp resolve_step_name(step_id) when is_binary(step_id) do
+    case resolve_step(step_id) do
+      nil -> step_id
+      step -> step.name
     end
   end
 
-  defp resolve_by_rank(rank) do
-    from(m in Member,
-      where:
-        m.type == "role" and m.status == "active" and
-          fragment("config->>'rank' = ?", ^rank)
-    )
-    |> Repo.all()
-    |> Enum.map(&member_to_runner_spec/1)
-  end
+  defp resolve_step_name(_), do: nil
 
-  defp member_to_runner_spec(db) do
-    %{
-      type: :ollama,
-      model: db.config["model"] || "phi4-mini",
-      system_prompt: db.config["system_prompt"] || "",
-      name: db.name
-    }
-  end
-
-  # ---------------------------------------------------------------------------
-  # Running a step
-  # ---------------------------------------------------------------------------
-
-  defp run_step(members, _how, input_text, ollama) do
-    Enum.map(members, fn member ->
-      result = call_member(member, input_text, ollama)
-      Map.put(result, :member, member.name)
-    end)
-  end
-
-  defp call_member(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
-    prompt = system_prompt || default_claude_prompt()
-
-    case ClaudeClient.complete(tier, prompt, input_text) do
-      {:ok, text} -> parse_verdict(text)
-      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "Claude API error"}
-    end
-  end
-
-  defp call_member(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
-    chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
-    models = fallback_models_for(model, chain)
-
-    messages = [
-      %{role: :system, content: system_prompt},
-      %{role: :user, content: input_text}
-    ]
-
-    Enum.reduce_while(models, %{verdict: "abstain", confidence: 0.0, reason: "Ollama error"}, fn m, acc ->
-      case Ollama.chat(ollama, m, messages) do
-        {:ok, %{content: text}} -> {:halt, parse_verdict(text)}
-        {:ok, text} when is_binary(text) -> {:halt, parse_verdict(text)}
-        _ -> {:cont, acc}
-      end
-    end)
-  end
-
-  # Like call_member but returns raw text — used for freeform quests.
-  defp call_member_raw(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
-    prompt = system_prompt || ""
-
-    case ClaudeClient.complete(tier, prompt, input_text) do
-      {:ok, text} -> text
+  defp resolve_step(step_id) when is_binary(step_id) do
+    case Integer.parse(step_id) do
+      {id, ""} -> Quests.get_step!(id)
       _ -> nil
     end
+  rescue
+    _ -> nil
   end
 
-  defp call_member_raw(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
-    chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
-    models = fallback_models_for(model, chain)
-
-    messages = [
-      %{role: :system, content: system_prompt || ""},
-      %{role: :user, content: input_text}
-    ]
-
-    Enum.reduce_while(models, nil, fn m, _acc ->
-      case Ollama.chat(ollama, m, messages) do
-        {:ok, %{content: text}} -> {:halt, text}
-        {:ok, text} when is_binary(text) -> {:halt, text}
-        _ -> {:cont, nil}
-      end
-    end)
+  defp resolve_step(step_id) when is_integer(step_id) do
+    Quests.get_step!(step_id)
+  rescue
+    _ -> nil
   end
 
-  # ---------------------------------------------------------------------------
-  # Verdict parsing
-  # ---------------------------------------------------------------------------
-
-  defp parse_verdict(text) do
-    verdict =
-      case Regex.run(~r/ACTION:\s*(pass|warn|fail|abstain)/i, text) do
-        [_, v] -> String.downcase(v)
-        _ -> "abstain"
-      end
-
-    confidence =
-      case Regex.run(~r/CONFIDENCE:\s*([0-9.]+)/i, text) do
-        [_, c] -> String.to_float(c)
-        _ -> 0.5
-      end
-
-    reason =
-      case Regex.run(~r/REASON:\s*(.+)/is, text) do
-        [_, r] -> String.trim(r)
-        _ -> ""
-      end
-
-    %{verdict: verdict, confidence: confidence, reason: reason}
-  end
-
-  # ---------------------------------------------------------------------------
-  # Aggregation
-  # ---------------------------------------------------------------------------
-
-  defp aggregate([], _), do: "abstain"
-
-  defp aggregate(results, "solo") do
-    results |> List.first() |> Map.get(:verdict, "abstain")
-  end
-
-  defp aggregate(results, "consensus") do
-    verdicts = Enum.map(results, & &1.verdict)
-    if Enum.uniq(verdicts) == [hd(verdicts)], do: hd(verdicts), else: worst_verdict(verdicts)
-  end
-
-  defp aggregate(results, _majority) do
-    verdicts = Enum.map(results, & &1.verdict)
-    verdicts |> Enum.frequencies() |> Enum.max_by(fn {_, count} -> count end) |> elem(0)
-  end
-
-  defp worst_verdict(verdicts) do
-    Enum.min_by(verdicts, &Map.get(@verdict_order, &1, 2))
-  end
-
-  # ---------------------------------------------------------------------------
-  # Escalation
-  # ---------------------------------------------------------------------------
-
-  defp should_escalate?("always", _verdict), do: true
-  defp should_escalate?("never", _verdict), do: false
-
-  defp should_escalate?(%{"type" => "verdict", "values" => values}, verdict) do
-    verdict in values
-  end
-
-  defp should_escalate?(%{"type" => "confidence", "threshold" => _threshold}, _verdict) do
-    # Per-result confidence gating is handled by the caller; step-level always passes
-    false
-  end
-
-  defp should_escalate?(_, _), do: false
-
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
-  defp default_claude_prompt do
-    """
-    You are a careful evaluator. Review the provided text and give your assessment.
-
-    Respond with:
-    ACTION: pass | warn | fail | abstain
-    CONFIDENCE: 0.0-1.0
-    REASON: your reasoning
-    """
-  end
-
-  # ---------------------------------------------------------------------------
-  # Artifact generation
-  # ---------------------------------------------------------------------------
-
-  defp run_artifact(quest, input_text) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
-
-    roster = quest.roster || []
-
-    case roster do
-      [] ->
-        {:error, :no_roster}
-
-      [single_step] ->
-        # Single step — original behaviour
-        run_artifact_step(single_step, input_text, quest, ollama)
-
-      steps ->
-        # Multi-step: run all but last in reasoning mode, thread outputs to final step
-        {prelim_steps, [final_step]} = Enum.split(steps, length(steps) - 1)
-
-        reasoning_context =
-          Enum.map_join(prelim_steps, "\n\n", fn step ->
-            members = resolve_members(step)
-            label = step["label"] || step["who"] || "Analyst"
-
-            member_outputs =
-              Enum.map_join(members, "\n\n", fn member ->
-                reasoning_prompt = reasoning_system_prompt(member, step)
-
-                messages = [
-                  %{role: :system, content: reasoning_prompt},
-                  %{role: :user, content: input_text}
-                ]
-
-                text =
-                  case member do
-                    %{type: :claude, tier: tier} ->
-                      case ClaudeClient.complete(tier, reasoning_prompt, input_text) do
-                        {:ok, t} -> t
-                        _ -> "(no response)"
-                      end
-
-                    %{type: :ollama, model: model} ->
-                      case Ollama.chat(ollama, model, messages) do
-                        {:ok, %{content: t}} -> t
-                        {:ok, t} when is_binary(t) -> t
-                        _ -> "(no response)"
-                      end
-                  end
-
-                "**#{member.name}:** #{String.slice(text, 0, 500)}"
-              end)
-
-            "### #{label}\n#{member_outputs}"
-          end)
-
-        augmented = "#{input_text}\n\n---\n## Team Analysis\n#{reasoning_context}"
-        run_artifact_step(final_step, augmented, quest, ollama)
-    end
-  end
-
-  defp run_artifact_step(step, input_text, quest, ollama) do
-    members = resolve_members(step)
-    member = List.first(members)
-
-    if is_nil(member) do
-      {:error, :no_members}
-    else
-      system_prompt = artifact_system_prompt(quest)
-
-      messages = [
-        %{role: :system, content: system_prompt},
-        %{role: :user, content: input_text}
-      ]
-
-      raw =
-        case member do
-          %{type: :claude, tier: tier} ->
-            case ClaudeClient.complete(tier, system_prompt, input_text) do
-              {:ok, text} -> text
-              _ -> nil
-            end
-
-          %{type: :ollama, model: model} ->
-            case Ollama.chat(ollama, model, messages) do
-              {:ok, %{content: text}} -> text
-              {:ok, text} when is_binary(text) -> text
-              _ -> nil
-            end
-        end
-
-      if raw do
-        date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
-        title_template = quest.entry_title_template || quest.name || "Entry — {date}"
-        title = String.replace(title_template, "{date}", date)
-        {:ok, parse_artifact(raw, title)}
-      else
-        {:error, :llm_failed}
-      end
-    end
-  end
-
-  defp reasoning_system_prompt(member, step) do
-    base = member.system_prompt || ""
-    label = step["label"] || member.name
-
-    """
-    #{base}
-
-    You are #{label}. Provide your analysis and perspective on the data below.
-    Be direct and opinionated. Your output will be read by a synthesizer.
-    Do NOT use the TITLE/IMPORTANCE/TAGS/BODY format — just write your raw analysis.
-    """
-  end
-
-  defp artifact_system_prompt(quest) do
-    instruction = quest.description || "Synthesize the provided content."
-
-    """
-    #{instruction}
-
-    Respond in this exact format:
-    TITLE: <a concise title for this entry>
-    IMPORTANCE: <integer 1-5, where 5 is most important, or omit if not applicable>
-    TAGS: <comma-separated tags, lowercase, e.g. a11y,security,deps>
-    BODY:
-    <your synthesized content here, markdown is fine>
-    """
-  end
-
-  defp parse_artifact(text, fallback_title) do
-    title =
-      case Regex.run(~r/^TITLE:\s*(.+)$/m, text) do
-        [_, t] -> String.trim(t)
-        _ -> fallback_title
-      end
-
-    importance =
-      case Regex.run(~r/^IMPORTANCE:\s*(\d)$/m, text) do
-        [_, n] ->
-          val = String.to_integer(n)
-          if val in 1..5, do: val
-
-        _ ->
-          nil
-      end
-
-    tags =
-      case Regex.run(~r/^TAGS:\s*(.+)$/m, text) do
-        [_, t] ->
-          t |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
-
-        _ ->
-          []
-      end
-
-    body =
-      case Regex.run(~r/^BODY:\s*\n(.*)/ms, text) do
-        [_, b] -> String.trim(b)
-        _ -> text
-      end
-
-    %{title: title, body: body, tags: tags, importance: importance, source: "quest"}
-  end
+  defp resolve_step(_), do: nil
 end

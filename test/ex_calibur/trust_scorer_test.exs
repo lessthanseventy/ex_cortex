@@ -44,7 +44,7 @@ defmodule ExCalibur.TrustScorerTest do
     alice = Enum.find(scores, &(&1.member_name == "Alice"))
     bob = Enum.find(scores, &(&1.member_name == "Bob"))
 
-    assert alice != nil
+    assert alice
     assert alice.decay_count == 1
     assert bob == nil
   end

@@ -4,8 +4,8 @@ defmodule ExCaliburWeb.LodgeLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Excellence.Schemas.Member
   alias ExCalibur.Quests
+  alias Excellence.Schemas.Member
 
   defp insert_member do
     %Member{}
@@ -44,14 +44,14 @@ defmodule ExCaliburWeb.LodgeLiveTest do
     test "shows pending proposal with approve and reject buttons", %{conn: conn} do
       insert_member()
 
-      {:ok, quest} =
-        Quests.create_quest(%{name: "Auto Quest", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
+      {:ok, step} =
+        Quests.create_step(%{name: "Auto Step", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
 
-      {:ok, quest_run} = Quests.create_quest_run(%{quest_id: quest.id, input: "test input", status: "complete"})
+      {:ok, step_run} = Quests.create_step_run(%{step_id: step.id, input: "test input", status: "complete"})
 
       Quests.create_proposal(%{
-        quest_id: quest.id,
-        quest_run_id: quest_run.id,
+        quest_id: step.id,
+        quest_run_id: step_run.id,
         type: "roster_change",
         description: "Switch to master tier only",
         details: %{"suggestion" => "Narrow roster to master members"},
@@ -68,14 +68,14 @@ defmodule ExCaliburWeb.LodgeLiveTest do
     test "approve_proposal marks proposal approved and removes from list", %{conn: conn} do
       insert_member()
 
-      {:ok, quest} =
-        Quests.create_quest(%{name: "Auto Quest", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
+      {:ok, step} =
+        Quests.create_step(%{name: "Auto Step", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
 
-      {:ok, _quest_run} = Quests.create_quest_run(%{quest_id: quest.id, input: "test input", status: "complete"})
+      {:ok, _step_run} = Quests.create_step_run(%{step_id: step.id, input: "test input", status: "complete"})
 
       {:ok, proposal} =
         Quests.create_proposal(%{
-          quest_id: quest.id,
+          quest_id: step.id,
           type: "prompt_change",
           description: "Tighten the system prompt",
           status: "pending"
@@ -89,12 +89,12 @@ defmodule ExCaliburWeb.LodgeLiveTest do
     test "reject_proposal removes proposal from list", %{conn: conn} do
       insert_member()
 
-      {:ok, quest} =
-        Quests.create_quest(%{name: "Auto Quest", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
+      {:ok, step} =
+        Quests.create_step(%{name: "Auto Step", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
 
       {:ok, proposal} =
         Quests.create_proposal(%{
-          quest_id: quest.id,
+          quest_id: step.id,
           type: "schedule_change",
           description: "Run less frequently",
           status: "pending"

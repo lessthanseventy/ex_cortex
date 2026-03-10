@@ -4,8 +4,8 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Excellence.Schemas.Member
   alias ExCalibur.Repo
+  alias Excellence.Schemas.Member
 
   defp insert_member(attrs \\ %{}) do
     defaults = %{
@@ -209,7 +209,7 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
       html = render_click(view, "recruit", %{"member-id" => first.id, "rank" => "apprentice"})
       # Flash appears and member shows in the updated member list
       assert html =~ "recruited!"
-      assert ExCalibur.Repo.get_by(Excellence.Schemas.Member, name: first.name)
+      assert Repo.get_by(Member, name: first.name)
     end
   end
 end

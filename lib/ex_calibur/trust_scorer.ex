@@ -6,6 +6,7 @@ defmodule ExCalibur.TrustScorer do
   """
 
   import Ecto.Query
+
   alias ExCalibur.Repo
   alias ExCalibur.Trust.MemberTrustScore
 

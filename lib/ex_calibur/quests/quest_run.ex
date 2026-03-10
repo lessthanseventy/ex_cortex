@@ -6,16 +6,14 @@ defmodule ExCalibur.Quests.QuestRun do
 
   schema "excellence_quest_runs" do
     field :quest_id, :integer
-    field :campaign_run_id, :integer
-    field :input, :string
     field :status, :string, default: "pending"
-    field :results, :map, default: %{}
+    field :step_results, :map, default: %{}
     timestamps()
   end
 
   def changeset(run, attrs) do
     run
-    |> cast(attrs, [:quest_id, :campaign_run_id, :input, :status, :results])
+    |> cast(attrs, [:quest_id, :status, :step_results])
     |> validate_required([:quest_id])
     |> validate_inclusion(:status, ["pending", "running", "complete", "failed"])
   end

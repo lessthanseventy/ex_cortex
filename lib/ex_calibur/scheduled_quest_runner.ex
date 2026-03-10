@@ -1,16 +1,16 @@
 defmodule ExCalibur.ScheduledQuestRunner do
   @moduledoc """
-  GenServer that wakes up every minute and runs any scheduled campaigns whose
+  GenServer that wakes up every minute and runs any scheduled quests whose
   cron expression matches the current time.
 
-  Campaigns with `trigger: "scheduled"` and a valid `schedule` cron string
+  Quests with `trigger: "scheduled"` and a valid `schedule` cron string
   (e.g. "*/15 * * * *") will be run with an empty input string.
-  Wrap a single quest in a one-step campaign to schedule it.
+  Wrap a single step in a one-step quest to schedule it.
   """
 
   use GenServer
 
-  alias ExCalibur.CampaignRunner
+  alias ExCalibur.QuestRunner
   alias ExCalibur.Quests
 
   require Logger
@@ -29,7 +29,7 @@ defmodule ExCalibur.ScheduledQuestRunner do
 
   @impl true
   def handle_info(:tick, state) do
-    run_due_campaigns()
+    run_due_quests()
     schedule_tick()
     {:noreply, state}
   end
@@ -38,20 +38,20 @@ defmodule ExCalibur.ScheduledQuestRunner do
     Process.send_after(self(), :tick, @tick_ms)
   end
 
-  defp run_due_campaigns do
+  defp run_due_quests do
     now = DateTime.utc_now()
 
-    Quests.list_campaigns()
-    |> Enum.filter(&campaign_scheduled_and_due?(&1, now))
-    |> Enum.each(&run_campaign/1)
+    Quests.list_quests()
+    |> Enum.filter(&quest_scheduled_and_due?(&1, now))
+    |> Enum.each(&run_quest/1)
   end
 
-  defp campaign_scheduled_and_due?(campaign, now) do
-    campaign.trigger == "scheduled" and
-      campaign.status == "active" and
-      is_binary(campaign.schedule) and
-      campaign.schedule != "" and
-      cron_matches?(campaign.schedule, now)
+  defp quest_scheduled_and_due?(quest, now) do
+    quest.trigger == "scheduled" and
+      quest.status == "active" and
+      is_binary(quest.schedule) and
+      quest.schedule != "" and
+      cron_matches?(quest.schedule, now)
   end
 
   defp cron_matches?(schedule, now) do
@@ -65,12 +65,12 @@ defmodule ExCalibur.ScheduledQuestRunner do
     end
   end
 
-  defp run_campaign(campaign) do
-    Logger.info("[ScheduledQuestRunner] Running campaign #{campaign.id} (#{campaign.name})")
+  defp run_quest(quest) do
+    Logger.info("[ScheduledQuestRunner] Running quest #{quest.id} (#{quest.name})")
 
     Task.start(fn ->
-      {:ok, result} = CampaignRunner.run(campaign, "")
-      Logger.info("[ScheduledQuestRunner] Campaign #{campaign.id} complete: #{inspect(result)}")
+      {:ok, result} = QuestRunner.run(quest, "")
+      Logger.info("[ScheduledQuestRunner] Quest #{quest.id} complete: #{inspect(result)}")
     end)
   end
 end

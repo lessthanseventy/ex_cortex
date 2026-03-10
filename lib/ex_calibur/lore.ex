@@ -40,31 +40,31 @@ defmodule ExCalibur.Lore do
   def write_artifact(quest, attrs) do
     if repetitive_content?(attrs[:body]) do
       require Logger
+
       Logger.warning("[Lore] Rejecting repetitive/garbled artifact for quest #{quest.id}")
       {:error, :repetitive_content}
     else
+      result =
+        case quest.write_mode do
+          "replace" ->
+            replace_or_create(quest, attrs)
 
-    result =
-      case quest.write_mode do
-        "replace" ->
-          replace_or_create(quest, attrs)
+          "both" ->
+            replace_or_create(quest, attrs)
+            date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
+            log_template = quest.log_title_template || "#{quest.name || "Entry"} — Log — {date}"
+            log_title = String.replace(log_template, "{date}", date)
+            create_entry(Map.merge(attrs, %{quest_id: quest.id, title: log_title}))
 
-        "both" ->
-          replace_or_create(quest, attrs)
-          date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
-          log_template = quest.log_title_template || "#{quest.name || "Entry"} — Log — {date}"
-          log_title = String.replace(log_template, "{date}", date)
-          create_entry(Map.merge(attrs, %{quest_id: quest.id, title: log_title}))
+          _ ->
+            create_entry(Map.put(attrs, :quest_id, quest.id))
+        end
 
-        _ ->
-          create_entry(Map.put(attrs, :quest_id, quest.id))
+      with {:ok, entry} <- result do
+        Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore", {:lore_updated, entry.title})
       end
 
-    with {:ok, entry} <- result do
-      Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore", {:lore_updated, entry.title})
-    end
-
-    result
+      result
     end
   end
 

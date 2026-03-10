@@ -1,5 +1,7 @@
 defmodule ExCalibur.GuildCharters do
+  @moduledoc false
   import Ecto.Query
+
   alias ExCalibur.GuildCharters.GuildCharter
   alias ExCalibur.Repo
 

@@ -1,5 +1,5 @@
 defmodule ExCalibur.Board.Review do
-  @moduledoc "Continuous review pipeline campaign templates."
+  @moduledoc "Continuous review pipeline quest templates."
 
   alias ExCalibur.Board
 
@@ -8,7 +8,9 @@ defmodule ExCalibur.Board.Review do
       pr_review_pipeline(),
       url_change_review(),
       content_safety_webhook(),
-      compliance_monitor()
+      compliance_monitor(),
+      a11y_audit(),
+      proposal_review()
     ]
   end
 
@@ -24,7 +26,7 @@ defmodule ExCalibur.Board.Review do
         {:source_type, "webhook"},
         {:herald_type, "github_pr"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "PR Quick Scan",
           description: "Quick automated PR scan — does this need a full review?",
@@ -55,16 +57,16 @@ defmodule ExCalibur.Board.Review do
           herald_name: "github_pr:default"
         }
       ],
-      campaign_definition: %{
-        name: "PR Review Pipeline Campaign",
+      quest_definition: %{
+        name: "PR Review Pipeline Quest",
         description: "Webhook-triggered PR review with GitHub comment for flagged PRs.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "PR Quick Scan", "flow" => "always"},
-          %{"quest_name" => "PR Full Review", "flow" => "on_flag"},
-          %{"quest_name" => "Post PR Review Comment", "flow" => "on_flag"}
+          %{"step_name" => "PR Quick Scan", "flow" => "always"},
+          %{"step_name" => "PR Full Review", "flow" => "on_flag"},
+          %{"step_name" => "Post PR Review Comment", "flow" => "on_flag"}
         ],
         source_ids: []
       }
@@ -83,7 +85,7 @@ defmodule ExCalibur.Board.Review do
         {:source_type, "url"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "URL Change Quick Assessment",
           description: "Quick assessment of a detected URL change — is this significant?",
@@ -95,8 +97,7 @@ defmodule ExCalibur.Board.Review do
         },
         %{
           name: "URL Change Full Review",
-          description:
-            "Full review of a significant URL change — impact and recommended response.",
+          description: "Full review of a significant URL change — impact and recommended response.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -115,16 +116,16 @@ defmodule ExCalibur.Board.Review do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "URL Change Monitor Campaign",
+      quest_definition: %{
+        name: "URL Change Monitor Quest",
         description: "URL change detection with Slack alert for significant changes.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "URL Change Quick Assessment", "flow" => "always"},
-          %{"quest_name" => "URL Change Full Review", "flow" => "on_flag"},
-          %{"quest_name" => "Post URL Change Alert", "flow" => "on_flag"}
+          %{"step_name" => "URL Change Quick Assessment", "flow" => "always"},
+          %{"step_name" => "URL Change Full Review", "flow" => "on_flag"},
+          %{"step_name" => "Post URL Change Alert", "flow" => "on_flag"}
         ],
         source_ids: []
       }
@@ -143,7 +144,7 @@ defmodule ExCalibur.Board.Review do
         {:source_type, "webhook"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Content Safety Quick Scan",
           description: "Quick automated safety scan of submitted content.",
@@ -174,16 +175,176 @@ defmodule ExCalibur.Board.Review do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Content Safety Campaign",
+      quest_definition: %{
+        name: "Content Safety Quest",
         description: "Webhook-triggered content safety review with Slack escalation.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Content Safety Quick Scan", "flow" => "always"},
-          %{"quest_name" => "Content Safety Full Review", "flow" => "on_flag"},
-          %{"quest_name" => "Escalate Content Violation", "flow" => "on_flag"}
+          %{"step_name" => "Content Safety Quick Scan", "flow" => "always"},
+          %{"step_name" => "Content Safety Full Review", "flow" => "on_flag"},
+          %{"step_name" => "Escalate Content Violation", "flow" => "on_flag"}
+        ],
+        source_ids: []
+      }
+    }
+  end
+
+  defp a11y_audit do
+    %Board{
+      id: "a11y_audit",
+      name: "Accessibility Audit",
+      category: :review,
+      description:
+        "Audit a URL or submitted content for WCAG 2.2 AA compliance. Quick automated scan followed by an evidence-required full audit.",
+      suggested_team: "Quality Collective guild is ideal.",
+      requires: [:any_members],
+      step_definitions: [
+        %{
+          name: "A11y Quick Scan",
+          description: "Quick automated accessibility scan — does this content need a full audit?",
+          status: "active",
+          trigger: "source",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "apprentice",
+              "preferred_who" => "accessibility-auditor",
+              "when" => "on_trigger",
+              "how" => "solo"
+            }
+          ],
+          source_ids: []
+        },
+        %{
+          name: "A11y Full Audit",
+          description: "Full consensus accessibility audit — all members evaluate against WCAG 2.2 AA.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
+          source_ids: []
+        },
+        %{
+          name: "A11y Evidence Check",
+          description: "Evidence check — verify findings are backed by specific WCAG criteria and user impact.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "master",
+              "preferred_who" => "evidence-collector",
+              "when" => "on_trigger",
+              "how" => "solo"
+            }
+          ],
+          source_ids: []
+        }
+      ],
+      quest_definition: %{
+        name: "Accessibility Audit Quest",
+        description: "Source-triggered a11y audit with evidence check for flagged issues.",
+        status: "active",
+        trigger: "source",
+        schedule: nil,
+        steps: [
+          %{"step_name" => "A11y Quick Scan", "flow" => "always"},
+          %{"step_name" => "A11y Full Audit", "flow" => "on_flag"},
+          %{"step_name" => "A11y Evidence Check", "flow" => "on_flag"}
+        ],
+        source_ids: []
+      }
+    }
+  end
+
+  defp proposal_review do
+    %Board{
+      id: "proposal_review",
+      name: "Proposal Review",
+      category: :review,
+      description:
+        "Put any proposal, design doc, or decision through a gauntlet: Devil's Advocate challenges it, Scope Realist scopes it, Time Traveler evaluates it from the future, Evidence Collector demands proof.",
+      suggested_team: "The Skeptics guild, or any guild with advisor members.",
+      requires: [:any_members],
+      step_definitions: [
+        %{
+          name: "Challenge Assumptions",
+          description: "Devil's Advocate challenges the core assumptions of the proposal.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "apprentice",
+              "preferred_who" => "devils-advocate",
+              "when" => "on_trigger",
+              "how" => "solo"
+            }
+          ],
+          source_ids: []
+        },
+        %{
+          name: "Scope Check",
+          description: "Full consensus scope check — is this realistic and well-bounded?",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "all",
+              "preferred_who" => "scope-realist",
+              "when" => "on_trigger",
+              "how" => "consensus"
+            }
+          ],
+          source_ids: []
+        },
+        %{
+          name: "Future Perspective",
+          description: "Time Traveler evaluates the proposal from two years in the future.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "master",
+              "preferred_who" => "time-traveler",
+              "when" => "on_trigger",
+              "how" => "solo"
+            }
+          ],
+          source_ids: []
+        },
+        %{
+          name: "Demand Evidence",
+          description: "Evidence Collector demands concrete proof for every claim in the proposal.",
+          status: "active",
+          trigger: "manual",
+          schedule: nil,
+          roster: [
+            %{
+              "who" => "master",
+              "preferred_who" => "evidence-collector",
+              "when" => "on_trigger",
+              "how" => "solo"
+            }
+          ],
+          source_ids: []
+        }
+      ],
+      quest_definition: %{
+        name: "Proposal Review Quest",
+        description: "Manual proposal gauntlet — challenge, scope, future perspective, evidence.",
+        status: "active",
+        trigger: "manual",
+        schedule: nil,
+        steps: [
+          %{"step_name" => "Challenge Assumptions", "flow" => "always"},
+          %{"step_name" => "Scope Check", "flow" => "always"},
+          %{"step_name" => "Future Perspective", "flow" => "always"},
+          %{"step_name" => "Demand Evidence", "flow" => "always"}
         ],
         source_ids: []
       }
@@ -202,11 +363,10 @@ defmodule ExCalibur.Board.Review do
         {:source_type, "feed"},
         {:herald_type, "slack"}
       ],
-      quest_definitions: [
+      step_definitions: [
         %{
           name: "Compliance Feed Quick Scan",
-          description:
-            "Quick scan of incoming regulatory/compliance feed entry — does this affect us?",
+          description: "Quick scan of incoming regulatory/compliance feed entry — does this affect us?",
           status: "active",
           trigger: "source",
           schedule: nil,
@@ -223,8 +383,7 @@ defmodule ExCalibur.Board.Review do
         },
         %{
           name: "Compliance Full Assessment",
-          description:
-            "Full assessment of a compliance signal — impact, required response, and timeline.",
+          description: "Full assessment of a compliance signal — impact, required response, and timeline.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -243,16 +402,16 @@ defmodule ExCalibur.Board.Review do
           herald_name: "slack:default"
         }
       ],
-      campaign_definition: %{
-        name: "Compliance Monitor Campaign",
+      quest_definition: %{
+        name: "Compliance Monitor Quest",
         description: "Feed-triggered compliance monitoring with Slack alerts.",
         status: "active",
         trigger: "source",
         schedule: nil,
         steps: [
-          %{"quest_name" => "Compliance Feed Quick Scan", "flow" => "always"},
-          %{"quest_name" => "Compliance Full Assessment", "flow" => "on_flag"},
-          %{"quest_name" => "Post Compliance Alert", "flow" => "on_flag"}
+          %{"step_name" => "Compliance Feed Quick Scan", "flow" => "always"},
+          %{"step_name" => "Compliance Full Assessment", "flow" => "on_flag"},
+          %{"step_name" => "Post Compliance Alert", "flow" => "on_flag"}
         ],
         source_ids: []
       }

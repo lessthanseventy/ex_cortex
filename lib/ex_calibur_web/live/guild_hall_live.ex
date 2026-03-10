@@ -5,9 +5,9 @@ defmodule ExCaliburWeb.GuildHallLive do
   import SaladUI.Badge
   import SaladUI.Button
 
-  alias Excellence.Schemas.Member
   alias ExCalibur.GuildCharters
   alias ExCalibur.Members.BuiltinMember
+  alias Excellence.Schemas.Member
 
   @impl true
   def mount(_params, _session, socket) do
@@ -30,7 +30,7 @@ defmodule ExCaliburWeb.GuildHallLive do
        validators: BuiltinMember.validators(),
        wildcards: BuiltinMember.wildcards(),
        active_section: "all",
-       charters: GuildCharters.list_charters() |> Map.new(&{&1.guild_name, &1.charter_text}),
+       charters: Map.new(GuildCharters.list_charters(), &{&1.guild_name, &1.charter_text}),
        editing_charter: nil
      )}
   end
@@ -111,8 +111,13 @@ defmodule ExCaliburWeb.GuildHallLive do
           <%= for {guild_name, charter_text} <- Enum.sort(@charters) do %>
             <div class="rounded-lg border bg-card p-4">
               <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-sm"><%= guild_name %></span>
-                <.button phx-click="edit_charter" phx-value-guild={guild_name} variant="ghost" size="sm">
+                <span class="font-medium text-sm">{guild_name}</span>
+                <.button
+                  phx-click="edit_charter"
+                  phx-value-guild={guild_name}
+                  variant="ghost"
+                  size="sm"
+                >
                   Edit
                 </.button>
               </div>
@@ -126,12 +131,16 @@ defmodule ExCaliburWeb.GuildHallLive do
                   ><%= charter_text %></textarea>
                   <div class="flex gap-2 mt-1">
                     <.button type="submit" size="sm">Save</.button>
-                    <.button type="button" phx-click="cancel_charter" variant="ghost" size="sm">Cancel</.button>
+                    <.button type="button" phx-click="cancel_charter" variant="ghost" size="sm">
+                      Cancel
+                    </.button>
                   </div>
                 </form>
               <% else %>
                 <p class="text-xs text-muted-foreground italic">
-                  <%= if charter_text != "", do: String.slice(charter_text, 0, 100) <> "…", else: "No charter text set" %>
+                  {if charter_text != "",
+                    do: String.slice(charter_text, 0, 100) <> "…",
+                    else: "No charter text set"}
                 </p>
               <% end %>
             </div>
@@ -147,7 +156,9 @@ defmodule ExCaliburWeb.GuildHallLive do
                 ></textarea>
                 <div class="flex gap-2 mt-1">
                   <.button type="submit" size="sm">Save</.button>
-                  <.button type="button" phx-click="cancel_charter" variant="ghost" size="sm">Cancel</.button>
+                  <.button type="button" phx-click="cancel_charter" variant="ghost" size="sm">
+                    Cancel
+                  </.button>
                 </div>
               </form>
             </div>
@@ -159,7 +170,10 @@ defmodule ExCaliburWeb.GuildHallLive do
       </div>
 
       <%= if @adding_new do %>
-        <.new_member_card ollama_models={@ollama_models} strategy_preview={@strategy_previews["new"] || "cod"} />
+        <.new_member_card
+          ollama_models={@ollama_models}
+          strategy_preview={@strategy_previews["new"] || "cod"}
+        />
       <% end %>
 
       <div class="space-y-3">
@@ -205,7 +219,8 @@ defmodule ExCaliburWeb.GuildHallLive do
               <% end %>
             </div>
           <% else %>
-            <% {_id, _title, members, _description} = Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
+            <% {_id, _title, members, _description} =
+              Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <.member_row :for={member <- members} member={member} />
             </div>
@@ -250,7 +265,9 @@ defmodule ExCaliburWeb.GuildHallLive do
           phx-click="toggle_active"
           phx-value-id={@member.id}
           phx-value-active={if @member.active, do: "true", else: "false"}
-          aria-label={if @member.active, do: "Deactivate #{@member.name}", else: "Activate #{@member.name}"}
+          aria-label={
+            if @member.active, do: "Deactivate #{@member.name}", else: "Activate #{@member.name}"
+          }
           type="button"
         >
           <span
@@ -512,8 +529,7 @@ defmodule ExCaliburWeb.GuildHallLive do
       {"specialists", "Specialists", assigns.specialists, "Domain-specific technical expertise"},
       {"advisors", "Advisors", assigns.advisors, "Perspective, judgment, and risk assessment"},
       {"validators", "Validators", assigns.validators, "Evidence standards and quality gates"},
-      {"wildcards", "Wildcards", assigns.wildcards,
-       "Creative perspectives and personality-driven evaluation"}
+      {"wildcards", "Wildcards", assigns.wildcards, "Creative perspectives and personality-driven evaluation"}
     ]
   end
 
@@ -542,13 +558,30 @@ defmodule ExCaliburWeb.GuildHallLive do
         <p class="text-sm text-muted-foreground">{@member.description}</p>
       </div>
       <div class="shrink-0 flex gap-2 self-start sm:self-auto">
-        <.button size="sm" variant="outline" phx-click="recruit" phx-value-member-id={@member.id} phx-value-rank="apprentice">
+        <.button
+          size="sm"
+          variant="outline"
+          phx-click="recruit"
+          phx-value-member-id={@member.id}
+          phx-value-rank="apprentice"
+        >
           Apprentice
         </.button>
-        <.button size="sm" variant="outline" phx-click="recruit" phx-value-member-id={@member.id} phx-value-rank="journeyman">
+        <.button
+          size="sm"
+          variant="outline"
+          phx-click="recruit"
+          phx-value-member-id={@member.id}
+          phx-value-rank="journeyman"
+        >
           Journeyman
         </.button>
-        <.button size="sm" phx-click="recruit" phx-value-member-id={@member.id} phx-value-rank="master">
+        <.button
+          size="sm"
+          phx-click="recruit"
+          phx-value-member-id={@member.id}
+          phx-value-rank="master"
+        >
           Master
         </.button>
       </div>
@@ -577,8 +610,8 @@ defmodule ExCaliburWeb.GuildHallLive do
       }
     }
 
-    %Excellence.Schemas.Member{}
-    |> Excellence.Schemas.Member.changeset(attrs)
+    %Member{}
+    |> Member.changeset(attrs)
     |> ExCalibur.Repo.insert(on_conflict: :nothing)
 
     {:noreply,
@@ -729,7 +762,7 @@ defmodule ExCaliburWeb.GuildHallLive do
   @impl true
   def handle_event("save_charter", %{"guild_name" => guild_name, "charter_text" => text}, socket) do
     {:ok, _} = GuildCharters.upsert_charter(guild_name, text)
-    charters = GuildCharters.list_charters() |> Map.new(&{&1.guild_name, &1.charter_text})
+    charters = Map.new(GuildCharters.list_charters(), &{&1.guild_name, &1.charter_text})
     {:noreply, assign(socket, charters: charters, editing_charter: nil)}
   end
 

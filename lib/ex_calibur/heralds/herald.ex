@@ -1,6 +1,7 @@
 defmodule ExCalibur.Heralds.Herald do
   @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
 
   @herald_types ~w(slack webhook github_issue github_pr email pagerduty)

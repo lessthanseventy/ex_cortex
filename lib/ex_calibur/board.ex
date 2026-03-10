@@ -1,10 +1,10 @@
 defmodule ExCalibur.Board do
   @moduledoc """
-  Pre-configured campaign templates for the Quest Board.
+  Pre-configured quest templates for the Quest Board.
 
   Templates are organized by category and declare hard requirements
   (source types and herald types that must be configured) so the UI
-  can show which campaigns are ready to install today.
+  can show which quests are ready to install today.
   """
 
   import Ecto.Query
@@ -21,8 +21,8 @@ defmodule ExCalibur.Board do
     :description,
     :suggested_team,
     :requires,
-    :quest_definitions,
-    :campaign_definition
+    :step_definitions,
+    :quest_definition
   ]
 
   @categories [:triage, :reporting, :generation, :review, :onboarding]
@@ -85,22 +85,22 @@ defmodule ExCalibur.Board do
   end
 
   @doc """
-  Install a template: creates its quests and campaign.
-  Returns {:ok, campaign} or {:error, reason}.
+  Install a template: creates its steps and quest.
+  Returns {:ok, quest} or {:error, reason}.
   """
   def install(%__MODULE__{} = template) do
-    Enum.each(template.quest_definitions, fn attrs ->
-      ExCalibur.Quests.create_quest(attrs)
+    Enum.each(template.step_definitions, fn attrs ->
+      ExCalibur.Quests.create_step(attrs)
     end)
 
-    quest_by_name = Map.new(ExCalibur.Quests.list_quests(), &{&1.name, &1.id})
+    step_by_name = Map.new(ExCalibur.Quests.list_steps(), &{&1.name, &1.id})
 
     steps =
-      Enum.map(template.campaign_definition.steps, fn step ->
-        %{"quest_id" => Map.get(quest_by_name, step["quest_name"]), "flow" => step["flow"]}
+      Enum.map(template.quest_definition.steps, fn step ->
+        %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
       end)
 
-    ExCalibur.Quests.create_campaign(Map.put(template.campaign_definition, :steps, steps))
+    ExCalibur.Quests.create_quest(Map.put(template.quest_definition, :steps, steps))
   end
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
