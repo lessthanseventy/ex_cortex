@@ -122,7 +122,9 @@ defmodule ExCalibur.QuestRunner do
         end
       end)
 
-    {:ok, %{verdict: final_verdict || "pass", steps: steps}}
+    result = {:ok, %{verdict: final_verdict || "pass", steps: steps}}
+    ExCalibur.TrustScorer.record_run(steps)
+    result
   end
 
   # ---------------------------------------------------------------------------
