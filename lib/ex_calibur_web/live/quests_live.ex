@@ -4,25 +4,27 @@ defmodule ExCaliburWeb.QuestsLive do
 
   import SaladUI.Badge
 
-  alias Excellence.Schemas.Member
+  alias ExCalibur.Board
   alias ExCalibur.Quests
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
+  alias Excellence.Schemas.Member
 
   @impl true
   def mount(_params, _session, socket) do
+    import Ecto.Query
+
     if connected?(socket) do
       Phoenix.PubSub.subscribe(ExCalibur.PubSub, "quest_runs")
     end
 
-    import Ecto.Query
     quests = Quests.list_quests()
     campaigns = Quests.list_campaigns()
 
     campaign_quest_ids =
       campaigns
-      |> Enum.flat_map(fn c -> Enum.map(c.steps, &(&1["quest_id"])) end)
+      |> Enum.flat_map(fn c -> Enum.map(c.steps, & &1["quest_id"]) end)
       |> MapSet.new()
 
     standalone_quests =
@@ -31,7 +33,8 @@ defmodule ExCaliburWeb.QuestsLive do
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [asc: s.inserted_at]))
 
     trigger_previews =
-      Map.new(quests, fn q -> {"quest-#{q.id}", q.trigger} end)
+      quests
+      |> Map.new(fn q -> {"quest-#{q.id}", q.trigger} end)
       |> Map.merge(Map.new(campaigns, fn c -> {"campaign-#{c.id}", c.trigger} end))
       |> Map.put("new-quest", "manual")
       |> Map.put("new-campaign", "manual")
@@ -59,6 +62,8 @@ defmodule ExCaliburWeb.QuestsLive do
       |> Map.new(fn q -> {"quest-#{q.id}", q.write_mode || "append"} end)
       |> Map.put("new-quest", "append")
 
+    board_templates = Enum.map(Board.all(), &board_with_status/1)
+
     {:ok,
      assign(socket,
        quests: quests,
@@ -75,13 +80,62 @@ defmodule ExCaliburWeb.QuestsLive do
        trigger_previews: trigger_previews,
        output_previews: output_previews,
        context_previews: context_previews,
-       write_mode_previews: write_mode_previews
+       write_mode_previews: write_mode_previews,
+       board_templates: board_templates,
+       board_category: nil,
+       board_show_unavailable: false,
+       board_installing: nil,
+       board_installed: MapSet.new()
      )}
   end
 
   @impl true
   def handle_params(_params, _url, socket) do
     {:noreply, assign(socket, page_title: "Quests")}
+  end
+
+  @impl true
+  def handle_event("board_filter_category", %{"category" => cat}, socket) do
+    cat_atom = if cat == "", do: nil, else: String.to_existing_atom(cat)
+    {:noreply, assign(socket, board_category: cat_atom)}
+  end
+
+  @impl true
+  def handle_event("board_toggle_unavailable", _params, socket) do
+    {:noreply, assign(socket, board_show_unavailable: !socket.assigns.board_show_unavailable)}
+  end
+
+  @impl true
+  def handle_event("board_confirm_install", %{"id" => id}, socket) do
+    {:noreply, assign(socket, board_installing: id)}
+  end
+
+  @impl true
+  def handle_event("board_cancel_install", _params, socket) do
+    {:noreply, assign(socket, board_installing: nil)}
+  end
+
+  @impl true
+  def handle_event("board_install_template", %{"id" => id}, socket) do
+    case Board.get(id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Template not found")}
+
+      template ->
+        case Board.install(template) do
+          {:ok, _campaign} ->
+            installed = MapSet.put(socket.assigns.board_installed, id)
+            campaigns = Quests.list_campaigns()
+
+            {:noreply,
+             socket
+             |> assign(board_installed: installed, board_installing: nil, campaigns: campaigns)
+             |> put_flash(:info, "\"#{template.name}\" installed!")}
+
+          {:error, reason} ->
+            {:noreply, put_flash(socket, :error, "Install failed: #{inspect(reason)}")}
+        end
+    end
   end
 
   @impl true
@@ -308,9 +362,9 @@ defmodule ExCaliburWeb.QuestsLive do
 
     output_type = params["output_type"] || "verdict"
     write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
-    entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
-    log_title_template = if output_type == "artifact", do: params["log_title_template"], else: nil
-    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"], else: nil
+    entry_title_template = if output_type == "artifact", do: params["entry_title_template"]
+    log_title_template = if output_type == "artifact", do: params["log_title_template"]
+    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"]
 
     attrs = %{
       name: params["name"],
@@ -337,7 +391,17 @@ defmodule ExCaliburWeb.QuestsLive do
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
         context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
         write_mode_previews = rebuild_write_mode_previews(quests, socket.assigns.write_mode_previews)
-        {:noreply, assign(socket, quests: quests, standalone_quests: standalone_quests, adding_quest: false, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
+
+        {:noreply,
+         assign(socket,
+           quests: quests,
+           standalone_quests: standalone_quests,
+           adding_quest: false,
+           trigger_previews: previews,
+           output_previews: output_previews,
+           context_previews: context_previews,
+           write_mode_previews: write_mode_previews
+         )}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to create quest")}
@@ -484,11 +548,15 @@ defmodule ExCaliburWeb.QuestsLive do
   def handle_event("run_quest_now", %{"quest_id" => id}, socket) do
     quest = Quests.get_quest!(String.to_integer(id))
     run_id = to_string(quest.id)
+
+    {:ok, quest_run} =
+      Quests.create_quest_run(%{quest_id: quest.id, input: "", status: "running"})
+
     parent = self()
 
     Task.start(fn ->
       result = ExCalibur.QuestRunner.run(quest, "")
-      send(parent, {:quest_run_complete, run_id, nil, result})
+      send(parent, {:quest_run_complete, run_id, quest_run.id, result})
     end)
 
     running = Map.put(socket.assigns.running, run_id, %{status: "running", result: nil})
@@ -564,9 +632,9 @@ defmodule ExCaliburWeb.QuestsLive do
 
     output_type = params["output_type"] || "verdict"
     write_mode = if output_type == "artifact", do: params["write_mode"] || "append", else: "append"
-    entry_title_template = if output_type == "artifact", do: params["entry_title_template"], else: nil
-    log_title_template = if output_type == "artifact", do: params["log_title_template"], else: nil
-    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"], else: nil
+    entry_title_template = if output_type == "artifact", do: params["entry_title_template"]
+    log_title_template = if output_type == "artifact", do: params["log_title_template"]
+    herald_name = if output_type in ~w(slack webhook github_issue github_pr email pagerduty), do: params["herald_name"]
 
     attrs = %{
       name: params["name"],
@@ -592,7 +660,16 @@ defmodule ExCaliburWeb.QuestsLive do
         output_previews = rebuild_output_previews(quests, socket.assigns.output_previews)
         context_previews = rebuild_context_previews(quests, socket.assigns.context_previews)
         write_mode_previews = rebuild_write_mode_previews(quests, socket.assigns.write_mode_previews)
-        {:noreply, assign(socket, quests: quests, standalone_quests: standalone_quests, trigger_previews: previews, output_previews: output_previews, context_previews: context_previews, write_mode_previews: write_mode_previews)}
+
+        {:noreply,
+         assign(socket,
+           quests: quests,
+           standalone_quests: standalone_quests,
+           trigger_previews: previews,
+           output_previews: output_previews,
+           context_previews: context_previews,
+           write_mode_previews: write_mode_previews
+         )}
 
       {:error, _} ->
         {:noreply, put_flash(socket, :error, "Failed to update quest")}
@@ -646,6 +723,126 @@ defmodule ExCaliburWeb.QuestsLive do
         </p>
       </div>
 
+      <%!-- Campaign Templates --%>
+      <div>
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold">Campaign Templates</h2>
+          <p class="text-sm text-muted-foreground">
+            Pre-configured campaign templates. Install one to add quests and a campaign to your guild.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          <button
+            phx-click="board_filter_category"
+            phx-value-category=""
+            class={[
+              "px-3 py-1.5 text-sm rounded-md transition-colors",
+              (is_nil(@board_category) && "bg-accent text-foreground font-medium") ||
+                "text-muted-foreground hover:bg-accent hover:text-foreground"
+            ]}
+          >
+            All
+          </button>
+          <%= for {cat, label} <- [triage: "Triage", reporting: "Reporting", generation: "Generation", review: "Review", onboarding: "Onboarding"] do %>
+            <button
+              phx-click="board_filter_category"
+              phx-value-category={cat}
+              class={[
+                "px-3 py-1.5 text-sm rounded-md transition-colors",
+                (@board_category == cat && "bg-accent text-foreground font-medium") ||
+                  "text-muted-foreground hover:bg-accent hover:text-foreground"
+              ]}
+            >
+              {label}
+            </button>
+          <% end %>
+          <div class="ml-auto">
+            <button
+              phx-click="board_toggle_unavailable"
+              class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {if @board_show_unavailable, do: "Hide unavailable", else: "Show all"}
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <%= for %{template: t, requirements: reqs, readiness: r} <- board_visible(@board_templates, @board_category, @board_show_unavailable) do %>
+            <div class={[
+              "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-start sm:justify-between",
+              MapSet.member?(@board_installed, t.id) && "border-primary bg-accent/50",
+              r == :unavailable && "opacity-60"
+            ]}>
+              <div class="space-y-2 flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold">{t.name}</span>
+                  <.badge variant="outline" class="text-xs capitalize">
+                    {board_category_label(t.category)}
+                  </.badge>
+                  <%= if MapSet.member?(@board_installed, t.id) do %>
+                    <.badge variant="default">Installed</.badge>
+                  <% else %>
+                    <% {label, variant} = board_readiness_badge(r) %>
+                    <.badge variant={variant}>{label}</.badge>
+                  <% end %>
+                </div>
+                <p class="text-sm text-muted-foreground">{t.description}</p>
+                <%= if t.suggested_team && t.suggested_team != "" do %>
+                  <p class="text-xs text-muted-foreground italic">Team: {t.suggested_team}</p>
+                <% end %>
+                <%= if length(reqs) > 0 do %>
+                  <div class="flex flex-wrap gap-1.5 mt-1">
+                    <%= for {met, req_label} <- reqs do %>
+                      <.badge variant={if met, do: "secondary", else: "outline"} class="text-xs gap-1">
+                        {if met, do: "✓", else: "○"} {req_label}
+                      </.badge>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              <div class="ml-4 shrink-0 self-center">
+                <%= if MapSet.member?(@board_installed, t.id) do %>
+                  <.button variant="outline" size="sm" disabled>Installed</.button>
+                <% else %>
+                  <%= if @board_installing == t.id do %>
+                    <div class="flex gap-2">
+                      <.button
+                        variant="destructive"
+                        size="sm"
+                        phx-click="board_install_template"
+                        phx-value-id={t.id}
+                      >
+                        Confirm
+                      </.button>
+                      <.button variant="outline" size="sm" phx-click="board_cancel_install">
+                        Cancel
+                      </.button>
+                    </div>
+                  <% else %>
+                    <.button
+                      variant={if r == :ready, do: "default", else: "outline"}
+                      size="sm"
+                      phx-click="board_confirm_install"
+                      phx-value-id={t.id}
+                      disabled={r == :unavailable}
+                    >
+                      Install
+                    </.button>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+          <%= if board_visible(@board_templates, @board_category, @board_show_unavailable) == [] do %>
+            <p class="text-sm text-muted-foreground py-6 text-center">
+              No templates in this category.
+              <button phx-click="board_toggle_unavailable" class="underline ml-1">Show all</button>
+            </p>
+          <% end %>
+        </div>
+      </div>
+
       <div>
         <div class="flex items-center justify-between mb-1">
           <h2 class="text-lg font-semibold">Campaigns</h2>
@@ -656,7 +853,11 @@ defmodule ExCaliburWeb.QuestsLive do
         </p>
         <%= if @adding_campaign do %>
           <div class="mb-3">
-            <.new_campaign_form quests={@quests} sources={@sources} trigger_preview={@trigger_previews["new-campaign"] || "manual"} />
+            <.new_campaign_form
+              quests={@quests}
+              sources={@sources}
+              trigger_preview={@trigger_previews["new-campaign"] || "manual"}
+            />
           </div>
         <% end %>
         <div class="space-y-3">
@@ -705,7 +906,9 @@ defmodule ExCaliburWeb.QuestsLive do
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
             output_preview={@output_previews["quest-#{quest.id}"] || quest.output_type || "verdict"}
             context_preview={@context_previews["quest-#{quest.id}"] || "none"}
-            write_mode_preview={@write_mode_previews["quest-#{quest.id}"] || quest.write_mode || "append"}
+            write_mode_preview={
+              @write_mode_previews["quest-#{quest.id}"] || quest.write_mode || "append"
+            }
           />
         </div>
       </div>
@@ -738,7 +941,11 @@ defmodule ExCaliburWeb.QuestsLive do
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
           <div>
             <label for="quest-who" class="text-sm font-medium">Who runs it</label>
-            <select id="quest-who" name="quest[who]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+            <select
+              id="quest-who"
+              name="quest[who]"
+              class="w-full text-sm border rounded px-2 py-1 bg-background"
+            >
               <option value="all">Everyone</option>
               <option value="apprentice">Apprentice tier</option>
               <option value="journeyman">Journeyman tier</option>
@@ -759,7 +966,11 @@ defmodule ExCaliburWeb.QuestsLive do
           </div>
           <div>
             <label for="quest-how" class="text-sm font-medium">How</label>
-            <select id="quest-how" name="quest[how]" class="w-full text-sm border rounded px-2 py-1 bg-background">
+            <select
+              id="quest-how"
+              name="quest[how]"
+              class="w-full text-sm border rounded px-2 py-1 bg-background"
+            >
               <option value="consensus">Consensus</option>
               <option value="solo">Solo</option>
               <option value="majority">Majority</option>
@@ -868,7 +1079,9 @@ defmodule ExCaliburWeb.QuestsLive do
             <optgroup label="Heralds">
               <option value="slack" selected={@output_preview == "slack"}>Slack</option>
               <option value="webhook" selected={@output_preview == "webhook"}>Webhook</option>
-              <option value="github_issue" selected={@output_preview == "github_issue"}>GitHub Issue</option>
+              <option value="github_issue" selected={@output_preview == "github_issue"}>
+                GitHub Issue
+              </option>
               <option value="github_pr" selected={@output_preview == "github_pr"}>GitHub PR</option>
               <option value="email" selected={@output_preview == "email"}>Email</option>
               <option value="pagerduty" selected={@output_preview == "pagerduty"}>PagerDuty</option>
@@ -883,9 +1096,15 @@ defmodule ExCaliburWeb.QuestsLive do
                 name="quest[write_mode]"
                 class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                <option value="append" selected={@write_mode_preview == "append"}>Append (each run adds an entry)</option>
-                <option value="replace" selected={@write_mode_preview == "replace"}>Replace (overwrite previous entry)</option>
-                <option value="both" selected={@write_mode_preview == "both"}>Both (update summary + append log)</option>
+                <option value="append" selected={@write_mode_preview == "append"}>
+                  Append (each run adds an entry)
+                </option>
+                <option value="replace" selected={@write_mode_preview == "replace"}>
+                  Replace (overwrite previous entry)
+                </option>
+                <option value="both" selected={@write_mode_preview == "both"}>
+                  Both (update summary + append log)
+                </option>
               </select>
             </div>
             <div>
@@ -917,7 +1136,8 @@ defmodule ExCaliburWeb.QuestsLive do
             <label class="text-sm font-medium">Herald</label>
             <%= if type_heralds == [] do %>
               <p class="text-xs text-muted-foreground mt-1">
-                No <strong>{@output_preview}</strong> heralds configured.
+                No <strong>{@output_preview}</strong>
+                heralds configured.
                 <a href="/library" class="underline">Add one in Library → Heralds.</a>
               </p>
             <% else %>
@@ -1158,10 +1378,19 @@ defmodule ExCaliburWeb.QuestsLive do
             </div>
             <%= if @trigger_preview == "scheduled" do %>
               <% {interval, unit} = parse_schedule(@campaign.schedule) %>
-              <.schedule_picker namespace="campaign" unit={unit} interval={interval} id_prefix={"campaign-#{@campaign.id}"} />
+              <.schedule_picker
+                namespace="campaign"
+                unit={unit}
+                interval={interval}
+                id_prefix={"campaign-#{@campaign.id}"}
+              />
             <% end %>
             <%= if @trigger_preview == "source" do %>
-              <.source_picker sources={@sources} namespace="campaign" selected_ids={@campaign.source_ids} />
+              <.source_picker
+                sources={@sources}
+                namespace="campaign"
+                selected_ids={@campaign.source_ids}
+              />
             <% end %>
             <div class="flex justify-end pt-1">
               <.button type="submit" size="sm" variant="outline">Save changes</.button>
@@ -1192,7 +1421,9 @@ defmodule ExCaliburWeb.QuestsLive do
                         phx-value-index={idx}
                         disabled={idx == 0}
                         aria-label="Move up"
-                      >▲</button>
+                      >
+                        ▲
+                      </button>
                       <button
                         type="button"
                         class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs font-bold transition-colors disabled:opacity-20 disabled:cursor-not-allowed disabled:pointer-events-none border-border text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -1201,7 +1432,9 @@ defmodule ExCaliburWeb.QuestsLive do
                         phx-value-index={idx}
                         disabled={idx == length(@campaign.steps) - 1}
                         aria-label="Move down"
-                      >▼</button>
+                      >
+                        ▼
+                      </button>
                       <button
                         type="button"
                         class="inline-flex items-center justify-center h-7 w-7 rounded border text-xs transition-colors border-border text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
@@ -1209,7 +1442,9 @@ defmodule ExCaliburWeb.QuestsLive do
                         phx-value-campaign_id={@campaign.id}
                         phx-value-index={idx}
                         aria-label="Remove"
-                      >✕</button>
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 <% end %>
@@ -1368,7 +1603,10 @@ defmodule ExCaliburWeb.QuestsLive do
       |> assign(:context_content_val, context_content_val)
 
     ~H"""
-    <div class={["border rounded-lg bg-card shadow-sm", if(@quest.status == "paused", do: "opacity-60")]}>
+    <div class={[
+      "border rounded-lg bg-card shadow-sm",
+      if(@quest.status == "paused", do: "opacity-60")
+    ]}>
       <div class="flex items-stretch gap-3 px-5">
         <div
           class="flex flex-1 items-center gap-3 py-3.5 cursor-pointer min-w-0"
@@ -1390,7 +1628,9 @@ defmodule ExCaliburWeb.QuestsLive do
               <.badge variant="secondary" class="text-xs">{roster_summary(@quest)}</.badge>
             <% end %>
             <%= if @quest.output_type in ~w(slack webhook github_issue github_pr email pagerduty) do %>
-              <.badge variant="secondary" class="text-xs shrink-0">📣 {@quest.herald_name || @quest.output_type}</.badge>
+              <.badge variant="secondary" class="text-xs shrink-0">
+                📣 {@quest.herald_name || @quest.output_type}
+              </.badge>
             <% end %>
           </div>
         </div>
@@ -1434,7 +1674,12 @@ defmodule ExCaliburWeb.QuestsLive do
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div class="space-y-1.5">
                   <label for={"qname-#{@quest.id}"} class="text-sm font-medium">Name</label>
-                  <.input id={"qname-#{@quest.id}"} type="text" name="quest[name]" value={@quest.name} />
+                  <.input
+                    id={"qname-#{@quest.id}"}
+                    type="text"
+                    name="quest[name]"
+                    value={@quest.name}
+                  />
                 </div>
                 <div class="space-y-1.5">
                   <label for={"qdesc-#{@quest.id}"} class="text-sm font-medium">Description</label>
@@ -1463,7 +1708,12 @@ defmodule ExCaliburWeb.QuestsLive do
               </div>
               <%= if @trigger_preview == "scheduled" do %>
                 <% {interval, unit} = parse_schedule(@quest.schedule) %>
-                <.schedule_picker namespace="quest" unit={unit} interval={interval} id_prefix={"quest-#{@quest.id}"} />
+                <.schedule_picker
+                  namespace="quest"
+                  unit={unit}
+                  interval={interval}
+                  id_prefix={"quest-#{@quest.id}"}
+                />
               <% end %>
               <%= if @trigger_preview == "source" do %>
                 <.source_picker sources={@sources} namespace="quest" selected_ids={@quest.source_ids} />
@@ -1583,7 +1833,9 @@ defmodule ExCaliburWeb.QuestsLive do
                   />
                 <% end %>
                 <%= if @context_preview == "lore" do %>
-                  <% lore_provider = List.first(Enum.filter(@quest.context_providers || [], &(&1["type"] == "lore"))) || %{} %>
+                  <% lore_provider =
+                    List.first(Enum.filter(@quest.context_providers || [], &(&1["type"] == "lore"))) ||
+                      %{} %>
                   <div class="grid grid-cols-3 gap-2 mt-1">
                     <div>
                       <label class="text-xs text-muted-foreground">Tags (comma-sep)</label>
@@ -1638,10 +1890,16 @@ defmodule ExCaliburWeb.QuestsLive do
                   <optgroup label="Heralds">
                     <option value="slack" selected={@output_preview == "slack"}>Slack</option>
                     <option value="webhook" selected={@output_preview == "webhook"}>Webhook</option>
-                    <option value="github_issue" selected={@output_preview == "github_issue"}>GitHub Issue</option>
-                    <option value="github_pr" selected={@output_preview == "github_pr"}>GitHub PR</option>
+                    <option value="github_issue" selected={@output_preview == "github_issue"}>
+                      GitHub Issue
+                    </option>
+                    <option value="github_pr" selected={@output_preview == "github_pr"}>
+                      GitHub PR
+                    </option>
                     <option value="email" selected={@output_preview == "email"}>Email</option>
-                    <option value="pagerduty" selected={@output_preview == "pagerduty"}>PagerDuty</option>
+                    <option value="pagerduty" selected={@output_preview == "pagerduty"}>
+                      PagerDuty
+                    </option>
                   </optgroup>
                 </select>
               </div>
@@ -1700,7 +1958,8 @@ defmodule ExCaliburWeb.QuestsLive do
                   <label class="text-sm font-medium">Herald</label>
                   <%= if type_heralds == [] do %>
                     <p class="text-xs text-muted-foreground mt-1">
-                      No <strong>{@output_preview}</strong> heralds configured.
+                      No <strong>{@output_preview}</strong>
+                      heralds configured.
                       <a href="/library" class="underline">Add one in Library → Heralds.</a>
                     </p>
                   <% else %>
@@ -1709,7 +1968,9 @@ defmodule ExCaliburWeb.QuestsLive do
                       class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                     >
                       <%= for h <- type_heralds do %>
-                        <option value={h.name} selected={@quest.herald_name == h.name}>{h.name}</option>
+                        <option value={h.name} selected={@quest.herald_name == h.name}>
+                          {h.name}
+                        </option>
                       <% end %>
                     </select>
                   <% end %>
@@ -1819,7 +2080,7 @@ defmodule ExCaliburWeb.QuestsLive do
   defp compute_standalone_quests(campaigns, quests) do
     campaign_quest_ids =
       campaigns
-      |> Enum.flat_map(fn c -> Enum.map(c.steps, &(&1["quest_id"])) end)
+      |> Enum.flat_map(fn c -> Enum.map(c.steps, & &1["quest_id"]) end)
       |> MapSet.new()
 
     Enum.reject(quests, fn q -> MapSet.member?(campaign_quest_ids, to_string(q.id)) end)
@@ -1829,6 +2090,29 @@ defmodule ExCaliburWeb.QuestsLive do
     standalone_quests = compute_standalone_quests(campaigns, quests)
     assign(socket, campaigns: campaigns, quests: quests, standalone_quests: standalone_quests)
   end
+
+  defp board_with_status(template) do
+    requirements = Board.check_requirements(template)
+    readiness = Board.readiness(template)
+    %{template: template, requirements: requirements, readiness: readiness}
+  end
+
+  defp board_visible(templates, category, show_unavailable) do
+    Enum.filter(templates, fn %{template: t, readiness: r} ->
+      category_match = is_nil(category) || t.category == category
+      availability_match = show_unavailable || r != :unavailable
+      category_match && availability_match
+    end)
+  end
+
+  defp board_category_label(cat) do
+    labels = [triage: "Triage", reporting: "Reporting", generation: "Generation", review: "Review", onboarding: "Onboarding"]
+    labels[cat] || to_string(cat)
+  end
+
+  defp board_readiness_badge(:ready), do: {"Ready", "default"}
+  defp board_readiness_badge(:almost), do: {"Almost", "secondary"}
+  defp board_readiness_badge(:unavailable), do: {"Missing", "outline"}
 
   defp list_teams do
     import Ecto.Query

@@ -81,11 +81,13 @@ defmodule ExCaliburWeb.QuestsLiveTest do
 
   describe "herald output type" do
     setup do
-      {:ok, herald} = ExCalibur.Heralds.create_herald(%{
-        name: "slack:eng",
-        type: "slack",
-        config: %{"webhook_url" => "https://hooks.slack.com/test"}
-      })
+      {:ok, herald} =
+        ExCalibur.Heralds.create_herald(%{
+          name: "slack:eng",
+          type: "slack",
+          config: %{"webhook_url" => "https://hooks.slack.com/test"}
+        })
+
       %{herald: herald}
     end
 
@@ -131,9 +133,49 @@ defmodule ExCaliburWeb.QuestsLiveTest do
       })
       |> render_submit()
 
-      quest = ExCalibur.Quests.list_quests() |> Enum.find(&(&1.name == "Slack Notifier"))
+      quest = Enum.find(Quests.list_quests(), &(&1.name == "Slack Notifier"))
       assert quest.output_type == "slack"
       assert quest.herald_name == "slack:eng"
+    end
+  end
+
+  describe "campaign templates (quest board)" do
+    test "renders campaign templates section", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/quests")
+      assert html =~ "Campaign Templates"
+      assert html =~ "Triage"
+      assert html =~ "Reporting"
+      assert html =~ "Generation"
+      assert html =~ "Review"
+      assert html =~ "Onboarding"
+    end
+
+    test "filters templates by category", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/quests")
+      html = view |> element("button", "Triage") |> render_click()
+      assert html =~ "Jira Ticket Triage"
+      refute html =~ "Weekly Security Digest"
+    end
+
+    test "/quest-board redirects to /quests", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/quest-board")
+      assert html =~ "Campaign Templates"
+    end
+
+    test "can install a no-requirement template", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/quests")
+      view |> element("button", "Generation") |> render_click()
+
+      view
+      |> element("[phx-value-id='incident_postmortem']", "Install")
+      |> render_click()
+
+      html =
+        view
+        |> element("[phx-click='board_install_template'][phx-value-id='incident_postmortem']")
+        |> render_click()
+
+      assert html =~ "Installed"
     end
   end
 end
