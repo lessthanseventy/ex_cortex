@@ -42,6 +42,8 @@ config :ex_calibur,
   ecto_repos: [ExCalibur.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :ex_calibur, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
+
 # Configure Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

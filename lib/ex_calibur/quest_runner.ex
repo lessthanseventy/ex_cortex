@@ -24,14 +24,46 @@ defmodule ExCalibur.QuestRunner do
   alias Excellence.Schemas.Member
 
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
+  @rank_order %{"apprentice" => 0, "journeyman" => 1, "master" => 2}
 
   @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
+
+  @doc "Build the ordered list of models to try: assigned model first, then fallback chain (deduped)."
+  def fallback_models_for(model, chain) do
+    [model | Enum.reject(chain, &(&1 == model))]
+  end
 
   @doc """
   Run a quest roster against `input_text`.
   Accepts either a `Quest` struct or just a bare roster list.
   Returns `{:ok, result}` or `{:error, reason}`.
   """
+  def run(%{min_rank: min_rank} = quest, input_text)
+      when is_binary(min_rank) and min_rank != "" do
+    min_order = Map.get(@rank_order, min_rank, 0)
+
+    eligible_ranks =
+      @rank_order
+      |> Enum.filter(fn {_rank, order} -> order >= min_order end)
+      |> Enum.map(fn {rank, _} -> rank end)
+
+    has_eligible =
+      Repo.exists?(
+        from m in Member,
+          where:
+            m.type == "role" and m.status == "active" and
+              fragment("config->>'rank' = ANY(?)", ^eligible_ranks)
+      )
+
+    if has_eligible do
+      context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+      augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+      run(quest.roster, augmented)
+    else
+      {:error, {:rank_insufficient, "Quest requires #{min_rank} or higher — no eligible members found"}}
+    end
+  end
+
   def run(%{output_type: type} = quest, input_text) when type in @herald_types do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
@@ -123,6 +155,25 @@ defmodule ExCalibur.QuestRunner do
 
   defp resolve_members("master"), do: resolve_by_rank("master")
 
+  defp resolve_members("challenger") do
+    case ExCalibur.Members.BuiltinMember.get("challenger") do
+      nil ->
+        []
+
+      member ->
+        rank_config = member.ranks[:journeyman]
+
+        [
+          %{
+            type: :ollama,
+            model: rank_config.model,
+            system_prompt: member.system_prompt,
+            name: member.name
+          }
+        ]
+    end
+  end
+
   defp resolve_members("team:" <> team) do
     from(m in Member,
       where: m.type == "role" and m.status == "active" and m.team == ^team
@@ -182,16 +233,21 @@ defmodule ExCalibur.QuestRunner do
   end
 
   defp call_member(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
+    chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
+    models = fallback_models_for(model, chain)
+
     messages = [
       %{role: :system, content: system_prompt},
       %{role: :user, content: input_text}
     ]
 
-    case Ollama.chat(ollama, model, messages) do
-      {:ok, %{content: text}} -> parse_verdict(text)
-      {:ok, text} when is_binary(text) -> parse_verdict(text)
-      _ -> %{verdict: "abstain", confidence: 0.0, reason: "Ollama error"}
-    end
+    Enum.reduce_while(models, %{verdict: "abstain", confidence: 0.0, reason: "Ollama error"}, fn m, acc ->
+      case Ollama.chat(ollama, m, messages) do
+        {:ok, %{content: text}} -> {:halt, parse_verdict(text)}
+        {:ok, text} when is_binary(text) -> {:halt, parse_verdict(text)}
+        _ -> {:cont, acc}
+      end
+    end)
   end
 
   # ---------------------------------------------------------------------------
@@ -329,7 +385,7 @@ defmodule ExCalibur.QuestRunner do
                       end
                   end
 
-                "**#{member.name}:** #{text}"
+                "**#{member.name}:** #{String.slice(text, 0, 500)}"
               end)
 
             "### #{label}\n#{member_outputs}"
