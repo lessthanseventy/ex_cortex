@@ -4,18 +4,22 @@
 
 **Goal:** Add tool calling to members (agent loop) and steps (reflect + escalate modes), with a safe/YOLO tier split.
 
-**Architecture:** Tool structs with handlers are registered by name. Member-level loops are recursive message-list functions (no GenServer). Tool execution is isolated via `Task.async_stream` with timeouts. StepRunner gains reflect and escalate phases that wrap the existing roster run. Claude tool calls use direct Req calls to Anthropic API (ReqLLM.generate_text strips tool_use blocks). Ollama uses the existing Excellence.LLM.Ollama client.
+**Architecture:** Tools are `ReqLLM.Tool` structs (with callbacks) registered in our own module with a `safe?` tier. The registry returns `[%ReqLLM.Tool{}]` lists that are passed directly to `ReqLLM.generate_text/3` as `tools:`. The Claude agent loop uses `ReqLLM.Response.classify/1` to detect tool calls and `ReqLLM.Context.execute_and_append_tools/3` to execute and thread results — no manual HTTP or message building. StepRunner gains reflect and escalate phases that wrap the existing roster run.
 
-**Tech Stack:** Elixir/OTP, Req (direct Anthropic API calls), Excellence.LLM.Ollama, ExCalibur.Lore, ExCalibur.Quests
+**Tech Stack:** Elixir/OTP, ReqLLM (native tool calling, Context, Response), Excellence.LLM.Ollama, ExCalibur.Lore, ExCalibur.Quests
 
 ---
 
-## Task 1: Tool struct + registry
+## Task 1: Tool registry using ReqLLM.Tool
 
 **Files:**
-- Create: `lib/ex_calibur/tools/tool.ex`
 - Create: `lib/ex_calibur/tools/registry.ex`
+- Create: `lib/ex_calibur/tools/query_lore.ex`
+- Create: `lib/ex_calibur/tools/run_quest.ex`
+- Create: `lib/ex_calibur/tools/fetch_url.ex`
 - Create: `test/ex_calibur/tools/registry_test.exs`
+
+We use `ReqLLM.Tool` as the tool struct — it handles parameter schema compilation, Anthropic/Ollama format conversion, and callback execution. Our registry adds only the `safe?` tier that ReqLLM doesn't have.
 
 **Step 1: Write the failing test**
 
@@ -26,35 +30,38 @@ defmodule ExCalibur.Tools.RegistryTest do
 
   alias ExCalibur.Tools.Registry
 
-  test "list_safe/0 returns only safe tools" do
+  test "list_safe/0 returns ReqLLM.Tool structs for safe tools only" do
     tools = Registry.list_safe()
-    assert Enum.all?(tools, & &1.safe?)
+    assert Enum.all?(tools, &match?(%ReqLLM.Tool{}, &1))
     names = Enum.map(tools, & &1.name)
     assert "query_lore" in names
     assert "run_quest" in names
+    refute "fetch_url" in names
   end
 
-  test "list_yolo/0 returns safe + yolo tools" do
+  test "list_yolo/0 returns all tools including unsafe" do
     tools = Registry.list_yolo()
     names = Enum.map(tools, & &1.name)
     assert "query_lore" in names
     assert "fetch_url" in names
   end
 
-  test "get/1 returns a tool by name" do
-    assert %{name: "query_lore"} = Registry.get("query_lore")
+  test "get/1 returns a ReqLLM.Tool by name" do
+    assert %ReqLLM.Tool{name: "query_lore"} = Registry.get("query_lore")
   end
 
   test "get/1 returns nil for unknown tool" do
     assert nil == Registry.get("does_not_exist")
   end
 
-  test "resolve_tools/1 with :all_safe returns all safe tools" do
+  test "resolve_tools/1 with :all_safe returns safe tools" do
     tools = Registry.resolve_tools(:all_safe)
-    assert Enum.all?(tools, & &1.safe?)
+    names = Enum.map(tools, & &1.name)
+    assert "query_lore" in names
+    refute "fetch_url" in names
   end
 
-  test "resolve_tools/1 with :yolo returns safe + yolo tools" do
+  test "resolve_tools/1 with :yolo returns all tools" do
     tools = Registry.resolve_tools(:yolo)
     names = Enum.map(tools, & &1.name)
     assert "fetch_url" in names
@@ -64,14 +71,6 @@ defmodule ExCalibur.Tools.RegistryTest do
     tools = Registry.resolve_tools(["query_lore"])
     assert length(tools) == 1
     assert hd(tools).name == "query_lore"
-  end
-
-  test "to_claude_schema/1 converts a tool to Anthropic API format" do
-    tool = Registry.get("query_lore")
-    schema = Registry.to_claude_schema(tool)
-    assert schema.name == "query_lore"
-    assert Map.has_key?(schema, :description)
-    assert Map.has_key?(schema, :input_schema)
   end
 end
 ```
@@ -84,48 +83,27 @@ tmux-cli send 'mix test test/ex_calibur/tools/registry_test.exs 2>&1 | tail -5' 
 
 Expected: compilation error (modules don't exist)
 
-**Step 3: Create Tool struct**
-
-```elixir
-# lib/ex_calibur/tools/tool.ex
-defmodule ExCalibur.Tools.Tool do
-  @moduledoc """
-  A callable tool that can be offered to LLMs during an agent loop.
-
-  Fields:
-  - name: unique string identifier (snake_case)
-  - description: plain-English description for the LLM
-  - parameters: JSON Schema map describing the input (Anthropic input_schema format)
-  - handler: 1-arity function that receives the parsed input map and returns {:ok, result} | {:error, reason}
-  - safe?: true = always available, false = requires yolo: true on member/step
-  """
-  @enforce_keys [:name, :description, :parameters, :handler, :safe?]
-  defstruct [:name, :description, :parameters, :handler, :safe?]
-end
-```
-
-**Step 4: Create stub safe tools (just enough for registry to compile)**
+**Step 3: Create tool modules using ReqLLM.Tool.new!**
 
 ```elixir
 # lib/ex_calibur/tools/query_lore.ex
 defmodule ExCalibur.Tools.QueryLore do
   @moduledoc "Tool: search lore entries by tags."
 
-  def tool do
-    %ExCalibur.Tools.Tool{
+  def req_llm_tool do
+    ReqLLM.Tool.new!(
       name: "query_lore",
-      description: "Search the lore store for entries matching the given tags. Returns a list of recent matching entries.",
-      parameters: %{
-        type: "object",
-        properties: %{
-          tags: %{type: "array", items: %{type: "string"}, description: "Tags to filter by"},
-          limit: %{type: "integer", description: "Max entries to return (default 5)"}
+      description: "Search the lore store for entries matching the given tags. Returns recent matching entries.",
+      parameter_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "tags" => %{"type" => "array", "items" => %{"type" => "string"}, "description" => "Tags to filter by"},
+          "limit" => %{"type" => "integer", "description" => "Max entries to return (default 5)"}
         },
-        required: []
+        "required" => []
       },
-      handler: &call/1,
-      safe?: true
-    }
+      callback: &call/1
+    )
   end
 
   def call(%{"tags" => tags} = input) do
@@ -135,7 +113,7 @@ defmodule ExCalibur.Tools.QueryLore do
     {:ok, Enum.join(summaries, "\n---\n")}
   end
 
-  def call(_), do: call(%{"tags" => []})
+  def call(input), do: call(Map.put_new(input, "tags", []))
 end
 ```
 
@@ -144,21 +122,20 @@ end
 defmodule ExCalibur.Tools.RunQuest do
   @moduledoc "Tool: run a quest by name with a given input string."
 
-  def tool do
-    %ExCalibur.Tools.Tool{
+  def req_llm_tool do
+    ReqLLM.Tool.new!(
       name: "run_quest",
       description: "Run a named quest with the given input text. Returns the quest result.",
-      parameters: %{
-        type: "object",
-        properties: %{
-          quest_name: %{type: "string", description: "The name of the quest to run"},
-          input: %{type: "string", description: "The input text to pass to the quest"}
+      parameter_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "quest_name" => %{"type" => "string", "description" => "The name of the quest to run"},
+          "input" => %{"type" => "string", "description" => "The input text to pass to the quest"}
         },
-        required: ["quest_name", "input"]
+        "required" => ["quest_name", "input"]
       },
-      handler: &call/1,
-      safe?: true
-    }
+      callback: &call/1
+    )
   end
 
   def call(%{"quest_name" => name, "input" => input}) do
@@ -184,20 +161,19 @@ end
 defmodule ExCalibur.Tools.FetchUrl do
   @moduledoc "Tool (YOLO): fetch the body of a URL."
 
-  def tool do
-    %ExCalibur.Tools.Tool{
+  def req_llm_tool do
+    ReqLLM.Tool.new!(
       name: "fetch_url",
       description: "Fetch the text content of a URL. Only use when explicitly permitted.",
-      parameters: %{
-        type: "object",
-        properties: %{
-          url: %{type: "string", description: "The URL to fetch"}
+      parameter_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "url" => %{"type" => "string", "description" => "The URL to fetch"}
         },
-        required: ["url"]
+        "required" => ["url"]
       },
-      handler: &call/1,
-      safe?: false
-    }
+      callback: &call/1
+    )
   end
 
   def call(%{"url" => url}) do
@@ -213,42 +189,43 @@ defmodule ExCalibur.Tools.FetchUrl do
 end
 ```
 
-**Step 5: Create Registry module**
+**Step 4: Create Registry**
 
 ```elixir
 # lib/ex_calibur/tools/registry.ex
 defmodule ExCalibur.Tools.Registry do
   @moduledoc """
-  Central registry of available tools.
+  Registry of available tools, tiered by safety.
+
+  Returns `ReqLLM.Tool` structs — pass them directly to
+  `ReqLLM.generate_text(model, context, tools: tools)`.
 
   Usage:
-    Registry.list_safe()               # all safe tools
-    Registry.list_yolo()               # safe + yolo tools
-    Registry.get("query_lore")         # single tool by name
-    Registry.resolve_tools(:all_safe)  # from config value
-    Registry.to_claude_schema(tool)    # Anthropic API format
+    Registry.list_safe()              # safe tools only
+    Registry.list_yolo()              # all tools
+    Registry.get("query_lore")        # single tool by name
+    Registry.resolve_tools(:all_safe) # from step/member config
   """
 
-  alias ExCalibur.Tools.Tool
-
-  @all_tools [
+  @safe_entries [
     ExCalibur.Tools.QueryLore,
-    ExCalibur.Tools.RunQuest,
+    ExCalibur.Tools.RunQuest
+  ]
+
+  @yolo_entries [
     ExCalibur.Tools.FetchUrl
   ]
 
-  def all, do: Enum.map(@all_tools, & &1.tool())
+  def list_safe, do: Enum.map(@safe_entries, & &1.req_llm_tool())
 
-  def list_safe, do: Enum.filter(all(), & &1.safe?)
-
-  def list_yolo, do: all()
+  def list_yolo, do: list_safe() ++ Enum.map(@yolo_entries, & &1.req_llm_tool())
 
   def get(name) when is_binary(name) do
-    Enum.find(all(), &(&1.name == name))
+    Enum.find(list_yolo(), &(&1.name == name))
   end
 
   @doc """
-  Resolve a tools config value to a list of Tool structs.
+  Resolve a tools config value to a list of ReqLLM.Tool structs.
 
   Accepts:
   - :all_safe        — all safe tools
@@ -269,23 +246,10 @@ defmodule ExCalibur.Tools.Registry do
       end
     end)
   end
-
-  @doc "Convert a Tool to the Anthropic API tool schema format."
-  def to_claude_schema(%Tool{name: name, description: desc, parameters: params}) do
-    %{name: name, description: desc, input_schema: params}
-  end
-
-  @doc "Convert a Tool to the Ollama function calling format."
-  def to_ollama_schema(%Tool{name: name, description: desc, parameters: params}) do
-    %{
-      type: "function",
-      function: %{name: name, description: desc, parameters: params}
-    }
-  end
 end
 ```
 
-**Step 6: Run tests to verify they pass**
+**Step 5: Run tests**
 
 ```bash
 tmux-cli send 'mix test test/ex_calibur/tools/registry_test.exs 2>&1 | tail -5' --pane=main:1.3
@@ -293,148 +257,21 @@ tmux-cli send 'mix test test/ex_calibur/tools/registry_test.exs 2>&1 | tail -5' 
 
 Expected: all pass
 
-**Step 7: Commit**
+**Step 6: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/tools/ test/ex_calibur/tools/ && git commit -m "feat: add tool struct, registry, and initial tool implementations"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_calibur/tools/ test/ex_calibur/tools/ && git commit -m "feat: add tool registry using ReqLLM.Tool with safe/yolo tier"' --pane=main:1.3
 ```
 
 ---
 
-## Task 2: Tool executor
-
-**Files:**
-- Create: `lib/ex_calibur/tools/executor.ex`
-- Create: `test/ex_calibur/tools/executor_test.exs`
-
-**Step 1: Write the failing test**
-
-```elixir
-# test/ex_calibur/tools/executor_test.exs
-defmodule ExCalibur.Tools.ExecutorTest do
-  use ExCalibur.DataCase, async: true
-
-  alias ExCalibur.Tools.{Executor, Registry}
-
-  test "execute/1 runs a single tool call and returns result" do
-    results = Executor.execute([%{"name" => "query_lore", "input" => %{}}])
-    assert [%{tool_use_id: nil, content: content}] = results
-    assert is_binary(content)
-  end
-
-  test "execute/1 runs multiple tool calls in parallel" do
-    calls = [
-      %{"name" => "query_lore", "input" => %{}},
-      %{"name" => "query_lore", "input" => %{"tags" => ["test"]}}
-    ]
-    results = Executor.execute(calls)
-    assert length(results) == 2
-  end
-
-  test "execute/1 handles unknown tool gracefully" do
-    results = Executor.execute([%{"name" => "no_such_tool", "input" => %{}}])
-    assert [%{content: content}] = results
-    assert String.contains?(content, "unknown tool")
-  end
-
-  test "execute/1 handles tool error gracefully" do
-    # fetch_url with an invalid URL should return error content, not raise
-    results = Executor.execute([%{"name" => "fetch_url", "input" => %{"url" => "not-a-url"}}])
-    assert [%{content: content}] = results
-    assert is_binary(content)
-  end
-end
-```
-
-**Step 2: Run test to verify it fails**
-
-```bash
-tmux-cli send 'mix test test/ex_calibur/tools/executor_test.exs 2>&1 | tail -5' --pane=main:1.3
-```
-
-Expected: compilation error
-
-**Step 3: Implement executor**
-
-```elixir
-# lib/ex_calibur/tools/executor.ex
-defmodule ExCalibur.Tools.Executor do
-  @moduledoc """
-  Executes a batch of tool calls in parallel, each in an isolated Task with a timeout.
-
-  Input: list of tool call maps with "name", "input", and optionally "id" (tool_use_id)
-  Output: list of result maps with :tool_use_id and :content (string)
-
-  Errors (crash, timeout, unknown tool) are caught and returned as error strings —
-  the agent loop sees an error message and can decide what to do next.
-  """
-
-  alias ExCalibur.Tools.Registry
-
-  @default_timeout 15_000
-
-  @doc """
-  Execute a list of tool call maps in parallel.
-
-  Each map has:
-    "name"  — tool name string
-    "input" — parsed input map
-    "id"    — optional tool_use_id (for Claude correlation)
-  """
-  def execute(tool_calls, timeout \\ @default_timeout) when is_list(tool_calls) do
-    tool_calls
-    |> Task.async_stream(&run_one/1, timeout: timeout, on_timeout: :kill_task)
-    |> Enum.map(fn
-      {:ok, result} -> result
-      {:exit, _reason} -> %{tool_use_id: nil, content: "error: tool execution timed out"}
-    end)
-  end
-
-  defp run_one(%{"name" => name, "input" => input} = call) do
-    id = Map.get(call, "id")
-
-    content =
-      case Registry.get(name) do
-        nil ->
-          "error: unknown tool '#{name}'"
-
-        tool ->
-          case tool.handler.(input) do
-            {:ok, result} -> to_string(result)
-            {:error, reason} -> "error: #{reason}"
-          end
-      end
-
-    %{tool_use_id: id, content: content}
-  rescue
-    e -> %{tool_use_id: Map.get(call, "id"), content: "error: #{Exception.message(e)}"}
-  end
-end
-```
-
-**Step 4: Run tests**
-
-```bash
-tmux-cli send 'mix test test/ex_calibur/tools/executor_test.exs 2>&1 | tail -5' --pane=main:1.3
-```
-
-Expected: all pass
-
-**Step 5: Commit**
-
-```bash
-tmux-cli send 'git add lib/ex_calibur/tools/executor.ex test/ex_calibur/tools/executor_test.exs && git commit -m "feat: add tool executor with parallel Task execution and timeout handling"' --pane=main:1.3
-```
-
----
-
-## Task 3: Claude agent loop (member-level)
+## Task 2: Claude agent loop using ReqLLM natively
 
 **Files:**
 - Modify: `lib/ex_calibur/claude_client.ex`
 - Create: `test/ex_calibur/tools/claude_agent_loop_test.exs`
 
-The current `ClaudeClient.complete/3` uses ReqLLM which strips tool_use blocks. For the agent loop, we call the Anthropic API directly via Req and handle multi-turn ourselves.
+ReqLLM handles the entire multi-turn loop: `generate_text` passes tools to the model, `Response.classify` detects tool calls vs final answer, `Context.execute_and_append_tools` runs the tools and threads results back. No manual HTTP or message building needed.
 
 **Step 1: Write the failing test**
 
@@ -445,8 +282,7 @@ defmodule ExCalibur.ClaudeAgentLoopTest do
 
   alias ExCalibur.ClaudeClient
 
-  test "complete_with_tools/4 returns {:ok, text} when no API key configured" do
-    # Without a key, should return an error (not crash)
+  test "complete_with_tools/4 returns {:error, _} or {:ok, _} — does not crash without API key" do
     result = ClaudeClient.complete_with_tools("claude_haiku", "You are helpful", "Say hi", [])
     assert match?({:error, _}, result) or match?({:ok, _}, result)
   end
@@ -455,137 +291,69 @@ defmodule ExCalibur.ClaudeAgentLoopTest do
     result = ClaudeClient.complete_with_tools("claude_blorp", "sys", "msg", [])
     assert {:error, _} = result
   end
-
-  test "build_tool_result_message/1 formats tool results for Anthropic API" do
-    results = [%{tool_use_id: "toolu_abc", content: "some result"}]
-    msg = ClaudeClient.build_tool_result_message(results)
-    assert msg.role == "user"
-    assert [%{type: "tool_result", tool_use_id: "toolu_abc", content: "some result"}] = msg.content
-  end
 end
 ```
 
-**Step 2: Run test to verify it fails**
+**Step 2: Run to verify it fails**
 
 ```bash
 tmux-cli send 'mix test test/ex_calibur/tools/claude_agent_loop_test.exs 2>&1 | tail -5' --pane=main:1.3
 ```
 
-**Step 3: Add `complete_with_tools/4` and helpers to ClaudeClient**
+**Step 3: Add `complete_with_tools/4` to ClaudeClient**
 
-Add to the bottom of `lib/ex_calibur/claude_client.ex`:
+Add to `lib/ex_calibur/claude_client.ex`:
 
 ```elixir
-  @anthropic_url "https://api.anthropic.com/v1/messages"
-  @anthropic_version "2023-06-01"
   @max_tool_iterations 5
 
   @doc """
-  Run a multi-turn agent loop with tool calling support.
+  Run a multi-turn agent loop using ReqLLM's native tool calling.
 
   - `tier` — "claude_haiku" | "claude_sonnet" | "claude_opus"
   - `system_prompt` — system prompt string
   - `user_text` — initial user message
-  - `tools` — list of %Tool{} structs (from ExCalibur.Tools.Registry)
+  - `tools` — list of %ReqLLM.Tool{} structs (from ExCalibur.Tools.Registry)
 
-  Returns {:ok, text} when the model produces a final text response,
-  or {:error, reason} on failure.
+  Returns {:ok, text} on final answer or {:error, reason} on failure.
   """
   def complete_with_tools(tier, system_prompt, user_text, tools) do
-    with {:ok, model_id} <- fetch_model_id(tier),
-         {:ok, api_key} <- fetch_api_key() do
-      tool_schemas = Enum.map(tools, &ExCalibur.Tools.Registry.to_claude_schema/1)
-      messages = [%{role: "user", content: user_text}]
-      run_loop(model_id, system_prompt, messages, tool_schemas, api_key, 0)
+    case Map.fetch(@model_ids, tier) do
+      :error -> {:error, "unknown tier: #{tier}"}
+      {:ok, model_spec} ->
+        context =
+          ReqLLM.Context.new([
+            ReqLLM.Context.system(system_prompt),
+            ReqLLM.Context.user(user_text)
+          ])
+
+        run_agent_loop(model_spec, context, tools, 0)
     end
-  end
-
-  @doc "Build the 'user' message that carries tool results back to Claude."
-  def build_tool_result_message(tool_results) do
-    content =
-      Enum.map(tool_results, fn %{tool_use_id: id, content: content} ->
-        %{type: "tool_result", tool_use_id: id, content: content}
-      end)
-
-    %{role: "user", content: content}
   end
 
   # ---------------------------------------------------------------------------
   # Private — agent loop
   # ---------------------------------------------------------------------------
 
-  defp run_loop(_model, _system, _messages, _tools, _key, iter) when iter >= @max_tool_iterations do
+  defp run_agent_loop(_model_spec, _context, _tools, iter) when iter >= @max_tool_iterations do
     {:error, :max_iterations_exceeded}
   end
 
-  defp run_loop(model_id, system_prompt, messages, tool_schemas, api_key, iter) do
-    body =
-      %{model: model_id, max_tokens: 4096, system: system_prompt, messages: messages}
-      |> maybe_add_tools(tool_schemas)
+  defp run_agent_loop(model_spec, context, tools, iter) do
+    case ReqLLM.generate_text(model_spec, context, tools: tools) do
+      {:ok, response} ->
+        case ReqLLM.Response.classify(response) do
+          %{type: :final_answer, text: text} ->
+            {:ok, text}
 
-    case Req.post(@anthropic_url,
-           json: body,
-           headers: [
-             {"x-api-key", api_key},
-             {"anthropic-version", @anthropic_version},
-             {"content-type", "application/json"}
-           ],
-           receive_timeout: 60_000
-         ) do
-      {:ok, %{status: 200, body: %{"content" => content_blocks, "stop_reason" => stop_reason}}} ->
-        handle_response(content_blocks, stop_reason, model_id, system_prompt, messages, tool_schemas, api_key, iter)
-
-      {:ok, %{status: status, body: body}} ->
-        {:error, "Anthropic API error #{status}: #{inspect(body)}"}
+          %{type: :tool_calls, tool_calls: calls} ->
+            next_context = ReqLLM.Context.execute_and_append_tools(response.context, calls, tools)
+            run_agent_loop(model_spec, next_context, tools, iter + 1)
+        end
 
       {:error, reason} ->
         {:error, inspect(reason)}
     end
-  end
-
-  defp handle_response(content_blocks, "tool_use", model_id, system_prompt, messages, tool_schemas, api_key, iter) do
-    # Extract tool calls
-    tool_calls =
-      content_blocks
-      |> Enum.filter(&(&1["type"] == "tool_use"))
-      |> Enum.map(fn block ->
-        %{"name" => block["name"], "input" => block["input"], "id" => block["id"]}
-      end)
-
-    # Execute tools
-    tool_results = ExCalibur.Tools.Executor.execute(tool_calls)
-
-    # Append assistant message + tool results to conversation
-    updated_messages =
-      messages ++
-        [%{role: "assistant", content: content_blocks}, build_tool_result_message(tool_results)]
-
-    run_loop(model_id, system_prompt, updated_messages, tool_schemas, api_key, iter + 1)
-  end
-
-  defp handle_response(content_blocks, _stop_reason, _model, _system, _messages, _tools, _key, _iter) do
-    text =
-      content_blocks
-      |> Enum.filter(&(&1["type"] == "text"))
-      |> Enum.map(& &1["text"])
-      |> Enum.join("\n")
-
-    {:ok, text}
-  end
-
-  defp maybe_add_tools(body, []), do: body
-  defp maybe_add_tools(body, tools), do: Map.put(body, :tools, tools)
-
-  defp fetch_model_id(tier) do
-    case Map.fetch(@model_ids, tier) do
-      {:ok, "anthropic:" <> model_id} -> {:ok, model_id}
-      :error -> {:error, "unknown tier: #{tier}"}
-    end
-  end
-
-  defp fetch_api_key do
-    key = ReqLLM.get_key(:anthropic_api_key) || System.get_env("ANTHROPIC_API_KEY")
-    if key && key != "", do: {:ok, key}, else: {:error, :no_api_key}
   end
 ```
 
@@ -595,32 +363,28 @@ Add to the bottom of `lib/ex_calibur/claude_client.ex`:
 tmux-cli send 'mix test test/ex_calibur/tools/claude_agent_loop_test.exs 2>&1 | tail -5' --pane=main:1.3
 ```
 
-Expected: all pass (no API key in test env is fine — we test the error path)
-
-**Step 5: Run full test suite to check for regressions**
+**Step 5: Run full suite**
 
 ```bash
 tmux-cli send 'mix test 2>&1 | tail -5' --pane=main:1.3
 ```
 
-Expected: same pass count as before
-
 **Step 6: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/claude_client.ex test/ex_calibur/tools/claude_agent_loop_test.exs && git commit -m "feat: add Claude agent loop with tool calling support"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_calibur/claude_client.ex test/ex_calibur/tools/claude_agent_loop_test.exs && git commit -m "feat: add Claude agent loop via ReqLLM native tool calling"' --pane=main:1.3
 ```
 
 ---
 
-## Task 4: Wire tools into StepRunner member calls
+## Task 3: Wire tools into StepRunner member calls
 
 **Files:**
 - Modify: `lib/ex_calibur/step_runner.ex`
 
-Members now carry a `tools` config key. When present, use the agent loop instead of single-shot calls.
+Members now carry a `tools` config key. When tools are present, `call_member` uses `ClaudeClient.complete_with_tools` (which takes `[%ReqLLM.Tool{}]`). When absent, falls through to the existing single-shot path.
 
-**Step 1: Update `member_to_runner_spec/1` to carry tools**
+**Step 1: Update `member_to_runner_spec/1` to resolve tools at spec-build time**
 
 In `step_runner.ex`, find `member_to_runner_spec/1` and update:
 
@@ -631,37 +395,35 @@ In `step_runner.ex`, find `member_to_runner_spec/1` and update:
       model: db.config["model"] || "phi4-mini",
       system_prompt: db.config["system_prompt"] || "",
       name: db.name,
-      tools: parse_tools_config(db.config["tools"]),
-      max_iterations: db.config["max_iterations"] || 5
+      tools: resolve_member_tools(db.config["tools"])
     }
   end
 
-  defp parse_tools_config(nil), do: []
-  defp parse_tools_config("all_safe"), do: :all_safe
-  defp parse_tools_config("yolo"), do: :yolo
-  defp parse_tools_config(names) when is_list(names), do: names
-  defp parse_tools_config(_), do: []
+  # Resolve tools config string/list to [%ReqLLM.Tool{}] at spec-build time.
+  defp resolve_member_tools(nil), do: []
+  defp resolve_member_tools("all_safe"), do: ExCalibur.Tools.Registry.resolve_tools(:all_safe)
+  defp resolve_member_tools("yolo"), do: ExCalibur.Tools.Registry.resolve_tools(:yolo)
+  defp resolve_member_tools(names) when is_list(names), do: ExCalibur.Tools.Registry.resolve_tools(names)
+  defp resolve_member_tools(_), do: []
 ```
 
-Also update the Claude tier spec builders to carry tools (find the three `resolve_members` clauses for `"claude_haiku"` etc.):
+Also update the Claude tier spec builders to carry tools:
 
 ```elixir
   defp resolve_members(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
-    [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil, tools: [], max_iterations: 5}]
+    [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil, tools: []}]
   end
 ```
 
-**Step 2: Update `call_member/3` for Claude to use agent loop when tools present**
+**Step 2: Update `call_member/3` for Claude to dispatch to agent loop when tools present**
 
-Find the `call_member/3` clause for `:claude` and replace:
+Find the existing `:claude` clause and split it:
 
 ```elixir
-  defp call_member(%{type: :claude, tier: tier, system_prompt: system_prompt, tools: tools}, input_text, _ollama)
-       when is_list(tools) and tools != [] do
-    resolved = ExCalibur.Tools.Registry.resolve_tools(tools)
+  defp call_member(%{type: :claude, tier: tier, system_prompt: system_prompt, tools: [_ | _] = tools}, input_text, _ollama) do
     prompt = system_prompt || default_claude_prompt()
 
-    case ClaudeClient.complete_with_tools(tier, prompt, input_text, resolved) do
+    case ClaudeClient.complete_with_tools(tier, prompt, input_text, tools) do
       {:ok, text} -> parse_verdict(text)
       {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "Claude agent loop error"}
     end
@@ -677,15 +439,13 @@ Find the `call_member/3` clause for `:claude` and replace:
   end
 ```
 
-Do the same for `call_member_raw` (the freeform variant):
+Do the same for `call_member_raw`:
 
 ```elixir
-  defp call_member_raw(%{type: :claude, tier: tier, system_prompt: system_prompt, tools: tools}, input_text, _ollama)
-       when is_list(tools) and tools != [] do
-    resolved = ExCalibur.Tools.Registry.resolve_tools(tools)
+  defp call_member_raw(%{type: :claude, tier: tier, system_prompt: system_prompt, tools: [_ | _] = tools}, input_text, _ollama) do
     prompt = system_prompt || ""
 
-    case ClaudeClient.complete_with_tools(tier, prompt, input_text, resolved) do
+    case ClaudeClient.complete_with_tools(tier, prompt, input_text, tools) do
       {:ok, text} -> text
       _ -> nil
     end
@@ -717,7 +477,7 @@ tmux-cli send 'git add lib/ex_calibur/step_runner.ex && git commit -m "feat: wir
 
 ---
 
-## Task 5: Escalate mode in StepRunner
+## Task 4: Escalate mode in StepRunner
 
 **Files:**
 - Modify: `lib/ex_calibur/step_runner.ex`
@@ -856,7 +616,7 @@ tmux-cli send 'git add lib/ex_calibur/quests/step.ex lib/ex_calibur/step_runner.
 
 ---
 
-## Task 6: Reflect mode in StepRunner
+## Task 5: Reflect mode in StepRunner
 
 **Files:**
 - Modify: `lib/ex_calibur/step_runner.ex`
@@ -957,20 +717,26 @@ Add a clause before the escalate clause (reflect wraps the inner run, escalate w
     end
   end
 
-  defp gather_reflect_context(tools, input_text, verdict) do
-    # Ask a lightweight query tool for relevant context based on current input
-    # For now: if query_lore is available, run it; otherwise return empty
+  defp gather_reflect_context(tools, _input_text, verdict) do
+    # Use the first available tool to gather extra context.
+    # ReqLLM.Tool.execute/2 runs the tool's callback with validated input.
     lore_tool = Enum.find(tools, &(&1.name == "query_lore"))
 
     if lore_tool do
-      case lore_tool.handler.(%{"tags" => [], "limit" => 3}) do
+      case ReqLLM.Tool.execute(lore_tool, %{"tags" => [], "limit" => 3}) do
         {:ok, content} -> "Prior lore context (verdict was #{verdict}):\n#{content}"
         _ -> ""
       end
     else
-      tool_calls = Enum.map(tools, fn t -> %{"name" => t.name, "input" => %{}} end)
-      results = ExCalibur.Tools.Executor.execute(tool_calls)
-      Enum.map_join(results, "\n", & &1.content)
+      tools
+      |> Enum.map(fn tool ->
+        case ReqLLM.Tool.execute(tool, %{}) do
+          {:ok, result} -> to_string(result)
+          _ -> ""
+        end
+      end)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.join("\n")
     end
   end
 ```
@@ -995,7 +761,7 @@ tmux-cli send 'git add lib/ex_calibur/quests/step.ex lib/ex_calibur/step_runner.
 
 ---
 
-## Task 7: Format check + full suite
+## Task 6: Format check + full suite
 
 **Step 1: Format**
 
@@ -1021,16 +787,16 @@ tmux-cli send 'git add -p && git commit -m "style: mix format"' --pane=main:1.3
 
 ## Implementation Order Summary
 
-1. Tool struct + registry (foundation — everything else depends on it)
-2. Tool executor (parallel Task execution with timeout)
-3. Claude agent loop (multi-turn tool calling via direct Req)
-4. Wire tools into StepRunner member calls
-5. Escalate mode (rank ladder)
-6. Reflect mode (context gathering + retry)
-7. Format + full suite
+1. Tool registry using `ReqLLM.Tool` (foundation — everything else depends on it)
+2. Claude agent loop via `ReqLLM.generate_text` + `Context.execute_and_append_tools`
+3. Wire tools into StepRunner member calls
+4. Escalate mode (rank ladder)
+5. Reflect mode (context gathering + retry using `ReqLLM.Tool.execute/2`)
+6. Format + full suite
 
 ## Notes
 
-- **Ollama tool calling** is intentionally deferred — it requires models that support function calling (llama3.1+, mistral-nemo etc.) and the format differs from Claude. The architecture supports it: add an Ollama-specific agent loop in StepRunner following the same pattern as the Claude path.
-- **YOLO gate**: `FetchUrl` is already implemented and gated via `safe?: false`. The `run_code` tool is left for later — sandboxing Elixir execution needs careful thought.
+- **No custom Executor needed** — `ReqLLM.Context.execute_and_append_tools/3` handles parallel tool execution and result threading for the Claude loop. `ReqLLM.Tool.execute/2` handles single-tool calls in reflect mode.
+- **Ollama tool calling** is intentionally deferred — it requires models that support function calling (llama3.1+, mistral-nemo etc.). The architecture supports it: pass the same `ReqLLM.Tool` list to Ollama's path once model support is confirmed.
+- **YOLO gate**: `FetchUrl` is implemented and listed only in `@yolo_entries`. The `run_code` tool is left for later — sandboxing Elixir execution needs careful thought.
 - **Step schema migration**: Adding fields to the Step schema requires a migration if deploying to a running system. For dev, `mix ecto.reset` is sufficient.
