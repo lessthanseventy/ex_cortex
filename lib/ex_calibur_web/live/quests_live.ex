@@ -886,6 +886,7 @@ defmodule ExCaliburWeb.QuestsLive do
             trigger_preview={@trigger_previews["quest-#{quest.id}"] || quest.trigger}
             schedule_mode_previews={@schedule_mode_previews}
             run_state={@running["quest-#{quest.id}"]}
+            runs={@quest_runs[to_string(quest.id)] || []}
           />
           <%= if @quests == [] do %>
             <div class="text-center py-12 text-muted-foreground">
@@ -914,6 +915,7 @@ defmodule ExCaliburWeb.QuestsLive do
             {"generation", "Generation"},
             {"review", "Review"},
             {"onboarding", "Onboarding"},
+            {"lifestyle", "Lifestyle"},
             {"custom", "Custom"}
           ] do %>
             <button
@@ -1334,6 +1336,7 @@ defmodule ExCaliburWeb.QuestsLive do
   attr :trigger_preview, :string, required: true
   attr :schedule_mode_previews, :map, default: %{}
   attr :run_state, :map, default: nil
+  attr :runs, :list, default: []
 
   defp quest_card_comp(assigns) do
     ~H"""
@@ -1588,6 +1591,31 @@ defmodule ExCaliburWeb.QuestsLive do
               <.button type="submit" size="sm" variant="outline">Add</.button>
             </form>
           </div>
+
+          <%= if @runs != [] do %>
+            <div class="space-y-1.5 mt-4 pt-4 border-t">
+              <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Recent Runs
+              </p>
+              <div class="space-y-1">
+                <%= for run <- Enum.take(@runs, 5) do %>
+                  <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span class={[
+                      "shrink-0 font-medium",
+                      run.status == "complete" && "text-green-600",
+                      run.status == "failed" && "text-destructive",
+                      run.status == "running" && "text-amber-500"
+                    ]}>
+                      {run.status}
+                    </span>
+                    <span class="text-muted-foreground/60">
+                      {Calendar.strftime(run.inserted_at, "%b %d %H:%M")}
+                    </span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
         </div>
       <% end %>
     </div>
