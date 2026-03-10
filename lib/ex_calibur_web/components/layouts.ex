@@ -27,18 +27,10 @@ defmodule ExCaliburWeb.Layouts do
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
 
-  attr :current_scope, :map,
-    default: nil,
-    doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
-
-  slot :inner_block, required: true
-
   def app(assigns) do
     ~H"""
-    <main class="max-w-6xl mx-auto px-8 py-10">
-      <.flash_group flash={@flash} />
-      {render_slot(@inner_block)}
-    </main>
+    <.flash_group flash={@flash} />
+    {@inner_content}
     """
   end
 
