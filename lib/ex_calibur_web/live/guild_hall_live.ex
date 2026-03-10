@@ -99,37 +99,10 @@ defmodule ExCaliburWeb.GuildHallLive do
         </.button>
       </div>
 
-      <%= if @adding_new do %>
-        <.new_member_card ollama_models={@ollama_models} strategy_preview={@strategy_previews["new"] || "cod"} />
-      <% end %>
-
-      <div class="space-y-3">
-        <.member_card
-          :for={member <- @members}
-          member={member}
-          expanded={MapSet.member?(@expanded, member.id)}
-          ollama_models={@ollama_models}
-          strategy_preview={Map.get(@strategy_previews, member.id, member.strategy)}
-        />
-      </div>
-
-      <div>
-        <h2 class="text-lg font-semibold mb-1">Recruit a Member</h2>
-        <p class="text-sm text-muted-foreground mb-5">
-          Add a pre-configured member role to your guild.
-        </p>
-        <div class="space-y-10">
-          <.member_section title="Editors" description="Text quality and writing review" members={@editors} />
-          <.member_section title="Analysts" description="Data interpretation and pattern recognition" members={@analysts} />
-          <.member_section title="Specialists" description="Domain-specific technical expertise" members={@specialists} />
-          <.member_section title="Advisors" description="Perspective, judgment, and risk assessment" members={@advisors} />
-        </div>
-      </div>
-
       <div>
         <h2 class="text-lg font-semibold mb-1">Guild Charters</h2>
         <p class="text-sm text-muted-foreground mb-4">
-          Shared values, domain rules, and output expectations injected into member evaluations via the <code class="bg-muted px-1 rounded text-xs">guild_charter</code> context provider.
+          Shared values, domain rules, and output expectations prepended to every member's context during evaluation.
         </p>
         <div class="space-y-3">
           <%= for {guild_name, charter_text} <- Enum.sort(@charters) do %>
@@ -179,6 +152,33 @@ defmodule ExCaliburWeb.GuildHallLive do
           <.button phx-click="edit_charter" phx-value-guild="default" variant="outline" size="sm">
             + Add Charter
           </.button>
+        </div>
+      </div>
+
+      <%= if @adding_new do %>
+        <.new_member_card ollama_models={@ollama_models} strategy_preview={@strategy_previews["new"] || "cod"} />
+      <% end %>
+
+      <div class="space-y-3">
+        <.member_card
+          :for={member <- @members}
+          member={member}
+          expanded={MapSet.member?(@expanded, member.id)}
+          ollama_models={@ollama_models}
+          strategy_preview={Map.get(@strategy_previews, member.id, member.strategy)}
+        />
+      </div>
+
+      <div>
+        <h2 class="text-lg font-semibold mb-1">Recruit a Member</h2>
+        <p class="text-sm text-muted-foreground mb-5">
+          Add a pre-configured member role to your guild.
+        </p>
+        <div class="space-y-10">
+          <.member_section title="Editors" description="Text quality and writing review" members={@editors} />
+          <.member_section title="Analysts" description="Data interpretation and pattern recognition" members={@analysts} />
+          <.member_section title="Specialists" description="Domain-specific technical expertise" members={@specialists} />
+          <.member_section title="Advisors" description="Perspective, judgment, and risk assessment" members={@advisors} />
         </div>
       </div>
     </div>
