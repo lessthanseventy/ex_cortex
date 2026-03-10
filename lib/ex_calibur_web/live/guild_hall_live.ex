@@ -6,6 +6,7 @@ defmodule ExCaliburWeb.GuildHallLive do
   import SaladUI.Button
 
   alias Excellence.Schemas.Member
+  alias ExCalibur.GuildCharters
   alias ExCalibur.Members.BuiltinMember
 
   @impl true
@@ -25,7 +26,9 @@ defmodule ExCaliburWeb.GuildHallLive do
        editors: BuiltinMember.editors(),
        analysts: BuiltinMember.analysts(),
        specialists: BuiltinMember.specialists(),
-       advisors: BuiltinMember.advisors()
+       advisors: BuiltinMember.advisors(),
+       charters: GuildCharters.list_charters() |> Map.new(&{&1.guild_name, &1.charter_text}),
+       editing_charter: nil
      )}
   end
 
@@ -120,6 +123,62 @@ defmodule ExCaliburWeb.GuildHallLive do
           <.member_section title="Analysts" description="Data interpretation and pattern recognition" members={@analysts} />
           <.member_section title="Specialists" description="Domain-specific technical expertise" members={@specialists} />
           <.member_section title="Advisors" description="Perspective, judgment, and risk assessment" members={@advisors} />
+        </div>
+      </div>
+
+      <div>
+        <h2 class="text-lg font-semibold mb-1">Guild Charters</h2>
+        <p class="text-sm text-muted-foreground mb-4">
+          Shared values, domain rules, and output expectations injected into member evaluations via the <code class="bg-muted px-1 rounded text-xs">guild_charter</code> context provider.
+        </p>
+        <div class="space-y-3">
+          <%= for {guild_name, charter_text} <- Enum.sort(@charters) do %>
+            <div class="rounded-lg border bg-card p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-sm"><%= guild_name %></span>
+                <.button phx-click="edit_charter" phx-value-guild={guild_name} variant="ghost" size="sm">
+                  Edit
+                </.button>
+              </div>
+              <%= if @editing_charter == guild_name do %>
+                <form phx-submit="save_charter">
+                  <input type="hidden" name="guild_name" value={guild_name} />
+                  <textarea
+                    name="charter_text"
+                    class="w-full text-xs font-mono border rounded p-2 h-24"
+                    placeholder="Shared values, domain rules, output expectations..."
+                  ><%= charter_text %></textarea>
+                  <div class="flex gap-2 mt-1">
+                    <.button type="submit" size="sm">Save</.button>
+                    <.button type="button" phx-click="cancel_charter" variant="ghost" size="sm">Cancel</.button>
+                  </div>
+                </form>
+              <% else %>
+                <p class="text-xs text-muted-foreground italic">
+                  <%= if charter_text != "", do: String.slice(charter_text, 0, 100) <> "…", else: "No charter text set" %>
+                </p>
+              <% end %>
+            </div>
+          <% end %>
+          <%= if @editing_charter && !Map.has_key?(@charters, @editing_charter) do %>
+            <div class="rounded-lg border bg-card p-4">
+              <form phx-submit="save_charter">
+                <input type="hidden" name="guild_name" value={@editing_charter} />
+                <textarea
+                  name="charter_text"
+                  class="w-full text-xs font-mono border rounded p-2 h-24"
+                  placeholder="Shared values, domain rules, output expectations..."
+                ></textarea>
+                <div class="flex gap-2 mt-1">
+                  <.button type="submit" size="sm">Save</.button>
+                  <.button type="button" phx-click="cancel_charter" variant="ghost" size="sm">Cancel</.button>
+                </div>
+              </form>
+            </div>
+          <% end %>
+          <.button phx-click="edit_charter" phx-value-guild="default" variant="outline" size="sm">
+            + Add Charter
+          </.button>
         </div>
       </div>
     </div>
@@ -600,5 +659,22 @@ defmodule ExCaliburWeb.GuildHallLive do
         ExCalibur.Repo.delete(db)
         {:noreply, assign(socket, members: list_members())}
     end
+  end
+
+  @impl true
+  def handle_event("edit_charter", %{"guild" => guild_name}, socket) do
+    {:noreply, assign(socket, editing_charter: guild_name)}
+  end
+
+  @impl true
+  def handle_event("save_charter", %{"guild_name" => guild_name, "charter_text" => text}, socket) do
+    {:ok, _} = GuildCharters.upsert_charter(guild_name, text)
+    charters = GuildCharters.list_charters() |> Map.new(&{&1.guild_name, &1.charter_text})
+    {:noreply, assign(socket, charters: charters, editing_charter: nil)}
+  end
+
+  @impl true
+  def handle_event("cancel_charter", _, socket) do
+    {:noreply, assign(socket, editing_charter: nil)}
   end
 end
