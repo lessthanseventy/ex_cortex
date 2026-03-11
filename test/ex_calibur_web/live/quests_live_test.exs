@@ -125,4 +125,22 @@ defmodule ExCaliburWeb.QuestsLiveTest do
       assert html =~ "Installed"
     end
   end
+
+  describe "quest card redesign" do
+    test "quest template shows step count", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/quests")
+      assert html =~ ~r/\d+ steps?/
+    end
+
+    test "expanding a template shows nested step cards", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/quests")
+
+      html =
+        view
+        |> element(~s{[phx-click="board_expand_template"][phx-value-id="jira_ticket_triage"]})
+        |> render_click()
+
+      assert html =~ "step-card"
+    end
+  end
 end

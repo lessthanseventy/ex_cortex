@@ -68,6 +68,7 @@ defmodule ExCaliburWeb.QuestsLive do
        board_show_unavailable: false,
        board_installing: nil,
        board_installed: MapSet.new(),
+       board_expanded: MapSet.new(),
        board_tab: "all",
        quest_prefill: %{name: "", description: ""}
      )}
@@ -150,6 +151,49 @@ defmodule ExCaliburWeb.QuestsLive do
   @impl true
   def handle_event("board_set_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, board_tab: tab)}
+  end
+
+  @impl true
+  def handle_event("board_recruit_and_go", %{"id" => id}, socket) do
+    case Board.get(id) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Template not found")}
+
+      template ->
+        case Board.recruit_and_go(template) do
+          {:ok, result} ->
+            msg =
+              case result.members_recruited do
+                [] -> "\"#{template.name}\" installed!"
+                names -> "\"#{template.name}\" installed! Recruited: #{Enum.join(names, ", ")}"
+              end
+
+            {:noreply,
+             socket
+             |> assign(
+               board_installed: MapSet.put(socket.assigns.board_installed, id),
+               board_installing: nil,
+               steps: Quests.list_steps(),
+               quests: Quests.list_quests()
+             )
+             |> put_flash(:info, msg)}
+
+          {:error, reason} ->
+            {:noreply, put_flash(socket, :error, "Install failed: #{inspect(reason)}")}
+        end
+    end
+  end
+
+  @impl true
+  def handle_event("board_expand_template", %{"id" => id}, socket) do
+    expanded = socket.assigns.board_expanded
+
+    new_expanded =
+      if MapSet.member?(expanded, id),
+        do: MapSet.delete(expanded, id),
+        else: MapSet.put(expanded, id)
+
+    {:noreply, assign(socket, board_expanded: new_expanded)}
   end
 
   @impl true
@@ -528,6 +572,19 @@ defmodule ExCaliburWeb.QuestsLive do
                     <% end %>
                   </div>
                   <p class="text-sm text-muted-foreground">{t.description}</p>
+                  <%= if t.step_definitions && length(t.step_definitions) > 0 do %>
+                    <button
+                      type="button"
+                      phx-click="board_expand_template"
+                      phx-value-id={t.id}
+                      class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {length(t.step_definitions)} {if length(t.step_definitions) == 1,
+                        do: "step",
+                        else: "steps"}
+                      {if MapSet.member?(@board_expanded, t.id), do: "▾", else: "▸"}
+                    </button>
+                  <% end %>
                   <%= if t.suggested_team && t.suggested_team != "" do %>
                     <p class="text-xs text-muted-foreground italic">Team: {t.suggested_team}</p>
                   <% end %>
@@ -590,6 +647,25 @@ defmodule ExCaliburWeb.QuestsLive do
                     <% end %>
                   <% end %>
                 </div>
+                <%= if MapSet.member?(@board_expanded, t.id) && t.step_definitions && t.step_definitions != [] do %>
+                  <div class="mt-4 space-y-2 border-t pt-4 col-span-full">
+                    <%= for step_def <- t.step_definitions do %>
+                      <div class="step-card rounded border p-3 ml-4 bg-muted/30">
+                        <div class="font-medium text-sm">{step_def.name}</div>
+                        <%= if step_def[:description] do %>
+                          <p class="text-xs text-muted-foreground mt-1">{step_def[:description]}</p>
+                        <% end %>
+                        <%= if step_def[:lore_tags] && step_def[:lore_tags] != [] do %>
+                          <div class="flex flex-wrap gap-1 mt-1">
+                            <%= for tag <- step_def.lore_tags do %>
+                              <span class="px-1.5 py-0.5 bg-muted rounded text-xs">{tag}</span>
+                            <% end %>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
               </div>
             <% end %>
             <%= if board_visible(@board_templates, board_tab_category(@board_tab), @board_show_unavailable) == [] do %>

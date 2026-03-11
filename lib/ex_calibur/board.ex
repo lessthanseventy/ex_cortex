@@ -162,6 +162,58 @@ defmodule ExCalibur.Board do
     result
   end
 
+  @doc """
+  One-click install: creates the quest + steps and auto-recruits any
+  missing members mentioned in the template's suggested_team.
+  """
+  def recruit_and_go(%__MODULE__{} = template) do
+    case install(template) do
+      {:ok, quest} ->
+        recruited = auto_recruit_members(template)
+        {:ok, %{quest: quest, steps_created: template.step_definitions || [], members_recruited: recruited}}
+
+      error ->
+        error
+    end
+  end
+
+  defp auto_recruit_members(%{suggested_team: nil}), do: []
+  defp auto_recruit_members(%{suggested_team: ""}), do: []
+
+  defp auto_recruit_members(%{suggested_team: team_desc}) do
+    existing = Member |> Repo.all() |> Enum.map(& &1.name)
+    team_lower = String.downcase(team_desc)
+
+    ExCalibur.Members.BuiltinMember.all()
+    |> Enum.filter(fn m ->
+      String.contains?(team_lower, String.downcase(m.name)) and m.name not in existing
+    end)
+    |> Enum.map(fn member ->
+      rank_config = member.ranks[:journeyman] || member.ranks[:apprentice] || %{}
+
+      case Repo.insert(
+             Member.changeset(%Member{}, %{
+               type: "role",
+               name: member.name,
+               status: "active",
+               source: "db",
+               config: %{
+                 "member_id" => member.id,
+                 "system_prompt" => member.system_prompt,
+                 "rank" => "journeyman",
+                 "model" => rank_config[:model] || "llama3.2",
+                 "strategy" => rank_config[:strategy] || "cot"
+               }
+             }),
+             on_conflict: :nothing
+           ) do
+        {:ok, _} -> member.name
+        _ -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+  end
+
   @doc false
   def changeset_errors(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
