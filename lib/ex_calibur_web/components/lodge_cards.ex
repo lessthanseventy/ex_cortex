@@ -220,6 +220,15 @@ defmodule ExCaliburWeb.Components.LodgeCards do
         type="button"
         variant="ghost"
         size="sm"
+        phx-click="archive_card"
+        phx-value-card-id={@card.id}
+      >
+        Archive
+      </.button>
+      <.button
+        type="button"
+        variant="ghost"
+        size="sm"
         phx-click="dismiss_card"
         phx-value-card-id={@card.id}
       >

@@ -32,14 +32,21 @@ defmodule ExCaliburWeb.LodgeLive do
 
       Lodge.sync_proposals()
       Lodge.sync_augury()
-      {:ok, load_cards(assign(socket, page_title: "Lodge", selected_tags: []))}
+      {:ok, load_cards(assign(socket, page_title: "Lodge", selected_tags: [], filter_tags: []))}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
     end
   end
 
   defp load_cards(socket) do
-    cards = Lodge.list_cards()
+    opts =
+      case socket.assigns[:filter_tags] do
+        [] -> []
+        nil -> []
+        tags -> [tags: tags]
+      end
+
+    cards = Lodge.list_cards(opts)
     assign(socket, cards: cards)
   end
 
@@ -100,6 +107,24 @@ defmodule ExCaliburWeb.LodgeLive do
       end
 
     {:noreply, assign(socket, selected_tags: updated)}
+  end
+
+  @impl true
+  def handle_event("toggle_filter_tag", %{"tag" => ""}, socket) do
+    {:noreply, load_cards(assign(socket, filter_tags: []))}
+  end
+
+  def handle_event("toggle_filter_tag", %{"tag" => tag}, socket) do
+    tags = socket.assigns.filter_tags
+
+    updated =
+      if tag in tags do
+        List.delete(tags, tag)
+      else
+        [tag | tags]
+      end
+
+    {:noreply, load_cards(assign(socket, filter_tags: updated))}
   end
 
   @impl true
@@ -231,6 +256,30 @@ defmodule ExCaliburWeb.LodgeLive do
           </div>
           <.button type="submit" size="sm">+ Add Card</.button>
         </form>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-medium text-muted-foreground">Filter:</span>
+        <%= for tag <- ~w(tech urgent meeting todo idea) do %>
+          <button
+            type="button"
+            phx-click="toggle_filter_tag"
+            phx-value-tag={tag}
+            class={"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer transition-colors " <> if(tag in @filter_tags, do: "bg-primary text-primary-foreground", else: "bg-muted text-muted-foreground hover:bg-muted/80")}
+          >
+            {tag}
+          </button>
+        <% end %>
+        <%= if @filter_tags != [] do %>
+          <button
+            type="button"
+            phx-click="toggle_filter_tag"
+            phx-value-tag=""
+            class="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            clear
+          </button>
+        <% end %>
       </div>
 
       <%= if @cards == [] do %>
