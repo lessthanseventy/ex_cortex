@@ -452,4 +452,20 @@ defmodule ExCaliburWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Renders Markdown content using MDEx.
+  """
+  attr :content, :string, default: nil
+  attr :class, :string, default: "prose prose-sm dark:prose-invert max-w-none"
+
+  def md(assigns) do
+    ~H"""
+    <div class={@class}>
+      <%= if @content do %>
+        {Phoenix.HTML.raw(ExCaliburWeb.Markdown.render(@content))}
+      <% end %>
+    </div>
+    """
+  end
 end
