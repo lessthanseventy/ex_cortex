@@ -24,7 +24,8 @@ defmodule ExCalibur.Board do
     :requires,
     :step_definitions,
     :quest_definition,
-    source_definitions: []
+    source_definitions: [],
+    extra_quests: []
   ]
 
   @categories [:triage, :reporting, :generation, :review, :onboarding, :lifestyle]
@@ -152,6 +153,31 @@ defmodule ExCalibur.Board do
       else
         {:ok, nil}
       end
+
+    Enum.each(template.extra_quests || [], fn quest_def ->
+      quest_steps =
+        (quest_def.steps || [])
+        |> Enum.map(fn step ->
+          %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
+        end)
+        |> Enum.reject(fn step -> is_nil(step["step_id"]) end)
+
+      attrs = Map.put(quest_def, :steps, quest_steps)
+
+      case ExCalibur.Quests.create_quest(attrs) do
+        {:ok, _} ->
+          :ok
+
+        {:error, changeset} ->
+          if Enum.any?(changeset.errors, fn {field, {_, opts}} ->
+               field == :name && opts[:constraint] == :unique
+             end) do
+            Logger.debug("[Board] Quest already exists: #{quest_def.name}")
+          else
+            Logger.warning("[Board] Failed to create quest #{quest_def.name}: #{inspect(changeset_errors(changeset))}")
+          end
+      end
+    end)
 
     Enum.each(template.source_definitions || [], fn source_def ->
       existing =
