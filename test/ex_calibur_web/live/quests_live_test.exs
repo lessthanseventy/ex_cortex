@@ -70,6 +70,16 @@ defmodule ExCaliburWeb.QuestsLiveTest do
     refute html =~ "Test Quest"
   end
 
+  describe "banner filtering" do
+    test "quest board filters templates by banner", %{conn: conn} do
+      ExCalibur.Settings.set_banner("lifestyle")
+      {:ok, _view, html} = live(conn, ~p"/quests")
+      # Lifestyle templates should appear
+      # Tech-only templates should not
+      refute html =~ "Jira Ticket Triage"
+    end
+  end
+
   describe "quest templates" do
     test "renders quest templates section", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/quests")

@@ -6,6 +6,7 @@ defmodule ExCaliburWeb.QuestsLive do
 
   alias ExCalibur.Board
   alias ExCalibur.Quests
+  alias ExCalibur.Settings
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
 
@@ -29,7 +30,19 @@ defmodule ExCaliburWeb.QuestsLive do
 
     schedule_mode_previews = build_schedule_mode_previews(quests)
 
-    board_templates = Enum.map(Board.all(), &board_with_status/1)
+    banner = Settings.get_banner()
+    banner_atom = if banner, do: String.to_existing_atom(banner), else: nil
+
+    board_templates =
+      Board.all()
+      |> then(fn templates ->
+        if banner_atom do
+          Enum.filter(templates, &(&1.banner == banner_atom))
+        else
+          templates
+        end
+      end)
+      |> Enum.map(&board_with_status/1)
 
     {:ok,
      assign(socket,
