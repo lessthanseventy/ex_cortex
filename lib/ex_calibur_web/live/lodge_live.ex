@@ -104,6 +104,18 @@ defmodule ExCaliburWeb.LodgeLive do
   end
 
   @impl true
+  def handle_event("edit_augury", %{"card-id" => _id}, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("archive_card", %{"card-id" => id}, socket) do
+    card = Lodge.get_card!(id)
+    Lodge.update_card(card, %{status: "archived"})
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
   def handle_event("reject_proposal", %{"card-id" => id}, socket) do
     card = Lodge.get_card!(id)
     proposal_id = card.metadata["proposal_id"]
