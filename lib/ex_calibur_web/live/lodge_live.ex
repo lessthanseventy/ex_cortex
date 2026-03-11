@@ -28,10 +28,10 @@ defmodule ExCaliburWeb.LodgeLive do
       if connected?(socket) do
         Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
         Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
+        Lodge.sync_proposals()
+        Lodge.sync_augury()
       end
 
-      Lodge.sync_proposals()
-      Lodge.sync_augury()
       {:ok, load_cards(assign(socket, page_title: "Lodge", selected_tags: [], filter_tags: []))}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
@@ -170,11 +170,6 @@ defmodule ExCaliburWeb.LodgeLive do
   end
 
   @impl true
-  def handle_event("edit_augury", %{"card-id" => _id}, socket) do
-    {:noreply, socket}
-  end
-
-  @impl true
   def handle_event("archive_card", %{"card-id" => id}, socket) do
     card = Lodge.get_card!(id)
     Lodge.update_card(card, %{status: "archived"})
@@ -236,7 +231,7 @@ defmodule ExCaliburWeb.LodgeLive do
             ></textarea>
             <div class="flex items-center gap-2 flex-wrap">
               <span class="text-xs text-muted-foreground">Tags:</span>
-              <%= for tag <- ~w(tech urgent meeting todo idea) do %>
+              <%= for tag <- ExCaliburWeb.Components.LodgeCards.preset_tags() do %>
                 <button
                   type="button"
                   phx-click="toggle_tag"
@@ -260,7 +255,7 @@ defmodule ExCaliburWeb.LodgeLive do
 
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-xs font-medium text-muted-foreground">Filter:</span>
-        <%= for tag <- ~w(tech urgent meeting todo idea) do %>
+        <%= for tag <- ExCaliburWeb.Components.LodgeCards.preset_tags() do %>
           <button
             type="button"
             phx-click="toggle_filter_tag"

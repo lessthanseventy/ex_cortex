@@ -5,6 +5,9 @@ defmodule ExCaliburWeb.Components.LodgeCards do
   import SaladUI.Badge
   import SaladUI.Button
 
+  @preset_tags ~w(tech urgent meeting todo idea)
+  def preset_tags, do: @preset_tags
+
   attr :card, :map, required: true
 
   def lodge_card(%{card: %{type: "note"}} = assigns) do
@@ -126,15 +129,6 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           <h2 class="text-lg font-semibold mt-0.5">{@card.title}</h2>
         </div>
         <div class="flex gap-2 shrink-0">
-          <.button
-            type="button"
-            variant="outline"
-            size="sm"
-            phx-click="edit_augury"
-            phx-value-card-id={@card.id}
-          >
-            Edit
-          </.button>
           <.card_actions card={@card} />
         </div>
       </div>
@@ -168,7 +162,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
   end
 
   defp card_header(assigns) do
-    tags = Map.get(assigns.card, :tags) || []
+    tags = Map.get(assigns.card, :tags, []) || []
     assigns = assign(assigns, :tags, tags)
 
     ~H"""

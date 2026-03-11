@@ -106,7 +106,7 @@ defmodule ExCalibur.Lodge do
           type: "augury",
           title: augury_entry.title,
           body: augury_entry.body,
-          source: "quest",
+          source: "lore",
           pinned: true
         })
     end
