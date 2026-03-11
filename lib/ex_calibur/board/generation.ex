@@ -17,6 +17,7 @@ defmodule ExCalibur.Board.Generation do
   defp incident_postmortem do
     %Board{
       id: "incident_postmortem",
+      banner: :tech,
       name: "Incident Postmortem",
       category: :generation,
       description:
@@ -68,6 +69,7 @@ defmodule ExCalibur.Board.Generation do
   defp release_notes do
     %Board{
       id: "release_notes",
+      banner: :tech,
       name: "Release Notes Generator",
       category: :generation,
       description:
@@ -125,6 +127,7 @@ defmodule ExCalibur.Board.Generation do
   defp threat_model_report do
     %Board{
       id: "threat_model_report",
+      banner: :tech,
       name: "Threat Model Report",
       category: :generation,
       description:
@@ -191,6 +194,7 @@ defmodule ExCalibur.Board.Generation do
   defp weekly_digest do
     %Board{
       id: "weekly_digest",
+      banner: :tech,
       name: "Weekly Intelligence Digest",
       category: :generation,
       description:
@@ -252,6 +256,7 @@ defmodule ExCalibur.Board.Generation do
   defp platform_health do
     %Board{
       id: "platform_health",
+      banner: :tech,
       name: "Platform Health Report",
       category: :generation,
       description:
@@ -308,6 +313,7 @@ defmodule ExCalibur.Board.Generation do
   defp onboarding_brief do
     %Board{
       id: "onboarding_brief",
+      banner: :tech,
       name: "Team Onboarding Brief",
       category: :generation,
       description:

@@ -15,6 +15,7 @@ defmodule ExCalibur.Board.Reporting do
   defp weekly_security_digest do
     %Board{
       id: "weekly_security_digest",
+      banner: :tech,
       name: "Weekly Security Digest",
       category: :reporting,
       description:
@@ -84,6 +85,7 @@ defmodule ExCalibur.Board.Reporting do
   defp daily_standup_report do
     %Board{
       id: "daily_standup_report",
+      banner: :tech,
       name: "Daily AI Standup",
       category: :reporting,
       description:
@@ -147,6 +149,7 @@ defmodule ExCalibur.Board.Reporting do
   defp sprint_code_quality_summary do
     %Board{
       id: "sprint_code_quality_summary",
+      banner: :tech,
       name: "Sprint Code Quality Report",
       category: :reporting,
       description:
@@ -216,6 +219,7 @@ defmodule ExCalibur.Board.Reporting do
   defp monthly_risk_summary do
     %Board{
       id: "monthly_risk_summary",
+      banner: :tech,
       name: "Monthly Risk Executive Summary",
       category: :reporting,
       description:

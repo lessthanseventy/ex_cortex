@@ -18,6 +18,7 @@ defmodule ExCalibur.Board do
     :id,
     :name,
     :category,
+    :banner,
     :description,
     :suggested_team,
     :requires,
@@ -37,6 +38,10 @@ defmodule ExCalibur.Board do
   def by_category(cat), do: Enum.filter(all(), &(&1.category == cat))
 
   def get(id), do: Enum.find(all(), &(&1.id == id))
+
+  def filter_by_banner(banner) do
+    Enum.filter(all(), &(&1.banner == banner))
+  end
 
   @doc """
   Check which requirements are met for a template.

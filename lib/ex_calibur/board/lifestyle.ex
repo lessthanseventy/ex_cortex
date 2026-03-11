@@ -17,6 +17,7 @@ defmodule ExCalibur.Board.Lifestyle do
   defp everyday_council do
     %Board{
       id: "everyday_council",
+      banner: :lifestyle,
       name: "Everyday Council",
       category: :lifestyle,
       description:
@@ -118,6 +119,7 @@ defmodule ExCalibur.Board.Lifestyle do
   defp tech_dispatch do
     %Board{
       id: "tech_dispatch",
+      banner: :lifestyle,
       name: "Tech Dispatch",
       category: :lifestyle,
       description: "Daily and weekly technology news synthesis. Learns trends over time through accumulated lore.",
@@ -208,6 +210,7 @@ defmodule ExCalibur.Board.Lifestyle do
   defp sports_corner do
     %Board{
       id: "sports_corner",
+      banner: :lifestyle,
       name: "Sports Corner",
       category: :lifestyle,
       description: "Daily sports digest — scores, storylines, and what it all means. Builds a narrative arc over time.",
@@ -294,6 +297,7 @@ defmodule ExCalibur.Board.Lifestyle do
   defp market_signals do
     %Board{
       id: "market_signals",
+      banner: :lifestyle,
       name: "Market Signals",
       category: :lifestyle,
       description:
@@ -374,6 +378,7 @@ defmodule ExCalibur.Board.Lifestyle do
   defp culture_desk do
     %Board{
       id: "culture_desk",
+      banner: :lifestyle,
       name: "Culture Desk",
       category: :lifestyle,
       description: "Entertainment, music, film, culture. The tabloid voice meets the historian's memory.",
@@ -458,6 +463,7 @@ defmodule ExCalibur.Board.Lifestyle do
   defp science_watch do
     %Board{
       id: "science_watch",
+      banner: :lifestyle,
       name: "Science Watch",
       category: :lifestyle,
       description:
