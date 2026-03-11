@@ -231,4 +231,12 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
       {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/guild-hall")
     end
   end
+
+  describe "markdown rendering" do
+    test "charter text renders as markdown", %{conn: conn} do
+      ExCalibur.GuildCharters.upsert_charter("test-guild", "**bold charter** rules")
+      {:ok, _view, html} = live(conn, ~p"/guild-hall")
+      assert html =~ "<strong>bold charter</strong>"
+    end
+  end
 end

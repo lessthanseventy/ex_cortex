@@ -273,8 +273,8 @@ defmodule ExCaliburWeb.GrimoireLive do
             </div>
           </div>
           <%= if @augury.body && @augury.body != "" do %>
-            <div class="text-sm text-foreground/80 whitespace-pre-wrap border-t border-primary/10 pt-3">
-              {@augury.body}
+            <div class="text-sm text-foreground/80 border-t border-primary/10 pt-3">
+              <.md content={@augury.body} />
             </div>
           <% end %>
           <%= if @augury.tags != [] do %>
@@ -440,8 +440,8 @@ defmodule ExCaliburWeb.GrimoireLive do
         </div>
       </div>
       <%= if @entry.body && @entry.body != "" do %>
-        <div class="text-sm text-foreground/80 whitespace-pre-wrap border-t pt-3">
-          {@entry.body}
+        <div class="text-sm text-foreground/80 border-t pt-3">
+          <.md content={@entry.body} />
         </div>
       <% end %>
       <div class="text-xs text-muted-foreground border-t pt-2 flex items-center gap-2">

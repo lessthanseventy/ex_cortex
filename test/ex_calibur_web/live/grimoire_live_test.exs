@@ -55,4 +55,11 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
     ExCalibur.Repo.delete_all(ExCalibur.Settings)
     {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/grimoire")
   end
+
+  test "renders entry body as markdown", %{conn: conn} do
+    {:ok, _} = Lore.create_entry(%{title: "MD Test", body: "**bold** and `code`", tags: []})
+    {:ok, _view, html} = live(conn, "/grimoire")
+    assert html =~ "<strong>bold</strong>"
+    assert html =~ "<code>"
+  end
 end

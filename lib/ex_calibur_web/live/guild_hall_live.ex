@@ -160,11 +160,11 @@ defmodule ExCaliburWeb.GuildHallLive do
                   </div>
                 </form>
               <% else %>
-                <p class="text-xs text-muted-foreground italic">
-                  {if charter_text != "",
-                    do: String.slice(charter_text, 0, 100) <> "…",
-                    else: "No charter text set"}
-                </p>
+                <%= if charter_text != "" do %>
+                  <.md content={charter_text} class="prose prose-xs dark:prose-invert max-w-none" />
+                <% else %>
+                  <p class="text-xs text-muted-foreground italic">No charter text set</p>
+                <% end %>
               <% end %>
             </div>
           <% end %>
