@@ -79,4 +79,67 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
     assert html =~ "Paused Quest"
     assert html =~ "paused"
   end
+
+  describe "per-quest drill-down" do
+    test "clicking a quest shows its detail view", %{conn: conn} do
+      {:ok, step} = Quests.create_step(%{name: "Drill Step", trigger: "manual", roster: []})
+
+      {:ok, quest} =
+        Quests.create_quest(%{
+          name: "Drill Quest",
+          trigger: "manual",
+          steps: [%{"step_id" => step.id, "flow" => "always"}]
+        })
+
+      {:ok, view, _html} = live(conn, "/grimoire")
+      html = render_click(view, "select_quest", %{"id" => to_string(quest.id)})
+      assert html =~ "Drill Quest"
+      assert html =~ "Run History"
+      assert html =~ "Back to Quest Log"
+    end
+
+    test "clicking a quest shows its runs and lore entries", %{conn: conn} do
+      {:ok, step} = Quests.create_step(%{name: "Lore Step", trigger: "manual", roster: []})
+
+      {:ok, quest} =
+        Quests.create_quest(%{
+          name: "Lore Quest",
+          trigger: "manual",
+          steps: [%{"step_id" => step.id, "flow" => "always"}]
+        })
+
+      {:ok, _run} = Quests.create_quest_run(%{quest_id: quest.id, status: "complete"})
+
+      {:ok, _entry} =
+        ExCalibur.Lore.create_entry(%{
+          title: "From drill",
+          body: "data",
+          tags: [],
+          quest_id: quest.id
+        })
+
+      {:ok, view, _html} = live(conn, "/grimoire")
+      html = render_click(view, "select_quest", %{"id" => to_string(quest.id)})
+      assert html =~ "Lore Quest"
+      assert html =~ "complete"
+      assert html =~ "From drill"
+    end
+
+    test "back button returns to overview", %{conn: conn} do
+      {:ok, step} = Quests.create_step(%{name: "Back Step", trigger: "manual", roster: []})
+
+      {:ok, quest} =
+        Quests.create_quest(%{
+          name: "Back Quest",
+          trigger: "manual",
+          steps: [%{"step_id" => step.id, "flow" => "always"}]
+        })
+
+      {:ok, view, _html} = live(conn, "/grimoire")
+      render_click(view, "select_quest", %{"id" => to_string(quest.id)})
+      html = render_click(view, "back_to_quest_log", %{})
+      assert html =~ "Quest Log"
+      refute html =~ "Run History"
+    end
+  end
 end
