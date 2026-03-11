@@ -27,9 +27,11 @@ defmodule ExCaliburWeb.LodgeLive do
     if has_members do
       if connected?(socket) do
         Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
+        Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
       end
 
       Lodge.sync_proposals()
+      Lodge.sync_augury()
       {:ok, load_cards(assign(socket, page_title: "Lodge"))}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
@@ -43,6 +45,12 @@ defmodule ExCaliburWeb.LodgeLive do
 
   @impl true
   def handle_info({:lodge_card_posted, _card}, socket) do
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
+  def handle_info({:lore_updated, _title}, socket) do
+    Lodge.sync_augury()
     {:noreply, load_cards(socket)}
   end
 

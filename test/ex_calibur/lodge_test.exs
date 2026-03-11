@@ -123,6 +123,51 @@ defmodule ExCalibur.LodgeTest do
     end
   end
 
+  describe "sync_augury/0" do
+    test "creates an augury card from the lore entry tagged augury" do
+      ExCalibur.Lore.create_entry(%{
+        title: "World Read",
+        body: "Markets shifting",
+        tags: ["augury"],
+        source: "manual"
+      })
+
+      Lodge.sync_augury()
+      cards = Lodge.list_cards(type: "augury")
+      assert length(cards) == 1
+      assert hd(cards).title == "World Read"
+      assert hd(cards).pinned == true
+    end
+
+    test "updates existing augury card instead of creating duplicate" do
+      ExCalibur.Lore.create_entry(%{
+        title: "First Read",
+        body: "Initial",
+        tags: ["augury"],
+        source: "manual"
+      })
+
+      Lodge.sync_augury()
+      assert length(Lodge.list_cards(type: "augury")) == 1
+
+      ExCalibur.Lore.create_entry(%{
+        title: "Updated Read",
+        body: "Revised",
+        tags: ["augury"],
+        source: "manual"
+      })
+
+      Lodge.sync_augury()
+      cards = Lodge.list_cards(type: "augury")
+      assert length(cards) == 1
+    end
+
+    test "does nothing when no augury entry exists" do
+      assert Lodge.sync_augury() == :noop
+      assert Lodge.list_cards(type: "augury") == []
+    end
+  end
+
   describe "delete_card/1" do
     test "deletes a card" do
       {:ok, card} = Lodge.create_card(%{type: "note", title: "Delete me", source: "manual"})

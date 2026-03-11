@@ -77,6 +77,21 @@ defmodule ExCaliburWeb.LodgeLiveTest do
       refute render(view) =~ "Dismiss Me"
     end
 
+    test "displays augury card synced from lore", %{conn: conn} do
+      insert_member()
+
+      ExCalibur.Lore.create_entry(%{
+        title: "World Thesis",
+        body: "Markets are shifting",
+        tags: ["augury"],
+        source: "manual"
+      })
+
+      {:ok, _view, html} = live(conn, "/lodge")
+      assert html =~ "The Augury"
+      assert html =~ "World Thesis"
+    end
+
     test "can toggle pin", %{conn: conn} do
       insert_member()
       {:ok, card} = Lodge.create_card(%{type: "note", title: "Pin Me", source: "manual"})

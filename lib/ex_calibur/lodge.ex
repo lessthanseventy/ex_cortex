@@ -78,6 +78,32 @@ defmodule ExCalibur.Lodge do
     end
   end
 
+  def sync_augury do
+    augury_entry =
+      [tags: ["augury"], sort: "newest"]
+      |> ExCalibur.Lore.list_entries()
+      |> List.first()
+
+    existing = [type: "augury"] |> list_cards() |> List.first()
+
+    cond do
+      is_nil(augury_entry) ->
+        :noop
+
+      existing ->
+        update_card(existing, %{title: augury_entry.title, body: augury_entry.body})
+
+      true ->
+        create_card(%{
+          type: "augury",
+          title: augury_entry.title,
+          body: augury_entry.body,
+          source: "quest",
+          pinned: true
+        })
+    end
+  end
+
   def toggle_checklist_item(%Card{type: "checklist"} = card, index) do
     items = card.metadata["items"] || []
 
