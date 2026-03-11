@@ -6,6 +6,11 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
 
   alias ExCalibur.Lore
 
+  setup do
+    ExCalibur.Settings.set_banner("tech")
+    :ok
+  end
+
   test "renders empty state", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/grimoire")
     assert html =~ "Grimoire"
@@ -44,5 +49,10 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
     assert render(view) =~ "To Delete"
     render_click(view, "delete_entry", %{"id" => to_string(entry.id)})
     refute render(view) =~ "To Delete"
+  end
+
+  test "redirects to town square when no banner set", %{conn: conn} do
+    ExCalibur.Repo.delete_all(ExCalibur.Settings)
+    {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/grimoire")
   end
 end

@@ -25,6 +25,11 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
     member
   end
 
+  setup do
+    ExCalibur.Settings.set_banner("tech")
+    :ok
+  end
+
   describe "index" do
     test "renders guild hall page header", %{conn: conn} do
       {:ok, view, html} = live(conn, "/guild-hall")
@@ -219,6 +224,11 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
       {:ok, _view, html} = live(conn, ~p"/guild-hall")
       # Tech specialists should not appear in lifestyle banner
       refute html =~ "Frontend Reviewer"
+    end
+
+    test "redirects to town square when no banner set", %{conn: conn} do
+      Repo.delete_all(ExCalibur.Settings)
+      {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/guild-hall")
     end
   end
 end

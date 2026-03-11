@@ -14,6 +14,16 @@ defmodule ExCaliburWeb.QuestsLive do
   def mount(_params, _session, socket) do
     import Ecto.Query
 
+    if connected?(socket) and is_nil(Settings.get_banner()) do
+      {:ok, push_navigate(socket, to: ~p"/town-square")}
+    else
+      mount_quests(socket)
+    end
+  end
+
+  defp mount_quests(socket) do
+    import Ecto.Query
+
     if connected?(socket) do
       Phoenix.PubSub.subscribe(ExCalibur.PubSub, "step_runs")
     end
@@ -31,7 +41,7 @@ defmodule ExCaliburWeb.QuestsLive do
     schedule_mode_previews = build_schedule_mode_previews(quests)
 
     banner = Settings.get_banner()
-    banner_atom = if banner, do: String.to_existing_atom(banner), else: nil
+    banner_atom = if banner, do: String.to_existing_atom(banner)
 
     board_templates =
       Board.all()

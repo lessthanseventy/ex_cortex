@@ -7,6 +7,7 @@ defmodule ExCaliburWeb.QuestsLiveTest do
   alias ExCalibur.Quests
 
   setup do
+    ExCalibur.Settings.set_banner("tech")
     {:ok, step} = Quests.create_step(%{name: "Test Step", trigger: "manual", roster: []})
 
     {:ok, quest} =
@@ -77,6 +78,11 @@ defmodule ExCaliburWeb.QuestsLiveTest do
       # Lifestyle templates should appear
       # Tech-only templates should not
       refute html =~ "Jira Ticket Triage"
+    end
+
+    test "redirects to town square when no banner set", %{conn: conn} do
+      ExCalibur.Repo.delete_all(ExCalibur.Settings)
+      {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/quests")
     end
   end
 

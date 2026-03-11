@@ -7,6 +7,11 @@ defmodule ExCaliburWeb.LibraryLiveTest do
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
 
+  setup do
+    ExCalibur.Settings.set_banner("tech")
+    :ok
+  end
+
   describe "active sources section" do
     setup do
       ExCalibur.Repo.delete_all(Source)
@@ -170,6 +175,11 @@ defmodule ExCaliburWeb.LibraryLiveTest do
       {:ok, _view, html} = live(conn, ~p"/library")
       # Tech-specific books should be hidden
       refute html =~ "Credo Scanner"
+    end
+
+    test "redirects to town square when no banner set", %{conn: conn} do
+      ExCalibur.Repo.delete_all(ExCalibur.Settings)
+      {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/library")
     end
   end
 end

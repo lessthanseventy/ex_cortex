@@ -12,13 +12,21 @@ defmodule ExCaliburWeb.GuildHallLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) and is_nil(Settings.get_banner()) do
+      {:ok, push_navigate(socket, to: ~p"/town-square")}
+    else
+      mount_guild_hall(socket)
+    end
+  end
+
+  defp mount_guild_hall(socket) do
     members = list_members()
 
     strategy_previews =
       Map.new(members, fn m -> {m.id, m.strategy} end)
 
     banner = Settings.get_banner()
-    banner_atom = if banner, do: String.to_existing_atom(banner), else: nil
+    banner_atom = if banner, do: String.to_existing_atom(banner)
 
     {:ok,
      assign(socket,

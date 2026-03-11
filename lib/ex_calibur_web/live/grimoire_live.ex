@@ -6,10 +6,19 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   alias ExCalibur.Lore
   alias ExCalibur.Quests
+  alias ExCalibur.Settings
   alias ExCalibur.StepRunner
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) and is_nil(Settings.get_banner()) do
+      {:ok, push_navigate(socket, to: ~p"/town-square")}
+    else
+      mount_grimoire(socket)
+    end
+  end
+
+  defp mount_grimoire(socket) do
     if connected?(socket) do
       Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
       Phoenix.PubSub.subscribe(ExCalibur.PubSub, "source_activity")
