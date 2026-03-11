@@ -40,5 +40,11 @@ defmodule ExCaliburWeb.TownSquareLiveTest do
       view |> element(~s{[phx-click="select_banner"][phx-value-banner="tech"]}) |> render_click()
       assert ExCalibur.Settings.get_banner() == "tech"
     end
+
+    test "nav shows banner indicator when banner is set", %{conn: conn} do
+      ExCalibur.Settings.set_banner("tech")
+      {:ok, _view, html} = live(conn, ~p"/town-square")
+      assert html =~ "tech"
+    end
   end
 end

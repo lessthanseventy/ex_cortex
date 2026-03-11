@@ -8,6 +8,11 @@ defmodule ExCaliburWeb.Router do
     plug :put_root_layout, html: {ExCaliburWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :assign_banner
+  end
+
+  defp assign_banner(conn, _opts) do
+    assign(conn, :banner, ExCalibur.Settings.get_banner())
   end
 
   pipeline :api do

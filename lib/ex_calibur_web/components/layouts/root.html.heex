@@ -14,9 +14,19 @@
   <body class="bg-background min-h-screen">
     <nav class="border-b bg-card sticky top-0 z-50 shadow-sm">
       <div class="max-w-6xl mx-auto flex items-center gap-8 px-6 py-0">
-        <span class="text-sm font-bold text-foreground tracking-widest uppercase shrink-0 select-none py-4 border-b-2 border-transparent">
-          ExCalibur
-        </span>
+        <a
+          href={~p"/town-square"}
+          class="flex items-center gap-2 shrink-0 py-4 border-b-2 border-transparent hover:opacity-80 transition-opacity"
+        >
+          <span class="text-sm font-bold text-foreground tracking-widest uppercase select-none">
+            ExCalibur
+          </span>
+          <%= if @banner do %>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium capitalize">
+              {@banner}
+            </span>
+          <% end %>
+        </a>
         <div class="flex overflow-x-auto">
           <%= for {label, path} <- [
             {"Lodge", ~p"/lodge"},
@@ -24,8 +34,7 @@
             {"Quests", ~p"/quests"},
             {"Grimoire", ~p"/grimoire"},
             {"Library", ~p"/library"},
-            {"Town Square", ~p"/town-square"},
-            {"Guide", ~p"/guide"}
+            {"Town Square", ~p"/town-square"}
           ] do %>
             <a
               href={path}
