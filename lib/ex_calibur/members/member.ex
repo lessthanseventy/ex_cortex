@@ -1,6 +1,6 @@
 defmodule ExCalibur.Members.BuiltinMember do
   @moduledoc false
-  defstruct [:id, :name, :description, :category, :system_prompt, :ranks]
+  defstruct [:id, :name, :description, :category, :system_prompt, :ranks, :banner]
 
   @default_ranks %{
     apprentice: %{model: "phi4-mini", strategy: "cot"},
@@ -10,10 +10,15 @@ defmodule ExCalibur.Members.BuiltinMember do
 
   def all, do: editors() ++ analysts() ++ specialists() ++ advisors() ++ validators() ++ wildcards() ++ life_use()
 
+  def filter_by_banner(banner) do
+    Enum.filter(all(), &(&1.banner == banner))
+  end
+
   def editors do
     [
       %__MODULE__{
         id: "grammar-editor",
+        banner: :tech,
         name: "Grammar Editor",
         description: "Checks spelling, grammar, and punctuation accuracy.",
         category: :editor,
@@ -31,6 +36,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "tone-reviewer",
+        banner: :tech,
         name: "Tone Reviewer",
         description: "Evaluates consistency of formal, casual, or professional tone.",
         category: :editor,
@@ -48,6 +54,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "style-guide-enforcer",
+        banner: :tech,
         name: "Style Guide Enforcer",
         description: "Checks adherence to AP, Chicago, or house style guides.",
         category: :editor,
@@ -66,6 +73,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "brevity-coach",
+        banner: :tech,
         name: "Brevity Coach",
         description: "Identifies wordiness and suggests concise alternatives.",
         category: :editor,
@@ -84,6 +92,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "technical-writer",
+        banner: :tech,
         name: "Technical Writer",
         description: "Evaluates clarity, structure, and audience-appropriate complexity.",
         category: :editor,
@@ -107,6 +116,7 @@ defmodule ExCalibur.Members.BuiltinMember do
     [
       %__MODULE__{
         id: "trend-spotter",
+        banner: :tech,
         name: "Trend Spotter",
         description: "Identifies patterns, anomalies, and emerging signals in data.",
         category: :analyst,
@@ -124,6 +134,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "sentiment-analyzer",
+        banner: :business,
         name: "Sentiment Analyzer",
         description: "Evaluates emotional tone, brand perception, and audience reaction.",
         category: :analyst,
@@ -141,6 +152,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "data-quality-auditor",
+        banner: :tech,
         name: "Data Quality Auditor",
         description: "Checks completeness, consistency, and accuracy of datasets.",
         category: :analyst,
@@ -159,6 +171,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "competitive-analyst",
+        banner: :tech,
         name: "Competitive Analyst",
         description: "Evaluates market positioning and competitor comparison.",
         category: :analyst,
@@ -177,6 +190,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "feedback-analyst",
+        banner: :business,
         name: "Feedback Analyst",
         description: "Evaluates user feedback for bias, completeness, and actionable signal.",
         category: :analyst,
@@ -197,6 +211,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "risk-assessor",
+        banner: :tech,
         name: "Risk Assessor",
         description: "Identifies business, technical, and operational risks in proposals and decisions.",
         category: :analyst,
@@ -222,6 +237,7 @@ defmodule ExCalibur.Members.BuiltinMember do
     [
       %__MODULE__{
         id: "accessibility-auditor",
+        banner: :tech,
         name: "Accessibility Auditor",
         description: "Evaluates interfaces against WCAG 2.2 AA criteria and assistive technology compatibility.",
         category: :specialist,
@@ -243,6 +259,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "frontend-reviewer",
+        banner: :tech,
         name: "Frontend Reviewer",
         description: "Reviews UI code for correctness, performance, accessibility, and modern standards.",
         category: :specialist,
@@ -262,6 +279,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "backend-reviewer",
+        banner: :tech,
         name: "Backend Reviewer",
         description: "Evaluates server-side architecture for scalability, security, and API quality.",
         category: :specialist,
@@ -282,6 +300,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "performance-auditor",
+        banner: :tech,
         name: "Performance Auditor",
         description: "Evaluates system performance, bottlenecks, and scalability under load.",
         category: :specialist,
@@ -302,6 +321,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "devops-reviewer",
+        banner: :tech,
         name: "DevOps Reviewer",
         description: "Evaluates CI/CD pipelines, infrastructure configs, and deployment practices.",
         category: :specialist,
@@ -322,6 +342,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "i18n-checker",
+        banner: :tech,
         name: "i18n Checker",
         description: "Checks internationalization, locale handling, and character encoding.",
         category: :specialist,
@@ -340,6 +361,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "regex-reviewer",
+        banner: :tech,
         name: "Regex Reviewer",
         description: "Reviews pattern correctness, edge cases, and regex performance.",
         category: :specialist,
@@ -358,6 +380,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "api-design-critic",
+        banner: :tech,
         name: "API Design Critic",
         description: "Reviews REST conventions, naming, versioning, and error handling.",
         category: :specialist,
@@ -376,6 +399,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "sql-reviewer",
+        banner: :tech,
         name: "SQL Reviewer",
         description: "Reviews query efficiency, indexing, and normalization.",
         category: :specialist,
@@ -394,6 +418,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "documentation-auditor",
+        banner: :tech,
         name: "Documentation Auditor",
         description: "Reviews completeness, accuracy, and quality of documentation.",
         category: :specialist,
@@ -417,6 +442,7 @@ defmodule ExCalibur.Members.BuiltinMember do
     [
       %__MODULE__{
         id: "devils-advocate",
+        banner: :tech,
         name: "Devil's Advocate",
         description: "Challenges assumptions and finds counterarguments.",
         category: :advisor,
@@ -435,6 +461,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "compliance-officer",
+        banner: :business,
         name: "Compliance Officer",
         description: "Checks regulatory requirements and policy adherence.",
         category: :advisor,
@@ -453,6 +480,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "ux-advocate",
+        banner: :tech,
         name: "UX Advocate",
         description: "Evaluates user impact, usability, and accessibility concerns.",
         category: :advisor,
@@ -471,6 +499,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "security-skeptic",
+        banner: :tech,
         name: "Security Skeptic",
         description: "Evaluates trust boundaries, attack surface, and data exposure.",
         category: :advisor,
@@ -489,6 +518,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "brand-guardian",
+        banner: :business,
         name: "Brand Guardian",
         description: "Evaluates brand voice consistency, positioning alignment, and messaging clarity.",
         category: :advisor,
@@ -508,6 +538,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "scope-realist",
+        banner: :business,
         name: "Scope Realist",
         description: "Flags scope creep, unrealistic timelines, and proposals without clear tradeoffs.",
         category: :advisor,
@@ -533,6 +564,7 @@ defmodule ExCalibur.Members.BuiltinMember do
     [
       %__MODULE__{
         id: "evidence-collector",
+        banner: :tech,
         name: "Evidence Collector",
         description: "Demands concrete, specific proof. Rejects claims without verifiable evidence.",
         category: :validator,
@@ -556,6 +588,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "challenger",
+        banner: :tech,
         name: "Challenger",
         description: "Demands evidence for all claims. Defaults to NEEDS WORK unless concrete proof is provided.",
         category: :validator,
@@ -584,6 +617,7 @@ defmodule ExCalibur.Members.BuiltinMember do
 
       %__MODULE__{
         id: "the-poet",
+        banner: :lifestyle,
         name: "The Poet",
         description: "Responds only in haiku. Captures the essence of any input in 5-7-5.",
         category: :wildcard,
@@ -596,6 +630,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "the-historian",
+        banner: :lifestyle,
         name: "The Historian",
         description: "Records events as guild lore in slightly archaic, formal prose.",
         category: :wildcard,
@@ -610,6 +645,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "the-tabloid",
+        banner: :lifestyle,
         name: "The Tabloid",
         description: "Rewrites anything as BREAKING NEWS with maximum drama.",
         category: :wildcard,
@@ -627,6 +663,7 @@ defmodule ExCalibur.Members.BuiltinMember do
 
       %__MODULE__{
         id: "the-intern",
+        banner: :tech,
         name: "The Intern",
         description: "Two weeks in, asks the questions everyone else is too embarrassed to ask.",
         category: :wildcard,
@@ -650,6 +687,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "the-nitpicker",
+        banner: :tech,
         name: "The Nitpicker",
         description: "Constitutionally incapable of letting anything slide. Every detail matters.",
         category: :wildcard,
@@ -669,6 +707,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "the-optimist",
+        banner: :tech,
         name: "The Optimist",
         description: "Finds the silver lining in everything. Reluctantly honest when it really matters.",
         category: :wildcard,
@@ -687,6 +726,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "hype-detector",
+        banner: :tech,
         name: "Hype Detector",
         description: "Buzzword-allergic realist. Counts marketing fluff like other people count calories.",
         category: :wildcard,
@@ -709,6 +749,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "the-philosopher",
+        banner: :tech,
         name: "The Philosopher",
         description: "Questions whether we're solving the right problem before asking if we solved it right.",
         category: :wildcard,
@@ -728,6 +769,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "time-traveler",
+        banner: :tech,
         name: "Time Traveler",
         description: "Visiting from two years in the future. Knows which shortcuts became permanent.",
         category: :wildcard,
@@ -760,6 +802,7 @@ defmodule ExCalibur.Members.BuiltinMember do
     [
       %__MODULE__{
         id: "life-coach",
+        banner: :lifestyle,
         name: "The Life Coach",
         description:
           "Warm, grounded support for decisions, habits, and life direction. No fluff — honest perspective with care.",
@@ -771,6 +814,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "journal-keeper",
+        banner: :lifestyle,
         name: "The Journal Keeper",
         description: "Processes notes, links, thoughts, and documents into structured reflections stored as lore.",
         category: :analysts,
@@ -781,6 +825,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "news-correspondent",
+        banner: :lifestyle,
         name: "The Correspondent",
         description:
           "Synthesizes news and articles into clean, readable briefings. Journalistic angle — what happened, why it matters.",
@@ -792,6 +837,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "market-analyst",
+        banner: :lifestyle,
         name: "The Market Analyst",
         description: "Synthesizes business and financial news into clear market intelligence. Tracks signals, not noise.",
         category: :analysts,
@@ -802,6 +848,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "sports-anchor",
+        banner: :lifestyle,
         name: "The Sports Anchor",
         description: "Delivers sports digests with the energy of a live broadcast — scores, storylines, what it means.",
         category: :wildcards,
@@ -812,6 +859,7 @@ defmodule ExCalibur.Members.BuiltinMember do
       },
       %__MODULE__{
         id: "science-correspondent",
+        banner: :lifestyle,
         name: "The Science Desk",
         description:
           "Translates research and scientific news into plain language. Flags what's real, what's hyped, what's early.",
