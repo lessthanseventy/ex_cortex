@@ -22,6 +22,19 @@ defmodule ExCalibur.LodgeTest do
       assert length(cards) == 1
       assert hd(cards).type == "note"
     end
+
+    test "filters by tags" do
+      {:ok, _} = Lodge.create_card(%{type: "note", title: "Tagged", source: "manual", tags: ["tech", "urgent"]})
+      {:ok, _} = Lodge.create_card(%{type: "note", title: "Other", source: "manual", tags: ["idea"]})
+      {:ok, _} = Lodge.create_card(%{type: "note", title: "None", source: "manual"})
+
+      cards = Lodge.list_cards(tags: ["tech"])
+      assert length(cards) == 1
+      assert hd(cards).title == "Tagged"
+
+      cards = Lodge.list_cards(tags: ["tech", "idea"])
+      assert length(cards) == 2
+    end
   end
 
   describe "create_card/1" do

@@ -19,6 +19,14 @@ defmodule ExCalibur.Lodge do
         type -> where(query, [c], c.type == ^type)
       end
 
+    query =
+      case Keyword.get(opts, :tags) do
+        nil -> query
+        [] -> query
+        tags when is_list(tags) -> where(query, [c], fragment("? && ?", c.tags, ^tags))
+        _ -> query
+      end
+
     Repo.all(query)
   end
 

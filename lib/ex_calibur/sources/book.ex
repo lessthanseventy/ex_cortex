@@ -269,6 +269,16 @@ defmodule ExCalibur.Sources.Book do
         default_config: %{"repo_path" => "", "branch" => "main", "interval" => 60_000},
         suggested_guild: nil,
         kind: :book
+      },
+      %__MODULE__{
+        id: "lodge_watcher",
+        name: "Lodge Card Watcher",
+        description:
+          "Watch Lodge cards for new or changed entries. Filter by card type and/or tags to feed specific cards into quests.",
+        source_type: "lodge",
+        default_config: %{"type_filter" => [], "tag_filter" => [], "interval" => 30_000},
+        suggested_guild: nil,
+        kind: :book
       }
     ]
   end

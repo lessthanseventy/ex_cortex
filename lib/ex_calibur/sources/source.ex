@@ -21,7 +21,7 @@ defmodule ExCalibur.Sources.Source do
     source
     |> cast(attrs, [:name, :source_type, :config, :state, :status, :last_run_at, :error_message, :book_id])
     |> validate_required([:source_type])
-    |> validate_inclusion(:source_type, ~w(git directory feed webhook url websocket))
+    |> validate_inclusion(:source_type, ~w(git directory feed webhook url websocket lodge))
     |> validate_inclusion(:status, ~w(active paused error))
   end
 end

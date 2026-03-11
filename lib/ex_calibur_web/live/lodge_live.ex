@@ -32,7 +32,7 @@ defmodule ExCaliburWeb.LodgeLive do
 
       Lodge.sync_proposals()
       Lodge.sync_augury()
-      {:ok, load_cards(assign(socket, page_title: "Lodge"))}
+      {:ok, load_cards(assign(socket, page_title: "Lodge", selected_tags: []))}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
     end
@@ -61,12 +61,45 @@ defmodule ExCaliburWeb.LodgeLive do
 
   @impl true
   def handle_event("create_card", %{"card" => params}, socket) do
-    attrs = Map.put(params, "source", "manual")
+    tags = socket.assigns.selected_tags
+    custom = params["custom_tag"] || ""
+
+    all_tags =
+      if custom == "" do
+        tags
+      else
+        custom
+        |> String.split(",")
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+        |> Enum.concat(tags)
+        |> Enum.uniq()
+      end
+
+    attrs =
+      params
+      |> Map.put("source", "manual")
+      |> Map.put("tags", all_tags)
+      |> Map.delete("custom_tag")
 
     case Lodge.create_card(attrs) do
-      {:ok, _} -> {:noreply, load_cards(socket)}
+      {:ok, _} -> {:noreply, load_cards(assign(socket, selected_tags: []))}
       {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to create card")}
     end
+  end
+
+  @impl true
+  def handle_event("toggle_tag", %{"tag" => tag}, socket) do
+    tags = socket.assigns.selected_tags
+
+    updated =
+      if tag in tags do
+        List.delete(tags, tag)
+      else
+        [tag | tags]
+      end
+
+    {:noreply, assign(socket, selected_tags: updated)}
   end
 
   @impl true
@@ -176,6 +209,25 @@ defmodule ExCaliburWeb.LodgeLive do
               placeholder="Body (markdown)"
               class="w-full text-sm border border-input rounded-md px-3 py-2 bg-background"
             ></textarea>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs text-muted-foreground">Tags:</span>
+              <%= for tag <- ~w(tech urgent meeting todo idea) do %>
+                <button
+                  type="button"
+                  phx-click="toggle_tag"
+                  phx-value-tag={tag}
+                  class={"inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium cursor-pointer transition-colors " <> if(tag in @selected_tags, do: "bg-primary text-primary-foreground", else: "bg-muted text-muted-foreground hover:bg-muted/80")}
+                >
+                  {tag}
+                </button>
+              <% end %>
+              <input
+                type="text"
+                name="card[custom_tag]"
+                placeholder="custom tag"
+                class="h-7 w-28 text-xs border border-input rounded-full px-2.5 bg-background"
+              />
+            </div>
           </div>
           <.button type="submit" size="sm">+ Add Card</.button>
         </form>

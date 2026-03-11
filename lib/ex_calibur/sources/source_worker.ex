@@ -158,6 +158,7 @@ defmodule ExCalibur.Sources.SourceWorker do
   defp source_module("feed"), do: ExCalibur.Sources.FeedWatcher
   defp source_module("url"), do: ExCalibur.Sources.UrlWatcher
   defp source_module("websocket"), do: ExCalibur.Sources.WebSocketSource
+  defp source_module("lodge"), do: ExCalibur.Sources.LodgeWatcher
 
   defp get_interval(config), do: config["interval"] || 60_000
 

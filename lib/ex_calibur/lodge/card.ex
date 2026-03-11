@@ -1,4 +1,5 @@
 defmodule ExCalibur.Lodge.Card do
+  @moduledoc false
   use Ecto.Schema
 
   import Ecto.Changeset
@@ -14,6 +15,7 @@ defmodule ExCalibur.Lodge.Card do
     field :pinned, :boolean, default: false
     field :source, :string
     field :quest_id, :integer
+    field :tags, {:array, :string}, default: []
     field :status, :string, default: "active"
 
     timestamps()
@@ -21,7 +23,7 @@ defmodule ExCalibur.Lodge.Card do
 
   def changeset(card, attrs) do
     card
-    |> cast(attrs, [:type, :title, :body, :metadata, :pinned, :source, :quest_id, :status])
+    |> cast(attrs, [:type, :title, :body, :metadata, :pinned, :source, :quest_id, :status, :tags])
     |> validate_required([:type, :title, :source, :status])
     |> validate_inclusion(:type, @valid_types)
     |> validate_inclusion(:status, @valid_statuses)

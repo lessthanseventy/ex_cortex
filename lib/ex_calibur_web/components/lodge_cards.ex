@@ -168,17 +168,40 @@ defmodule ExCaliburWeb.Components.LodgeCards do
   end
 
   defp card_header(assigns) do
+    tags = Map.get(assigns.card, :tags) || []
+    assigns = assign(assigns, :tags, tags)
+
     ~H"""
     <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
+      <div class="flex items-center gap-2 min-w-0 flex-wrap">
         <span class="font-medium truncate">{@card.title}</span>
         <.badge variant="outline" class="text-xs shrink-0">{@card.type}</.badge>
         <%= if @card.pinned do %>
           <span class="text-xs text-muted-foreground shrink-0" title="pinned">pinned</span>
         <% end %>
+        <%= for tag <- @tags do %>
+          <span class={[
+            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+            tag_color(tag)
+          ]}>
+            {tag}
+          </span>
+        <% end %>
       </div>
     </div>
     """
+  end
+
+  @tag_colors %{
+    "tech" => "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    "urgent" => "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+    "meeting" => "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+    "todo" => "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+    "idea" => "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+  }
+
+  defp tag_color(tag) do
+    Map.get(@tag_colors, tag, "bg-muted text-muted-foreground")
   end
 
   defp card_actions(assigns) do
