@@ -431,6 +431,12 @@ defmodule ExCaliburWeb.QuestsLive do
     {:noreply, assign_steps(socket)}
   end
 
+  def handle_event("update_step_output_type", %{"step_id" => step_id, "output_type" => output_type}, socket) do
+    step = Quests.get_step!(String.to_integer(step_id))
+    Quests.update_step(step, %{output_type: output_type})
+    {:noreply, assign_steps(socket)}
+  end
+
   def handle_event("update_step_lore_tags", %{"step_id" => step_id, "lore_tags" => tags_str}, socket) do
     step = Quests.get_step!(String.to_integer(step_id))
     tags = tags_str |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
@@ -1221,6 +1227,78 @@ defmodule ExCaliburWeb.QuestsLive do
                           placeholder="subscribe to tags…"
                           class="flex-1 text-xs border-0 border-b border-border bg-transparent px-1 py-0.5 focus:outline-none focus:border-primary"
                         />
+                      </form>
+                      <form
+                        phx-change="update_step_output_type"
+                        class="flex items-center gap-1 col-span-2"
+                      >
+                        <input type="hidden" name="step_id" value={step["step_id"]} />
+                        <span class="text-xs text-muted-foreground shrink-0">Output:</span>
+                        <select
+                          name="output_type"
+                          class="text-xs border-0 border-b border-border bg-transparent px-1 py-0.5 focus:outline-none focus:border-primary"
+                        >
+                          <option
+                            value="verdict"
+                            selected={step_struct && step_struct.output_type == "verdict"}
+                          >
+                            Verdict
+                          </option>
+                          <option
+                            value="artifact"
+                            selected={step_struct && step_struct.output_type == "artifact"}
+                          >
+                            Artifact
+                          </option>
+                          <option
+                            value="lodge_card"
+                            selected={step_struct && step_struct.output_type == "lodge_card"}
+                          >
+                            Lodge Card
+                          </option>
+                          <option
+                            value="freeform"
+                            selected={step_struct && step_struct.output_type == "freeform"}
+                          >
+                            Freeform
+                          </option>
+                          <option
+                            value="slack"
+                            selected={step_struct && step_struct.output_type == "slack"}
+                          >
+                            Slack
+                          </option>
+                          <option
+                            value="webhook"
+                            selected={step_struct && step_struct.output_type == "webhook"}
+                          >
+                            Webhook
+                          </option>
+                          <option
+                            value="github_issue"
+                            selected={step_struct && step_struct.output_type == "github_issue"}
+                          >
+                            GitHub Issue
+                          </option>
+                          <option
+                            value="github_pr"
+                            selected={step_struct && step_struct.output_type == "github_pr"}
+                          >
+                            GitHub PR
+                          </option>
+                          <option
+                            value="email"
+                            selected={step_struct && step_struct.output_type == "email"}
+                          >
+                            Email
+                          </option>
+                          <option
+                            value="pagerduty"
+                            selected={step_struct && step_struct.output_type == "pagerduty"}
+                          >
+                            PagerDuty
+                          </option>
+                        </select>
                       </form>
                     </div>
                   </div>
