@@ -95,6 +95,7 @@ defmodule ExCaliburWeb.GuildHallLive do
       system_prompt: db.config["system_prompt"] || (builtin && builtin.system_prompt) || "",
       rank: db.config["rank"] || "journeyman",
       model: db.config["model"] || "",
+      provider: db.config["provider"] || "ollama",
       strategy: db.config["strategy"] || "cot",
       team: db.team,
       db_id: db.id
@@ -346,7 +347,7 @@ defmodule ExCaliburWeb.GuildHallLive do
               />
             </div>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <label for="member-rank-edit" class="text-sm font-medium">Rank</label>
                 <select
@@ -361,6 +362,23 @@ defmodule ExCaliburWeb.GuildHallLive do
                     Journeyman
                   </option>
                   <option value="master" selected={@member.rank == "master"}>Master</option>
+                </select>
+              </div>
+              <div>
+                <label for={"member-provider-edit-#{@member.id}"} class="text-sm font-medium">
+                  Provider
+                </label>
+                <select
+                  id={"member-provider-edit-#{@member.id}"}
+                  name="member[provider]"
+                  class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+                >
+                  <option value="ollama" selected={@member.provider == "ollama"}>
+                    Ollama (local)
+                  </option>
+                  <option value="claude" selected={@member.provider == "claude"}>
+                    Claude (Anthropic)
+                  </option>
                 </select>
               </div>
               <div>
@@ -467,7 +485,7 @@ defmodule ExCaliburWeb.GuildHallLive do
               placeholder="You are a..."
             />
           </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label for="member-rank-new" class="text-sm font-medium">Rank</label>
               <select
@@ -478,6 +496,17 @@ defmodule ExCaliburWeb.GuildHallLive do
                 <option value="apprentice">Apprentice</option>
                 <option value="journeyman" selected>Journeyman</option>
                 <option value="master">Master</option>
+              </select>
+            </div>
+            <div>
+              <label for="member-provider-new" class="text-sm font-medium">Provider</label>
+              <select
+                id="member-provider-new"
+                name="member[provider]"
+                class="w-full text-sm border rounded px-2 py-1 bg-background mt-1"
+              >
+                <option value="ollama" selected>Ollama (local)</option>
+                <option value="claude">Claude (Anthropic)</option>
               </select>
             </div>
             <div>
@@ -760,6 +789,7 @@ defmodule ExCaliburWeb.GuildHallLive do
         "system_prompt" => params["system_prompt"] || "",
         "rank" => params["rank"] || "journeyman",
         "model" => params["model"] || "",
+        "provider" => params["provider"] || "ollama",
         "strategy" => params["strategy"] || "cot"
       }
     }
@@ -797,6 +827,7 @@ defmodule ExCaliburWeb.GuildHallLive do
             "system_prompt" => params["system_prompt"] || "",
             "rank" => params["rank"] || "journeyman",
             "model" => params["model"] || "",
+            "provider" => params["provider"] || "ollama",
             "strategy" => params["strategy"] || "cot"
           })
 
