@@ -162,6 +162,29 @@ defmodule ExCalibur.StepRunner do
     end
   end
 
+  def run(%{output_type: "lodge_card"} = quest, input_text) do
+    context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
+    augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
+
+    case run_artifact(quest, augmented) do
+      {:ok, attrs} ->
+        card_attrs = %{
+          type: "note",
+          title: attrs.title,
+          body: attrs.body,
+          tags: attrs[:tags] || [],
+          source: "quest",
+          quest_id: quest[:id]
+        }
+
+        ExCalibur.Lodge.post_card(card_attrs)
+        {:ok, %{lodge_card: card_attrs}}
+
+      error ->
+        error
+    end
+  end
+
   def run(quest, input_text) when is_struct(quest) do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
