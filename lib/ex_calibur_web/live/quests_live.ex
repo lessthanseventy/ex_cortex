@@ -299,6 +299,18 @@ defmodule ExCaliburWeb.QuestsLive do
       |> Enum.map(&String.trim/1)
       |> Enum.reject(&(&1 == ""))
 
+    lodge_trigger_types =
+      (params["lodge_trigger_types"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    lodge_trigger_tags_val =
+      (params["lodge_trigger_tags"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
     attrs = %{
       name: params["name"],
       description: params["description"],
@@ -307,6 +319,8 @@ defmodule ExCaliburWeb.QuestsLive do
       run_at: run_at,
       source_ids: source_ids,
       lore_trigger_tags: lore_trigger_tags,
+      lodge_trigger_types: lodge_trigger_types,
+      lodge_trigger_tags: lodge_trigger_tags_val,
       steps: steps,
       status: "active"
     }
@@ -355,6 +369,18 @@ defmodule ExCaliburWeb.QuestsLive do
       |> Enum.map(&String.trim/1)
       |> Enum.reject(&(&1 == ""))
 
+    lodge_trigger_types =
+      (params["lodge_trigger_types"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
+    lodge_trigger_tags_val =
+      (params["lodge_trigger_tags"] || "")
+      |> String.split(",")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+
     attrs = %{
       name: params["name"],
       description: params["description"],
@@ -362,7 +388,9 @@ defmodule ExCaliburWeb.QuestsLive do
       schedule: schedule,
       run_at: run_at,
       source_ids: source_ids,
-      lore_trigger_tags: lore_trigger_tags
+      lore_trigger_tags: lore_trigger_tags,
+      lodge_trigger_types: lodge_trigger_types,
+      lodge_trigger_tags: lodge_trigger_tags_val
     }
 
     case Quests.update_quest(quest, attrs) do
@@ -906,6 +934,7 @@ defmodule ExCaliburWeb.QuestsLive do
             <option value="scheduled">Scheduled</option>
             <option value="once">Once (specific time)</option>
             <option value="lore">Grimoire</option>
+            <option value="lodge">Lodge</option>
           </select>
         </div>
         <%= if @trigger_preview == "scheduled" do %>
@@ -942,6 +971,33 @@ defmodule ExCaliburWeb.QuestsLive do
             <p class="text-xs text-muted-foreground mt-1">
               Fires when a Grimoire entry with matching tags is created.
             </p>
+          </div>
+        <% end %>
+        <%= if @trigger_preview == "lodge" do %>
+          <div class="space-y-2">
+            <div>
+              <label class="text-sm font-medium">Card types (optional)</label>
+              <input
+                type="text"
+                name="quest[lodge_trigger_types]"
+                value=""
+                placeholder="todo, checklist, note… (empty = all)"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <p class="text-xs text-muted-foreground mt-1">
+                Fires when a lodge card of these types is created.
+              </p>
+            </div>
+            <div>
+              <label class="text-sm font-medium">Card tags (optional)</label>
+              <input
+                type="text"
+                name="quest[lodge_trigger_tags]"
+                value=""
+                placeholder="urgent, todo… (empty = all)"
+                class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
           </div>
         <% end %>
         <div>
@@ -1089,6 +1145,9 @@ defmodule ExCaliburWeb.QuestsLive do
                 <option value="lore" selected={@quest.trigger == "lore"}>
                   Grimoire
                 </option>
+                <option value="lodge" selected={@quest.trigger == "lodge"}>
+                  Lodge
+                </option>
               </select>
             </div>
             <%= if @trigger_preview == "scheduled" do %>
@@ -1135,6 +1194,33 @@ defmodule ExCaliburWeb.QuestsLive do
                 <p class="text-xs text-muted-foreground mt-1">
                   Fires when a Grimoire entry with matching tags is created.
                 </p>
+              </div>
+            <% end %>
+            <%= if @trigger_preview == "lodge" do %>
+              <div class="space-y-2">
+                <div>
+                  <label class="text-sm font-medium">Card types (optional)</label>
+                  <input
+                    type="text"
+                    name="quest[lodge_trigger_types]"
+                    value={Enum.join(@quest.lodge_trigger_types || [], ", ")}
+                    placeholder="todo, checklist, note… (empty = all)"
+                    class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                  <p class="text-xs text-muted-foreground mt-1">
+                    Fires when a lodge card of these types is created.
+                  </p>
+                </div>
+                <div>
+                  <label class="text-sm font-medium">Card tags (optional)</label>
+                  <input
+                    type="text"
+                    name="quest[lodge_trigger_tags]"
+                    value={Enum.join(@quest.lodge_trigger_tags || [], ", ")}
+                    placeholder="urgent, todo… (empty = all)"
+                    class="w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
               </div>
             <% end %>
             <div class="flex justify-end pt-1">
