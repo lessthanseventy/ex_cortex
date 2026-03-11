@@ -30,6 +30,10 @@ defmodule ExCalibur.LoreTriggerRunner do
         Task.start(fn -> QuestRunner.run(quest, entry.body || "") end)
       end)
     rescue
+      e in DBConnection.OwnershipError ->
+        _ = e
+        :ok
+
       e ->
         Logger.warning("[LoreTriggerRunner] Error processing lore entry #{entry.id}: #{inspect(e)}")
     end
