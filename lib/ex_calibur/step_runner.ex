@@ -27,9 +27,7 @@ defmodule ExCalibur.StepRunner do
   @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
 
   @doc "Build the ordered list of models to try: assigned model first, then fallback chain (deduped)."
-  def fallback_models_for(model, chain) do
-    [model | Enum.reject(chain, &(&1 == model))]
-  end
+  defdelegate fallback_models_for(model, chain), to: ExCalibur.LLM.Ollama
 
   @doc """
   Run a step roster against `input_text`.

@@ -8,7 +8,7 @@ defmodule ExCalibur.LLM.Ollama do
   def complete(model, system_prompt, user_text, opts \\ []) do
     ollama = client(opts)
     chain = Keyword.get(opts, :fallback_chain, Application.get_env(:ex_calibur, :model_fallback_chain, []))
-    models = ExCalibur.StepRunner.fallback_models_for(model, chain)
+    models = fallback_models_for(model, chain)
 
     messages = [
       %{role: :system, content: system_prompt},
@@ -34,6 +34,11 @@ defmodule ExCalibur.LLM.Ollama do
   def configured? do
     url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
     url != nil and url != ""
+  end
+
+  @doc "Build ordered list of models to try: assigned model first, then fallback chain (deduped)."
+  def fallback_models_for(model, chain) do
+    [model | Enum.reject(chain, &(&1 == model))]
   end
 
   defp client(opts) do
