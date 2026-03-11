@@ -25,6 +25,10 @@ defmodule ExCalibur.QuestRunner do
 
     Logger.info("[QuestRunner] Running quest #{quest.id} (#{quest.name}), #{length(ordered_steps)} step(s)")
 
+    # Create a quest run record
+    {:ok, quest_run} = Quests.create_quest_run(%{quest_id: quest.id, status: "running"})
+    Phoenix.PubSub.broadcast(ExCalibur.PubSub, "quest_runs", {:quest_run_started, quest_run})
+
     # Zip each step with the next step for look-ahead (next step name for handoff)
     steps_with_next = Enum.zip(ordered_steps, tl(ordered_steps) ++ [nil])
 
@@ -78,6 +82,19 @@ defmodule ExCalibur.QuestRunner do
             end
         end
       end)
+
+    # Determine final status and record step results
+    final_status = if match?({:ok, _}, List.last(results)), do: "complete", else: "failed"
+
+    step_results =
+      results
+      |> Enum.with_index()
+      |> Map.new(fn {result, idx} ->
+        {to_string(idx), inspect_result(result)}
+      end)
+
+    {:ok, quest_run} = Quests.update_quest_run(quest_run, %{status: final_status, step_results: step_results})
+    Phoenix.PubSub.broadcast(ExCalibur.PubSub, "quest_runs", {:quest_run_completed, quest_run})
 
     case List.last(results) do
       {:ok, _} = ok -> ok
@@ -216,4 +233,8 @@ defmodule ExCalibur.QuestRunner do
   end
 
   defp resolve_step(_), do: nil
+
+  defp inspect_result({:ok, result}) when is_map(result), do: %{"status" => "ok", "data" => inspect(result)}
+  defp inspect_result({:error, reason}), do: %{"status" => "error", "reason" => inspect(reason)}
+  defp inspect_result(other), do: %{"status" => "unknown", "data" => inspect(other)}
 end
