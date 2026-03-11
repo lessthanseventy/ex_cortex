@@ -175,11 +175,19 @@ defmodule ExCaliburWeb.GrimoireLive do
 
           <.tabs_content value="telemetry">
             <div class="space-y-4 mt-4">
-              <div class="rounded-lg border p-8 text-center">
-                <p class="text-muted-foreground text-sm">
-                  Telemetry widgets will appear here once monitoring is configured.
-                </p>
-              </div>
+              <.card>
+                <.card_header>
+                  <.card_title>System Telemetry</.card_title>
+                  <.card_description>
+                    Monitoring widgets will be available when evaluation data is collected.
+                  </.card_description>
+                </.card_header>
+                <.card_content>
+                  <p class="text-sm text-muted-foreground">
+                    Run quests to start collecting telemetry data.
+                  </p>
+                </.card_content>
+              </.card>
             </div>
           </.tabs_content>
         </.tabs>

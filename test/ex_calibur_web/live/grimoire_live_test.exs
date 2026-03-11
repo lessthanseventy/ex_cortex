@@ -59,6 +59,12 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
     assert html =~ "Telemetry"
   end
 
+  test "telemetry tab renders SaladUI card with telemetry placeholder", %{conn: conn} do
+    {:ok, _view, html} = live(conn, "/grimoire")
+    assert html =~ "System Telemetry"
+    assert html =~ "Run quests to start collecting telemetry data"
+  end
+
   test "redirects to town square when no banner set", %{conn: conn} do
     ExCalibur.Repo.delete_all(ExCalibur.Settings)
     {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/grimoire")
