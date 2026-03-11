@@ -29,6 +29,7 @@ defmodule ExCalibur.Application do
       ExCalibur.PubSubBridge,
       ExCalibur.ScheduledQuestRunner,
       ExCalibur.LoreTriggerRunner,
+      ExCalibur.LodgeTriggerRunner,
       ExCaliburWeb.Endpoint
     ]
 
