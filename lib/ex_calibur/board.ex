@@ -68,6 +68,19 @@ defmodule ExCalibur.Board do
           Repo.exists?(from(m in Member, where: m.type == "role" and m.status == "active"))
 
         {met, "Active members"}
+
+      {:not_installed, template_id} ->
+        quest_prefix = template_id_to_quest_prefix(template_id)
+
+        installed =
+          Repo.exists?(
+            from(q in ExCalibur.Quests.Quest,
+              where: q.status in ["active", "paused"],
+              where: like(q.name, ^"%#{quest_prefix}%")
+            )
+          )
+
+        {!installed, "Not included in #{humanize(template_id)}"}
     end)
   end
 
@@ -224,6 +237,9 @@ defmodule ExCalibur.Board do
   end
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
+
+  defp template_id_to_quest_prefix("everyday_council"), do: "Everyday Council"
+  defp template_id_to_quest_prefix(id), do: humanize(id)
 
   # ---------------------------------------------------------------------------
   # Template definitions — loaded by all/0

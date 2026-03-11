@@ -124,7 +124,7 @@ defmodule ExCalibur.Board.Lifestyle do
       category: :lifestyle,
       description: "Daily and weekly technology news synthesis. Learns trends over time through accumulated lore.",
       suggested_team: "Tech Dispatch guild is purpose-built for this.",
-      requires: [:any_members],
+      requires: [:any_members, {:not_installed, "everyday_council"}],
       source_definitions: [
         %{
           name: "Hacker News",
@@ -215,7 +215,7 @@ defmodule ExCalibur.Board.Lifestyle do
       category: :lifestyle,
       description: "Daily sports digest — scores, storylines, and what it all means. Builds a narrative arc over time.",
       suggested_team: "Sports Corner guild is purpose-built for this.",
-      requires: [:any_members],
+      requires: [:any_members, {:not_installed, "everyday_council"}],
       source_definitions: [
         %{
           name: "ESPN",
@@ -303,7 +303,7 @@ defmodule ExCalibur.Board.Lifestyle do
       description:
         "Business and financial intelligence. Tracks market signals through daily synthesis and weekly pattern recognition.",
       suggested_team: "Market Signals guild is purpose-built for this.",
-      requires: [:any_members],
+      requires: [:any_members, {:not_installed, "everyday_council"}],
       source_definitions: [
         %{
           name: "Reuters Business",
@@ -383,7 +383,7 @@ defmodule ExCalibur.Board.Lifestyle do
       category: :lifestyle,
       description: "Entertainment, music, film, culture. The tabloid voice meets the historian's memory.",
       suggested_team: "Culture Desk guild is purpose-built for this.",
-      requires: [:any_members],
+      requires: [:any_members, {:not_installed, "everyday_council"}],
       source_definitions: [
         %{
           name: "Pitchfork",
@@ -469,7 +469,7 @@ defmodule ExCalibur.Board.Lifestyle do
       description:
         "Research and discovery synthesis. Translates science into plain language, separates signal from hype.",
       suggested_team: "Science Watch guild is purpose-built for this.",
-      requires: [:any_members],
+      requires: [:any_members, {:not_installed, "everyday_council"}],
       source_definitions: [
         %{
           name: "Science Daily",
