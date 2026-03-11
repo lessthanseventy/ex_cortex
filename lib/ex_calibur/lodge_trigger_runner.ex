@@ -39,6 +39,8 @@ defmodule ExCalibur.LodgeTriggerRunner do
 
       e ->
         Logger.warning("[LodgeTriggerRunner] Error processing lodge card #{card.id}: #{inspect(e)}")
+    catch
+      :exit, _ -> :ok
     end
 
     {:noreply, state}
@@ -53,7 +55,7 @@ defmodule ExCalibur.LodgeTriggerRunner do
   defp tags_match?(trigger_tags, card_tags), do: Enum.any?(trigger_tags, &(&1 in card_tags))
 
   defp build_input(card) do
-    tags_str = if card.tags != [], do: "\nTags: #{Enum.join(card.tags, ", ")}", else: ""
+    tags_str = if card.tags == [], do: "", else: "\nTags: #{Enum.join(card.tags, ", ")}"
     "## #{card.title}\nType: #{card.type}#{tags_str}\n\n#{card.body || ""}"
   end
 end
