@@ -571,7 +571,7 @@ defmodule ExCaliburWeb.QuestsLive do
                       <.badge variant={variant}>{label}</.badge>
                     <% end %>
                   </div>
-                  <p class="text-sm text-muted-foreground">{t.description}</p>
+                  <.md content={t.description} class="text-sm text-muted-foreground" />
                   <%= if t.step_definitions && length(t.step_definitions) > 0 do %>
                     <button
                       type="button"
