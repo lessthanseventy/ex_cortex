@@ -55,6 +55,29 @@ defmodule ExCalibur.Lodge do
     end
   end
 
+  def sync_proposals do
+    pending = ExCalibur.Quests.list_proposals(status: "pending")
+
+    existing_ids =
+      [type: "proposal"]
+      |> list_cards()
+      |> MapSet.new(& &1.metadata["proposal_id"])
+
+    for proposal <- pending, proposal.id not in existing_ids do
+      create_card(%{
+        type: "proposal",
+        title: proposal.description,
+        body: proposal.details["suggestion"] || "",
+        source: "quest",
+        quest_id: proposal.quest_id,
+        metadata: %{
+          "proposal_id" => proposal.id,
+          "proposal_type" => proposal.type
+        }
+      })
+    end
+  end
+
   def toggle_checklist_item(%Card{type: "checklist"} = card, index) do
     items = card.metadata["items"] || []
 

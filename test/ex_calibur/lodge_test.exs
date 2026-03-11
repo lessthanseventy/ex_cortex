@@ -85,6 +85,44 @@ defmodule ExCalibur.LodgeTest do
     end
   end
 
+  describe "sync_proposals/0" do
+    test "creates cards for pending proposals that don't have cards yet" do
+      {:ok, step} =
+        ExCalibur.Quests.create_step(%{name: "Sync Step", trigger: "manual", roster: []})
+
+      {:ok, proposal} =
+        ExCalibur.Quests.create_proposal(%{
+          quest_id: step.id,
+          type: "roster_change",
+          description: "Narrow roster",
+          status: "pending"
+        })
+
+      Lodge.sync_proposals()
+      cards = Lodge.list_cards(type: "proposal")
+      assert length(cards) == 1
+      assert hd(cards).metadata["proposal_id"] == proposal.id
+    end
+
+    test "does not duplicate cards for already-synced proposals" do
+      {:ok, step} =
+        ExCalibur.Quests.create_step(%{name: "Sync Step 2", trigger: "manual", roster: []})
+
+      {:ok, _} =
+        ExCalibur.Quests.create_proposal(%{
+          quest_id: step.id,
+          type: "other",
+          description: "Already here",
+          status: "pending"
+        })
+
+      Lodge.sync_proposals()
+      Lodge.sync_proposals()
+      cards = Lodge.list_cards(type: "proposal")
+      assert length(cards) == 1
+    end
+  end
+
   describe "delete_card/1" do
     test "deletes a card" do
       {:ok, card} = Lodge.create_card(%{type: "note", title: "Delete me", source: "manual"})

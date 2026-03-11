@@ -29,6 +29,7 @@ defmodule ExCaliburWeb.LodgeLive do
         Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
       end
 
+      Lodge.sync_proposals()
       {:ok, load_cards(assign(socket, page_title: "Lodge"))}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
