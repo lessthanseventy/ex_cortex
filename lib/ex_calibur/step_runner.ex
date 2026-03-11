@@ -17,10 +17,8 @@ defmodule ExCalibur.StepRunner do
 
   import Ecto.Query
 
-  alias ExCalibur.ClaudeClient
   alias ExCalibur.ContextProviders.ContextProvider
   alias ExCalibur.Repo
-  alias Excellence.LLM.Ollama
   alias Excellence.Schemas.Member
 
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
@@ -151,14 +149,11 @@ defmodule ExCalibur.StepRunner do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
-
     roster = quest.roster || []
 
     with [step | _] <- roster,
          [member | _] <- resolve_members(step),
-         raw when is_binary(raw) <- call_member_raw(member, augmented, ollama) do
+         raw when is_binary(raw) <- call_member_raw(member, augmented) do
       {:ok, %{output: raw, member: member.name}}
     else
       [] -> {:error, :no_roster}
@@ -174,14 +169,11 @@ defmodule ExCalibur.StepRunner do
   end
 
   def run(roster, input_text) when is_list(roster) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
-
     {steps, final_verdict} =
       Enum.reduce_while(roster, {[], nil}, fn step, {traces, _prev_verdict} ->
         members = resolve_members(step)
 
-        step_results = run_step(members, step["how"], input_text, ollama)
+        step_results = run_step(members, step["how"], input_text)
 
         step_verdict = aggregate(step_results, step["how"])
 
@@ -244,10 +236,11 @@ defmodule ExCalibur.StepRunner do
 
         [
           %{
-            type: :ollama,
+            provider: "ollama",
             model: rank_config.model,
             system_prompt: member.system_prompt,
-            name: member.name
+            name: member.name,
+            tools: []
           }
         ]
     end
@@ -262,7 +255,7 @@ defmodule ExCalibur.StepRunner do
   end
 
   defp resolve_members(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
-    [%{type: :claude, tier: claude_tier, name: claude_tier, system_prompt: nil, tools: []}]
+    [%{provider: "claude", model: claude_tier, name: claude_tier, system_prompt: nil, tools: []}]
   end
 
   defp resolve_members(member_id) when is_binary(member_id) do
@@ -284,7 +277,7 @@ defmodule ExCalibur.StepRunner do
 
   defp member_to_runner_spec(db) do
     %{
-      type: :ollama,
+      provider: db.config["provider"] || "ollama",
       model: db.config["model"] || "phi4-mini",
       system_prompt: db.config["system_prompt"] || "",
       name: db.name,
@@ -302,92 +295,44 @@ defmodule ExCalibur.StepRunner do
   # Running a step
   # ---------------------------------------------------------------------------
 
-  defp run_step(members, _how, input_text, ollama) do
+  defp run_step(members, _how, input_text) do
     Enum.map(members, fn member ->
-      result = call_member(member, input_text, ollama)
+      result = call_member(member, input_text)
       Map.put(result, :member, member.name)
     end)
   end
 
-  defp call_member(
-         %{type: :claude, tier: tier, system_prompt: system_prompt, tools: [_ | _] = tools},
-         input_text,
-         _ollama
-       ) do
+  defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text) do
     prompt = system_prompt || default_claude_prompt()
 
-    case ClaudeClient.complete_with_tools(tier, prompt, input_text, tools) do
-      {:ok, text} -> parse_verdict(text)
-      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "Claude agent loop error"}
-    end
-  end
-
-  defp call_member(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
-    prompt = system_prompt || default_claude_prompt()
-
-    case ClaudeClient.complete(tier, prompt, input_text) do
-      {:ok, text} -> parse_verdict(text)
-      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "Claude API error"}
-    end
-  end
-
-  defp call_member(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
-    chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
-    models = fallback_models_for(model, chain)
-
-    messages = [
-      %{role: :system, content: system_prompt},
-      %{role: :user, content: input_text}
-    ]
-
-    Enum.reduce_while(models, %{verdict: "abstain", confidence: 0.0, reason: "Ollama error"}, fn m, acc ->
-      case Ollama.chat(ollama, m, messages) do
-        {:ok, %{content: text}} -> {:halt, parse_verdict(text)}
-        {:ok, text} when is_binary(text) -> {:halt, parse_verdict(text)}
-        _ -> {:cont, acc}
+    result =
+      if tools != [] do
+        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
+      else
+        ExCalibur.LLM.complete(provider, model, prompt, input_text)
       end
-    end)
+
+    case result do
+      {:ok, text} -> parse_verdict(text)
+      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})"}
+    end
   end
 
   # Like call_member but returns raw text — used for freeform quests.
-  defp call_member_raw(
-         %{type: :claude, tier: tier, system_prompt: system_prompt, tools: [_ | _] = tools},
-         input_text,
-         _ollama
-       ) do
+  defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text) do
     prompt = system_prompt || ""
 
-    case ClaudeClient.complete_with_tools(tier, prompt, input_text, tools) do
-      {:ok, text} -> text
-      _ -> nil
-    end
-  end
-
-  defp call_member_raw(%{type: :claude, tier: tier, system_prompt: system_prompt}, input_text, _ollama) do
-    prompt = system_prompt || ""
-
-    case ClaudeClient.complete(tier, prompt, input_text) do
-      {:ok, text} -> text
-      _ -> nil
-    end
-  end
-
-  defp call_member_raw(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
-    chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
-    models = fallback_models_for(model, chain)
-
-    messages = [
-      %{role: :system, content: system_prompt || ""},
-      %{role: :user, content: input_text}
-    ]
-
-    Enum.reduce_while(models, nil, fn m, _acc ->
-      case Ollama.chat(ollama, m, messages) do
-        {:ok, %{content: text}} -> {:halt, text}
-        {:ok, text} when is_binary(text) -> {:halt, text}
-        _ -> {:cont, nil}
+    result =
+      if tools != [] do
+        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
+      else
+        ExCalibur.LLM.complete(provider, model, prompt, input_text)
       end
-    end)
+
+    case result do
+      {:ok, text} -> text
+      _ -> nil
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -536,9 +481,6 @@ defmodule ExCalibur.StepRunner do
   # ---------------------------------------------------------------------------
 
   defp run_artifact(quest, input_text) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
-
     roster = quest.roster || []
 
     case roster do
@@ -547,7 +489,7 @@ defmodule ExCalibur.StepRunner do
 
       [single_step] ->
         # Single step — original behaviour
-        run_artifact_step(single_step, input_text, quest, ollama)
+        run_artifact_step(single_step, input_text, quest)
 
       steps ->
         # Multi-step: run all but last in reasoning mode, thread outputs to final step
@@ -562,25 +504,10 @@ defmodule ExCalibur.StepRunner do
               Enum.map_join(members, "\n\n", fn member ->
                 reasoning_prompt = reasoning_system_prompt(member, step)
 
-                messages = [
-                  %{role: :system, content: reasoning_prompt},
-                  %{role: :user, content: input_text}
-                ]
-
                 text =
-                  case member do
-                    %{type: :claude, tier: tier} ->
-                      case ClaudeClient.complete(tier, reasoning_prompt, input_text) do
-                        {:ok, t} -> t
-                        _ -> "(no response)"
-                      end
-
-                    %{type: :ollama, model: model} ->
-                      case Ollama.chat(ollama, model, messages) do
-                        {:ok, %{content: t}} -> t
-                        {:ok, t} when is_binary(t) -> t
-                        _ -> "(no response)"
-                      end
+                  case ExCalibur.LLM.complete(member.provider, member.model, reasoning_prompt, input_text) do
+                    {:ok, t} -> t
+                    _ -> "(no response)"
                   end
 
                 "**#{member.name}:** #{String.slice(text, 0, 500)}"
@@ -590,11 +517,11 @@ defmodule ExCalibur.StepRunner do
           end)
 
         augmented = "#{input_text}\n\n---\n## Team Analysis\n#{reasoning_context}"
-        run_artifact_step(final_step, augmented, quest, ollama)
+        run_artifact_step(final_step, augmented, quest)
     end
   end
 
-  defp run_artifact_step(step, input_text, quest, ollama) do
+  defp run_artifact_step(step, input_text, quest) do
     members = resolve_members(step)
     member = List.first(members)
 
@@ -603,25 +530,10 @@ defmodule ExCalibur.StepRunner do
     else
       system_prompt = artifact_system_prompt(quest)
 
-      messages = [
-        %{role: :system, content: system_prompt},
-        %{role: :user, content: input_text}
-      ]
-
       raw =
-        case member do
-          %{type: :claude, tier: tier} ->
-            case ClaudeClient.complete(tier, system_prompt, input_text) do
-              {:ok, text} -> text
-              _ -> nil
-            end
-
-          %{type: :ollama, model: model} ->
-            case Ollama.chat(ollama, model, messages) do
-              {:ok, %{content: text}} -> text
-              {:ok, text} when is_binary(text) -> text
-              _ -> nil
-            end
+        case ExCalibur.LLM.complete(member.provider, member.model, system_prompt, input_text) do
+          {:ok, text} -> text
+          _ -> nil
         end
 
       if raw do

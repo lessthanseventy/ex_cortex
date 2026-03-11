@@ -67,6 +67,8 @@ defmodule ExCalibur.Quests.Step do
     |> validate_inclusion(:output_type, [
       "verdict",
       "artifact",
+      "freeform",
+      "lodge_card",
       "slack",
       "webhook",
       "github_issue",
