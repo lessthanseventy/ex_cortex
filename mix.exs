@@ -64,6 +64,7 @@ defmodule ExCalibur.MixProject do
       {:ex_cellence_ui, path: "ex_cellence_ui"},
       # UI
       {:salad_ui, "~> 1.0.0-beta.3"},
+      {:mdex, "~> 0.11"},
       {:opentelemetry_api, "~> 1.4"},
       {:styler, "~> 1.0", only: [:dev, :test], runtime: false},
       # Sources
