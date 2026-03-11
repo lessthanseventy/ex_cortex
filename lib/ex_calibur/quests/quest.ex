@@ -14,18 +14,20 @@ defmodule ExCalibur.Quests.Quest do
     field :steps, {:array, :map}, default: []
     field :source_ids, {:array, :string}, default: []
     field :lore_trigger_tags, {:array, :string}, default: []
+    field :lodge_trigger_types, {:array, :string}, default: []
+    field :lodge_trigger_tags, {:array, :string}, default: []
     timestamps()
   end
 
   @required [:name, :trigger]
-  @optional [:description, :status, :schedule, :run_at, :steps, :source_ids, :lore_trigger_tags]
+  @optional [:description, :status, :schedule, :run_at, :steps, :source_ids, :lore_trigger_tags, :lodge_trigger_types, :lodge_trigger_tags]
 
   def changeset(quest, attrs) do
     quest
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> validate_inclusion(:status, ["active", "paused", "done"])
-    |> validate_inclusion(:trigger, ["manual", "source", "scheduled", "once", "lore"])
+    |> validate_inclusion(:trigger, ["manual", "source", "scheduled", "once", "lore", "lodge"])
     |> unique_constraint(:name)
   end
 end
