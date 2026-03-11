@@ -1,6 +1,6 @@
 defmodule ExCalibur.Sources.Book do
   @moduledoc false
-  defstruct [:id, :name, :description, :source_type, :default_config, :suggested_guild, :kind, :sandbox]
+  defstruct [:id, :name, :description, :source_type, :default_config, :suggested_guild, :kind, :sandbox, banner: nil]
 
   def all, do: books() ++ scrolls() ++ digest_feeds()
 
@@ -9,6 +9,7 @@ defmodule ExCalibur.Sources.Book do
       # Generic books (need user config)
       %__MODULE__{
         id: "git_repo_watcher",
+        banner: :tech,
         name: "Git Repo Watcher",
         description: "Watch a local git repository for new commits and generate diffs for review.",
         source_type: "git",
@@ -18,6 +19,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "directory_watcher",
+        banner: :lifestyle,
         name: "Directory Watcher",
         description: "Monitor a directory for new or changed files.",
         source_type: "directory",
@@ -64,6 +66,7 @@ defmodule ExCalibur.Sources.Book do
       # Code Review
       %__MODULE__{
         id: "code_review_pr_webhook",
+        banner: :tech,
         name: "GitHub PR Webhook",
         description: "Receive GitHub pull request notifications via webhook for automated review.",
         source_type: "webhook",
@@ -74,6 +77,7 @@ defmodule ExCalibur.Sources.Book do
       # Content Moderation
       %__MODULE__{
         id: "content_inbox",
+        banner: :lifestyle,
         name: "Content Inbox",
         description: "Watch a directory for user-submitted content awaiting moderation review.",
         source_type: "directory",
@@ -84,6 +88,7 @@ defmodule ExCalibur.Sources.Book do
       # Accessibility Review
       %__MODULE__{
         id: "accessibility_dir_watcher",
+        banner: :tech,
         name: "Excessibility Snapshots",
         description: "Watch excessibility snapshot output directory for new accessibility reports.",
         source_type: "directory",
@@ -94,6 +99,7 @@ defmodule ExCalibur.Sources.Book do
       # Performance Audit
       %__MODULE__{
         id: "performance_dir_watcher",
+        banner: :tech,
         name: "Excessibility Timelines",
         description: "Watch excessibility timeline JSON output directory for performance data.",
         source_type: "directory",
@@ -104,6 +110,7 @@ defmodule ExCalibur.Sources.Book do
       # Incident Triage
       %__MODULE__{
         id: "incident_webhook",
+        banner: :tech,
         name: "Error Tracker Alerts",
         description: "Receive alerts from error trackers (Sentry, Honeybadger, etc.) via webhook.",
         source_type: "webhook",
@@ -113,6 +120,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "incident_status_feed",
+        banner: :tech,
         name: "Statuspage Feed",
         description: "RSS feed from service status pages — track upstream dependency incidents.",
         source_type: "feed",
@@ -122,6 +130,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "incident_ws_stream",
+        banner: :tech,
         name: "Log Aggregator Stream",
         description: "Connect to a log aggregator WebSocket stream for real-time error monitoring.",
         source_type: "websocket",
@@ -132,6 +141,7 @@ defmodule ExCalibur.Sources.Book do
       # Contract Review
       %__MODULE__{
         id: "contract_dir_watcher",
+        banner: :business,
         name: "Contracts Folder",
         description: "Watch a contracts/documents directory for new or updated files.",
         source_type: "directory",
@@ -145,6 +155,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "contract_webhook",
+        banner: :business,
         name: "Document Management Notifications",
         description: "Receive notifications from document management systems when contracts are uploaded or changed.",
         source_type: "webhook",
@@ -155,6 +166,7 @@ defmodule ExCalibur.Sources.Book do
       # Dependency Audit
       %__MODULE__{
         id: "dependency_git_watcher",
+        banner: :tech,
         name: "Lock File Watcher",
         description: "Watch a git repo for changes to mix.lock or package.json — triggers audit on dependency updates.",
         source_type: "git",
@@ -165,6 +177,7 @@ defmodule ExCalibur.Sources.Book do
       # Jira
       %__MODULE__{
         id: "jira_webhook",
+        banner: :tech,
         name: "Jira Webhook",
         description: "Receive Jira issue events via webhook — new issues, status changes, priority escalations.",
         source_type: "webhook",
@@ -184,6 +197,7 @@ defmodule ExCalibur.Sources.Book do
       # Sandbox-enabled books
       %__MODULE__{
         id: "excessibility_scanner",
+        banner: :tech,
         name: "Excessibility Scanner",
         description: "Run excessibility accessibility checks against a Phoenix project.",
         source_type: "directory",
@@ -194,6 +208,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "credo_scanner",
+        banner: :tech,
         name: "Credo Scanner",
         description: "Run Credo static analysis checks against an Elixir project.",
         source_type: "directory",
@@ -204,6 +219,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "mix_audit_scanner",
+        banner: :tech,
         name: "Mix Audit Scanner",
         description: "Run mix audit to check for known vulnerabilities in dependencies.",
         source_type: "git",
@@ -214,6 +230,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "dialyzer_scanner",
+        banner: :tech,
         name: "Dialyzer Scanner",
         description: "Run Dialyzer type checking against an Elixir project.",
         source_type: "directory",
@@ -234,6 +251,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "sobelow_scanner",
+        banner: :tech,
         name: "Sobelow Security Scanner",
         description: "Run Sobelow security-focused static analysis on a Phoenix project.",
         source_type: "directory",
@@ -260,6 +278,7 @@ defmodule ExCalibur.Sources.Book do
       # Code Review
       %__MODULE__{
         id: "code_review_elixir_forum",
+        banner: :tech,
         name: "Elixir Forum",
         description: "Elixir Forum discussions — best practices, code patterns, and community solutions.",
         source_type: "feed",
@@ -269,6 +288,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "code_review_credo_releases",
+        banner: :tech,
         name: "Credo Releases",
         description: "Credo static analysis releases — new checks, rule changes, and style updates.",
         source_type: "feed",
@@ -282,6 +302,7 @@ defmodule ExCalibur.Sources.Book do
       # Content Moderation
       %__MODULE__{
         id: "content_mod_owasp",
+        banner: :lifestyle,
         name: "OWASP Blog",
         description: "OWASP Foundation blog — application security, vulnerability research, and best practices.",
         source_type: "feed",
@@ -292,6 +313,7 @@ defmodule ExCalibur.Sources.Book do
       # Risk Assessment
       %__MODULE__{
         id: "risk_krebs",
+        banner: :tech,
         name: "Krebs on Security",
         description: "Brian Krebs' investigative security journalism — breaches, threats, and cybercrime.",
         source_type: "feed",
@@ -304,6 +326,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "risk_cisa_alerts",
+        banner: :tech,
         name: "CISA Alerts",
         description: "US Cybersecurity & Infrastructure Security Agency alerts and advisories.",
         source_type: "feed",
@@ -316,6 +339,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "risk_nist_nvd",
+        banner: :tech,
         name: "NIST NVD Updates",
         description: "NIST National Vulnerability Database — CVE entries and severity scoring.",
         source_type: "url",
@@ -325,6 +349,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "risk_troy_hunt",
+        banner: :tech,
         name: "Troy Hunt's Blog",
         description: "Troy Hunt's blog — data breaches, Have I Been Pwned, and web security.",
         source_type: "feed",
@@ -338,6 +363,7 @@ defmodule ExCalibur.Sources.Book do
       # Accessibility Review
       %__MODULE__{
         id: "accessibility_w3c_feed",
+        banner: :tech,
         name: "W3C WAI Blog",
         description: "W3C Web Accessibility Initiative blog — guidelines updates, techniques, and best practices.",
         source_type: "feed",
@@ -347,6 +373,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "accessibility_webaim_feed",
+        banner: :tech,
         name: "WebAIM Blog",
         description: "WebAIM blog — practical accessibility articles, WCAG interpretation, and testing techniques.",
         source_type: "feed",
@@ -356,6 +383,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "accessibility_wcag_url",
+        banner: :tech,
         name: "WCAG Spec Updates",
         description: "Watch the WCAG specification page for changes and updates.",
         source_type: "url",
@@ -366,6 +394,7 @@ defmodule ExCalibur.Sources.Book do
       # Performance Audit
       %__MODULE__{
         id: "performance_flyio_feed",
+        banner: :tech,
         name: "Fly.io Blog",
         description: "Fly.io engineering blog — deployment, infrastructure, and performance insights.",
         source_type: "feed",
@@ -375,6 +404,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "performance_dashbit_feed",
+        banner: :tech,
         name: "Dashbit Blog",
         description: "Dashbit blog — Elixir performance, Phoenix optimization, and ecosystem updates.",
         source_type: "feed",
@@ -384,6 +414,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "performance_phoenix_url",
+        banner: :tech,
         name: "Phoenix Changelog",
         description: "Watch the Phoenix changelog for new releases and performance-related changes.",
         source_type: "url",
@@ -397,6 +428,7 @@ defmodule ExCalibur.Sources.Book do
       # Incident Triage
       %__MODULE__{
         id: "incident_hn_feed",
+        banner: :tech,
         name: "HN Outage/Incident Feed",
         description: "Hacker News posts about outages, incidents, and postmortems.",
         source_type: "feed",
@@ -410,6 +442,7 @@ defmodule ExCalibur.Sources.Book do
       # Contract Review
       %__MODULE__{
         id: "contract_law_feed",
+        banner: :business,
         name: "Law.com Legal News",
         description: "Law.com legal news feed — contract law updates and regulatory changes.",
         source_type: "feed",
@@ -423,6 +456,7 @@ defmodule ExCalibur.Sources.Book do
       # Dependency Audit
       %__MODULE__{
         id: "dependency_ghsa_feed",
+        banner: :tech,
         name: "GitHub Advisory Database",
         description: "GitHub Security Advisory database feed — CVEs and vulnerability disclosures.",
         source_type: "feed",
@@ -435,6 +469,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "dependency_elixir_security_feed",
+        banner: :tech,
         name: "Elixir Security News",
         description: "Elixir Forum security category — Elixir/Erlang specific vulnerability announcements.",
         source_type: "feed",
@@ -447,6 +482,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "dependency_hex_url",
+        banner: :tech,
         name: "Hex.pm Package Updates",
         description: "Watch hex.pm for package updates relevant to your project.",
         source_type: "url",
@@ -499,6 +535,7 @@ defmodule ExCalibur.Sources.Book do
       # Tech
       %__MODULE__{
         id: "hacker_news_rss",
+        banner: :tech,
         name: "Hacker News",
         description: "Top stories from Hacker News",
         source_type: "feed",
@@ -508,6 +545,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "the_verge_rss",
+        banner: :tech,
         name: "The Verge",
         description: "Technology news and reviews from The Verge.",
         source_type: "feed",
@@ -520,6 +558,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "ars_technica_rss",
+        banner: :tech,
         name: "Ars Technica",
         description: "In-depth technology news and analysis from Ars Technica.",
         source_type: "feed",
@@ -532,6 +571,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "techcrunch_rss",
+        banner: :tech,
         name: "TechCrunch",
         description: "Startup and technology news from TechCrunch.",
         source_type: "feed",
@@ -542,6 +582,7 @@ defmodule ExCalibur.Sources.Book do
       # Business
       %__MODULE__{
         id: "reuters_business_rss",
+        banner: :business,
         name: "Reuters Business",
         description: "Business and financial news from Reuters.",
         source_type: "feed",
@@ -554,6 +595,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "ft_rss",
+        banner: :business,
         name: "Financial Times",
         description: "Global business and financial news from the Financial Times.",
         source_type: "feed",
@@ -564,6 +606,7 @@ defmodule ExCalibur.Sources.Book do
       # Sports
       %__MODULE__{
         id: "espn_rss",
+        banner: :lifestyle,
         name: "ESPN",
         description: "Sports news and scores from ESPN.",
         source_type: "feed",
@@ -576,6 +619,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "bbc_sport_rss",
+        banner: :lifestyle,
         name: "BBC Sport",
         description: "Sports news and results from BBC Sport.",
         source_type: "feed",
@@ -588,6 +632,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "the_athletic_rss",
+        banner: :lifestyle,
         name: "The Athletic",
         description: "In-depth sports journalism from The Athletic.",
         source_type: "feed",
@@ -601,6 +646,7 @@ defmodule ExCalibur.Sources.Book do
       # Culture
       %__MODULE__{
         id: "pitchfork_rss",
+        banner: :lifestyle,
         name: "Pitchfork",
         description: "Music news and reviews from Pitchfork.",
         source_type: "feed",
@@ -613,6 +659,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "av_club_rss",
+        banner: :lifestyle,
         name: "AV Club",
         description: "Pop culture and entertainment reviews from The AV Club.",
         source_type: "feed",
@@ -622,6 +669,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "vulture_rss",
+        banner: :lifestyle,
         name: "Vulture",
         description: "Entertainment and culture coverage from Vulture.",
         source_type: "feed",
@@ -635,6 +683,7 @@ defmodule ExCalibur.Sources.Book do
       # Science
       %__MODULE__{
         id: "science_daily_rss",
+        banner: :lifestyle,
         name: "Science Daily",
         description: "Breaking science news from ScienceDaily.",
         source_type: "feed",
@@ -647,6 +696,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "nature_news_rss",
+        banner: :lifestyle,
         name: "Nature News",
         description: "Science news and research from Nature.",
         source_type: "feed",
@@ -656,6 +706,7 @@ defmodule ExCalibur.Sources.Book do
       },
       %__MODULE__{
         id: "ars_science_rss",
+        banner: :lifestyle,
         name: "Ars Technica Science",
         description: "Science and technology research coverage from Ars Technica.",
         source_type: "feed",
@@ -667,6 +718,10 @@ defmodule ExCalibur.Sources.Book do
         kind: :scroll
       }
     ]
+  end
+
+  def filter_by_banner(banner) do
+    Enum.filter(all(), &(&1.banner == banner || &1.banner == nil))
   end
 
   def get(id), do: Enum.find(all(), &(&1.id == id))
