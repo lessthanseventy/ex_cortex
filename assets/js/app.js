@@ -32,10 +32,26 @@ window.addEventListener("phx:reset-form", ({detail: {id}}) => {
   if (form) form.reset()
 })
 
+const Hooks = {
+  ...colocatedHooks,
+  AutoDismissFlash: {
+    mounted() {
+      this.timer = setTimeout(() => {
+        this.el.style.transition = "opacity 500ms ease-out"
+        this.el.style.opacity = "0"
+        setTimeout(() => this.el.remove(), 500)
+      }, 5000)
+    },
+    destroyed() {
+      clearTimeout(this.timer)
+    }
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: Hooks,
 })
 
 // Show progress bar on live navigation and form submits

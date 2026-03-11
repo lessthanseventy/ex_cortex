@@ -166,13 +166,16 @@ defmodule ExCalibur.StepRunner do
 
     case run_artifact(quest, augmented) do
       {:ok, attrs} ->
+        card_type = attrs[:card_type] || quest.description |> parse_card_type() || "note"
+
         card_attrs = %{
-          type: "note",
+          type: card_type,
           title: attrs.title,
           body: attrs.body,
           tags: attrs[:tags] || [],
           source: "quest",
-          quest_id: quest[:id]
+          quest_id: quest[:id],
+          metadata: attrs[:metadata] || %{}
         }
 
         ExCalibur.Lodge.post_card(card_attrs)
@@ -327,10 +330,10 @@ defmodule ExCalibur.StepRunner do
     prompt = system_prompt || default_claude_prompt()
 
     result =
-      if tools != [] do
-        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
-      else
+      if tools == [] do
         ExCalibur.LLM.complete(provider, model, prompt, input_text)
+      else
+        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
       end
 
     case result do
@@ -344,10 +347,10 @@ defmodule ExCalibur.StepRunner do
     prompt = system_prompt || ""
 
     result =
-      if tools != [] do
-        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
-      else
+      if tools == [] do
         ExCalibur.LLM.complete(provider, model, prompt, input_text)
+      else
+        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
       end
 
     case result do
@@ -631,6 +634,25 @@ defmodule ExCalibur.StepRunner do
         _ -> text
       end
 
-    %{title: title, body: body, tags: tags, importance: importance, source: "step"}
+    card_type =
+      case Regex.run(~r/^CARD_TYPE:\s*(.+)$/m, text) do
+        [_, ct] ->
+          ct = String.trim(ct) |> String.downcase()
+          if ct in ~w(note checklist meeting alert link), do: ct
+
+        _ ->
+          nil
+      end
+
+    %{title: title, body: body, tags: tags, importance: importance, card_type: card_type, source: "step"}
+  end
+
+  @valid_card_types ~w(note checklist meeting alert link)
+  defp parse_card_type(nil), do: nil
+  defp parse_card_type(""), do: nil
+
+  defp parse_card_type(description) when is_binary(description) do
+    desc = String.downcase(description)
+    Enum.find(@valid_card_types, fn type -> String.contains?(desc, type) end)
   end
 end

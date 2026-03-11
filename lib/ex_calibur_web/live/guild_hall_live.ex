@@ -41,6 +41,7 @@ defmodule ExCaliburWeb.GuildHallLive do
        advisors: filter_by_banner(BuiltinMember.advisors(), banner_atom),
        validators: filter_by_banner(BuiltinMember.validators(), banner_atom),
        wildcards: filter_by_banner(BuiltinMember.wildcards(), banner_atom),
+       life_use: filter_by_banner(BuiltinMember.life_use(), banner_atom),
        active_section: "all",
        charters: Map.new(GuildCharters.list_charters(), &{&1.guild_name, &1.charter_text}),
        editing_charter: nil
@@ -250,11 +251,15 @@ defmodule ExCaliburWeb.GuildHallLive do
                 prefill={@custom_prefill}
               />
             <% else %>
-              <% {_id, _title, members, _description} =
-                Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <.member_row :for={member <- members} member={member} />
-              </div>
+              <% section = Enum.find(sections, fn {id, _, _, _} -> id == @active_section end) %>
+              <%= if section do %>
+                <% {_id, _title, members, _description} = section %>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <.member_row :for={member <- members} member={member} />
+                </div>
+              <% else %>
+                <p class="text-muted-foreground text-sm">No members available in this category for the current banner.</p>
+              <% end %>
             <% end %>
           <% end %>
         </div>
@@ -596,6 +601,7 @@ defmodule ExCaliburWeb.GuildHallLive do
       {"advisors", "Advisors"},
       {"validators", "Validators"},
       {"wildcards", "Wildcards"},
+      {"life_use", "Life Use"},
       {"custom", "Custom"}
     ]
   end
@@ -607,8 +613,10 @@ defmodule ExCaliburWeb.GuildHallLive do
       {"specialists", "Specialists", assigns.specialists, "Domain-specific technical expertise"},
       {"advisors", "Advisors", assigns.advisors, "Perspective, judgment, and risk assessment"},
       {"validators", "Validators", assigns.validators, "Evidence standards and quality gates"},
-      {"wildcards", "Wildcards", assigns.wildcards, "Creative perspectives and personality-driven evaluation"}
+      {"wildcards", "Wildcards", assigns.wildcards, "Creative perspectives and personality-driven evaluation"},
+      {"life_use", "Life Use", assigns.life_use, "Personal productivity, news, and lifestyle"}
     ]
+    |> Enum.reject(fn {_, _, members, _} -> members == [] end)
   end
 
   defp member_section(assigns) do

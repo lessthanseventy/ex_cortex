@@ -1206,7 +1206,12 @@ defmodule ExCaliburWeb.QuestsLive do
                       </div>
                     </div>
                     <div class="ml-5 mt-1.5 grid grid-cols-2 gap-x-4 gap-y-1">
-                      <form phx-submit="update_step_lore_tags" class="flex items-center gap-1">
+                      <form
+                        phx-submit="update_step_lore_tags"
+                        phx-change="update_step_lore_tags"
+                        phx-debounce="800"
+                        class="flex items-center gap-1"
+                      >
                         <input type="hidden" name="step_id" value={step["step_id"]} />
                         <span class="text-xs text-muted-foreground shrink-0">Tags output:</span>
                         <input
@@ -1214,10 +1219,16 @@ defmodule ExCaliburWeb.QuestsLive do
                           name="lore_tags"
                           value={Enum.join(out_tags, ", ")}
                           placeholder="journal, finance…"
+                          phx-debounce="800"
                           class="flex-1 text-xs border-0 border-b border-border bg-transparent px-1 py-0.5 focus:outline-none focus:border-primary"
                         />
                       </form>
-                      <form phx-submit="update_step_grimoire" class="flex items-center gap-1">
+                      <form
+                        phx-submit="update_step_grimoire"
+                        phx-change="update_step_grimoire"
+                        phx-debounce="800"
+                        class="flex items-center gap-1"
+                      >
                         <input type="hidden" name="step_id" value={step["step_id"]} />
                         <span class="text-xs text-muted-foreground shrink-0">Reads from:</span>
                         <input
@@ -1225,6 +1236,7 @@ defmodule ExCaliburWeb.QuestsLive do
                           name="tags"
                           value={Enum.join(sub_tags, ", ")}
                           placeholder="subscribe to tags…"
+                          phx-debounce="800"
                           class="flex-1 text-xs border-0 border-b border-border bg-transparent px-1 py-0.5 focus:outline-none focus:border-primary"
                         />
                       </form>
