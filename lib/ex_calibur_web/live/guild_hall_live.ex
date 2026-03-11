@@ -7,6 +7,7 @@ defmodule ExCaliburWeb.GuildHallLive do
 
   alias ExCalibur.GuildCharters
   alias ExCalibur.Members.BuiltinMember
+  alias ExCalibur.Settings
   alias Excellence.Schemas.Member
 
   @impl true
@@ -16,6 +17,9 @@ defmodule ExCaliburWeb.GuildHallLive do
     strategy_previews =
       Map.new(members, fn m -> {m.id, m.strategy} end)
 
+    banner = Settings.get_banner()
+    banner_atom = if banner, do: String.to_existing_atom(banner), else: nil
+
     {:ok,
      assign(socket,
        members: members,
@@ -23,12 +27,12 @@ defmodule ExCaliburWeb.GuildHallLive do
        custom_prefill: %{name: "", team: "", system_prompt: ""},
        ollama_models: list_ollama_models(),
        strategy_previews: strategy_previews,
-       editors: BuiltinMember.editors(),
-       analysts: BuiltinMember.analysts(),
-       specialists: BuiltinMember.specialists(),
-       advisors: BuiltinMember.advisors(),
-       validators: BuiltinMember.validators(),
-       wildcards: BuiltinMember.wildcards(),
+       editors: filter_by_banner(BuiltinMember.editors(), banner_atom),
+       analysts: filter_by_banner(BuiltinMember.analysts(), banner_atom),
+       specialists: filter_by_banner(BuiltinMember.specialists(), banner_atom),
+       advisors: filter_by_banner(BuiltinMember.advisors(), banner_atom),
+       validators: filter_by_banner(BuiltinMember.validators(), banner_atom),
+       wildcards: filter_by_banner(BuiltinMember.wildcards(), banner_atom),
        active_section: "all",
        charters: Map.new(GuildCharters.list_charters(), &{&1.guild_name, &1.charter_text}),
        editing_charter: nil
@@ -39,6 +43,9 @@ defmodule ExCaliburWeb.GuildHallLive do
   def handle_params(_params, _url, socket) do
     {:noreply, assign(socket, page_title: "Guild Hall")}
   end
+
+  defp filter_by_banner(members, nil), do: members
+  defp filter_by_banner(members, banner_atom), do: Enum.filter(members, &(&1.banner == banner_atom))
 
   defp list_ollama_models do
     url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")

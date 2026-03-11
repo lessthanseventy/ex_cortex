@@ -212,4 +212,13 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
       assert Repo.get_by(Member, name: first.name)
     end
   end
+
+  describe "banner filtering" do
+    test "builtin member catalog filters by banner", %{conn: conn} do
+      ExCalibur.Settings.set_banner("lifestyle")
+      {:ok, _view, html} = live(conn, ~p"/guild-hall")
+      # Tech specialists should not appear in lifestyle banner
+      refute html =~ "Frontend Reviewer"
+    end
+  end
 end

@@ -163,4 +163,13 @@ defmodule ExCaliburWeb.LibraryLiveTest do
       assert ExCalibur.Heralds.list_heralds() == []
     end
   end
+
+  describe "banner filtering" do
+    test "library books filter by banner", %{conn: conn} do
+      ExCalibur.Settings.set_banner("lifestyle")
+      {:ok, _view, html} = live(conn, ~p"/library")
+      # Tech-specific books should be hidden
+      refute html =~ "Credo Scanner"
+    end
+  end
 end

@@ -6,6 +6,7 @@ defmodule ExCaliburWeb.LibraryLive do
 
   alias ExCalibur.Heralds.Herald
   alias ExCalibur.Library
+  alias ExCalibur.Settings
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
   alias ExCalibur.Sources.SourceSupervisor
@@ -73,16 +74,21 @@ defmodule ExCaliburWeb.LibraryLive do
   defp load_data(socket) do
     import Ecto.Query
 
+    banner = Settings.get_banner()
+    banner_atom = if banner, do: String.to_existing_atom(banner), else: nil
+
     sources = ExCalibur.Repo.all(from(s in Source, order_by: [desc: s.inserted_at]))
     stacked_ids = MapSet.new(sources, & &1.book_id)
 
     scroll_groups =
       Book.scrolls()
+      |> filter_by_banner(banner_atom)
       |> Enum.reject(&MapSet.member?(stacked_ids, &1.id))
       |> group_by_guild()
 
     book_groups =
       Book.books()
+      |> filter_by_banner(banner_atom)
       |> Enum.reject(&MapSet.member?(stacked_ids, &1.id))
       |> group_by_guild()
 
@@ -96,6 +102,12 @@ defmodule ExCaliburWeb.LibraryLive do
       heralds: heralds,
       dictionaries: dictionaries
     )
+  end
+
+  defp filter_by_banner(items, nil), do: items
+
+  defp filter_by_banner(items, banner_atom) do
+    Enum.filter(items, &(&1.banner == banner_atom || &1.banner == nil))
   end
 
   defp group_by_guild(items) do
