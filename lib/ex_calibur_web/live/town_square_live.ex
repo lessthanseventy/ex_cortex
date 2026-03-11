@@ -33,6 +33,8 @@ defmodule ExCaliburWeb.TownSquareLive do
     "Science Watch" => ExCalibur.Charters.ScienceWatch
   }
 
+  def charters, do: @charters
+
   @post_install_redirect "/guild-hall"
 
   @impl true

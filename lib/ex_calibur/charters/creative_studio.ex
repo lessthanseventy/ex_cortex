@@ -17,6 +17,7 @@ defmodule ExCalibur.Charters.CreativeStudio do
     ]
 
     %{
+      banner: :lifestyle,
       name: "Creative Studio",
       description: "Creative and content review guild — evaluates brand voice, tone, and messaging, with flair.",
       roles: Enum.map(members, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),

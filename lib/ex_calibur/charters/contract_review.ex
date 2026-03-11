@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.ContractReview do
 
   def metadata do
     %{
+      banner: :business,
       name: "Contract Review",
       description: "Multi-agent document risk analysis and obligation tracking pipeline",
       roles: [

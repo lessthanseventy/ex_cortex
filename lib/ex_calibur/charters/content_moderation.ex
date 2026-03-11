@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.ContentModeration do
 
   def metadata do
     %{
+      banner: :lifestyle,
       name: "Content Moderation",
       description: "Multi-agent content safety review pipeline",
       roles: [

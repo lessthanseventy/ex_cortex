@@ -17,6 +17,7 @@ defmodule ExCalibur.Charters.QualityCollective do
     ]
 
     %{
+      banner: :tech,
       name: "Quality Collective",
       description:
         "Frontend quality and accessibility review guild — audits UI code for WCAG compliance, code quality, and evidence-backed findings.",

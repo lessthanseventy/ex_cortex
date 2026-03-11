@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.AccessibilityReview do
 
   def metadata do
     %{
+      banner: :tech,
       name: "Accessibility Review",
       description: "Multi-agent accessibility compliance and usability review pipeline",
       roles: [

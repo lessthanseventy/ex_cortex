@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.IncidentTriage do
 
   def metadata do
     %{
+      banner: :tech,
       name: "Incident Triage",
       description: "Multi-agent incident severity assessment and response routing pipeline",
       roles: [

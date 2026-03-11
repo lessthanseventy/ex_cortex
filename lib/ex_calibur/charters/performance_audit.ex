@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.PerformanceAudit do
 
   def metadata do
     %{
+      banner: :tech,
       name: "Performance Audit",
       description: "Multi-agent performance analysis and resource optimization pipeline",
       roles: [

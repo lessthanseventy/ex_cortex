@@ -17,6 +17,7 @@ defmodule ExCalibur.Charters.PlatformGuild do
     ]
 
     %{
+      banner: :tech,
       name: "Platform Guild",
       description:
         "Backend, infrastructure, and platform reliability review guild — evaluates architecture, deployment, and performance.",

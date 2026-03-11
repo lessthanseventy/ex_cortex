@@ -18,6 +18,7 @@ defmodule ExCalibur.Charters.TechDispatch do
     ]
 
     %{
+      banner: :tech,
       name: "Tech Dispatch",
       description: "Daily and weekly technology news synthesis. Learns trends over time through accumulated lore.",
       roles: Enum.map(members, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),

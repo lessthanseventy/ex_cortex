@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.RiskAssessment do
 
   def metadata do
     %{
+      banner: :business,
       name: "Risk Assessment",
       description: "Multi-agent risk scoring and fraud detection pipeline",
       roles: [

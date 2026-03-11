@@ -18,6 +18,7 @@ defmodule ExCalibur.Charters.ScienceWatch do
     ]
 
     %{
+      banner: :lifestyle,
       name: "Science Watch",
       description:
         "Research and discovery synthesis. Translates science into plain language, separates signal from hype.",

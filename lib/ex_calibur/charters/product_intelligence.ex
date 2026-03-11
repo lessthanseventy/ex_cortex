@@ -17,6 +17,7 @@ defmodule ExCalibur.Charters.ProductIntelligence do
     ]
 
     %{
+      banner: :business,
       name: "Product Intelligence",
       description:
         "Product intelligence guild — synthesizes user feedback, market trends, and competitive signals into actionable insight.",

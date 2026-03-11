@@ -8,6 +8,7 @@ defmodule ExCalibur.Charters.DependencyAudit do
 
   def metadata do
     %{
+      banner: :tech,
       name: "Dependency Audit",
       description: "Multi-agent dependency health and supply chain security pipeline",
       roles: [

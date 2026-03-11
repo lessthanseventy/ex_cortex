@@ -17,6 +17,7 @@ defmodule ExCalibur.Charters.TheSkeptics do
     ]
 
     %{
+      banner: :tech,
       name: "The Skeptics",
       description: "Pure skepticism guild — challenges every claim, demands evidence, and deflates hype before it ships.",
       roles: Enum.map(members, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),
