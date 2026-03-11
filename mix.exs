@@ -61,7 +61,6 @@ defmodule ExCalibur.MixProject do
       # Excellence packages
       {:ex_cellence, path: "ex_cellence", override: true},
       {:ex_cellence_dashboard, path: "ex_cellence_dashboard"},
-      {:ex_cellence_ui, path: "ex_cellence_ui"},
       # UI
       {:salad_ui, "~> 1.0.0-beta.3"},
       {:mdex, "~> 0.11"},
