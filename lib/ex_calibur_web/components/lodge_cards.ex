@@ -4,6 +4,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
 
   import SaladUI.Badge
   import SaladUI.Button
+  import SaladUI.Card
 
   @preset_tags ~w(tech urgent meeting todo idea)
   def preset_tags, do: @preset_tags
@@ -12,9 +13,9 @@ defmodule ExCaliburWeb.Components.LodgeCards do
 
   def lodge_card(%{card: %{type: "note"}} = assigns) do
     ~H"""
-    <.card_wrapper card={@card}>
+    <.lodge_card_frame card={@card}>
       <.md_body body={@card.body} />
-    </.card_wrapper>
+    </.lodge_card_frame>
     """
   end
 
@@ -23,7 +24,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
     assigns = assign(assigns, :items, items)
 
     ~H"""
-    <.card_wrapper card={@card}>
+    <.lodge_card_frame card={@card}>
       <div class="space-y-1.5">
         <%= for {item, idx} <- Enum.with_index(@items) do %>
           <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -41,7 +42,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           </label>
         <% end %>
       </div>
-    </.card_wrapper>
+    </.lodge_card_frame>
     """
   end
 
@@ -51,7 +52,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
     assigns = assign(assigns, attendees: attendees, agenda: agenda)
 
     ~H"""
-    <.card_wrapper card={@card}>
+    <.lodge_card_frame card={@card}>
       <.md_body body={@card.body} />
       <%= if @attendees != [] do %>
         <div class="flex flex-wrap gap-1 mt-2">
@@ -67,16 +68,16 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           <% end %>
         </ul>
       <% end %>
-    </.card_wrapper>
+    </.lodge_card_frame>
     """
   end
 
   def lodge_card(%{card: %{type: "alert"}} = assigns) do
     ~H"""
     <div class="rounded-lg border-2 border-destructive/50 bg-destructive/5 p-5 space-y-2">
-      <.card_header card={@card} />
+      <.lodge_card_header card={@card} />
       <.md_body body={@card.body} />
-      <.card_actions card={@card} />
+      <.lodge_card_actions card={@card} />
     </div>
     """
   end
@@ -86,7 +87,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
     assigns = assign(assigns, :url, url)
 
     ~H"""
-    <.card_wrapper card={@card}>
+    <.lodge_card_frame card={@card}>
       <.md_body body={@card.body} />
       <%= if @url != "" do %>
         <a
@@ -98,13 +99,13 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           {@url}
         </a>
       <% end %>
-    </.card_wrapper>
+    </.lodge_card_frame>
     """
   end
 
   def lodge_card(%{card: %{type: "proposal"}} = assigns) do
     ~H"""
-    <.card_wrapper card={@card}>
+    <.lodge_card_frame card={@card}>
       <.md_body body={@card.body} />
       <div class="flex gap-2 mt-3">
         <.button size="sm" variant="outline" phx-click="approve_proposal" phx-value-card-id={@card.id}>
@@ -114,7 +115,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           Reject
         </.button>
       </div>
-    </.card_wrapper>
+    </.lodge_card_frame>
     """
   end
 
@@ -129,7 +130,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           <h2 class="text-lg font-semibold mt-0.5">{@card.title}</h2>
         </div>
         <div class="flex gap-2 shrink-0">
-          <.card_actions card={@card} />
+          <.lodge_card_actions card={@card} />
         </div>
       </div>
       <.md_body body={@card.body} />
@@ -140,9 +141,9 @@ defmodule ExCaliburWeb.Components.LodgeCards do
   # Fallback
   def lodge_card(assigns) do
     ~H"""
-    <.card_wrapper card={@card}>
+    <.lodge_card_frame card={@card}>
       <.md_body body={@card.body} />
-    </.card_wrapper>
+    </.lodge_card_frame>
     """
   end
 
@@ -151,17 +152,17 @@ defmodule ExCaliburWeb.Components.LodgeCards do
   attr :card, :map, required: true
   slot :inner_block, required: true
 
-  defp card_wrapper(assigns) do
+  defp lodge_card_frame(assigns) do
     ~H"""
-    <div class="rounded-lg border bg-card p-5 space-y-2">
-      <.card_header card={@card} />
+    <.card class="p-5 space-y-2">
+      <.lodge_card_header card={@card} />
       {render_slot(@inner_block)}
-      <.card_actions card={@card} />
-    </div>
+      <.lodge_card_actions card={@card} />
+    </.card>
     """
   end
 
-  defp card_header(assigns) do
+  defp lodge_card_header(assigns) do
     tags = Map.get(assigns.card, :tags, []) || []
     assigns = assign(assigns, :tags, tags)
 
@@ -195,7 +196,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
     Map.get(@tag_colors, tag, "bg-muted text-muted-foreground")
   end
 
-  defp card_actions(assigns) do
+  defp lodge_card_actions(assigns) do
     ~H"""
     <div class="flex gap-1 justify-end">
       <.button
