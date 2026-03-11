@@ -2,22 +2,23 @@ defmodule ExCaliburWeb.LodgeLive do
   @moduledoc false
   use ExCaliburWeb, :live_view
 
-  import ExCellenceDashboard.Components.AgentHealth
-  import ExCellenceDashboard.Components.CalibrationChart
-  import ExCellenceDashboard.Components.DriftMonitor
-  import ExCellenceDashboard.Components.OutcomeTracker
-  import ExCellenceDashboard.Components.ReplayViewer
-  import SaladUI.Card
+  import ExCaliburWeb.Components.LodgeCards
 
-  alias ExCalibur.Quests
+  alias ExCalibur.Lodge
   alias ExCalibur.Quests.Proposal
-  alias ExCalibur.TrustScorer
-  alias Excellence.Schemas.Decision
+  alias ExCalibur.Settings
   alias Excellence.Schemas.Member
-  alias Excellence.Schemas.Outcome
 
   @impl true
   def mount(_params, _session, socket) do
+    if connected?(socket) and is_nil(Settings.get_banner()) do
+      {:ok, push_navigate(socket, to: ~p"/town-square")}
+    else
+      mount_lodge(socket)
+    end
+  end
+
+  defp mount_lodge(socket) do
     import Ecto.Query
 
     has_members =
@@ -25,273 +26,153 @@ defmodule ExCaliburWeb.LodgeLive do
 
     if has_members do
       if connected?(socket) do
-        Phoenix.PubSub.subscribe(ExCalibur.PubSub, "evaluation:results")
-        :timer.send_interval(30_000, self(), :refresh)
+        Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
       end
 
-      {:ok, load_dashboard_data(socket)}
+      {:ok, load_cards(assign(socket, page_title: "Lodge"))}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
     end
   end
 
+  defp load_cards(socket) do
+    cards = Lodge.list_cards()
+    assign(socket, cards: cards)
+  end
+
   @impl true
-  def handle_info(:refresh, socket) do
-    {:noreply, load_dashboard_data(socket)}
+  def handle_info({:lodge_card_posted, _card}, socket) do
+    {:noreply, load_cards(socket)}
   end
 
   @impl true
   def handle_info(_msg, socket) do
-    {:noreply, load_dashboard_data(socket)}
-  end
-
-  defp load_dashboard_data(socket) do
-    import Ecto.Query
-
-    decisions =
-      from(d in Decision, order_by: [desc: d.inserted_at], limit: 20)
-      |> ExCalibur.Repo.all()
-      |> Enum.map(fn d ->
-        %{
-          action: String.to_atom(d.action || "approve"),
-          confidence: d.confidence || 0.0,
-          verdicts: d.verdicts || [],
-          outcome: nil,
-          inserted_at: d.inserted_at
-        }
-      end)
-
-    outcomes =
-      from(o in Outcome, order_by: [desc: o.inserted_at], limit: 20)
-      |> ExCalibur.Repo.all()
-      |> Enum.map(fn o ->
-        %{
-          decision_id: to_string(o.decision_id),
-          status: o.status,
-          result: o.result,
-          confidence: 0.0
-        }
-      end)
-
-    total_outcomes = length(outcomes)
-    resolved = Enum.count(outcomes, &(&1.status == "resolved"))
-    correct = Enum.count(outcomes, &get_in(&1, [:result, "correct"]))
-
-    outcome_stats = %{
-      total: total_outcomes,
-      resolved: resolved,
-      pending: total_outcomes - resolved,
-      correct: correct,
-      false_positives: 0,
-      false_negatives: 0,
-      success_rate: if(resolved > 0, do: correct / resolved, else: 0.0)
-    }
-
-    proposals = Quests.list_proposals(status: "pending")
-    trust_scores = TrustScorer.list_scores()
-
-    assign(socket,
-      page_title: "Lodge",
-      decisions: decisions,
-      outcomes: outcomes,
-      outcome_stats: outcome_stats,
-      agents: [],
-      drift_result: {:ok, :insufficient_data},
-      calibration_buckets: [],
-      proposals: proposals,
-      trust_scores: trust_scores
-    )
+    {:noreply, socket}
   end
 
   @impl true
-  def handle_event("approve_proposal", %{"id" => id}, socket) do
-    proposal = ExCalibur.Repo.get(Proposal, id)
+  def handle_event("create_card", %{"card" => params}, socket) do
+    attrs = Map.put(params, "source", "manual")
 
-    if proposal do
-      Quests.approve_proposal(proposal)
+    case Lodge.create_card(attrs) do
+      {:ok, _} -> {:noreply, load_cards(socket)}
+      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to create card")}
     end
-
-    {:noreply, load_dashboard_data(socket)}
   end
 
   @impl true
-  def handle_event("reject_proposal", %{"id" => id}, socket) do
-    proposal = ExCalibur.Repo.get(Proposal, id)
+  def handle_event("dismiss_card", %{"card-id" => id}, socket) do
+    card = Lodge.get_card!(id)
+    Lodge.dismiss_card(card)
+    {:noreply, load_cards(socket)}
+  end
 
-    if proposal do
-      Quests.reject_proposal(proposal)
+  @impl true
+  def handle_event("delete_card", %{"card-id" => id}, socket) do
+    card = Lodge.get_card!(id)
+    Lodge.delete_card(card)
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
+  def handle_event("toggle_pin", %{"card-id" => id}, socket) do
+    card = Lodge.get_card!(id)
+    Lodge.toggle_pin(card)
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
+  def handle_event("toggle_checklist_item", %{"card-id" => id, "index" => idx}, socket) do
+    card = Lodge.get_card!(id)
+    Lodge.toggle_checklist_item(card, String.to_integer(idx))
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
+  def handle_event("approve_proposal", %{"card-id" => id}, socket) do
+    card = Lodge.get_card!(id)
+    proposal_id = card.metadata["proposal_id"]
+
+    if proposal_id do
+      proposal = ExCalibur.Repo.get(Proposal, proposal_id)
+      if proposal, do: ExCalibur.Quests.approve_proposal(proposal)
     end
 
-    {:noreply, load_dashboard_data(socket)}
+    Lodge.dismiss_card(card)
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
+  def handle_event("reject_proposal", %{"card-id" => id}, socket) do
+    card = Lodge.get_card!(id)
+    proposal_id = card.metadata["proposal_id"]
+
+    if proposal_id do
+      proposal = ExCalibur.Repo.get(Proposal, proposal_id)
+      if proposal, do: ExCalibur.Quests.reject_proposal(proposal)
+    end
+
+    Lodge.dismiss_card(card)
+    {:noreply, load_cards(socket)}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-8">
+    <div class="space-y-6">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Lodge</h1>
         <p class="text-muted-foreground mt-1.5">
-          Monitoring, decisions, and learning loop proposals.
+          Your guild's bulletin board — notes, checklists, alerts, and quest output.
         </p>
       </div>
 
-      <.card>
-        <.card_header>
-          <.card_title>Proposals</.card_title>
-          <.card_description>Suggested improvements from the learning loop</.card_description>
-        </.card_header>
-        <.card_content>
-          <%= if @proposals == [] do %>
-            <p class="text-muted-foreground text-sm">
-              No pending proposals. Proposals appear here after scheduled quests complete.
-            </p>
-          <% else %>
-            <div class="space-y-3">
-              <%= for proposal <- @proposals do %>
-                <div class="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-1.5">
-                      <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {proposal.type}
-                      </span>
-                      <span class="text-xs text-muted-foreground">
-                        {proposal.step && proposal.step.name}
-                      </span>
-                    </div>
-                    <p class="text-sm font-medium">{proposal.description}</p>
-                    <%= if proposal.details["suggestion"] && proposal.details["suggestion"] != "" do %>
-                      <p class="text-xs text-muted-foreground mt-1">
-                        {proposal.details["suggestion"]}
-                      </p>
-                    <% end %>
-                  </div>
-                  <div class="flex gap-2 shrink-0 self-start sm:self-auto">
-                    <.button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      phx-click="approve_proposal"
-                      phx-value-id={proposal.id}
-                    >
-                      Approve
-                    </.button>
-                    <.button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      phx-click="reject_proposal"
-                      phx-value-id={proposal.id}
-                    >
-                      Reject
-                    </.button>
-                  </div>
-                </div>
-              <% end %>
+      <div class="rounded-lg border border-dashed p-4">
+        <form phx-submit="create_card" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div class="flex-1 space-y-2">
+            <div class="flex gap-2">
+              <select
+                name="card[type]"
+                class="h-9 text-sm border border-input rounded-md px-3 bg-background"
+              >
+                <option value="note">Note</option>
+                <option value="checklist">Checklist</option>
+                <option value="meeting">Meeting</option>
+                <option value="alert">Alert</option>
+                <option value="link">Link</option>
+              </select>
+              <input
+                type="text"
+                name="card[title]"
+                placeholder="Title"
+                required
+                class="flex-1 h-9 text-sm border border-input rounded-md px-3 bg-background"
+              />
             </div>
-          <% end %>
-        </.card_content>
-      </.card>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <.card>
-          <.card_header>
-            <.card_title>Recent Decisions</.card_title>
-          </.card_header>
-          <.card_content class="overflow-x-auto">
-            <.replay_viewer decisions={@decisions} />
-          </.card_content>
-        </.card>
-
-        <.card>
-          <.card_header>
-            <.card_title>Agent Health</.card_title>
-          </.card_header>
-          <.card_content>
-            <%= if @agents == [] do %>
-              <p class="text-muted-foreground text-sm">
-                No agent data yet. Run an evaluation to see agent health.
-              </p>
-            <% else %>
-              <.agent_health agents={@agents} />
-            <% end %>
-          </.card_content>
-        </.card>
-
-        <.card>
-          <.card_header>
-            <.card_title>Outcomes</.card_title>
-          </.card_header>
-          <.card_content>
-            <.outcome_tracker outcomes={@outcomes} stats={@outcome_stats} />
-          </.card_content>
-        </.card>
-
-        <.card>
-          <.card_header>
-            <.card_title>Drift Monitor</.card_title>
-          </.card_header>
-          <.card_content>
-            <.drift_monitor drift_result={@drift_result} />
-          </.card_content>
-        </.card>
+            <textarea
+              name="card[body]"
+              rows="2"
+              placeholder="Body (markdown)"
+              class="w-full text-sm border border-input rounded-md px-3 py-2 bg-background"
+            ></textarea>
+          </div>
+          <.button type="submit" size="sm">+ Add Card</.button>
+        </form>
       </div>
 
-      <%= if @calibration_buckets != [] do %>
-        <.card>
-          <.card_header>
-            <.card_title>Calibration</.card_title>
-          </.card_header>
-          <.card_content>
-            <.calibration_chart buckets={@calibration_buckets} />
-          </.card_content>
-        </.card>
-      <% end %>
-
-      <.card>
-        <.card_header>
-          <.card_title>Member Trust</.card_title>
-          <.card_description>
-            Scores decay when a member's verdict contradicts step consensus
-          </.card_description>
-        </.card_header>
-        <.card_content>
-          <%= if @trust_scores == [] do %>
-            <p class="text-sm text-muted-foreground">
-              No trust data yet — scores appear after quest runs.
-            </p>
-          <% else %>
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="text-left text-muted-foreground text-xs border-b">
-                  <th class="pb-1">Member</th>
-                  <th class="pb-1">Score</th>
-                  <th class="pb-1">Decays</th>
-                </tr>
-              </thead>
-              <tbody>
-                <%= for score <- @trust_scores do %>
-                  <tr class="border-b last:border-0">
-                    <td class="py-1">{score.member_name}</td>
-                    <td class="py-1">
-                      <span class={[
-                        "font-mono font-medium",
-                        if(score.score >= 0.9,
-                          do: "text-green-600",
-                          else: if(score.score >= 0.75, do: "text-yellow-600", else: "text-red-600")
-                        )
-                      ]}>
-                        {Float.round(score.score, 3)}
-                      </span>
-                    </td>
-                    <td class="py-1 text-muted-foreground">{score.decay_count}</td>
-                  </tr>
-                <% end %>
-              </tbody>
-            </table>
+      <%= if @cards == [] do %>
+        <div class="rounded-lg border p-8 text-center">
+          <p class="text-muted-foreground text-sm">
+            No cards yet. Add one above or run a quest that posts to the Lodge.
+          </p>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <%= for card <- @cards do %>
+            <.lodge_card card={card} />
           <% end %>
-        </.card_content>
-      </.card>
+        </div>
+      <% end %>
     </div>
     """
   end

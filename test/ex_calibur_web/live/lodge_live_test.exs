@@ -4,7 +4,7 @@ defmodule ExCaliburWeb.LodgeLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias ExCalibur.Quests
+  alias ExCalibur.Lodge
   alias Excellence.Schemas.Member
 
   defp insert_member do
@@ -16,6 +16,7 @@ defmodule ExCaliburWeb.LodgeLiveTest do
   describe "index" do
     setup do
       ExCalibur.Repo.delete_all(Member)
+      ExCalibur.Settings.set_banner("tech")
       :ok
     end
 
@@ -23,86 +24,67 @@ defmodule ExCaliburWeb.LodgeLiveTest do
       {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, "/lodge")
     end
 
-    test "renders lodge with component sections when members exist", %{conn: conn} do
+    test "redirects to town square when no banner set", %{conn: conn} do
       insert_member()
+      ExCalibur.Repo.delete_all(ExCalibur.Settings)
+      assert ExCalibur.Settings.get_banner() == nil
+      {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/lodge")
+    end
+  end
 
+  describe "card workspace" do
+    setup do
+      ExCalibur.Repo.delete_all(Member)
+      ExCalibur.Settings.set_banner("tech")
+      :ok
+    end
+
+    test "shows empty state when no cards exist", %{conn: conn} do
+      insert_member()
       {:ok, view, html} = live(conn, "/lodge")
       html_snapshot(view)
       assert html =~ "Lodge"
-      assert html =~ "Recent Decisions"
-      assert html =~ "Agent Health"
-      assert html =~ "Proposals"
+      assert html =~ "No cards yet"
     end
 
-    test "shows empty proposals state when no proposals exist", %{conn: conn} do
+    test "shows cards", %{conn: conn} do
       insert_member()
-
+      Lodge.create_card(%{type: "note", title: "Hello World", body: "test", source: "manual"})
       {:ok, _view, html} = live(conn, "/lodge")
-      assert html =~ "No pending proposals"
+      assert html =~ "Hello World"
     end
 
-    test "shows pending proposal with approve and reject buttons", %{conn: conn} do
+    test "can create a note card", %{conn: conn} do
       insert_member()
+      {:ok, view, _html} = live(conn, "/lodge")
 
-      {:ok, step} =
-        Quests.create_step(%{name: "Auto Step", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
-
-      {:ok, step_run} = Quests.create_step_run(%{step_id: step.id, input: "test input", status: "complete"})
-
-      Quests.create_proposal(%{
-        quest_id: step.id,
-        quest_run_id: step_run.id,
-        type: "roster_change",
-        description: "Switch to master tier only",
-        details: %{"suggestion" => "Narrow roster to master members"},
-        status: "pending"
+      view
+      |> form("form[phx-submit=create_card]", %{
+        "card" => %{"type" => "note", "title" => "New Note", "body" => "content"}
       })
+      |> render_submit()
 
-      {:ok, _view, html} = live(conn, "/lodge")
-      assert html =~ "Switch to master tier only"
-      assert html =~ "roster_change"
-      assert html =~ "Approve"
-      assert html =~ "Reject"
+      assert render(view) =~ "New Note"
     end
 
-    test "approve_proposal marks proposal approved and removes from list", %{conn: conn} do
+    test "can dismiss a card", %{conn: conn} do
       insert_member()
-
-      {:ok, step} =
-        Quests.create_step(%{name: "Auto Step", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
-
-      {:ok, _step_run} = Quests.create_step_run(%{step_id: step.id, input: "test input", status: "complete"})
-
-      {:ok, proposal} =
-        Quests.create_proposal(%{
-          quest_id: step.id,
-          type: "prompt_change",
-          description: "Tighten the system prompt",
-          status: "pending"
-        })
-
+      {:ok, card} = Lodge.create_card(%{type: "note", title: "Dismiss Me", source: "manual"})
       {:ok, view, _html} = live(conn, "/lodge")
-      html = render_click(view, "approve_proposal", %{"id" => to_string(proposal.id)})
-      refute html =~ "Tighten the system prompt"
+      assert render(view) =~ "Dismiss Me"
+
+      render_click(view, "dismiss_card", %{"card-id" => to_string(card.id)})
+      refute render(view) =~ "Dismiss Me"
     end
 
-    test "reject_proposal removes proposal from list", %{conn: conn} do
+    test "can toggle pin", %{conn: conn} do
       insert_member()
-
-      {:ok, step} =
-        Quests.create_step(%{name: "Auto Step", trigger: "scheduled", roster: [], schedule: "0 * * * *"})
-
-      {:ok, proposal} =
-        Quests.create_proposal(%{
-          quest_id: step.id,
-          type: "schedule_change",
-          description: "Run less frequently",
-          status: "pending"
-        })
-
+      {:ok, card} = Lodge.create_card(%{type: "note", title: "Pin Me", source: "manual"})
       {:ok, view, _html} = live(conn, "/lodge")
-      html = render_click(view, "reject_proposal", %{"id" => to_string(proposal.id)})
-      refute html =~ "Run less frequently"
+
+      render_click(view, "toggle_pin", %{"card-id" => to_string(card.id)})
+      html = render(view)
+      assert html =~ "pinned" or html =~ "Unpin"
     end
   end
 end
