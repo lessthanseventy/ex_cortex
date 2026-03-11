@@ -66,7 +66,13 @@ defmodule ExCaliburUI.Components.ActionsForm do
         placeholder="reject,flag"
         class="flex-1"
       />
-      <.button type="button" variant="ghost" size="sm" phx-click="remove_action" phx-value-index={@index}>
+      <.button
+        type="button"
+        variant="ghost"
+        size="sm"
+        phx-click="remove_action"
+        phx-value-index={@index}
+      >
         ✕
       </.button>
     </div>

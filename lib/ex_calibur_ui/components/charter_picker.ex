@@ -6,9 +6,9 @@ defmodule ExCaliburUI.Components.CharterPicker do
   """
   use Phoenix.Component
 
+  import SaladUI.Badge
   import SaladUI.Button
   import SaladUI.Card
-  import SaladUI.Badge
 
   attr :charters, :list, required: true
   attr :on_install, :any, required: true
@@ -28,7 +28,12 @@ defmodule ExCaliburUI.Components.CharterPicker do
   def charter_picker(assigns) do
     ~H"""
     <div class={["grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", @class]}>
-      <.charter_card :for={charter <- @charters} charter={charter} on_install={@on_install} on_preview={@on_preview} />
+      <.charter_card
+        :for={charter <- @charters}
+        charter={charter}
+        on_install={@on_install}
+        on_preview={@on_preview}
+      />
     </div>
     """
   end
@@ -64,7 +69,13 @@ defmodule ExCaliburUI.Components.CharterPicker do
         <.button phx-click={@on_install} phx-value-charter={@charter.name} size="sm">
           Install
         </.button>
-        <.button :if={@on_preview} phx-click={@on_preview} phx-value-charter={@charter.name} variant="outline" size="sm">
+        <.button
+          :if={@on_preview}
+          phx-click={@on_preview}
+          phx-value-charter={@charter.name}
+          variant="outline"
+          size="sm"
+        >
           Preview
         </.button>
       </div>

@@ -180,12 +180,9 @@ defmodule ExCaliburWeb.Components.LodgeCards do
           <span class="text-xs text-muted-foreground shrink-0" title="pinned">pinned</span>
         <% end %>
         <%= for tag <- @tags do %>
-          <span class={[
-            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-            tag_color(tag)
-          ]}>
+          <.badge variant="outline" class={"text-[10px] shrink-0 " <> tag_color(tag)}>
             {tag}
-          </span>
+          </.badge>
         <% end %>
       </div>
     </div>

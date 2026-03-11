@@ -52,8 +52,16 @@ defmodule ExCaliburUI.Components.PipelineBuilder do
 
           <div>
             <h4 class="text-sm font-medium mb-2">Pipeline ({length(@pipeline)} stages)</h4>
-            <div id="pipeline-stages" phx-hook="Sortable" class="space-y-1 min-h-[100px] border rounded p-2">
-              <.pipeline_stage :for={{stage, i} <- Enum.with_index(@pipeline)} stage={stage} index={i} />
+            <div
+              id="pipeline-stages"
+              phx-hook="Sortable"
+              class="space-y-1 min-h-[100px] border rounded p-2"
+            >
+              <.pipeline_stage
+                :for={{stage, i} <- Enum.with_index(@pipeline)}
+                stage={stage}
+                index={i}
+              />
               <p :if={@pipeline == []} class="text-sm text-muted-foreground p-4 text-center">
                 Click middleware to add stages
               </p>
@@ -75,9 +83,18 @@ defmodule ExCaliburUI.Components.PipelineBuilder do
     assigns = assign(assigns, :display_name, name)
 
     ~H"""
-    <div class="flex items-center justify-between p-2 border rounded bg-background" data-index={@index}>
+    <div
+      class="flex items-center justify-between p-2 border rounded bg-background"
+      data-index={@index}
+    >
       <span class="text-sm font-mono">{@index + 1}. {@display_name}</span>
-      <.button type="button" variant="ghost" size="sm" phx-click="remove_middleware" phx-value-index={@index}>
+      <.button
+        type="button"
+        variant="ghost"
+        size="sm"
+        phx-click="remove_middleware"
+        phx-value-index={@index}
+      >
         ✕
       </.button>
     </div>

@@ -39,7 +39,12 @@ defmodule ExCaliburUI.Components.GuardForm do
 
           <div>
             <label class="text-sm font-medium">Description</label>
-            <.textarea name="guard[description]" value={@guard[:description]} placeholder="Describe what this guard checks..." rows={3} />
+            <.textarea
+              name="guard[description]"
+              value={@guard[:description]}
+              placeholder="Describe what this guard checks..."
+              rows={3}
+            />
           </div>
 
           <div class="pt-2">

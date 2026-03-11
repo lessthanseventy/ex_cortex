@@ -27,10 +27,13 @@ defmodule ExCalibur.Settings do
   end
 
   def set_banner(banner) do
-    case ExCalibur.Repo.one(__MODULE__) do
-      nil -> %__MODULE__{}
-      existing -> existing
-    end
+    case_result =
+      case ExCalibur.Repo.one(__MODULE__) do
+        nil -> %__MODULE__{}
+        existing -> existing
+      end
+
+    case_result
     |> changeset(%{banner: banner})
     |> ExCalibur.Repo.insert_or_update()
   end

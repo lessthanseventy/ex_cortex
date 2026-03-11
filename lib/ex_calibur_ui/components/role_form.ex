@@ -31,7 +31,12 @@ defmodule ExCaliburUI.Components.RoleForm do
 
           <div>
             <label class="text-sm font-medium">System Prompt</label>
-            <.textarea name="role[system_prompt]" value={@role[:system_prompt]} placeholder="You are a..." rows={4} />
+            <.textarea
+              name="role[system_prompt]"
+              value={@role[:system_prompt]}
+              placeholder="You are a..."
+              rows={4}
+            />
           </div>
 
           <div>
@@ -50,7 +55,11 @@ defmodule ExCaliburUI.Components.RoleForm do
 
           <div>
             <label class="text-sm font-medium">Parse Strategy</label>
-            <.input type="text" name="role[parse_strategy]" value={@role[:parse_strategy] || "default"} />
+            <.input
+              type="text"
+              name="role[parse_strategy]"
+              value={@role[:parse_strategy] || "default"}
+            />
           </div>
 
           <div class="flex gap-2 pt-2">
@@ -89,7 +98,13 @@ defmodule ExCaliburUI.Components.RoleForm do
         placeholder="cod"
         class="w-20"
       />
-      <.button type="button" variant="ghost" size="sm" phx-click="remove_perspective" phx-value-index={@index}>
+      <.button
+        type="button"
+        variant="ghost"
+        size="sm"
+        phx-click="remove_perspective"
+        phx-value-index={@index}
+      >
         ✕
       </.button>
     </div>
