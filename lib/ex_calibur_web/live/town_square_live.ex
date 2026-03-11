@@ -7,6 +7,7 @@ defmodule ExCaliburWeb.TownSquareLive do
   alias ExCalibur.Quests
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Quests.Step
+  alias ExCalibur.Settings
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
   alias Excellence.Schemas.Member
@@ -39,24 +40,37 @@ defmodule ExCaliburWeb.TownSquareLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    banner = Settings.get_banner()
+
     guilds =
       Enum.map(@charters, fn {_name, mod} ->
         meta = mod.metadata()
 
         %{
           name: meta.name,
+          banner: meta.banner,
           description: meta.description,
           roles: Enum.map(meta.roles, & &1.name),
           strategy: inspect(meta.strategy)
         }
       end)
 
+    filtered_guilds =
+      if banner do
+        banner_atom = String.to_existing_atom(banner)
+        Enum.filter(guilds, fn g -> g.banner == banner_atom end)
+      else
+        guilds
+      end
+
     current = current_guild_name()
 
     {:ok,
      assign(socket,
        page_title: "Town Square",
+       banner: banner,
        guilds: guilds,
+       filtered_guilds: filtered_guilds,
        current_guild: current,
        confirming: nil
      )}
@@ -105,6 +119,18 @@ defmodule ExCaliburWeb.TownSquareLive do
   @impl true
   def handle_event("cancel_install", _params, socket) do
     {:noreply, assign(socket, confirming: nil)}
+  end
+
+  @impl true
+  def handle_event("select_banner", %{"banner" => banner}, socket) do
+    {:ok, _} = Settings.set_banner(banner)
+    banner_atom = String.to_existing_atom(banner)
+    filtered = Enum.filter(socket.assigns.guilds, fn g -> g.banner == banner_atom end)
+
+    {:noreply,
+     socket
+     |> assign(banner: banner, filtered_guilds: filtered)
+     |> put_flash(:info, "Flying under the #{String.capitalize(banner)} banner!")}
   end
 
   @impl true
@@ -190,76 +216,102 @@ defmodule ExCaliburWeb.TownSquareLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-8">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Town Square</h1>
-        <p class="text-muted-foreground mt-1.5">
-          Choose your guild. Installing a new guild replaces the current one.
-        </p>
-      </div>
-
-      <div class="space-y-3">
-        <%= for guild <- @guilds do %>
-          <div class={[
-            "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between",
-            @current_guild == guild.name && "border-primary bg-accent/50"
-          ]}>
-            <div class="space-y-1.5">
-              <div class="flex items-center gap-2">
-                <span class="font-semibold">{guild.name} Guild</span>
-                <%= if @current_guild == guild.name do %>
-                  <.badge variant="default">Active</.badge>
-                <% end %>
-              </div>
-              <p class="text-sm text-muted-foreground">{guild.description}</p>
-              <div class="flex flex-wrap gap-1.5 mt-1">
-                <%= for role <- guild.roles do %>
-                  <.badge variant="outline">{role}</.badge>
-                <% end %>
-              </div>
-            </div>
-            <div class="ml-4 shrink-0">
-              <%= if @confirming == guild.name do %>
-                <div class="flex gap-2">
-                  <.button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    phx-click="confirm_install"
-                    phx-value-guild={guild.name}
-                  >
-                    Confirm
-                  </.button>
-                  <.button type="button" variant="outline" size="sm" phx-click="cancel_install">
-                    Cancel
-                  </.button>
-                </div>
-              <% else %>
-                <.button
-                  type="button"
-                  variant={if @current_guild == guild.name, do: "outline", else: "default"}
-                  size="sm"
-                  phx-click="select_guild"
-                  phx-value-guild={guild.name}
-                >
-                  {if @current_guild == guild.name, do: "Active", else: "Install"}
-                </.button>
-              <% end %>
-            </div>
+      <%= if @banner == nil do %>
+        <div class="max-w-4xl mx-auto py-12">
+          <h1 class="text-2xl font-bold text-center mb-2">Choose Your Banner</h1>
+          <p class="text-muted-foreground text-center mb-8">
+            Pick your domain to see relevant guilds, quests, and tools.
+          </p>
+          <div class="grid grid-cols-3 gap-6">
+            <%= for {name, desc, icon} <- [
+              {"tech", "Code review, security audits, incident triage, and developer tooling.", "⚔️"},
+              {"lifestyle", "Content curation, creative projects, sports, culture, and science.", "🛡️"},
+              {"business", "Contract review, risk assessment, market analysis, and hiring.", "📜"}
+            ] do %>
+              <button
+                phx-click="select_banner"
+                phx-value-banner={name}
+                class="rounded-lg border-2 border-muted p-6 text-left hover:border-foreground transition-colors"
+              >
+                <div class="text-3xl mb-3">{icon}</div>
+                <div class="font-bold text-lg capitalize mb-1">{name}</div>
+                <div class="text-sm text-muted-foreground">{desc}</div>
+              </button>
+            <% end %>
           </div>
-        <% end %>
-      </div>
-
-      <div class="flex flex-col gap-4 rounded-lg border border-dashed p-5 mt-2 sm:flex-row sm:items-center sm:justify-between">
-        <div class="space-y-1">
-          <span class="font-semibold">Build Your Own Guild</span>
-          <p class="text-sm text-muted-foreground">
-            Start from scratch — add your own members and quests.
+        </div>
+      <% else %>
+        <div>
+          <h1 class="text-3xl font-bold tracking-tight">Town Square</h1>
+          <p class="text-muted-foreground mt-1.5">
+            Choose your guild. Installing a new guild replaces the current one.
           </p>
         </div>
-        <.button type="button" variant="outline" size="sm" phx-click="build_own_guild">
-          Start Fresh
-        </.button>
-      </div>
+
+        <div class="space-y-3">
+          <%= for guild <- @filtered_guilds do %>
+            <div class={[
+              "flex flex-col gap-4 rounded-lg border p-5 sm:flex-row sm:items-center sm:justify-between",
+              @current_guild == guild.name && "border-primary bg-accent/50"
+            ]}>
+              <div class="space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold">{guild.name} Guild</span>
+                  <%= if @current_guild == guild.name do %>
+                    <.badge variant="default">Active</.badge>
+                  <% end %>
+                </div>
+                <p class="text-sm text-muted-foreground">{guild.description}</p>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                  <%= for role <- guild.roles do %>
+                    <.badge variant="outline">{role}</.badge>
+                  <% end %>
+                </div>
+              </div>
+              <div class="ml-4 shrink-0">
+                <%= if @confirming == guild.name do %>
+                  <div class="flex gap-2">
+                    <.button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      phx-click="confirm_install"
+                      phx-value-guild={guild.name}
+                    >
+                      Confirm
+                    </.button>
+                    <.button type="button" variant="outline" size="sm" phx-click="cancel_install">
+                      Cancel
+                    </.button>
+                  </div>
+                <% else %>
+                  <.button
+                    type="button"
+                    variant={if @current_guild == guild.name, do: "outline", else: "default"}
+                    size="sm"
+                    phx-click="select_guild"
+                    phx-value-guild={guild.name}
+                  >
+                    {if @current_guild == guild.name, do: "Active", else: "Install"}
+                  </.button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="flex flex-col gap-4 rounded-lg border border-dashed p-5 mt-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="space-y-1">
+            <span class="font-semibold">Build Your Own Guild</span>
+            <p class="text-sm text-muted-foreground">
+              Start from scratch — add your own members and quests.
+            </p>
+          </div>
+          <.button type="button" variant="outline" size="sm" phx-click="build_own_guild">
+            Start Fresh
+          </.button>
+        </div>
+      <% end %>
     </div>
     """
   end
