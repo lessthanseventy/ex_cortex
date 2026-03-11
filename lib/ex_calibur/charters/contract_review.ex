@@ -90,7 +90,9 @@ defmodule ExCalibur.Charters.ContractReview do
         context_providers: [
           %{"type" => "member_stats"},
           %{"type" => "lore", "tags" => ["contracts"], "limit" => 3, "sort" => "importance"}
-        ]
+        ],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Contract Review",
@@ -99,7 +101,9 @@ defmodule ExCalibur.Charters.ContractReview do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Contract Knowledge Memory",
@@ -119,7 +123,9 @@ defmodule ExCalibur.Charters.ContractReview do
         write_mode: "both",
         entry_title_template: "Contract Knowledge",
         log_title_template: "Contract Review Log — {date}",
-        context_providers: [%{"type" => "lore", "tags" => ["contracts"], "limit" => 5, "sort" => "importance"}]
+        context_providers: [%{"type" => "lore", "tags" => ["contracts"], "limit" => 5, "sort" => "importance"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Email Contract Risk Summary",
@@ -170,7 +176,8 @@ defmodule ExCalibur.Charters.ContractReview do
             "system_prompt" => role.system_prompt,
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
-            "strategy" => perspective.strategy
+            "strategy" => perspective.strategy,
+            "tools" => "all_safe"
           }
         }
       end)

@@ -85,7 +85,9 @@ defmodule ExCalibur.Charters.RiskAssessment do
         schedule: "@hourly",
         roster: [%{"who" => "apprentice", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        context_providers: [%{"type" => "lore", "tags" => ["risk"], "limit" => 3, "sort" => "importance"}]
+        context_providers: [%{"type" => "lore", "tags" => ["risk"], "limit" => 3, "sort" => "importance"}],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Risk Assessment",
@@ -94,7 +96,9 @@ defmodule ExCalibur.Charters.RiskAssessment do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Risk Pattern Memory",
@@ -114,7 +118,9 @@ defmodule ExCalibur.Charters.RiskAssessment do
         write_mode: "replace",
         entry_title_template: "Risk Patterns — Current",
         log_title_template: nil,
-        context_providers: [%{"type" => "lore", "tags" => ["risk"], "limit" => 5, "sort" => "importance"}]
+        context_providers: [%{"type" => "lore", "tags" => ["risk"], "limit" => 5, "sort" => "importance"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Page On High Risk",
@@ -177,7 +183,8 @@ defmodule ExCalibur.Charters.RiskAssessment do
             "system_prompt" => role.system_prompt,
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
-            "strategy" => perspective.strategy
+            "strategy" => perspective.strategy,
+            "tools" => "all_safe"
           }
         }
       end)

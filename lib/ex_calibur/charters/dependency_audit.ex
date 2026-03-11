@@ -85,7 +85,9 @@ defmodule ExCalibur.Charters.DependencyAudit do
         schedule: nil,
         roster: [%{"who" => "apprentice", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        context_providers: [%{"type" => "lore", "tags" => ["deps"], "limit" => 5, "sort" => "importance"}]
+        context_providers: [%{"type" => "lore", "tags" => ["deps"], "limit" => 5, "sort" => "importance"}],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Dependency Audit",
@@ -94,7 +96,9 @@ defmodule ExCalibur.Charters.DependencyAudit do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Dependency Risk Register",
@@ -113,7 +117,9 @@ defmodule ExCalibur.Charters.DependencyAudit do
         write_mode: "both",
         entry_title_template: "Dependency Risk Register",
         log_title_template: "Dependency Audit Log — {date}",
-        context_providers: [%{"type" => "lore", "tags" => ["deps"], "limit" => 5, "sort" => "importance"}]
+        context_providers: [%{"type" => "lore", "tags" => ["deps"], "limit" => 5, "sort" => "importance"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "File Vulnerability Issue",
@@ -164,7 +170,8 @@ defmodule ExCalibur.Charters.DependencyAudit do
             "system_prompt" => role.system_prompt,
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
-            "strategy" => perspective.strategy
+            "strategy" => perspective.strategy,
+            "tools" => "all_safe"
           }
         }
       end)

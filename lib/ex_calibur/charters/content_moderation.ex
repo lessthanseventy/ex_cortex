@@ -92,7 +92,9 @@ defmodule ExCalibur.Charters.ContentModeration do
               "Community standards: maintain respectful discourse. Hate speech, harassment, and graphic violence are not permitted. Gray areas should be escalated."
           },
           %{"type" => "lore", "tags" => ["moderation"], "limit" => 3, "sort" => "newest"}
-        ]
+        ],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Content Review",
@@ -101,7 +103,9 @@ defmodule ExCalibur.Charters.ContentModeration do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Moderation Edge Case Log",
@@ -120,7 +124,9 @@ defmodule ExCalibur.Charters.ContentModeration do
         write_mode: "both",
         entry_title_template: "Moderation Patterns",
         log_title_template: "Moderation Log — {date}",
-        context_providers: [%{"type" => "lore", "tags" => ["moderation"], "limit" => 5, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "tags" => ["moderation"], "limit" => 5, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Escalate Moderation Alert",
@@ -171,7 +177,8 @@ defmodule ExCalibur.Charters.ContentModeration do
             "system_prompt" => role.system_prompt,
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
-            "strategy" => perspective.strategy
+            "strategy" => perspective.strategy,
+            "tools" => "all_safe"
           }
         }
       end)

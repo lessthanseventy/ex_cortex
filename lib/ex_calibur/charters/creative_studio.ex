@@ -48,7 +48,8 @@ defmodule ExCalibur.Charters.CreativeStudio do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -61,7 +62,8 @@ defmodule ExCalibur.Charters.CreativeStudio do
             "system_prompt" => builtin.system_prompt,
             "rank" => "journeyman",
             "model" => builtin.ranks.journeyman.model,
-            "strategy" => builtin.ranks.journeyman.strategy
+            "strategy" => builtin.ranks.journeyman.strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -84,7 +86,9 @@ defmodule ExCalibur.Charters.CreativeStudio do
             "how" => "consensus"
           }
         ],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Chronicle Entry",
@@ -101,7 +105,9 @@ defmodule ExCalibur.Charters.CreativeStudio do
           }
         ],
         source_ids: [],
-        output_type: "freeform"
+        output_type: "freeform",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Tone Review",
@@ -110,7 +116,9 @@ defmodule ExCalibur.Charters.CreativeStudio do
         trigger: "source",
         schedule: nil,
         roster: [%{"who" => "apprentice", "when" => "on_trigger", "how" => "solo"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       }
     ]
   end

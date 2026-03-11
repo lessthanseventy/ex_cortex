@@ -47,7 +47,8 @@ defmodule ExCalibur.Charters.SportsCorner do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -60,7 +61,8 @@ defmodule ExCalibur.Charters.SportsCorner do
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
-            "strategy" => builtin.ranks[rank].strategy
+            "strategy" => builtin.ranks[rank].strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -86,7 +88,9 @@ defmodule ExCalibur.Charters.SportsCorner do
         source_ids: [],
         output_type: "artifact",
         write_mode: "append",
-        entry_title_template: "Sports — {date}"
+        entry_title_template: "Sports — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Weekend Roundup",
@@ -105,7 +109,9 @@ defmodule ExCalibur.Charters.SportsCorner do
         source_ids: [],
         output_type: "artifact",
         entry_title_template: "Weekend Roundup — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 10}]
+        context_providers: [%{"type" => "lore", "limit" => 10}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       }
     ]
   end

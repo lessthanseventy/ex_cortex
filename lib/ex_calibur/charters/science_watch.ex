@@ -50,7 +50,8 @@ defmodule ExCalibur.Charters.ScienceWatch do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -63,7 +64,8 @@ defmodule ExCalibur.Charters.ScienceWatch do
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
-            "strategy" => builtin.ranks[rank].strategy
+            "strategy" => builtin.ranks[rank].strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -89,7 +91,9 @@ defmodule ExCalibur.Charters.ScienceWatch do
         source_ids: [],
         output_type: "artifact",
         write_mode: "append",
-        entry_title_template: "Science Brief — {date}"
+        entry_title_template: "Science Brief — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Hype Check",
@@ -105,7 +109,9 @@ defmodule ExCalibur.Charters.ScienceWatch do
           }
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Weekly Research Roundup",
@@ -124,7 +130,9 @@ defmodule ExCalibur.Charters.ScienceWatch do
         source_ids: [],
         output_type: "artifact",
         entry_title_template: "Research Roundup — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 20}]
+        context_providers: [%{"type" => "lore", "limit" => 20}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       }
     ]
   end

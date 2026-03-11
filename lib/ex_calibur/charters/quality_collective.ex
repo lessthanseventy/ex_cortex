@@ -49,7 +49,8 @@ defmodule ExCalibur.Charters.QualityCollective do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -62,7 +63,8 @@ defmodule ExCalibur.Charters.QualityCollective do
             "system_prompt" => builtin.system_prompt,
             "rank" => "journeyman",
             "model" => builtin.ranks.journeyman.model,
-            "strategy" => builtin.ranks.journeyman.strategy
+            "strategy" => builtin.ranks.journeyman.strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -81,7 +83,9 @@ defmodule ExCalibur.Charters.QualityCollective do
         source_ids: [],
         context_providers: [
           %{"type" => "lore", "tags" => ["a11y"], "limit" => 3, "sort" => "importance"}
-        ]
+        ],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Quality Review",
@@ -90,7 +94,9 @@ defmodule ExCalibur.Charters.QualityCollective do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Quality Findings Log",
@@ -106,7 +112,9 @@ defmodule ExCalibur.Charters.QualityCollective do
         log_title_template: "Quality Log — {date}",
         context_providers: [
           %{"type" => "lore", "tags" => ["a11y", "quality"], "limit" => 5, "sort" => "top"}
-        ]
+        ],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       }
     ]
   end

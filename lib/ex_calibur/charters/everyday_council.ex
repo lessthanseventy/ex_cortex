@@ -61,7 +61,8 @@ defmodule ExCalibur.Charters.EverydayCouncil do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -74,7 +75,8 @@ defmodule ExCalibur.Charters.EverydayCouncil do
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
-            "strategy" => builtin.ranks[rank].strategy
+            "strategy" => builtin.ranks[rank].strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -92,7 +94,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         trigger: "manual",
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Quick Take",
@@ -103,7 +107,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "life-coach", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Gut Check",
@@ -114,7 +120,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "challenger", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Risk Scan",
@@ -126,7 +134,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "risk-assessor", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Priority Reset",
@@ -138,7 +148,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "life-coach", "when" => "always", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Event Debrief",
@@ -148,7 +160,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         trigger: "manual",
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Optimism Check",
@@ -159,7 +173,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
           %{"who" => "apprentice", "preferred_who" => "the-optimist", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
 
       # --- Journaling & Intake ---
@@ -174,7 +190,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         source_ids: [],
         output_type: "artifact",
         write_mode: "append",
-        entry_title_template: "Journal — {date}"
+        entry_title_template: "Journal — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Daily Check-in",
@@ -187,7 +205,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         source_ids: [],
         output_type: "artifact",
         write_mode: "append",
-        entry_title_template: "Check-in — {date}"
+        entry_title_template: "Check-in — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
 
       # --- Daily Rhythm ---
@@ -205,7 +225,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         output_type: "artifact",
         write_mode: "append",
         entry_title_template: "Morning Briefing — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 10, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "limit" => 10, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Midday Pulse",
@@ -221,7 +243,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         output_type: "artifact",
         write_mode: "append",
         entry_title_template: "Midday Pulse — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 5, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "limit" => 5, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Evening Wrap",
@@ -238,7 +262,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         output_type: "artifact",
         write_mode: "append",
         entry_title_template: "Evening Wrap — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 8, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "limit" => 8, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
 
       # --- News & Briefings ---
@@ -252,7 +278,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "news-correspondent", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Weekly News Digest",
@@ -269,7 +297,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         output_type: "artifact",
         write_mode: "append",
         entry_title_template: "Weekly News Digest — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 30, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "limit" => 30, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
 
       # --- Reflection & Synthesis ---
@@ -287,7 +317,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         output_type: "artifact",
         write_mode: "append",
         entry_title_template: "Weekly Reflection — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 20}]
+        context_providers: [%{"type" => "lore", "limit" => 20}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Monthly Review",
@@ -304,7 +336,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         output_type: "artifact",
         write_mode: "append",
         entry_title_template: "Monthly Review — {date}",
-        context_providers: [%{"type" => "lore", "limit" => 60, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "limit" => 60, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       }
     ]
   end

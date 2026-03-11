@@ -50,7 +50,8 @@ defmodule ExCalibur.Charters.MarketSignals do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -63,7 +64,8 @@ defmodule ExCalibur.Charters.MarketSignals do
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
-            "strategy" => builtin.ranks[rank].strategy
+            "strategy" => builtin.ranks[rank].strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -89,7 +91,9 @@ defmodule ExCalibur.Charters.MarketSignals do
         source_ids: [],
         output_type: "artifact",
         write_mode: "append",
-        entry_title_template: "Market Brief — {date}"
+        entry_title_template: "Market Brief — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Weekly Market Roundup",
@@ -107,7 +111,9 @@ defmodule ExCalibur.Charters.MarketSignals do
         source_ids: [],
         output_type: "artifact",
         context_providers: [%{"type" => "lore", "limit" => 10}],
-        entry_title_template: "Market Roundup — {date}"
+        entry_title_template: "Market Roundup — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Risk Check",
@@ -123,7 +129,9 @@ defmodule ExCalibur.Charters.MarketSignals do
           }
         ],
         source_ids: [],
-        output_type: "verdict"
+        output_type: "verdict",
+        escalate: true,
+        escalate_threshold: 0.6
       }
     ]
   end

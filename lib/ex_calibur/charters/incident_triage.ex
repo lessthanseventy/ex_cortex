@@ -88,7 +88,9 @@ defmodule ExCalibur.Charters.IncidentTriage do
         context_providers: [
           %{"type" => "quest_history", "limit" => 5},
           %{"type" => "lore", "tags" => ["incidents"], "limit" => 3, "sort" => "newest"}
-        ]
+        ],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Incident Analysis",
@@ -97,7 +99,9 @@ defmodule ExCalibur.Charters.IncidentTriage do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Incident Pattern Memory",
@@ -116,7 +120,9 @@ defmodule ExCalibur.Charters.IncidentTriage do
         write_mode: "append",
         entry_title_template: "Incident Report — {date}",
         log_title_template: nil,
-        context_providers: [%{"type" => "lore", "tags" => ["incidents"], "limit" => 10, "sort" => "newest"}]
+        context_providers: [%{"type" => "lore", "tags" => ["incidents"], "limit" => 10, "sort" => "newest"}],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       },
       %{
         name: "Page On-Call",
@@ -179,7 +185,8 @@ defmodule ExCalibur.Charters.IncidentTriage do
             "system_prompt" => role.system_prompt,
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
-            "strategy" => perspective.strategy
+            "strategy" => perspective.strategy,
+            "tools" => "all_safe"
           }
         }
       end)

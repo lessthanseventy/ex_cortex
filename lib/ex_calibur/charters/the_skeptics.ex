@@ -48,7 +48,8 @@ defmodule ExCalibur.Charters.TheSkeptics do
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
-            "strategy" => builtin.ranks.apprentice.strategy
+            "strategy" => builtin.ranks.apprentice.strategy,
+            "tools" => "all_safe"
           }
         },
         %{
@@ -61,7 +62,8 @@ defmodule ExCalibur.Charters.TheSkeptics do
             "system_prompt" => builtin.system_prompt,
             "rank" => "journeyman",
             "model" => builtin.ranks.journeyman.model,
-            "strategy" => builtin.ranks.journeyman.strategy
+            "strategy" => builtin.ranks.journeyman.strategy,
+            "tools" => "all_safe"
           }
         }
       ]
@@ -77,7 +79,9 @@ defmodule ExCalibur.Charters.TheSkeptics do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "apprentice", "when" => "on_trigger", "how" => "solo"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Full Skeptic Panel",
@@ -86,7 +90,9 @@ defmodule ExCalibur.Charters.TheSkeptics do
         trigger: "manual",
         schedule: nil,
         roster: [%{"who" => "all", "when" => "on_trigger", "how" => "consensus"}],
-        source_ids: []
+        source_ids: [],
+        escalate: true,
+        escalate_threshold: 0.6
       },
       %{
         name: "Skeptic Findings",
@@ -101,7 +107,9 @@ defmodule ExCalibur.Charters.TheSkeptics do
         entry_title_template: "Skeptic Review — {date}",
         context_providers: [
           %{"type" => "lore", "tags" => ["decisions", "findings"], "limit" => 5, "sort" => "importance"}
-        ]
+        ],
+        loop_mode: "reflect",
+        loop_tools: ["query_lore"]
       }
     ]
   end
