@@ -2,12 +2,14 @@ defmodule ExCaliburWeb.GrimoireLive do
   @moduledoc false
   use ExCaliburWeb, :live_view
 
+  import Ecto.Query
   import SaladUI.Badge
+  import SaladUI.Tabs
 
-  alias ExCalibur.Lore
   alias ExCalibur.Quests
+  alias ExCalibur.Quests.QuestRun
+  alias ExCalibur.Repo
   alias ExCalibur.Settings
-  alias ExCalibur.StepRunner
 
   @impl true
   def mount(_params, _session, socket) do
@@ -20,183 +22,76 @@ defmodule ExCaliburWeb.GrimoireLive do
 
   defp mount_grimoire(socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
-      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "source_activity")
+      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "quest_runs")
     end
 
+    quests = Quests.list_quests()
+    run_stats = load_run_stats(quests)
+
     {:ok,
-     socket
-     |> assign(
+     assign(socket,
        page_title: "Grimoire",
-       quests: Quests.list_quests(),
-       filter_tags: [],
-       filter_quest_id: nil,
-       sort: "newest",
-       editing_id: nil,
-       intake_steps: Enum.filter(Quests.list_steps(), &(&1.status == "active")),
-       running: false
-     )
-     |> reload()}
+       active_tab: "quest-log",
+       quests: quests,
+       run_stats: run_stats
+     )}
   end
 
   @impl true
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_info({:quest_started, name, n}, socket) do
-    label = if n == 1, do: "1 item", else: "#{n} items"
-    {:noreply, put_flash(socket, :info, "Thinking... #{name} (#{label})")}
+  def handle_info(:refresh, socket) do
+    quests = Quests.list_quests()
+    run_stats = load_run_stats(quests)
+    {:noreply, assign(socket, quests: quests, run_stats: run_stats)}
   end
 
-  def handle_info({:quest_error, name, msg}, socket) do
-    {:noreply, put_flash(socket, :error, "#{name} failed: #{msg}")}
-  end
-
-  def handle_info({:lore_updated, title}, socket) do
-    {:noreply, socket |> reload() |> put_flash(:info, "New entry: #{title}")}
-  end
-
-  def handle_info({:drop_in_complete, step_run_id, result}, socket) do
-    step_run = ExCalibur.Repo.get!(ExCalibur.Quests.StepRun, step_run_id)
-
-    {status, results} =
-      case result do
-        {:ok, outcome} -> {"complete", outcome}
-        {:error, reason} -> {"failed", %{error: inspect(reason)}}
-      end
-
-    Quests.update_step_run(step_run, %{status: status, results: results})
-    socket = assign(socket, running: false)
-
-    socket =
-      if status == "complete",
-        do: put_flash(socket, :info, "Processed — check below for the new entry."),
-        else: put_flash(socket, :error, "Processing failed.")
-
-    {:noreply, reload(socket)}
-  end
-
-  def handle_info(_msg, socket), do: {:noreply, reload(socket)}
+  def handle_info(_msg, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("toggle_tag_filter", %{"tag" => tag}, socket) do
-    tags =
-      if tag in socket.assigns.filter_tags,
-        do: List.delete(socket.assigns.filter_tags, tag),
-        else: [tag | socket.assigns.filter_tags]
-
-    {:noreply, reload(assign(socket, filter_tags: tags))}
+  def handle_event("set_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, active_tab: tab)}
   end
 
-  def handle_event("filter_quest", %{"quest_id" => ""}, socket) do
-    {:noreply, reload(assign(socket, filter_quest_id: nil))}
-  end
+  defp load_run_stats(quests) do
+    quest_ids = Enum.map(quests, & &1.id)
 
-  def handle_event("filter_quest", %{"quest_id" => id}, socket) do
-    {:noreply, reload(assign(socket, filter_quest_id: String.to_integer(id)))}
-  end
+    if quest_ids == [] do
+      %{}
+    else
+      runs =
+        Repo.all(
+          from r in QuestRun,
+            where: r.quest_id in ^quest_ids,
+            select: {r.quest_id, r.status, r.inserted_at}
+        )
 
-  def handle_event("set_sort", %{"sort" => sort}, socket) do
-    {:noreply, reload(assign(socket, sort: sort))}
-  end
+      runs
+      |> Enum.group_by(&elem(&1, 0))
+      |> Map.new(fn {quest_id, quest_runs} ->
+        total = length(quest_runs)
 
-  def handle_event("add_entry", _, socket) do
-    {:noreply, assign(socket, editing_id: :new)}
-  end
+        complete =
+          Enum.count(quest_runs, fn {_, status, _} -> status == "complete" end)
 
-  def handle_event("create_entry", %{"entry" => params}, socket) do
-    attrs = parse_entry_params(params)
+        failed =
+          Enum.count(quest_runs, fn {_, status, _} -> status == "failed" end)
 
-    case Lore.create_entry(Map.put(attrs, :source, "manual")) do
-      {:ok, _} -> {:noreply, reload(assign(socket, editing_id: nil))}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to create entry")}
+        last_run =
+          quest_runs
+          |> Enum.map(&elem(&1, 2))
+          |> Enum.max(NaiveDateTime, fn -> nil end)
+
+        {quest_id, %{total: total, complete: complete, failed: failed, last_run: last_run}}
+      end)
     end
   end
 
-  def handle_event("cancel", _, socket) do
-    {:noreply, assign(socket, editing_id: nil)}
-  end
+  defp format_time(nil), do: "Never"
 
-  def handle_event("edit_entry", %{"id" => id}, socket) do
-    {:noreply, assign(socket, editing_id: String.to_integer(id))}
-  end
-
-  def handle_event("update_entry", %{"_id" => id, "entry" => params}, socket) do
-    entry = Lore.get_entry!(String.to_integer(id))
-    attrs = parse_entry_params(params)
-
-    case Lore.update_entry(entry, attrs) do
-      {:ok, _} -> {:noreply, reload(assign(socket, editing_id: nil))}
-      {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to update entry")}
-    end
-  end
-
-  def handle_event("drop_in", %{"step_id" => step_id, "input" => input}, socket) when input != "" do
-    step = Quests.get_step!(String.to_integer(step_id))
-    {:ok, step_run} = Quests.create_step_run(%{step_id: step.id, input: input, status: "running"})
-    parent = self()
-
-    Task.start(fn ->
-      result = StepRunner.run(step, input)
-      send(parent, {:drop_in_complete, step_run.id, result})
-    end)
-
-    {:noreply, assign(socket, running: true)}
-  end
-
-  def handle_event("drop_in", _, socket) do
-    {:noreply, put_flash(socket, :error, "Please enter something to process")}
-  end
-
-  def handle_event("delete_entry", %{"id" => id}, socket) do
-    entry = Lore.get_entry!(String.to_integer(id))
-    Lore.delete_entry(entry)
-    {:noreply, reload(socket)}
-  end
-
-  defp reload(socket) do
-    entries =
-      Lore.list_entries(
-        tags: socket.assigns.filter_tags,
-        quest_id: socket.assigns.filter_quest_id,
-        sort: socket.assigns.sort
-      )
-
-    assign(socket, entries: entries)
-  end
-
-  defp parse_entry_params(params) do
-    tags =
-      (params["tags"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    importance =
-      case Integer.parse(params["importance"] || "") do
-        {n, ""} when n in 1..5 -> n
-        _ -> nil
-      end
-
-    %{
-      title: params["title"] || "",
-      body: params["body"] || "",
-      tags: tags,
-      importance: importance
-    }
-  end
-
-  defp quest_name(quests, quest_id) when is_integer(quest_id) do
-    case Enum.find(quests, &(&1.id == quest_id)) do
-      nil -> "Quest ##{quest_id}"
-      quest -> quest.name
-    end
-  end
-
-  defp importance_dots(nil), do: "○○○○○"
-
-  defp importance_dots(n) do
-    String.duplicate("●", n) <> String.duplicate("○", 5 - n)
+  defp format_time(dt) do
+    Calendar.strftime(dt, "%b %d %H:%M")
   end
 
   @impl true
@@ -206,279 +101,86 @@ defmodule ExCaliburWeb.GrimoireLive do
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Grimoire</h1>
         <p class="text-muted-foreground mt-1.5">
-          Synthesized artifacts and curated entries from your guild's quests.
+          Quest log and telemetry for your guild's missions.
         </p>
       </div>
 
-      <%!-- Drop In form --%>
-      <div class="rounded-lg border p-5 space-y-3 bg-card">
-        <p class="text-sm font-semibold">Drop In</p>
-        <p class="text-xs text-muted-foreground">
-          Paste a link, note, thought, or doc. Choose how to process it and it'll land here.
-        </p>
-        <form phx-submit="drop_in" class="space-y-3">
-          <textarea
-            name="input"
-            rows="3"
-            placeholder="https://... or paste text, a note, anything"
-            class="w-full text-sm border border-input rounded-md px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-          ></textarea>
-          <div class="flex gap-2 items-center">
-            <select
-              name="step_id"
-              class="flex-1 h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-            >
-              <%= for step <- @intake_steps do %>
-                <option value={step.id}>{step.name}</option>
-              <% end %>
-            </select>
-            <.button type="submit" size="sm" disabled={@running}>
-              {if @running, do: "Processing…", else: "Process"}
-            </.button>
-          </div>
-        </form>
-      </div>
+      <.tabs id="grimoire-tabs" default="quest-log">
+        <.tabs_list>
+          <.tabs_trigger value="quest-log">Quest Log</.tabs_trigger>
+          <.tabs_trigger value="telemetry">Telemetry</.tabs_trigger>
+        </.tabs_list>
 
-      <%!-- Filter bar --%>
-      <div class="flex flex-wrap items-center gap-3">
-        <select
-          phx-change="filter_quest"
-          name="quest_id"
-          class="h-8 text-sm border border-input rounded-md px-2 bg-background focus:outline-none"
-        >
-          <option value="">All quests</option>
-          <%= for quest <- @quests do %>
-            <option value={quest.id} selected={@filter_quest_id == quest.id}>{quest.name}</option>
-          <% end %>
-        </select>
-        <div class="flex gap-1">
-          <button
-            type="button"
-            phx-click="set_sort"
-            phx-value-sort="newest"
-            class={[
-              "px-3 py-1 text-xs rounded-md border transition-colors",
-              if(@sort == "newest",
-                do: "bg-accent text-foreground border-accent",
-                else: "border-border text-muted-foreground hover:bg-muted"
-              )
-            ]}
-          >
-            Newest
-          </button>
-          <button
-            type="button"
-            phx-click="set_sort"
-            phx-value-sort="importance"
-            class={[
-              "px-3 py-1 text-xs rounded-md border transition-colors",
-              if(@sort == "importance",
-                do: "bg-accent text-foreground border-accent",
-                else: "border-border text-muted-foreground hover:bg-muted"
-              )
-            ]}
-          >
-            Importance
-          </button>
-        </div>
-        <%= if @filter_tags != [] do %>
-          <div class="flex flex-wrap gap-1 items-center">
-            <span class="text-xs text-muted-foreground">Filtered:</span>
-            <%= for tag <- @filter_tags do %>
-              <button type="button" phx-click="toggle_tag_filter" phx-value-tag={tag}>
-                <.badge variant="default" class="text-xs cursor-pointer">{tag} ✕</.badge>
-              </button>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
-
-      <%!-- Manual entry creation --%>
-      <div class="flex justify-end">
-        <.button type="button" variant="outline" size="sm" phx-click="add_entry">
-          + Add Entry
-        </.button>
-      </div>
-
-      <%= if @editing_id == :new do %>
-        <.entry_form id="new-entry" submit_event="create_entry" entry={nil} />
-      <% end %>
-
-      <%!-- Entry feed --%>
-      <%= if @entries == [] do %>
-        <div class="rounded-lg border p-8 text-center">
-          <p class="text-muted-foreground text-sm">
-            No entries yet. Drop something in above or run an artifact quest.
-          </p>
-        </div>
-      <% else %>
-        <div class="space-y-4">
-          <%= for entry <- @entries do %>
-            <%= if @editing_id == entry.id do %>
-              <.entry_form id={"edit-#{entry.id}"} submit_event="update_entry" entry={entry} />
+        <.tabs_content value="quest-log">
+          <div class="space-y-4 mt-4">
+            <%= if @quests == [] do %>
+              <div class="rounded-lg border p-8 text-center">
+                <p class="text-muted-foreground text-sm">
+                  No quests yet. Create one from the
+                  <a href="/quests" class="underline text-primary">Quests</a>
+                  page.
+                </p>
+              </div>
             <% else %>
-              <.entry_card
-                entry={entry}
-                quest_name={if entry.quest_id, do: quest_name(@quests, entry.quest_id), else: nil}
-                active_tags={@filter_tags}
-              />
-            <% end %>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
-    """
-  end
-
-  attr :entry, :map, required: true
-  attr :quest_name, :string, default: nil
-  attr :active_tags, :list, default: []
-
-  defp entry_card(assigns) do
-    ~H"""
-    <div class="rounded-lg border bg-card p-5 space-y-3">
-      <div class="flex items-start justify-between gap-3">
-        <div class="space-y-1 flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-medium truncate">{@entry.title}</span>
-            <%= if @entry.importance do %>
-              <span class="text-xs text-muted-foreground font-mono shrink-0">
-                {importance_dots(@entry.importance)}
-              </span>
-            <% end %>
-            <%= if @entry.source == "manual" do %>
-              <span class="text-xs text-muted-foreground shrink-0" title="Manually curated">✎</span>
-            <% end %>
-          </div>
-          <%= if @entry.tags != [] do %>
-            <div class="flex flex-wrap gap-1">
-              <%= for tag <- @entry.tags do %>
-                <button type="button" phx-click="toggle_tag_filter" phx-value-tag={tag}>
-                  <.badge
-                    variant={if tag in @active_tags, do: "default", else: "outline"}
-                    class="text-xs cursor-pointer"
-                  >
-                    {tag}
-                  </.badge>
-                </button>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
-        <div class="flex gap-2 shrink-0">
-          <.button
-            type="button"
-            variant="outline"
-            size="sm"
-            phx-click="edit_entry"
-            phx-value-id={@entry.id}
-          >
-            Edit
-          </.button>
-          <.button
-            variant="destructive"
-            size="sm"
-            phx-click="delete_entry"
-            phx-value-id={@entry.id}
-            data-confirm={
-              if @entry.source == "quest",
-                do:
-                  "This entry will be re-generated on the next quest run unless you change the quest's write mode.",
-                else: "Delete this entry?"
-            }
-          >
-            ✕
-          </.button>
-        </div>
-      </div>
-      <%= if @entry.body && @entry.body != "" do %>
-        <div class="text-sm text-foreground/80 border-t pt-3">
-          <.md content={@entry.body} />
-        </div>
-      <% end %>
-      <div class="text-xs text-muted-foreground border-t pt-2 flex items-center gap-2">
-        <%= if @quest_name do %>
-          <span>From: {@quest_name}</span>
-          <span>·</span>
-        <% else %>
-          <span>Manual</span>
-          <span>·</span>
-        <% end %>
-        <span>
-          <%= if @entry.source == "quest" and @entry.inserted_at != @entry.updated_at do %>
-            Last updated {Calendar.strftime(@entry.updated_at, "%b %d %H:%M")}
-          <% else %>
-            {Calendar.strftime(@entry.inserted_at, "%b %d %H:%M")}
-          <% end %>
-        </span>
-      </div>
-    </div>
-    """
-  end
-
-  attr :id, :string, required: true
-  attr :submit_event, :string, required: true
-  attr :entry, :any, required: true
-
-  defp entry_form(assigns) do
-    ~H"""
-    <div class="rounded-lg border border-dashed p-5">
-      <form phx-submit={@submit_event} class="space-y-3">
-        <%= if @entry do %>
-          <input type="hidden" name="_id" value={@entry.id} />
-        <% end %>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
-            <label class="text-sm font-medium">Title</label>
-            <input
-              type="text"
-              name="entry[title]"
-              value={if @entry, do: @entry.title, else: ""}
-              placeholder="Entry title"
-              class="mt-1 w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="text-sm font-medium">Importance</label>
-              <select
-                name="entry[importance]"
-                class="mt-1 w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">None</option>
-                <%= for n <- 1..5 do %>
-                  <option value={n} selected={@entry && @entry.importance == n}>{n}</option>
+              <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <%= for quest <- @quests do %>
+                  <.quest_card quest={quest} stats={Map.get(@run_stats, quest.id)} />
                 <% end %>
-              </select>
-            </div>
-            <div>
-              <label class="text-sm font-medium">Tags</label>
-              <input
-                type="text"
-                name="entry[tags]"
-                value={if @entry, do: Enum.join(@entry.tags, ", "), else: ""}
-                placeholder="a11y, security"
-                class="mt-1 w-full h-9 text-sm border border-input rounded-md px-3 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-              />
+              </div>
+            <% end %>
+          </div>
+        </.tabs_content>
+
+        <.tabs_content value="telemetry">
+          <div class="space-y-4 mt-4">
+            <div class="rounded-lg border p-8 text-center">
+              <p class="text-muted-foreground text-sm">
+                Telemetry widgets will appear here once monitoring is configured.
+              </p>
             </div>
           </div>
-        </div>
-        <div>
-          <label class="text-sm font-medium">Body (markdown)</label>
-          <textarea
-            name="entry[body]"
-            rows="4"
-            placeholder="Content…"
-            class="mt-1 w-full text-sm border border-input rounded-md px-3 py-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-          >{if @entry, do: @entry.body, else: ""}</textarea>
-        </div>
-        <div class="flex justify-end gap-2">
-          <.button type="button" variant="outline" size="sm" phx-click="cancel">Cancel</.button>
-          <.button type="submit" size="sm">
-            {if @entry, do: "Save changes", else: "Create Entry"}
-          </.button>
-        </div>
-      </form>
+        </.tabs_content>
+      </.tabs>
+    </div>
+    """
+  end
+
+  attr :quest, :map, required: true
+  attr :stats, :map, default: nil
+
+  defp quest_card(assigns) do
+    stats = assigns.stats || %{total: 0, complete: 0, failed: 0, last_run: nil}
+    assigns = assign(assigns, :stats, stats)
+
+    ~H"""
+    <div
+      class="rounded-lg border bg-card p-5 space-y-3 hover:border-primary/50 transition-colors"
+      data-quest-id={@quest.id}
+    >
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-medium truncate">{@quest.name}</span>
+        <.badge variant={if @quest.status == "active", do: "default", else: "secondary"}>
+          {@quest.status}
+        </.badge>
+      </div>
+      <%= if @quest.description do %>
+        <p class="text-sm text-muted-foreground line-clamp-2">{@quest.description}</p>
+      <% end %>
+      <div class="flex items-center gap-3 text-xs text-muted-foreground">
+        <span>Trigger: {@quest.trigger}</span>
+        <span>·</span>
+        <span>Runs: {@stats.total}</span>
+        <%= if @stats.total > 0 do %>
+          <span>·</span>
+          <span class="text-green-600">{@stats.complete} ok</span>
+          <%= if @stats.failed > 0 do %>
+            <span class="text-destructive">{@stats.failed} failed</span>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="text-xs text-muted-foreground">
+        Last run: {format_time(@stats.last_run)}
+      </div>
     </div>
     """
   end

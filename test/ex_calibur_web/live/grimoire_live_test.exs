@@ -4,51 +4,59 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias ExCalibur.Lore
+  alias ExCalibur.Quests
 
   setup do
     ExCalibur.Settings.set_banner("tech")
     :ok
   end
 
-  test "renders empty state", %{conn: conn} do
+  test "renders quest log with empty state", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/grimoire")
     assert html =~ "Grimoire"
-    assert html =~ "No entries yet"
+    assert html =~ "No quests yet"
   end
 
-  test "renders existing entries", %{conn: conn} do
-    {:ok, _} = Lore.create_entry(%{title: "My entry", body: "hello", tags: ["test"]})
+  test "renders quest cards when quests exist", %{conn: conn} do
+    {:ok, step} = Quests.create_step(%{name: "Test Step", trigger: "manual", roster: []})
+
+    {:ok, _quest} =
+      Quests.create_quest(%{
+        name: "My Quest",
+        trigger: "manual",
+        steps: [%{"step_id" => step.id, "flow" => "always"}]
+      })
+
     {:ok, view, html} = live(conn, "/grimoire")
     html_snapshot(view)
-    assert html =~ "My entry"
-    assert html =~ "test"
+    assert html =~ "My Quest"
+    assert html =~ "active"
+    assert html =~ "manual"
   end
 
-  test "create entry manually", %{conn: conn} do
-    {:ok, view, _html} = live(conn, "/grimoire")
-    render_click(view, "add_entry", %{})
+  test "shows run stats for quests with runs", %{conn: conn} do
+    {:ok, step} = Quests.create_step(%{name: "Stats Step", trigger: "manual", roster: []})
 
-    view
-    |> form("form[phx-submit=\"create_entry\"]", %{
-      "entry" => %{
-        "title" => "Manual Entry",
-        "body" => "Some content",
-        "tags" => "a11y",
-        "importance" => "3"
-      }
-    })
-    |> render_submit()
+    {:ok, quest} =
+      Quests.create_quest(%{
+        name: "Stats Quest",
+        trigger: "manual",
+        steps: [%{"step_id" => step.id, "flow" => "always"}]
+      })
 
-    assert render(view) =~ "Manual Entry"
+    {:ok, _run} = Quests.create_quest_run(%{quest_id: quest.id, status: "complete"})
+    {:ok, _run2} = Quests.create_quest_run(%{quest_id: quest.id, status: "failed"})
+
+    {:ok, _view, html} = live(conn, "/grimoire")
+    assert html =~ "Runs: 2"
+    assert html =~ "1 ok"
+    assert html =~ "1 failed"
   end
 
-  test "delete entry", %{conn: conn} do
-    {:ok, entry} = Lore.create_entry(%{title: "To Delete"})
-    {:ok, view, _html} = live(conn, "/grimoire")
-    assert render(view) =~ "To Delete"
-    render_click(view, "delete_entry", %{"id" => to_string(entry.id)})
-    refute render(view) =~ "To Delete"
+  test "shows quest log and telemetry tabs", %{conn: conn} do
+    {:ok, _view, html} = live(conn, "/grimoire")
+    assert html =~ "Quest Log"
+    assert html =~ "Telemetry"
   end
 
   test "redirects to town square when no banner set", %{conn: conn} do
@@ -56,10 +64,19 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
     {:error, {:live_redirect, %{to: "/town-square"}}} = live(conn, ~p"/grimoire")
   end
 
-  test "renders entry body as markdown", %{conn: conn} do
-    {:ok, _} = Lore.create_entry(%{title: "MD Test", body: "**bold** and `code`", tags: []})
+  test "shows paused badge for paused quests", %{conn: conn} do
+    {:ok, step} = Quests.create_step(%{name: "Paused Step", trigger: "manual", roster: []})
+
+    {:ok, _quest} =
+      Quests.create_quest(%{
+        name: "Paused Quest",
+        trigger: "manual",
+        status: "paused",
+        steps: [%{"step_id" => step.id, "flow" => "always"}]
+      })
+
     {:ok, _view, html} = live(conn, "/grimoire")
-    assert html =~ "<strong>bold</strong>"
-    assert html =~ "<code>"
+    assert html =~ "Paused Quest"
+    assert html =~ "paused"
   end
 end
