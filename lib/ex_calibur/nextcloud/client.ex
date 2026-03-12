@@ -49,7 +49,7 @@ defmodule ExCalibur.Nextcloud.Client do
     """
 
     case Req.request(
-           method: :propfind,
+           method: "PROPFIND",
            url: url,
            headers: auth_headers() ++ [{"depth", depth}, {"content-type", "application/xml"}],
            body: body
@@ -92,7 +92,7 @@ defmodule ExCalibur.Nextcloud.Client do
   def mkcol(path) do
     url = webdav_url(path)
 
-    case Req.request(method: :mkcol, url: url, headers: auth_headers()) do
+    case Req.request(method: "MKCOL", url: url, headers: auth_headers()) do
       {:ok, %{status: status}} when status in [200, 201] -> :ok
       # already exists
       {:ok, %{status: 405}} -> :ok
