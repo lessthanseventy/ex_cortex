@@ -63,6 +63,17 @@ defmodule ExCalibur.Sources.Book do
         suggested_guild: nil,
         kind: :book
       },
+      # Everyday Council
+      %__MODULE__{
+        id: "everyday_council_intake",
+        banner: :lifestyle,
+        name: "Personal Intake",
+        description: "Webhook endpoint for dropping in links, notes, PDFs, or thoughts for the Journal Keeper to process.",
+        source_type: "webhook",
+        default_config: %{},
+        suggested_guild: "Everyday Council",
+        kind: :book
+      },
       # Code Review
       %__MODULE__{
         id: "code_review_pr_webhook",
@@ -736,4 +747,8 @@ defmodule ExCalibur.Sources.Book do
 
   def get(id), do: Enum.find(all(), &(&1.id == id))
   def for_guild(guild_name), do: Enum.filter(all(), &(&1.suggested_guild == guild_name))
+
+  def for_banner(banner) when is_atom(banner) do
+    Enum.filter(scrolls() ++ digest_feeds(), &(&1.banner == banner))
+  end
 end

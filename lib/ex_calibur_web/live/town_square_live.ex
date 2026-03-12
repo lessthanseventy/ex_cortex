@@ -103,10 +103,11 @@ defmodule ExCaliburWeb.TownSquareLive do
         ExCalibur.Repo.delete_all(from(r in Member))
         ExCalibur.Repo.delete_all(from(s in Source))
 
+        banner = mod.metadata().banner
         install_guild(mod)
         install_steps(mod)
         install_quests(mod)
-        create_default_sources(guild_name)
+        create_default_sources(guild_name, banner)
 
         {:noreply,
          socket
@@ -181,8 +182,10 @@ defmodule ExCaliburWeb.TownSquareLive do
     end
   end
 
-  defp create_default_sources(guild_name) do
-    books = Book.for_guild(guild_name)
+  defp create_default_sources(guild_name, banner) do
+    guild_books = Book.for_guild(guild_name)
+    banner_books = if banner, do: Book.for_banner(banner), else: []
+    books = Enum.uniq_by(guild_books ++ banner_books, & &1.id)
 
     source_ids =
       Enum.flat_map(books, fn book ->
