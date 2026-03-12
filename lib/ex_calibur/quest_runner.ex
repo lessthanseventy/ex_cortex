@@ -9,6 +9,7 @@ defmodule ExCalibur.QuestRunner do
   Branch steps: %{"type" => "branch", "steps" => [...], "synthesizer" => "...", "order" => 1}
   """
 
+  alias ExCalibur.LearningLoop
   alias ExCalibur.Quests
   alias ExCalibur.StepRunner
 
@@ -71,6 +72,13 @@ defmodule ExCalibur.QuestRunner do
               resolved_step ->
                 Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
                 result = StepRunner.run(resolved_step, current_input)
+
+                # Async learning loop — runs retrospect without blocking the quest
+                step_run_data = %{id: quest_run.id, results: inspect_result(result), input: current_input}
+
+                Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+                  LearningLoop.retrospect(resolved_step, step_run_data)
+                end)
 
                 next_input =
                   case result_to_text(result, resolved_step.name, next_step_name) do
