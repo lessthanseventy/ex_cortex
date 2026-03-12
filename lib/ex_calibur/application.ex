@@ -47,7 +47,32 @@ defmodule ExCalibur.Application do
     result = Supervisor.start_link(children, opts)
     check_cli_tools()
     write_pid_file()
+    check_restart_status()
     result
+  end
+
+  defp check_restart_status do
+    import Ecto.Query
+
+    try do
+      running_runs =
+        ExCalibur.Repo.all(
+          from(qr in ExCalibur.Quests.QuestRun, where: qr.status == "running")
+        )
+
+      if running_runs != [] do
+        Logger.info("[Boot] Found #{length(running_runs)} interrupted quest run(s) — marking complete")
+
+        Enum.each(running_runs, fn run ->
+          ExCalibur.Repo.update_all(
+            from(qr in ExCalibur.Quests.QuestRun, where: qr.id == ^run.id),
+            set: [status: "complete"]
+          )
+        end)
+      end
+    rescue
+      e -> Logger.warning("[Boot] Could not check restart status: #{Exception.message(e)}")
+    end
   end
 
   defp write_pid_file do
