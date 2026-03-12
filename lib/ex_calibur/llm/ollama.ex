@@ -116,7 +116,14 @@ defmodule ExCalibur.LLM.Ollama do
 
           {:ok, %{status: status, body: body}} ->
             ms = System.monotonic_time(:millisecond) - t0
-            Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect({:ollama_error, status, body})}")
+
+            reason = {:ollama_error, status, body}
+            Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect(reason)}")
+
+            if tool_call_incompatible?(body) do
+              Logger.warning("[Ollama] Skipping #{m} for tool-call loop (incompatible message format)")
+            end
+
             {:cont, {:error, :all_models_failed}}
 
           {:error, reason} ->
@@ -181,6 +188,14 @@ defmodule ExCalibur.LLM.Ollama do
       {msgs ++ [tool_msg], log ++ [log_entry]}
     end)
   end
+
+  defp tool_call_incompatible?(body) when is_binary(body),
+    do: String.contains?(body, "roles must alternate")
+
+  defp tool_call_incompatible?(%{"error" => msg}) when is_binary(msg),
+    do: String.contains?(msg, "roles must alternate")
+
+  defp tool_call_incompatible?(_), do: false
 
   defp last_assistant_text(messages) do
     messages

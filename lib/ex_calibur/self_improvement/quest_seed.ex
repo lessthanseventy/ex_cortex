@@ -129,10 +129,16 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       },
       %{
         name: "SI: UX Designer",
-        description:
-          "UX Designer reviews LiveView and UI changes for accessibility and usability, running mix excessibility as context.",
+        description: """
+        UX Designer reviews LiveView and UI changes for accessibility and usability.
+
+        Run `mix excessibility` via run_sandbox to get the current accessibility report.
+        That is the correct command — do not use `mix test`, `mix test check`, or any other variant.
+        Review the output and assess whether the changes introduced or resolved accessibility issues.
+        """,
         trigger: "manual",
         output_type: "verdict",
+        loop_tools: ["run_sandbox"],
         roster: [
           %{
             "who" => "all",

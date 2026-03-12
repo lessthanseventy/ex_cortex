@@ -28,7 +28,7 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   pubsub_server: ExCalibur.PubSub,
   live_view: [signing_salt: "dE89EITe"]
 
-config :ex_calibur, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
+config :ex_calibur, :model_fallback_chain, ["devstral-small-2:24b"]
 
 config :ex_calibur,
   ecto_repos: [ExCalibur.Repo],
