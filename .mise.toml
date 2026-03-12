@@ -4,11 +4,12 @@ OLLAMA_URL = "https://api.ollama.com"
 OLLAMA_API_KEY = "ee5a0aa7b39e41fa96c8110d89e36a48.bIMTVyGfSaYXWn2EfGkyZXjz"
 
 [tasks.dev]
-description = "Start db in docker, run app locally with live reload (uses local Ollama)"
+description = "Start db + jaeger in docker, run app locally with live reload (uses local Ollama)"
 run = """
-docker compose up -d db
+docker compose up -d db jaeger
 until pg_isready -h localhost -p 5433 -U excellence -q; do sleep 1; done
 OLLAMA_URL=http://localhost:11434 \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
 PORT=${PORT:-4001} \
 mix phx.server
 """
