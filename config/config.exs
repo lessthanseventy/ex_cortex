@@ -67,4 +67,14 @@ config :tailwind,
     cd: Path.expand("..", __DIR__)
   ]
 
+# OpenTelemetry
+config :opentelemetry,
+  resource: [service: [name: "ex_calibur", version: "0.1.0"]],
+  span_processor: :batch,
+  traces_exporter: :otlp
+
+config :opentelemetry_exporter,
+  otlp_protocol: :http_protobuf,
+  otlp_endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+
 import_config "#{config_env()}.exs"

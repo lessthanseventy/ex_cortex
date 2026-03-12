@@ -30,6 +30,15 @@ services:
       retries: 30
       start_period: 30s
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
   app:
     build:
       context: ..
@@ -46,6 +55,7 @@ services:
     environment:
       DATABASE_URL: ecto://excellence:excellence@db/ex_calibur
       OLLAMA_URL: http://ollama:11434
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
       PHX_SERVER: "true"
       PORT: "4001"
       PHX_HOST: localhost

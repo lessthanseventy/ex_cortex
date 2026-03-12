@@ -1,5 +1,8 @@
 import Config
 
+# Disable OTel exporter in tests — no Jaeger running
+config :opentelemetry, traces_exporter: :none
+
 # Configure ex_cellence to use our repo and test-mode Oban
 alias Ecto.Adapters.SQL.Sandbox
 

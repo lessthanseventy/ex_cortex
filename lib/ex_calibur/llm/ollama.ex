@@ -3,6 +3,7 @@ defmodule ExCalibur.LLM.Ollama do
   @behaviour ExCalibur.LLM
 
   require Logger
+  require OpenTelemetry.Tracer, as: Tracer
 
   alias Excellence.LLM.Ollama
 
@@ -17,26 +18,45 @@ defmodule ExCalibur.LLM.Ollama do
       %{role: :user, content: user_text}
     ]
 
-    Enum.reduce_while(models, {:error, :all_models_failed}, fn m, acc ->
-      t0 = System.monotonic_time(:millisecond)
-      Logger.debug("[Ollama] → #{m} (#{byte_size(user_text)}B input)")
+    Tracer.with_span "llm.complete", %{
+      attributes: %{
+        "llm.provider" => "ollama",
+        "llm.model" => model,
+        "llm.input_bytes" => byte_size(user_text)
+      }
+    } do
+      result =
+        Enum.reduce_while(models, {:error, :all_models_failed}, fn m, acc ->
+          t0 = System.monotonic_time(:millisecond)
+          Logger.debug("[Ollama] → #{m} (#{byte_size(user_text)}B input)")
 
-      case Ollama.chat(ollama, m, messages) do
-        {:ok, text} when is_binary(text) ->
-          ms = System.monotonic_time(:millisecond) - t0
-          Logger.info("[Ollama] ✓ #{m} #{ms}ms (#{byte_size(text)}B output)")
-          {:halt, {:ok, text}}
+          case Ollama.chat(ollama, m, messages) do
+            {:ok, text} when is_binary(text) ->
+              ms = System.monotonic_time(:millisecond) - t0
+              Logger.info("[Ollama] ✓ #{m} #{ms}ms (#{byte_size(text)}B output)")
+              {:halt, {:ok, text}}
 
-        {:error, reason} ->
-          ms = System.monotonic_time(:millisecond) - t0
-          Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect(reason)}")
-          {:cont, acc}
+            {:error, reason} ->
+              ms = System.monotonic_time(:millisecond) - t0
+              Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect(reason)}")
+              {:cont, acc}
 
-        other ->
-          Logger.warning("[Ollama] ✗ #{m} unexpected response: #{inspect(other)}")
-          {:cont, acc}
+            other ->
+              Logger.warning("[Ollama] ✗ #{m} unexpected response: #{inspect(other)}")
+              {:cont, acc}
+          end
+        end)
+
+      case result do
+        {:ok, text} ->
+          Tracer.set_attributes(%{"llm.output_bytes" => byte_size(text), "llm.status" => "ok"})
+
+        _ ->
+          Tracer.set_attributes(%{"llm.status" => "error"})
       end
-    end)
+
+      result
+    end
   end
 
   @impl true

@@ -9,6 +9,8 @@ defmodule ExCalibur.QuestRunner do
   Branch steps: %{"type" => "branch", "steps" => [...], "synthesizer" => "...", "order" => 1}
   """
 
+  require OpenTelemetry.Tracer, as: Tracer
+
   alias ExCalibur.LearningLoop
   alias ExCalibur.Quests
   alias ExCalibur.StepRunner
@@ -22,6 +24,18 @@ defmodule ExCalibur.QuestRunner do
   end
 
   def run(quest, input) do
+    Tracer.with_span "quest.run", %{
+      attributes: %{
+        "quest.id" => quest.id,
+        "quest.name" => quest.name,
+        "quest.trigger" => quest.trigger || "manual"
+      }
+    } do
+      do_run(quest, input)
+    end
+  end
+
+  defp do_run(quest, input) do
     ordered_steps = Enum.sort_by(quest.steps, &Map.get(&1, "order", 0))
 
     Logger.info("[QuestRunner] Running quest #{quest.id} (#{quest.name}), #{length(ordered_steps)} step(s)")
@@ -72,7 +86,20 @@ defmodule ExCalibur.QuestRunner do
               resolved_step ->
                 Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
                 t0 = System.monotonic_time(:millisecond)
-                result = StepRunner.run(resolved_step, current_input)
+
+                result =
+                  Tracer.with_span "quest.step", %{
+                    attributes: %{
+                      "step.id" => resolved_step.id,
+                      "step.name" => resolved_step.name,
+                      "step.output_type" => resolved_step.output_type || "verdict"
+                    }
+                  } do
+                    r = StepRunner.run(resolved_step, current_input)
+                    Tracer.set_attributes(%{"step.status" => inspect_result(r)["status"]})
+                    r
+                  end
+
                 ms = System.monotonic_time(:millisecond) - t0
                 Logger.info("[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
 
@@ -106,6 +133,8 @@ defmodule ExCalibur.QuestRunner do
 
     {:ok, quest_run} = Quests.update_quest_run(quest_run, %{status: final_status, step_results: step_results})
     Phoenix.PubSub.broadcast(ExCalibur.PubSub, "quest_runs", {:quest_run_completed, quest_run})
+
+    Tracer.set_attributes(%{"quest.status" => final_status, "quest.run_id" => quest_run.id})
 
     case List.last(results) do
       {:ok, _} = ok -> ok

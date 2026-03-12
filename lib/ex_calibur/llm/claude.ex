@@ -3,6 +3,7 @@ defmodule ExCalibur.LLM.Claude do
   @behaviour ExCalibur.LLM
 
   require Logger
+  require OpenTelemetry.Tracer, as: Tracer
 
   @model_ids %{
     "claude_haiku" => "anthropic:claude-haiku-4-5",
@@ -22,9 +23,23 @@ defmodule ExCalibur.LLM.Claude do
       %{role: "user", content: user_text}
     ]
 
-    case ReqLLM.generate_text(model_spec, messages) do
-      {:ok, response} -> {:ok, ReqLLM.Response.text(response)}
-      {:error, reason} -> {:error, inspect(reason)}
+    Tracer.with_span "llm.complete", %{
+      attributes: %{
+        "llm.provider" => "claude",
+        "llm.model" => model_spec,
+        "llm.input_bytes" => byte_size(user_text)
+      }
+    } do
+      case ReqLLM.generate_text(model_spec, messages) do
+        {:ok, response} ->
+          text = ReqLLM.Response.text(response)
+          Tracer.set_attributes(%{"llm.output_bytes" => byte_size(text), "llm.status" => "ok"})
+          {:ok, text}
+
+        {:error, reason} ->
+          Tracer.set_attributes(%{"llm.status" => "error"})
+          {:error, inspect(reason)}
+      end
     end
   end
 
@@ -38,7 +53,16 @@ defmodule ExCalibur.LLM.Claude do
         ReqLLM.Context.user(user_text)
       ])
 
-    run_agent_loop(model_spec, context, tools, 0, [])
+    Tracer.with_span "llm.complete_with_tools", %{
+      attributes: %{
+        "llm.provider" => "claude",
+        "llm.model" => model_spec,
+        "llm.tool_count" => length(tools),
+        "llm.input_bytes" => byte_size(user_text)
+      }
+    } do
+      run_agent_loop(model_spec, context, tools, 0, [])
+    end
   end
 
   @impl true
@@ -101,21 +125,31 @@ defmodule ExCalibur.LLM.Claude do
       args = extract_call_args(call)
       tool = Enum.find(tools, &(&1.name == name))
 
-      result =
-        if tool,
-          do: ReqLLM.Tool.execute(tool, args),
-          else: {:error, "Tool #{name} not found"}
+      {_result, output, result_content} =
+        Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
+          r =
+            if tool,
+              do: ReqLLM.Tool.execute(tool, args),
+              else: {:error, "Tool #{name} not found"}
 
-      output =
-        case result do
-          {:ok, r} -> to_string(r)
-          {:error, e} -> "Error: #{inspect(e)}"
-        end
+          out =
+            case r do
+              {:ok, v} -> to_string(v)
+              {:error, e} -> "Error: #{inspect(e)}"
+            end
 
-      result_content =
-        case result do
-          {:ok, r} -> to_string(r)
-          {:error, e} -> Jason.encode!(%{error: to_string(e)})
+          content =
+            case r do
+              {:ok, v} -> to_string(v)
+              {:error, e} -> Jason.encode!(%{error: to_string(e)})
+            end
+
+          Tracer.set_attributes(%{
+            "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
+            "tool.output_bytes" => byte_size(out)
+          })
+
+          {r, out, content}
         end
 
       msg = ReqLLM.Context.tool_result(id, name, result_content)

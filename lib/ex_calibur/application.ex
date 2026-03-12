@@ -46,6 +46,8 @@ defmodule ExCalibur.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ExCalibur.Supervisor]
     result = Supervisor.start_link(children, opts)
+    OpentelemetryPhoenix.setup(adapter: :bandit)
+    OpentelemetryEcto.setup([:ex_calibur, :repo])
     check_cli_tools()
     write_pid_file()
     check_restart_status()

@@ -22,7 +22,7 @@ defmodule ExCalibur.MixProject do
   def application do
     [
       mod: {ExCalibur.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :opentelemetry_api, :opentelemetry]
     ]
   end
 
@@ -65,6 +65,10 @@ defmodule ExCalibur.MixProject do
       {:salad_ui, "~> 1.0.0-beta.3"},
       {:mdex, "~> 0.11"},
       {:opentelemetry_api, "~> 1.4"},
+      {:opentelemetry, "~> 1.5"},
+      {:opentelemetry_exporter, "~> 1.8"},
+      {:opentelemetry_phoenix, "~> 2.0"},
+      {:opentelemetry_ecto, "~> 1.2"},
       {:styler, "~> 1.0", only: [:dev, :test], runtime: false},
       # Sources
       {:req, "~> 0.5"},
