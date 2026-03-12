@@ -11,11 +11,18 @@ defmodule ExCalibur.Tools.ExtractFrames do
           "input" => %{"type" => "string", "description" => "Absolute path to the input video file"},
           "mode" => %{
             "type" => "string",
-            "description" => "Extraction mode: 'keyframes' (I-frames only, default) or 'interval' (one frame per N seconds)",
+            "description" =>
+              "Extraction mode: 'keyframes' (I-frames only, default) or 'interval' (one frame per N seconds)",
             "enum" => ["keyframes", "interval"]
           },
-          "interval_seconds" => %{"type" => "integer", "description" => "Seconds between frames when mode is 'interval' (default 5)"},
-          "output_dir" => %{"type" => "string", "description" => "Directory to save extracted frames (optional, auto-generated if omitted)"}
+          "interval_seconds" => %{
+            "type" => "integer",
+            "description" => "Seconds between frames when mode is 'interval' (default 5)"
+          },
+          "output_dir" => %{
+            "type" => "string",
+            "description" => "Directory to save extracted frames (optional, auto-generated if omitted)"
+          }
         },
         "required" => ["input"]
       },

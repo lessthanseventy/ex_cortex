@@ -1,7 +1,9 @@
 defmodule ExCalibur.Tools.DataToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.{JqQuery, ReadPdf, ConvertDocument}
+  alias ExCalibur.Tools.ConvertDocument
+  alias ExCalibur.Tools.JqQuery
+  alias ExCalibur.Tools.ReadPdf
 
   test "JqQuery returns a valid ReqLLM.Tool struct" do
     tool = JqQuery.req_llm_tool()

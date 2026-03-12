@@ -1,7 +1,9 @@
 defmodule ExCalibur.Tools.EmailToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.{SearchEmail, ReadEmail, SendEmail}
+  alias ExCalibur.Tools.ReadEmail
+  alias ExCalibur.Tools.SearchEmail
+  alias ExCalibur.Tools.SendEmail
 
   test "SearchEmail returns a valid ReqLLM.Tool struct" do
     tool = SearchEmail.req_llm_tool()

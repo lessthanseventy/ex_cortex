@@ -1,7 +1,10 @@
 defmodule ExCalibur.Tools.MediaToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.{DownloadMedia, ExtractAudio, ExtractFrames, TranscribeAudio}
+  alias ExCalibur.Tools.DownloadMedia
+  alias ExCalibur.Tools.ExtractAudio
+  alias ExCalibur.Tools.ExtractFrames
+  alias ExCalibur.Tools.TranscribeAudio
 
   test "DownloadMedia returns a valid ReqLLM.Tool struct" do
     tool = DownloadMedia.req_llm_tool()
@@ -37,8 +40,8 @@ defmodule ExCalibur.Tools.MediaToolsTest do
   end
 
   test "write-tier media tools appear in write but not safe" do
-    safe_names = ExCalibur.Tools.Registry.resolve_tools(:all_safe) |> Enum.map(& &1.name)
-    write_names = ExCalibur.Tools.Registry.resolve_tools(:write) |> Enum.map(& &1.name)
+    safe_names = :all_safe |> ExCalibur.Tools.Registry.resolve_tools() |> Enum.map(& &1.name)
+    write_names = :write |> ExCalibur.Tools.Registry.resolve_tools() |> Enum.map(& &1.name)
 
     assert "download_media" in write_names
     assert "extract_audio" in write_names

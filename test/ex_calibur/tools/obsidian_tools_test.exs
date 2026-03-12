@@ -1,14 +1,12 @@
 defmodule ExCalibur.Tools.ObsidianToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.{
-    SearchObsidian,
-    SearchObsidianContent,
-    ReadObsidian,
-    ReadObsidianFrontmatter,
-    CreateObsidianNote,
-    DailyObsidian
-  }
+  alias ExCalibur.Tools.CreateObsidianNote
+  alias ExCalibur.Tools.DailyObsidian
+  alias ExCalibur.Tools.ReadObsidian
+  alias ExCalibur.Tools.ReadObsidianFrontmatter
+  alias ExCalibur.Tools.SearchObsidian
+  alias ExCalibur.Tools.SearchObsidianContent
 
   test "SearchObsidian returns a valid ReqLLM.Tool struct" do
     tool = SearchObsidian.req_llm_tool()

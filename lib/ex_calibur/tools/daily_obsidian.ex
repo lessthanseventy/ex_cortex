@@ -18,7 +18,7 @@ defmodule ExCalibur.Tools.DailyObsidian do
 
   def call(%{"content" => content}) do
     vault = ExCalibur.Settings.get(:obsidian_vault)
-    today = Date.utc_today() |> Date.to_iso8601()
+    today = Date.to_iso8601(Date.utc_today())
     args = vault_args(["create", today, "--content", content, "--append"], vault)
 
     case System.cmd("obsidian-cli", args, stderr_to_stdout: true) do

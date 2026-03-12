@@ -10,7 +10,10 @@ defmodule ExCalibur.Tools.CreateGithubIssue do
         "properties" => %{
           "title" => %{"type" => "string", "description" => "Issue title"},
           "body" => %{"type" => "string", "description" => "Issue body (markdown supported)"},
-          "repo" => %{"type" => "string", "description" => "Repository in 'owner/repo' format (optional if default_repo configured)"},
+          "repo" => %{
+            "type" => "string",
+            "description" => "Repository in 'owner/repo' format (optional if default_repo configured)"
+          },
           "labels" => %{
             "type" => "array",
             "items" => %{"type" => "string"},

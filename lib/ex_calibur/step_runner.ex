@@ -166,7 +166,7 @@ defmodule ExCalibur.StepRunner do
 
     case run_artifact(quest, augmented) do
       {:ok, attrs} ->
-        card_type = attrs[:card_type] || quest.description |> parse_card_type() || "note"
+        card_type = attrs[:card_type] || parse_card_type(quest.description) || "note"
 
         card_attrs = %{
           type: card_type,
@@ -639,7 +639,7 @@ defmodule ExCalibur.StepRunner do
     card_type =
       case Regex.run(~r/^CARD_TYPE:\s*(.+)$/m, text) do
         [_, ct] ->
-          ct = String.trim(ct) |> String.downcase()
+          ct = ct |> String.trim() |> String.downcase()
           if ct in ~w(note checklist meeting alert link), do: ct
 
         _ ->

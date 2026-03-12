@@ -9,7 +9,10 @@ defmodule ExCalibur.Tools.ReadGithubIssue do
         "type" => "object",
         "properties" => %{
           "number" => %{"type" => "integer", "description" => "Issue or PR number"},
-          "repo" => %{"type" => "string", "description" => "Repository in 'owner/repo' format (optional if default_repo is configured)"}
+          "repo" => %{
+            "type" => "string",
+            "description" => "Repository in 'owner/repo' format (optional if default_repo is configured)"
+          }
         },
         "required" => ["number"]
       },

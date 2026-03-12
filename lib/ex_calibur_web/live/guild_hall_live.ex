@@ -258,7 +258,9 @@ defmodule ExCaliburWeb.GuildHallLive do
                   <.member_row :for={member <- members} member={member} />
                 </div>
               <% else %>
-                <p class="text-muted-foreground text-sm">No members available in this category for the current banner.</p>
+                <p class="text-muted-foreground text-sm">
+                  No members available in this category for the current banner.
+                </p>
               <% end %>
             <% end %>
           <% end %>
@@ -607,16 +609,18 @@ defmodule ExCaliburWeb.GuildHallLive do
   end
 
   defp catalog_sections(assigns) do
-    [
-      {"editors", "Editors", assigns.editors, "Text quality and writing review"},
-      {"analysts", "Analysts", assigns.analysts, "Data interpretation and pattern recognition"},
-      {"specialists", "Specialists", assigns.specialists, "Domain-specific technical expertise"},
-      {"advisors", "Advisors", assigns.advisors, "Perspective, judgment, and risk assessment"},
-      {"validators", "Validators", assigns.validators, "Evidence standards and quality gates"},
-      {"wildcards", "Wildcards", assigns.wildcards, "Creative perspectives and personality-driven evaluation"},
-      {"life_use", "Life Use", assigns.life_use, "Personal productivity, news, and lifestyle"}
-    ]
-    |> Enum.reject(fn {_, _, members, _} -> members == [] end)
+    Enum.reject(
+      [
+        {"editors", "Editors", assigns.editors, "Text quality and writing review"},
+        {"analysts", "Analysts", assigns.analysts, "Data interpretation and pattern recognition"},
+        {"specialists", "Specialists", assigns.specialists, "Domain-specific technical expertise"},
+        {"advisors", "Advisors", assigns.advisors, "Perspective, judgment, and risk assessment"},
+        {"validators", "Validators", assigns.validators, "Evidence standards and quality gates"},
+        {"wildcards", "Wildcards", assigns.wildcards, "Creative perspectives and personality-driven evaluation"},
+        {"life_use", "Life Use", assigns.life_use, "Personal productivity, news, and lifestyle"}
+      ],
+      fn {_, _, members, _} -> members == [] end
+    )
   end
 
   defp member_section(assigns) do

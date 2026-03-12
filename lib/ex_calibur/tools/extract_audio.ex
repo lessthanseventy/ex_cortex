@@ -9,7 +9,11 @@ defmodule ExCalibur.Tools.ExtractAudio do
         "type" => "object",
         "properties" => %{
           "input" => %{"type" => "string", "description" => "Absolute path to the input media file"},
-          "output" => %{"type" => "string", "description" => "Absolute path for the output WAV file (optional, defaults to input path with .wav extension)"}
+          "output" => %{
+            "type" => "string",
+            "description" =>
+              "Absolute path for the output WAV file (optional, defaults to input path with .wav extension)"
+          }
         },
         "required" => ["input"]
       },

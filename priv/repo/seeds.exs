@@ -22,7 +22,7 @@ descriptions = %{
 for path <- Path.wildcard("priv/dictionaries/*.csv") do
   name = Path.basename(path, ".csv")
 
-  unless ExCalibur.Library.get_dictionary_by_name(name) do
+  if !ExCalibur.Library.get_dictionary_by_name(name) do
     content = File.read!(path)
 
     {:ok, _} =

@@ -1,7 +1,8 @@
 defmodule ExCalibur.Tools.WebToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.{WebFetch, WebSearch}
+  alias ExCalibur.Tools.WebFetch
+  alias ExCalibur.Tools.WebSearch
 
   test "WebFetch returns a valid ReqLLM.Tool struct" do
     tool = WebFetch.req_llm_tool()

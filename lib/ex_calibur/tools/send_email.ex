@@ -11,7 +11,10 @@ defmodule ExCalibur.Tools.SendEmail do
           "to" => %{"type" => "string", "description" => "Recipient email address"},
           "subject" => %{"type" => "string", "description" => "Email subject line"},
           "body" => %{"type" => "string", "description" => "Plain-text email body"},
-          "from" => %{"type" => "string", "description" => "Sender email address (optional, uses msmtp account default if omitted)"}
+          "from" => %{
+            "type" => "string",
+            "description" => "Sender email address (optional, uses msmtp account default if omitted)"
+          }
         },
         "required" => ["to", "subject", "body"]
       },

@@ -1,5 +1,6 @@
 defmodule ExCalibur.Tools.RegistryTest do
   use ExUnit.Case, async: true
+
   alias ExCalibur.Tools.Registry
 
   test "resolve_tools(:all_safe) returns only safe tools" do

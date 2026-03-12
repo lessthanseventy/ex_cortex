@@ -8,7 +8,10 @@ defmodule ExCalibur.Tools.SearchEmail do
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
-          "query" => %{"type" => "string", "description" => "Notmuch search query (e.g. 'from:alice subject:invoice date:1M..')"},
+          "query" => %{
+            "type" => "string",
+            "description" => "Notmuch search query (e.g. 'from:alice subject:invoice date:1M..')"
+          },
           "limit" => %{"type" => "integer", "description" => "Maximum number of results to return (default 20)"}
         },
         "required" => ["query"]

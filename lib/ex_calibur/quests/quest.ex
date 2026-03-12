@@ -20,7 +20,17 @@ defmodule ExCalibur.Quests.Quest do
   end
 
   @required [:name, :trigger]
-  @optional [:description, :status, :schedule, :run_at, :steps, :source_ids, :lore_trigger_tags, :lodge_trigger_types, :lodge_trigger_tags]
+  @optional [
+    :description,
+    :status,
+    :schedule,
+    :run_at,
+    :steps,
+    :source_ids,
+    :lore_trigger_tags,
+    :lodge_trigger_types,
+    :lodge_trigger_tags
+  ]
 
   def changeset(quest, attrs) do
     quest

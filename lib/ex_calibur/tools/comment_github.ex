@@ -10,7 +10,10 @@ defmodule ExCalibur.Tools.CommentGithub do
         "properties" => %{
           "number" => %{"type" => "integer", "description" => "Issue or PR number"},
           "body" => %{"type" => "string", "description" => "Comment body (markdown supported)"},
-          "repo" => %{"type" => "string", "description" => "Repository in 'owner/repo' format (optional if default_repo configured)"}
+          "repo" => %{
+            "type" => "string",
+            "description" => "Repository in 'owner/repo' format (optional if default_repo configured)"
+          }
         },
         "required" => ["number", "body"]
       },

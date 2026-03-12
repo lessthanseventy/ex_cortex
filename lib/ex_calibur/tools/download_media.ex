@@ -4,7 +4,8 @@ defmodule ExCalibur.Tools.DownloadMedia do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "download_media",
-      description: "Download video or audio from a URL using yt-dlp (supports YouTube, SoundCloud, and many other sites).",
+      description:
+        "Download video or audio from a URL using yt-dlp (supports YouTube, SoundCloud, and many other sites).",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

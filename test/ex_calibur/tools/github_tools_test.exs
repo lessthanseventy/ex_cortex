@@ -1,13 +1,11 @@
 defmodule ExCalibur.Tools.GithubToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.{
-    SearchGithub,
-    ReadGithubIssue,
-    ListGithubNotifications,
-    CreateGithubIssue,
-    CommentGithub
-  }
+  alias ExCalibur.Tools.CommentGithub
+  alias ExCalibur.Tools.CreateGithubIssue
+  alias ExCalibur.Tools.ListGithubNotifications
+  alias ExCalibur.Tools.ReadGithubIssue
+  alias ExCalibur.Tools.SearchGithub
 
   test "SearchGithub returns a valid ReqLLM.Tool struct" do
     tool = SearchGithub.req_llm_tool()
@@ -50,8 +48,8 @@ defmodule ExCalibur.Tools.GithubToolsTest do
   end
 
   test "dangerous GitHub tools appear in dangerous tier but not safe" do
-    safe_names = ExCalibur.Tools.Registry.resolve_tools(:all_safe) |> Enum.map(& &1.name)
-    dangerous_names = ExCalibur.Tools.Registry.resolve_tools(:dangerous) |> Enum.map(& &1.name)
+    safe_names = :all_safe |> ExCalibur.Tools.Registry.resolve_tools() |> Enum.map(& &1.name)
+    dangerous_names = :dangerous |> ExCalibur.Tools.Registry.resolve_tools() |> Enum.map(& &1.name)
 
     assert "create_github_issue" in dangerous_names
     assert "comment_github" in dangerous_names
