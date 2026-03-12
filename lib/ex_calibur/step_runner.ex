@@ -90,7 +90,7 @@ defmodule ExCalibur.StepRunner do
       if members == [] do
         {:cont, nil}
       else
-        result = run(quest.roster, augmented)
+        result = run(quest.roster, augmented, dangerous_tool_opts(quest))
 
         case result do
           {:ok, %{verdict: v, steps: steps}} = ok ->
@@ -136,7 +136,7 @@ defmodule ExCalibur.StepRunner do
     if has_eligible do
       context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
       augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-      run(quest.roster, augmented)
+      run(quest.roster, augmented, dangerous_tool_opts(quest))
     else
       {:error, {:rank_insufficient, "Step requires #{min_rank} or higher — no eligible members found"}}
     end
@@ -189,7 +189,7 @@ defmodule ExCalibur.StepRunner do
             should_rollback = has_write_tools?(quest.loop_tools || [])
             if should_rollback, do: git_snapshot()
 
-            case call_member_raw(member, augmented) do
+            case call_member_raw(member, augmented, dangerous_tool_opts(quest)) do
               {raw, tool_calls} when is_binary(raw) and raw != "" ->
                 {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
 
@@ -271,15 +271,15 @@ defmodule ExCalibur.StepRunner do
   def run(quest, input_text) when is_struct(quest) do
     context = ContextProvider.assemble(quest.context_providers || [], quest, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-    run(quest.roster, augmented)
+    run(quest.roster, augmented, dangerous_tool_opts(quest))
   end
 
-  def run(roster, input_text) when is_list(roster) do
+  def run(roster, input_text, opts) when is_list(roster) do
     {steps, final_verdict} =
       Enum.reduce_while(roster, {[], nil}, fn step, {traces, _prev_verdict} ->
         members = resolve_members(step)
 
-        step_results = run_step(members, step["how"], input_text)
+        step_results = run_step(members, step["how"], input_text, opts)
 
         step_verdict = aggregate(step_results, step["how"])
 
@@ -403,11 +403,11 @@ defmodule ExCalibur.StepRunner do
   # Running a step
   # ---------------------------------------------------------------------------
 
-  defp run_step(members, _how, input_text) do
+  defp run_step(members, _how, input_text, opts) do
     Enum.map(members, fn member ->
       require Logger
 
-      result = call_member(member, input_text)
+      result = call_member(member, input_text, opts)
       r = Map.put(result, :member, member.name)
 
       Logger.info(
@@ -418,7 +418,7 @@ defmodule ExCalibur.StepRunner do
     end)
   end
 
-  defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text) do
+  defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text, opts) do
     base = system_prompt || default_claude_prompt()
     prompt = ensure_verdict_format(base, tools)
 
@@ -426,7 +426,7 @@ defmodule ExCalibur.StepRunner do
       if tools == [] do
         ExCalibur.LLM.complete(provider, model, prompt, input_text)
       else
-        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
+        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools, opts)
       end
 
     case result do
@@ -467,14 +467,14 @@ defmodule ExCalibur.StepRunner do
 
   # Like call_member but returns raw text — used for freeform quests.
   # Returns {text, tool_log} tuple or nil on failure.
-  defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text) do
+  defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text, opts) do
     prompt = system_prompt || ""
 
     result =
       if tools == [] do
         ExCalibur.LLM.complete(provider, model, prompt, input_text)
       else
-        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
+        ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools, opts)
       end
 
     case result do
@@ -557,11 +557,11 @@ defmodule ExCalibur.StepRunner do
   # ---------------------------------------------------------------------------
 
   defp do_reflect(quest, input_text, _tools, _threshold, _reflect_on, max_iter, iter) when iter >= max_iter do
-    run(quest.roster, input_text)
+    run(quest.roster, input_text, dangerous_tool_opts(quest))
   end
 
   defp do_reflect(quest, input_text, tools, threshold, reflect_on, max_iter, iter) do
-    result = run(quest.roster, input_text)
+    result = run(quest.roster, input_text, dangerous_tool_opts(quest))
 
     case result do
       {:ok, %{verdict: v, steps: steps}} = ok ->
@@ -613,6 +613,13 @@ defmodule ExCalibur.StepRunner do
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
+
+  defp dangerous_tool_opts(quest) do
+    [
+      dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",
+      quest_id: Map.get(quest, :id)
+    ]
+  end
 
   defp default_claude_prompt do
     """

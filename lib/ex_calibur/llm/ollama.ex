@@ -76,6 +76,9 @@ defmodule ExCalibur.LLM.Ollama do
 
     max_iter = Keyword.get(opts, :max_tool_iterations, @max_tool_iterations)
 
+    dangerous_tool_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
+    quest_id = Keyword.get(opts, :quest_id)
+
     Tracer.with_span "llm.complete_with_tools", %{
       attributes: %{
         "llm.provider" => "ollama",
@@ -84,18 +87,21 @@ defmodule ExCalibur.LLM.Ollama do
         "llm.input_bytes" => byte_size(user_text)
       }
     } do
-      run_tool_loop(ollama, models, messages, tools, ollama_tools, 0, [], %{}, max_iter)
+      run_tool_loop(ollama, models, messages, tools, ollama_tools, 0, [], %{}, max_iter,
+        dangerous_tool_mode: dangerous_tool_mode,
+        quest_id: quest_id
+      )
     end
   end
 
-  defp run_tool_loop(_ollama, _models, messages, _tools, _ollama_tools, iter, tool_log, _breaker_state, max_iter)
+  defp run_tool_loop(_ollama, _models, messages, _tools, _ollama_tools, iter, tool_log, _breaker_state, max_iter, _opts)
        when iter >= max_iter do
     text = last_assistant_text(messages)
     Logger.warning("[Ollama] Max tool iterations (#{max_iter}) reached")
     {:ok, text, tool_log}
   end
 
-  defp run_tool_loop(ollama, models, messages, tools, ollama_tools, iter, tool_log, breaker_state, max_iter) do
+  defp run_tool_loop(ollama, models, messages, tools, ollama_tools, iter, tool_log, breaker_state, max_iter, opts) do
     result =
       Enum.reduce_while(models, {:error, :all_models_failed}, fn m, _acc ->
         t0 = System.monotonic_time(:millisecond)
@@ -144,7 +150,7 @@ defmodule ExCalibur.LLM.Ollama do
           tool_calls: calls
         }
 
-        {tool_msgs, new_entries, new_bs} = execute_tool_calls(calls, tools, breaker_state)
+        {tool_msgs, new_entries, new_bs} = execute_tool_calls(calls, tools, breaker_state, opts)
         new_messages = messages ++ [assistant_msg] ++ tool_msgs
 
         run_tool_loop(
@@ -156,7 +162,8 @@ defmodule ExCalibur.LLM.Ollama do
           iter + 1,
           tool_log ++ new_entries,
           new_bs,
-          max_iter
+          max_iter,
+          opts
         )
 
       {:ok, %{"content" => text}} ->
@@ -167,7 +174,10 @@ defmodule ExCalibur.LLM.Ollama do
     end
   end
 
-  defp execute_tool_calls(calls, tools, breaker_state) do
+  defp execute_tool_calls(calls, tools, breaker_state, opts) do
+    dangerous_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
+    quest_id = Keyword.get(opts, :quest_id)
+
     Enum.reduce(calls, {[], [], breaker_state}, fn call, {msgs, log, bs} ->
       name = get_in(call, ["function", "name"])
       args_raw = get_in(call, ["function", "arguments"])
@@ -189,24 +199,7 @@ defmodule ExCalibur.LLM.Ollama do
           Logger.debug("[Ollama] circuit breaker: skipping #{name}")
           {out, %{tool: name, input: args, output: out}, bs}
         else
-          tool = Enum.find(tools, &(&1.name == name))
-
-          {out, entry} =
-            if tool do
-              case ReqLLM.Tool.execute(tool, args) do
-                {:ok, v} ->
-                  o = to_string(v)
-                  Logger.debug("[Ollama] tool #{name} → #{String.slice(o, 0, 120)}")
-                  {o, %{tool: name, input: args, output: o}}
-
-                {:error, e} ->
-                  o = "Error: #{inspect(e)}"
-                  {o, %{tool: name, input: args, output: o}}
-              end
-            else
-              o = "Tool #{name} not found"
-              {o, %{tool: name, input: args, output: o}}
-            end
+          {out, entry} = execute_or_intercept_tool(name, args, tools, dangerous_mode, quest_id)
 
           case check_circuit_breaker(name, out, bs) do
             {:tripped, updated_bs} -> {out, entry, updated_bs}
@@ -217,6 +210,44 @@ defmodule ExCalibur.LLM.Ollama do
       tool_msg = %{role: "tool", content: output}
       {msgs ++ [tool_msg], log ++ [log_entry], new_bs}
     end)
+  end
+
+  defp execute_or_intercept_tool(name, args, tools, dangerous_mode, quest_id) do
+    if ExCalibur.StepRunner.dangerous?(name) and dangerous_mode != "execute" do
+      case dangerous_mode do
+        "dry_run" ->
+          out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
+          Logger.info("[Ollama] dry_run: #{name}")
+          {out, %{tool: name, input: args, output: out}}
+
+        "intercept" ->
+          ExCalibur.StepRunner.intercept_dangerous_tool(name, args, quest_id)
+
+          out =
+            "Tool call queued for human approval. Proposal ID: #{quest_id}. Continue without this result."
+
+          Logger.info("[Ollama] intercepted: #{name}")
+          {out, %{tool: name, input: args, output: out}}
+      end
+    else
+      tool = Enum.find(tools, &(&1.name == name))
+
+      if tool do
+        case ReqLLM.Tool.execute(tool, args) do
+          {:ok, v} ->
+            o = to_string(v)
+            Logger.debug("[Ollama] tool #{name} → #{String.slice(o, 0, 120)}")
+            {o, %{tool: name, input: args, output: o}}
+
+          {:error, e} ->
+            o = "Error: #{inspect(e)}"
+            {o, %{tool: name, input: args, output: o}}
+        end
+      else
+        o = "Tool #{name} not found"
+        {o, %{tool: name, input: args, output: o}}
+      end
+    end
   end
 
   defp tool_call_incompatible?(body) when is_binary(body), do: String.contains?(body, "roles must alternate")

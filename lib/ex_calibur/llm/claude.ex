@@ -56,6 +56,9 @@ defmodule ExCalibur.LLM.Claude do
         ReqLLM.Context.user(user_text)
       ])
 
+    dangerous_tool_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
+    quest_id = Keyword.get(opts, :quest_id)
+
     Tracer.with_span "llm.complete_with_tools", %{
       attributes: %{
         "llm.provider" => "claude",
@@ -64,7 +67,10 @@ defmodule ExCalibur.LLM.Claude do
         "llm.input_bytes" => byte_size(user_text)
       }
     } do
-      run_agent_loop(model_spec, context, tools, 0, [], %{}, max_iter)
+      run_agent_loop(model_spec, context, tools, 0, [], %{}, max_iter,
+        dangerous_tool_mode: dangerous_tool_mode,
+        quest_id: quest_id
+      )
     end
   end
 
@@ -80,12 +86,13 @@ defmodule ExCalibur.LLM.Claude do
     Map.get(@model_ids, model, "anthropic:#{model}")
   end
 
-  defp run_agent_loop(_model_spec, _context, _tools, iter, tool_log, _breaker_state, max_iter) when iter >= max_iter do
+  defp run_agent_loop(_model_spec, _context, _tools, iter, tool_log, _breaker_state, max_iter, _opts)
+       when iter >= max_iter do
     Logger.warning("[Claude] Max iterations (#{max_iter}) reached")
     {:error, :max_iterations_exceeded, tool_log}
   end
 
-  defp run_agent_loop(model_spec, context, tools, iter, tool_log, breaker_state, max_iter) do
+  defp run_agent_loop(model_spec, context, tools, iter, tool_log, breaker_state, max_iter, opts) do
     t0 = System.monotonic_time(:millisecond)
     Logger.debug("[Claude] → #{model_spec} iter=#{iter} tools=#{length(tools)}")
 
@@ -102,13 +109,13 @@ defmodule ExCalibur.LLM.Claude do
             Logger.debug("[Claude] #{model_spec} #{ms}ms — #{length(calls)} tool call(s) at iter #{iter}")
 
             {next_context, new_entries, new_bs} =
-              execute_tools_with_log(response.context, calls, tools, breaker_state)
+              execute_tools_with_log(response.context, calls, tools, breaker_state, opts)
 
             Enum.each(new_entries, fn %{tool: name, output: out} ->
               Logger.debug("[Claude] tool #{name} → #{String.slice(to_string(out), 0, 120)}")
             end)
 
-            run_agent_loop(model_spec, next_context, tools, iter + 1, tool_log ++ new_entries, new_bs, max_iter)
+            run_agent_loop(model_spec, next_context, tools, iter + 1, tool_log ++ new_entries, new_bs, max_iter, opts)
         end
 
       {:error, reason} ->
@@ -122,7 +129,10 @@ defmodule ExCalibur.LLM.Claude do
       {:error, Exception.message(e), tool_log}
   end
 
-  defp execute_tools_with_log(context, calls, tools, breaker_state) do
+  defp execute_tools_with_log(context, calls, tools, breaker_state, opts) do
+    dangerous_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
+    quest_id = Keyword.get(opts, :quest_id)
+
     Enum.reduce(calls, {context, [], breaker_state}, fn call, {ctx, log, bs} ->
       {name, id} = extract_call_info(call)
       args = extract_call_args(call)
@@ -137,38 +147,56 @@ defmodule ExCalibur.LLM.Claude do
           Logger.debug("[Claude] circuit breaker: skipping #{name}")
           {out, out, bs}
         else
-          tool = Enum.find(tools, &(&1.name == name))
+          if ExCalibur.StepRunner.dangerous?(name) and dangerous_mode != "execute" do
+            case dangerous_mode do
+              "dry_run" ->
+                out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
+                Logger.info("[Claude] dry_run: #{name}")
+                {out, out, bs}
 
-          {_result, out, content} =
-            Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
-              r =
-                if tool,
-                  do: ReqLLM.Tool.execute(tool, args),
-                  else: {:error, "Tool #{name} not found"}
+              "intercept" ->
+                ExCalibur.StepRunner.intercept_dangerous_tool(name, args, quest_id)
 
-              o =
-                case r do
-                  {:ok, v} -> to_string(v)
-                  {:error, e} -> "Error: #{inspect(e)}"
-                end
+                out =
+                  "Tool call queued for human approval. Proposal ID: #{quest_id}. Continue without this result."
 
-              c =
-                case r do
-                  {:ok, v} -> to_string(v)
-                  {:error, e} -> Jason.encode!(%{error: to_string(e)})
-                end
-
-              Tracer.set_attributes(%{
-                "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
-                "tool.output_bytes" => byte_size(o)
-              })
-
-              {r, o, c}
+                Logger.info("[Claude] intercepted: #{name}")
+                {out, out, bs}
             end
+          else
+            tool = Enum.find(tools, &(&1.name == name))
 
-          case ExCalibur.LLM.Ollama.check_circuit_breaker(name, out, bs) do
-            {:tripped, updated_bs} -> {out, content, updated_bs}
-            {:ok, updated_bs} -> {out, content, updated_bs}
+            {_result, out, content} =
+              Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
+                r =
+                  if tool,
+                    do: ReqLLM.Tool.execute(tool, args),
+                    else: {:error, "Tool #{name} not found"}
+
+                o =
+                  case r do
+                    {:ok, v} -> to_string(v)
+                    {:error, e} -> "Error: #{inspect(e)}"
+                  end
+
+                c =
+                  case r do
+                    {:ok, v} -> to_string(v)
+                    {:error, e} -> Jason.encode!(%{error: to_string(e)})
+                  end
+
+                Tracer.set_attributes(%{
+                  "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
+                  "tool.output_bytes" => byte_size(o)
+                })
+
+                {r, o, c}
+              end
+
+            case ExCalibur.LLM.Ollama.check_circuit_breaker(name, out, bs) do
+              {:tripped, updated_bs} -> {out, content, updated_bs}
+              {:ok, updated_bs} -> {out, content, updated_bs}
+            end
           end
         end
 
