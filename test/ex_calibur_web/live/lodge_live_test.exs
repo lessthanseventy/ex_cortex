@@ -101,5 +101,70 @@ defmodule ExCaliburWeb.LodgeLiveTest do
       html = render(view)
       assert html =~ "pinned" or html =~ "Unpin"
     end
+
+    test "renders pinned cards in grid section", %{conn: conn} do
+      insert_member()
+
+      Lodge.create_card(%{
+        type: "briefing",
+        title: "Pinned Brief",
+        body: "Important",
+        source: "quest",
+        pinned: true,
+        pin_slug: "test-pin"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/lodge")
+      assert has_element?(view, "h2", "Pinned")
+      assert has_element?(view, "span", "Pinned Brief")
+    end
+
+    test "renders action_list card with approve/reject buttons", %{conn: conn} do
+      insert_member()
+
+      Lodge.create_card(%{
+        type: "action_list",
+        title: "Cleanup",
+        body: "",
+        source: "quest",
+        metadata: %{
+          "items" => [
+            %{"id" => "1", "label" => "Old Newsletter", "status" => "pending"},
+            %{"id" => "2", "label" => "Security Alerts", "status" => "pending"}
+          ],
+          "action_labels" => %{"approve" => "Unsubscribe", "reject" => "Keep"}
+        }
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/lodge")
+      assert has_element?(view, "button", "Unsubscribe")
+      assert has_element?(view, "button", "Keep")
+    end
+
+    test "separates pinned and feed cards", %{conn: conn} do
+      insert_member()
+
+      Lodge.create_card(%{
+        type: "briefing",
+        title: "Pinned Card",
+        body: "pinned content",
+        source: "quest",
+        pinned: true,
+        pin_slug: "pinned-one"
+      })
+
+      Lodge.create_card(%{
+        type: "note",
+        title: "Feed Card",
+        body: "feed content",
+        source: "manual"
+      })
+
+      {:ok, view, _html} = live(conn, ~p"/lodge")
+      assert has_element?(view, "h2", "Pinned")
+      assert has_element?(view, "h2", "Recent")
+      assert has_element?(view, "span", "Pinned Card")
+      assert has_element?(view, "span", "Feed Card")
+    end
   end
 end
