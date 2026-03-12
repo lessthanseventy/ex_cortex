@@ -103,12 +103,25 @@ defmodule ExCaliburWeb.LibraryLive do
     heralds = ExCalibur.Heralds.list_heralds()
     dictionaries = Library.list_dictionaries()
 
+    quests = ExCalibur.Quests.list_quests()
+
+    source_quests =
+      Map.new(sources, fn s ->
+        matching =
+          Enum.filter(quests, fn q ->
+            q.trigger == "source" and to_string(s.id) in (q.source_ids || [])
+          end)
+
+        {s.id, Enum.map(matching, & &1.name)}
+      end)
+
     assign(socket,
       sources: sources,
       scroll_groups: scroll_groups,
       book_groups: book_groups,
       heralds: heralds,
-      dictionaries: dictionaries
+      dictionaries: dictionaries,
+      source_quests: source_quests
     )
   end
 
@@ -474,7 +487,11 @@ defmodule ExCaliburWeb.LibraryLive do
         <% else %>
           <div class="space-y-2">
             <%= for source <- @sources do %>
-              <.source_row source={source} expanding={@expanding} />
+              <.source_row
+                source={source}
+                expanding={@expanding}
+                quest_names={Map.get(@source_quests, source.id, [])}
+              />
             <% end %>
           </div>
         <% end %>
@@ -1161,6 +1178,7 @@ defmodule ExCaliburWeb.LibraryLive do
 
   attr :source, :map, required: true
   attr :expanding, :string, default: nil
+  attr :quest_names, :list, default: []
 
   defp source_row(assigns) do
     assigns = assign(assigns, :name, source_name(assigns.source))
@@ -1191,6 +1209,11 @@ defmodule ExCaliburWeb.LibraryLive do
             <p class="text-xs text-muted-foreground mt-0.5">
               Last run: {format_time(@source.last_run_at)}
             </p>
+            <%= if @quest_names != [] do %>
+              <p class="text-xs text-muted-foreground mt-0.5">
+                Triggers: {Enum.join(@quest_names, ", ")}
+              </p>
+            <% end %>
             <%= if @source.source_type == "webhook" do %>
               <p class="text-xs text-muted-foreground font-mono mt-0.5">
                 POST /api/webhooks/{@source.id}
