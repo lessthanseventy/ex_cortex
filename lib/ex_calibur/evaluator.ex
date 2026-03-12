@@ -12,7 +12,8 @@ defmodule ExCalibur.Evaluator do
     "Performance Audit" => Excellence.Charters.PerformanceAudit,
     "Incident Triage" => Excellence.Charters.IncidentTriage,
     "Contract Review" => Excellence.Charters.ContractReview,
-    "Dependency Audit" => Excellence.Charters.DependencyAudit
+    "Dependency Audit" => Excellence.Charters.DependencyAudit,
+    "Dev Team" => ExCalibur.Charters.DevTeam
   }
 
   def charters, do: @charters
