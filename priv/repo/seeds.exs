@@ -9,3 +9,30 @@
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
+
+# Seed pre-baked dictionaries from priv/dictionaries/*.csv
+descriptions = %{
+  "sports_teams" => "Sports teams across NFL, NBA, MLB, NHL, and MLS with abbreviations and divisions.",
+  "stock_tickers" => "S&P 500 company names, ticker symbols, and sectors.",
+  "wcag_criteria" => "WCAG 2.1 success criteria with level (A/AA/AAA) and descriptions.",
+  "regulatory_frameworks" => "Major regulatory frameworks and compliance standards by jurisdiction and domain.",
+  "currency_codes" => "ISO 4217 currency codes with names, symbols, and example countries."
+}
+
+for path <- Path.wildcard("priv/dictionaries/*.csv") do
+  name = Path.basename(path, ".csv")
+
+  unless ExCalibur.Library.get_dictionary_by_name(name) do
+    content = File.read!(path)
+
+    {:ok, _} =
+      ExCalibur.Library.create_dictionary(%{
+        name: name,
+        content: content,
+        content_type: "csv",
+        description: Map.get(descriptions, name, "Pre-baked reference dataset.")
+      })
+
+    IO.puts("Seeded dictionary: #{name}")
+  end
+end
