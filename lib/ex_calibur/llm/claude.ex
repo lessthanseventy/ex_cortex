@@ -5,6 +5,8 @@ defmodule ExCalibur.LLM.Claude do
   require Logger
   require OpenTelemetry.Tracer, as: Tracer
 
+  @max_tool_iterations 5
+
   @model_ids %{
     "claude_haiku" => "anthropic:claude-haiku-4-5",
     "claude-haiku-4-5" => "anthropic:claude-haiku-4-5",
@@ -44,8 +46,9 @@ defmodule ExCalibur.LLM.Claude do
   end
 
   @impl true
-  def complete_with_tools(model, system_prompt, user_text, tools, _opts \\ []) do
+  def complete_with_tools(model, system_prompt, user_text, tools, opts \\ []) do
     model_spec = resolve_model(model)
+    max_iter = Keyword.get(opts, :max_tool_iterations, @max_tool_iterations)
 
     context =
       ReqLLM.Context.new([
@@ -61,7 +64,7 @@ defmodule ExCalibur.LLM.Claude do
         "llm.input_bytes" => byte_size(user_text)
       }
     } do
-      run_agent_loop(model_spec, context, tools, 0, [])
+      run_agent_loop(model_spec, context, tools, 0, [], %{}, max_iter)
     end
   end
 
@@ -77,14 +80,12 @@ defmodule ExCalibur.LLM.Claude do
     Map.get(@model_ids, model, "anthropic:#{model}")
   end
 
-  @max_tool_iterations 5
-
-  defp run_agent_loop(_model_spec, _context, _tools, iter, tool_log) when iter >= @max_tool_iterations do
-    Logger.warning("[Claude] Max iterations (#{@max_tool_iterations}) reached")
+  defp run_agent_loop(_model_spec, _context, _tools, iter, tool_log, _breaker_state, max_iter) when iter >= max_iter do
+    Logger.warning("[Claude] Max iterations (#{max_iter}) reached")
     {:error, :max_iterations_exceeded, tool_log}
   end
 
-  defp run_agent_loop(model_spec, context, tools, iter, tool_log) do
+  defp run_agent_loop(model_spec, context, tools, iter, tool_log, breaker_state, max_iter) do
     t0 = System.monotonic_time(:millisecond)
     Logger.debug("[Claude] → #{model_spec} iter=#{iter} tools=#{length(tools)}")
 
@@ -99,13 +100,15 @@ defmodule ExCalibur.LLM.Claude do
 
           %{type: :tool_calls, tool_calls: calls} ->
             Logger.debug("[Claude] #{model_spec} #{ms}ms — #{length(calls)} tool call(s) at iter #{iter}")
-            {next_context, new_entries} = execute_tools_with_log(response.context, calls, tools)
+
+            {next_context, new_entries, new_bs} =
+              execute_tools_with_log(response.context, calls, tools, breaker_state)
 
             Enum.each(new_entries, fn %{tool: name, output: out} ->
               Logger.debug("[Claude] tool #{name} → #{String.slice(to_string(out), 0, 120)}")
             end)
 
-            run_agent_loop(model_spec, next_context, tools, iter + 1, tool_log ++ new_entries)
+            run_agent_loop(model_spec, next_context, tools, iter + 1, tool_log ++ new_entries, new_bs, max_iter)
         end
 
       {:error, reason} ->
@@ -119,43 +122,60 @@ defmodule ExCalibur.LLM.Claude do
       {:error, Exception.message(e), tool_log}
   end
 
-  defp execute_tools_with_log(context, calls, tools) do
-    Enum.reduce(calls, {context, []}, fn call, {ctx, log} ->
+  defp execute_tools_with_log(context, calls, tools, breaker_state) do
+    Enum.reduce(calls, {context, [], breaker_state}, fn call, {ctx, log, bs} ->
       {name, id} = extract_call_info(call)
       args = extract_call_args(call)
-      tool = Enum.find(tools, &(&1.name == name))
 
-      {_result, output, result_content} =
-        Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
-          r =
-            if tool,
-              do: ReqLLM.Tool.execute(tool, args),
-              else: {:error, "Tool #{name} not found"}
+      prior_count = Map.get(bs, name, 0)
 
+      {output, result_content, new_bs} =
+        if prior_count >= 3 do
           out =
-            case r do
-              {:ok, v} -> to_string(v)
-              {:error, e} -> "Error: #{inspect(e)}"
+            "Tool #{name} returned empty results #{prior_count} times. Skipping — proceed with available information."
+
+          Logger.debug("[Claude] circuit breaker: skipping #{name}")
+          {out, out, bs}
+        else
+          tool = Enum.find(tools, &(&1.name == name))
+
+          {_result, out, content} =
+            Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
+              r =
+                if tool,
+                  do: ReqLLM.Tool.execute(tool, args),
+                  else: {:error, "Tool #{name} not found"}
+
+              o =
+                case r do
+                  {:ok, v} -> to_string(v)
+                  {:error, e} -> "Error: #{inspect(e)}"
+                end
+
+              c =
+                case r do
+                  {:ok, v} -> to_string(v)
+                  {:error, e} -> Jason.encode!(%{error: to_string(e)})
+                end
+
+              Tracer.set_attributes(%{
+                "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
+                "tool.output_bytes" => byte_size(o)
+              })
+
+              {r, o, c}
             end
 
-          content =
-            case r do
-              {:ok, v} -> to_string(v)
-              {:error, e} -> Jason.encode!(%{error: to_string(e)})
-            end
-
-          Tracer.set_attributes(%{
-            "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
-            "tool.output_bytes" => byte_size(out)
-          })
-
-          {r, out, content}
+          case ExCalibur.LLM.Ollama.check_circuit_breaker(name, out, bs) do
+            {:tripped, updated_bs} -> {out, content, updated_bs}
+            {:ok, updated_bs} -> {out, content, updated_bs}
+          end
         end
 
       msg = ReqLLM.Context.tool_result(id, name, result_content)
       next_ctx = ReqLLM.Context.append(ctx, msg)
       entry = %{tool: name, input: args, output: output}
-      {next_ctx, log ++ [entry]}
+      {next_ctx, log ++ [entry], new_bs}
     end)
   end
 
