@@ -70,6 +70,7 @@ defmodule ExCalibur.MixProject do
       {:opentelemetry_phoenix, "~> 2.0"},
       {:opentelemetry_ecto, "~> 1.2"},
       {:styler, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       # Sources
       {:req, "~> 0.5"},
       {:req_llm, "~> 1.6"},

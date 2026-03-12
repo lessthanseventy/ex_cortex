@@ -28,11 +28,16 @@ defmodule ExCalibur.Tools.ListFiles do
     subdir = Map.get(params, "path", "")
     search_dir = if subdir == "", do: working_dir, else: Path.join(working_dir, subdir)
 
+    ignored = ~w(_build deps .git .elixir_ls node_modules priv/static/assets)
+
     files =
       search_dir
       |> Path.join(pattern)
       |> Path.wildcard()
       |> Enum.map(&Path.relative_to(&1, working_dir))
+      |> Enum.reject(fn path ->
+        Enum.any?(ignored, &String.starts_with?(path, &1))
+      end)
       |> Enum.sort()
       |> Enum.take(100)
 
