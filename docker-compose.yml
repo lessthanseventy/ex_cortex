@@ -70,6 +70,46 @@ services:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
 
+  nextcloud-db:
+    image: docker.io/mariadb:11
+    environment:
+      MYSQL_ROOT_PASSWORD: nextcloud
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud
+    volumes:
+      - nextcloud_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -pnextcloud"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  nextcloud:
+    image: docker.io/nextcloud:latest
+    depends_on:
+      nextcloud-db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      MYSQL_HOST: nextcloud-db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD: nextcloud
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: admin
+      NEXTCLOUD_TRUSTED_DOMAINS: "localhost nextcloud"
+    volumes:
+      - nextcloud_data:/var/www/html
+      - ./docker/init-nextcloud.sh:/init-nextcloud.sh
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/status.php || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
   app:
     build:
       context: ..
@@ -88,6 +128,9 @@ services:
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      NEXTCLOUD_URL: ${NEXTCLOUD_URL:-http://nextcloud:80}
+      NEXTCLOUD_USER: ${NEXTCLOUD_USER:-admin}
+      NEXTCLOUD_PASSWORD: ${NEXTCLOUD_PASSWORD:-admin}
       PHX_SERVER: "true"
       PORT: "4001"
       PHX_HOST: localhost
@@ -97,3 +140,5 @@ volumes:
   pgdata:
   ollama_data:
   grafana_data:
+  nextcloud_data:
+  nextcloud_db:
