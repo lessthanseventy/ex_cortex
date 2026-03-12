@@ -27,12 +27,15 @@ defmodule ExCalibur.Tools.Registry do
     ReadObsidian,
     ReadObsidianFrontmatter,
     CreateObsidianNote,
-    DailyObsidian
+    DailyObsidian,
+    SearchEmail,
+    ReadEmail,
+    SendEmail
   }
 
-  @safe [QueryLore, FetchUrl, SearchObsidian, SearchObsidianContent, ReadObsidian, ReadObsidianFrontmatter]
+  @safe [QueryLore, FetchUrl, SearchObsidian, SearchObsidianContent, ReadObsidian, ReadObsidianFrontmatter, SearchEmail, ReadEmail]
   @write [CreateObsidianNote, DailyObsidian]
-  @dangerous [RunQuest]
+  @dangerous [RunQuest, SendEmail]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
   def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())
