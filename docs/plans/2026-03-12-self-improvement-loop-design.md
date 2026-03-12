@@ -161,12 +161,18 @@ The guild files issues against itself, making the loop self-sustaining.
 ### Scheduled Sweep
 
 A separate quest triggered on a schedule (configurable, default daily). The PM:
-1. Scans the codebase using `read_file`, `list_files`, `run_sandbox` (credo, dialyzer)
-2. Reviews recent git history for patterns
-3. Files `self-improvement` issues for anything found
-4. Prioritizes existing open issues (reorders labels, closes stale ones)
+1. Gathers context before scanning:
+   - `git log --shortstat` for recently/frequently changed files (churn = pain points)
+   - `git log --diff-filter=A` for newly added files that may lack tests
+   - File modification times to find hot areas of active development
+   - Open issue count and age to understand backlog health
+2. Scans the codebase using `read_file`, `list_files`, `run_sandbox` (credo, dialyzer)
+3. Cross-references: high-churn files with credo warnings = high-value targets
+4. Files `self-improvement` issues for anything found, prioritized by impact
+5. Prioritizes existing open issues (reorders labels, closes stale ones)
 
-This ensures the backlog stays fresh even when no humans are filing issues.
+This ensures the backlog stays fresh, and the PM focuses on files that actually
+matter rather than filing issues about dead code nobody touches.
 
 ### Issue format
 
