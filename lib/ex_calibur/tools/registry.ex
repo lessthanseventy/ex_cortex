@@ -41,7 +41,11 @@ defmodule ExCalibur.Tools.Registry do
     ReadPdf,
     ConvertDocument,
     WebFetch,
-    WebSearch
+    WebSearch,
+    DownloadMedia,
+    ExtractAudio,
+    ExtractFrames,
+    TranscribeAudio
   }
 
   @safe [
@@ -61,9 +65,10 @@ defmodule ExCalibur.Tools.Registry do
     ReadPdf,
     ConvertDocument,
     WebFetch,
-    WebSearch
+    WebSearch,
+    TranscribeAudio
   ]
-  @write [CreateObsidianNote, DailyObsidian]
+  @write [CreateObsidianNote, DailyObsidian, DownloadMedia, ExtractAudio, ExtractFrames]
   @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
