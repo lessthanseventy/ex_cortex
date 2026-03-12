@@ -10,7 +10,8 @@ receiving escalations.
 
 | Member | Discipline | Reflect? | Escalate? |
 |--------|-----------|----------|-----------|
-| Project Manager | Planning, triage, prioritization | No | Yes → CTO (lodge proposal) |
+| Project Manager | Triage, prioritization, merge decisions | No | Yes → CTO (lodge proposal) |
+| Product Analyst | Usage analysis, pain points, ticket creation | No | Yes → PM |
 | Code Writer | Elixir, Phoenix, LiveView | Yes (retry until tests pass) | Yes → PM |
 | Code Reviewer | Code quality, patterns, security | No | Yes → PM (request changes) |
 | QA / Test Writer | Testing, coverage | Yes (retry until passing) | Yes → PM |
@@ -50,7 +51,8 @@ receiving escalations.
 
 ### Member-Tool Mapping
 
-- **PM:** `search_github`, `create_github_issue`, `comment_github`, `merge_pr`, `git_pull`, `restart_app`, `close_issue`
+- **PM:** `search_github`, `comment_github`, `merge_pr`, `git_pull`, `restart_app`, `close_issue`
+- **Product Analyst:** `read_obsidian`, `query_lore`, `search_github`, `create_github_issue`, `read_file`, `list_files`, `run_sandbox`
 - **Code Writer:** `read_file`, `list_files`, `write_file`, `edit_file`, `git_commit`, `git_push`, `open_pr`, `run_sandbox`
 - **Code Reviewer:** `read_file`, `list_files`, `search_github`, `comment_github`
 - **QA / Test Writer:** `read_file`, `list_files`, `write_file`, `edit_file`, `run_sandbox`, `comment_github`
@@ -156,23 +158,32 @@ The guild files issues against itself, making the loop self-sustaining.
 | QA | Test run reveals existing gaps | "No tests for QuestDebouncer timeout edge case" |
 | UX Designer | Excessibility output reveals pre-existing violations | "Lodge page missing aria labels on proposal cards" |
 | PM — post-merge | Reflects on quest execution | "Code Writer didn't check for existing tests first" |
-| PM — scheduled sweep | Scheduled quest where PM scans codebase for tech debt, improvements | "Refactor: herald dispatch should use behaviour pattern" |
+| Product Analyst — scheduled sweep | Reads obsidian notes, lore, lodge history, git churn | "User keeps editing lodge_live.ex — investigate UX friction" |
+| Product Analyst — ad hoc | Spots user-facing issues during quest context | "Evaluation page has no loading state, user probably stares at a blank screen" |
 
 ### Scheduled Sweep
 
-A separate quest triggered on a schedule (configurable, default daily). The PM:
-1. Gathers context before scanning:
-   - `git log --shortstat` for recently/frequently changed files (churn = pain points)
-   - `git log --diff-filter=A` for newly added files that may lack tests
-   - File modification times to find hot areas of active development
-   - Open issue count and age to understand backlog health
-2. Scans the codebase using `read_file`, `list_files`, `run_sandbox` (credo, dialyzer)
-3. Cross-references: high-churn files with credo warnings = high-value targets
-4. Files `self-improvement` issues for anything found, prioritized by impact
-5. Prioritizes existing open issues (reorders labels, closes stale ones)
+A separate quest triggered on a schedule (configurable, default daily). The **Product Analyst**:
 
-This ensures the backlog stays fresh, and the PM focuses on files that actually
-matter rather than filing issues about dead code nobody touches.
+1. Gathers user context:
+   - Reads recent Obsidian notes via `read_obsidian` — look for frustrations, TODOs, wishes
+   - Queries Lore for evaluation patterns — what runs most, what fails, what gets rejected
+   - Checks Lodge card history — which proposals got approved vs rejected (signals user preferences)
+   - Reviews recent git history — what the user changes most often (churn = pain points)
+2. Gathers code context:
+   - `git log --shortstat` for frequently changed files
+   - `git log --diff-filter=A` for newly added files that may lack tests
+   - `run_sandbox` for credo/dialyzer output
+3. Cross-references user signals with code signals:
+   - User mentions "lodge is slow" + lodge_live.ex has high churn = high-priority issue
+   - User writes obsidian note about a workflow + no tests for that workflow = file ticket
+4. Files `self-improvement` issues prioritized by user impact, not just code quality
+5. Rate limit: max 3 issues per sweep
+
+The PM then triages these alongside any other open issues.
+
+This ensures the backlog reflects what the user actually cares about, not just
+what a linter found.
 
 ### Issue format
 
