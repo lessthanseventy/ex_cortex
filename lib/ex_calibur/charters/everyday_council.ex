@@ -631,19 +631,32 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         status: "active",
         trigger: "source",
         steps: [
-          %{"quest_name" => "Journal Intake", "flow" => "always"}
+          %{"quest_name" => "Smart Intake", "flow" => "always"}
         ],
         source_ids: []
       },
       %{
         name: "Morning Start",
-        description: "Daily 8am — check in with yourself, then get your morning briefing.",
+        description: "Daily 7-8am — email triage, command brief, then check in.",
         status: "active",
         trigger: "scheduled",
-        schedule: "0 8 * * *",
+        schedule: "0 7 * * *",
         steps: [
-          %{"quest_name" => "Daily Check-in", "flow" => "always"},
-          %{"quest_name" => "Morning Briefing", "flow" => "always"}
+          %{"quest_name" => "Email Triage", "flow" => "always"},
+          %{"quest_name" => "Morning Command Brief", "flow" => "always"},
+          %{"quest_name" => "Daily Check-in", "flow" => "always"}
+        ],
+        source_ids: []
+      },
+      %{
+        name: "Midday Check",
+        description: "Noon — GitHub pulse then midday scope check.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 12 * * *",
+        steps: [
+          %{"quest_name" => "GitHub Pulse", "flow" => "always"},
+          %{"quest_name" => "Midday Pulse", "flow" => "always"}
         ],
         source_ids: []
       },
@@ -660,13 +673,49 @@ defmodule ExCalibur.Charters.EverydayCouncil do
       },
       %{
         name: "Weekly Close",
-        description: "Friday evening — news digest then reflection, the full weekly loop.",
+        description: "Friday evening — news digest, GitHub weekly, life synthesis, then reflection.",
         status: "active",
         trigger: "scheduled",
         schedule: "0 19 * * 5",
         steps: [
           %{"quest_name" => "Weekly News Digest", "flow" => "always"},
+          %{"quest_name" => "GitHub Weekly", "flow" => "always"},
+          %{"quest_name" => "Weekly Life Synthesis", "flow" => "always"},
           %{"quest_name" => "Weekly Reflection", "flow" => "always"}
+        ],
+        source_ids: []
+      },
+      %{
+        name: "Monthly Close",
+        description: "First of the month — deep review of everything logged.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 10 1 * *",
+        steps: [
+          %{"quest_name" => "Monthly Review", "flow" => "always"}
+        ],
+        source_ids: []
+      },
+      %{
+        name: "Nightly Maintenance",
+        description: "3am — Obsidian vault cleanup, then trend detection.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 3 * * *",
+        steps: [
+          %{"quest_name" => "Obsidian Librarian", "flow" => "always"},
+          %{"quest_name" => "Trend Detector", "flow" => "always"}
+        ],
+        source_ids: []
+      },
+      %{
+        name: "Weekly Cleanup",
+        description: "Sunday night — email subscription cleanup.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 22 * * 0",
+        steps: [
+          %{"quest_name" => "Email Cleanup", "flow" => "always"}
         ],
         source_ids: []
       }
