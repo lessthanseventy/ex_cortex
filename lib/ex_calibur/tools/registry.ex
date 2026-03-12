@@ -6,9 +6,9 @@ defmodule ExCalibur.Tools.Registry do
   `ReqLLM.generate_text(model, context, tools: tools)`.
 
   Tiers:
-  - safe      — read-only, low risk (query_lore, fetch_url)
-  - write     — write or mutate data (none yet)
-  - dangerous — execute code/pipelines (run_quest)
+  - safe      — read-only, low risk (query_lore, query_dictionary, fetch_url, obsidian read, email read, github read, jq, pdf, document conversion)
+  - write     — write or mutate data (create_obsidian_note, daily_obsidian)
+  - dangerous — execute code/pipelines or send data externally (run_quest, send_email, create_github_issue, comment_github)
 
   Usage:
     Registry.list_safe()              # safe tools only
@@ -20,6 +20,7 @@ defmodule ExCalibur.Tools.Registry do
 
   alias ExCalibur.Tools.{
     QueryLore,
+    QueryDictionary,
     FetchUrl,
     RunQuest,
     SearchObsidian,
@@ -43,6 +44,7 @@ defmodule ExCalibur.Tools.Registry do
 
   @safe [
     QueryLore,
+    QueryDictionary,
     FetchUrl,
     SearchObsidian,
     SearchObsidianContent,
@@ -64,6 +66,7 @@ defmodule ExCalibur.Tools.Registry do
   def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())
   def list_dangerous, do: Enum.map(@safe ++ @write ++ @dangerous, & &1.req_llm_tool())
 
+  def resolve_tools(nil), do: []
   def resolve_tools(:all_safe), do: list_safe()
   def resolve_tools(:write), do: list_write()
   def resolve_tools(:dangerous), do: list_dangerous()

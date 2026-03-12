@@ -7,6 +7,7 @@ defmodule ExCalibur.Tools.RegistryTest do
     assert Enum.all?(tools, &is_struct(&1, ReqLLM.Tool))
     names = Enum.map(tools, & &1.name)
     assert "query_lore" in names
+    assert "query_dictionary" in names
     refute "run_quest" in names
   end
 
@@ -26,5 +27,27 @@ defmodule ExCalibur.Tools.RegistryTest do
 
   test "resolve_tools(:yolo) is alias for :dangerous" do
     assert Registry.resolve_tools(:yolo) == Registry.resolve_tools(:dangerous)
+  end
+
+  test "resolve_tools(nil) returns empty list" do
+    assert Registry.resolve_tools(nil) == []
+  end
+
+  test "resolve_tools(names_list) returns only the named tools" do
+    tools = Registry.resolve_tools(["query_lore", "query_dictionary"])
+    names = Enum.map(tools, & &1.name)
+    assert length(tools) == 2
+    assert "query_lore" in names
+    assert "query_dictionary" in names
+  end
+
+  test "Registry.get/1 returns a ReqLLM.Tool struct for a known tool" do
+    tool = Registry.get("query_lore")
+    assert is_struct(tool, ReqLLM.Tool)
+    assert tool.name == "query_lore"
+  end
+
+  test "Registry.get/1 returns nil for unknown tool" do
+    assert Registry.get("does_not_exist") == nil
   end
 end
