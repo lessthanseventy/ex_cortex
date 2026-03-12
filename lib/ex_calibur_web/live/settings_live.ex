@@ -28,6 +28,11 @@ defmodule ExCaliburWeb.SettingsLive do
     ],
     web_search: [
       {:ddgr_num_results, "Default result count", "text", "Number of results per search (default 10)"}
+    ],
+    nextcloud: [
+      {:nextcloud_url, "Nextcloud URL", "text", "e.g. http://localhost:8080"},
+      {:nextcloud_user, "Username", "text", "Nextcloud login username"},
+      {:nextcloud_password, "Password", "text", "Nextcloud login password"}
     ]
   ]
 
