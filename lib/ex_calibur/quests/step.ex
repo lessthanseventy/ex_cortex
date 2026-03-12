@@ -34,6 +34,8 @@ defmodule ExCalibur.Quests.Step do
     field :pin_order, :integer, default: 0
     field :cards, :map, default: %{}
     field :guild_name, :string
+    field :dangerous_tool_mode, :string, default: "execute"
+    field :max_tool_iterations, :integer, default: 15
     timestamps()
   end
 
@@ -63,7 +65,9 @@ defmodule ExCalibur.Quests.Step do
     :pin_slug,
     :pin_order,
     :cards,
-    :guild_name
+    :guild_name,
+    :dangerous_tool_mode,
+    :max_tool_iterations
   ]
 
   def changeset(step, attrs) do
@@ -85,6 +89,7 @@ defmodule ExCalibur.Quests.Step do
       "pagerduty"
     ])
     |> validate_inclusion(:write_mode, ["append", "replace", "both"])
+    |> validate_inclusion(:dangerous_tool_mode, ~w(execute intercept dry_run))
     |> validate_inclusion(:min_rank, ~w(apprentice journeyman master),
       message: "must be apprentice, journeyman, or master"
     )
