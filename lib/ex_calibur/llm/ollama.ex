@@ -189,9 +189,11 @@ defmodule ExCalibur.LLM.Ollama do
     end)
   end
 
-  defp tool_call_incompatible?(body) when is_binary(body), do: String.contains?(body, "roles must alternate")
+  defp tool_call_incompatible?(body) when is_binary(body),
+    do: String.contains?(body, "roles must alternate")
 
-  defp tool_call_incompatible?(%{"error" => msg}) when is_binary(msg), do: String.contains?(msg, "roles must alternate")
+  defp tool_call_incompatible?(%{"error" => msg}) when is_binary(msg),
+    do: String.contains?(msg, "roles must alternate")
 
   defp tool_call_incompatible?(_), do: false
 

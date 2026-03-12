@@ -222,9 +222,11 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
   defp seed_lore do
     existing =
-      Repo.exists?(from(e in ExCalibur.Lore.LoreEntry, where: e.title == @lore_title))
+      ExCalibur.Repo.exists?(
+        from(e in ExCalibur.Lore.LoreEntry, where: e.title == @lore_title)
+      )
 
-    if !existing do
+    unless existing do
       ExCalibur.Lore.create_entry(%{
         title: @lore_title,
         source: "manual",
