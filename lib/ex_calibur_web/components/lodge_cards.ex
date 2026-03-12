@@ -138,6 +138,163 @@ defmodule ExCaliburWeb.Components.LodgeCards do
     """
   end
 
+  def lodge_card(%{card: %{type: "briefing"}} = assigns) do
+    ~H"""
+    <.lodge_card_frame card={@card}>
+      <.md_body body={@card.body} />
+    </.lodge_card_frame>
+    """
+  end
+
+  def lodge_card(%{card: %{type: "action_list"}} = assigns) do
+    items = assigns.card.metadata["items"] || []
+    action_labels = assigns.card.metadata["action_labels"] || %{}
+    approve_label = action_labels["approve"] || "Approve"
+    reject_label = action_labels["reject"] || "Reject"
+    assigns = assign(assigns, items: items, approve_label: approve_label, reject_label: reject_label)
+
+    ~H"""
+    <.lodge_card_frame card={@card}>
+      <div class="space-y-2">
+        <%= for item <- @items do %>
+          <div class={[
+            "flex items-center justify-between gap-3 rounded-md border p-3 text-sm",
+            item["status"] == "approved" && "bg-green-50 dark:bg-green-950/20",
+            item["status"] == "rejected" && "bg-red-50 dark:bg-red-950/20 opacity-60"
+          ]}>
+            <div>
+              <div class="font-medium">{item["label"]}</div>
+              <%= if item["detail"] do %>
+                <div class="text-xs text-muted-foreground">{item["detail"]}</div>
+              <% end %>
+            </div>
+            <%= if item["status"] == "pending" do %>
+              <div class="flex gap-1.5 shrink-0">
+                <.button
+                  size="sm"
+                  variant="outline"
+                  phx-click="action_list_approve"
+                  phx-value-card-id={@card.id}
+                  phx-value-item-id={item["id"]}
+                >
+                  {@approve_label}
+                </.button>
+                <.button
+                  size="sm"
+                  variant="ghost"
+                  phx-click="action_list_reject"
+                  phx-value-card-id={@card.id}
+                  phx-value-item-id={item["id"]}
+                >
+                  {@reject_label}
+                </.button>
+              </div>
+            <% else %>
+              <.badge variant={if item["status"] == "approved", do: "default", else: "secondary"}>
+                {item["status"]}
+              </.badge>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </.lodge_card_frame>
+    """
+  end
+
+  def lodge_card(%{card: %{type: "table"}} = assigns) do
+    columns = assigns.card.metadata["columns"] || []
+    rows = assigns.card.metadata["rows"] || []
+    assigns = assign(assigns, columns: columns, rows: rows)
+
+    ~H"""
+    <.lodge_card_frame card={@card}>
+      <.md_body body={@card.body} />
+      <%= if @columns != [] do %>
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b">
+                <%= for col <- @columns do %>
+                  <th class="text-left py-1.5 px-2 font-medium text-muted-foreground">{col}</th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for row <- @rows do %>
+                <tr class="border-b last:border-0">
+                  <%= for col <- @columns do %>
+                    <td class="py-1.5 px-2">{row[col] || ""}</td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </.lodge_card_frame>
+    """
+  end
+
+  def lodge_card(%{card: %{type: "media"}} = assigns) do
+    thumbnail = assigns.card.metadata["thumbnail"] || assigns.card.metadata["url"]
+    caption = assigns.card.metadata["caption"] || ""
+    assigns = assign(assigns, thumbnail: thumbnail, caption: caption)
+
+    ~H"""
+    <.lodge_card_frame card={@card}>
+      <%= if @thumbnail do %>
+        <img src={@thumbnail} alt={@card.title} class="rounded-md max-h-64 object-cover w-full" />
+      <% end %>
+      <%= if @caption != "" do %>
+        <p class="text-sm text-muted-foreground mt-1">{@caption}</p>
+      <% end %>
+      <.md_body body={@card.body} />
+    </.lodge_card_frame>
+    """
+  end
+
+  def lodge_card(%{card: %{type: "metric"}} = assigns) do
+    value = assigns.card.metadata["value"] || "—"
+    trend = assigns.card.metadata["trend"]
+
+    trend_icon =
+      case trend do
+        "up" -> "↑"
+        "down" -> "↓"
+        "flat" -> "→"
+        _ -> nil
+      end
+
+    trend_color =
+      case trend do
+        "up" -> "text-green-600 dark:text-green-400"
+        "down" -> "text-red-600 dark:text-red-400"
+        _ -> "text-muted-foreground"
+      end
+
+    assigns = assign(assigns, value: value, trend_icon: trend_icon, trend_color: trend_color)
+
+    ~H"""
+    <.lodge_card_frame card={@card}>
+      <div class="flex items-baseline gap-2">
+        <span class="text-3xl font-bold tracking-tight">{@value}</span>
+        <%= if @trend_icon do %>
+          <span class={"text-lg font-semibold " <> @trend_color}>{@trend_icon}</span>
+        <% end %>
+      </div>
+      <.md_body body={@card.body} />
+    </.lodge_card_frame>
+    """
+  end
+
+  def lodge_card(%{card: %{type: "freeform"}} = assigns) do
+    ~H"""
+    <.lodge_card_frame card={@card}>
+      <.md_body body={@card.body} />
+    </.lodge_card_frame>
+    """
+  end
+
   # Fallback
   def lodge_card(assigns) do
     ~H"""

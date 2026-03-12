@@ -657,7 +657,7 @@ defmodule ExCalibur.StepRunner do
       case Regex.run(~r/^CARD_TYPE:\s*(.+)$/m, text) do
         [_, ct] ->
           ct = ct |> String.trim() |> String.downcase()
-          if ct in ~w(note checklist meeting alert link), do: ct
+          if ct in ~w(note checklist meeting alert link briefing action_list table media metric freeform), do: ct
 
         _ ->
           nil
@@ -666,7 +666,7 @@ defmodule ExCalibur.StepRunner do
     %{title: title, body: body, tags: tags, importance: importance, card_type: card_type, source: "step"}
   end
 
-  @valid_card_types ~w(note checklist meeting alert link)
+  @valid_card_types ~w(note checklist meeting alert link briefing action_list table media metric freeform)
   defp parse_card_type(nil), do: nil
   defp parse_card_type(""), do: nil
 
