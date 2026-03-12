@@ -38,6 +38,7 @@ defmodule ExCaliburWeb.Router do
       live "/evaluate", EvaluateLive, :index
       live "/lodge", LodgeLive, :index
       live "/guide", GuideLive, :index
+      live "/settings", SettingsLive
     end
   end
 end
