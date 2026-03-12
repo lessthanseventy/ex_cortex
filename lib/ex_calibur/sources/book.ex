@@ -324,6 +324,47 @@ defmodule ExCalibur.Sources.Book do
         suggested_guild: nil,
         kind: :book
       },
+      # Nextcloud
+      %__MODULE__{
+        id: "nextcloud_files",
+        banner: :lifestyle,
+        name: "Nextcloud Files",
+        description: "Watch a Nextcloud folder for new and changed files.",
+        source_type: "nextcloud",
+        default_config: %{"watch_path" => "/Documents", "interval" => 60_000},
+        suggested_guild: nil,
+        kind: :book
+      },
+      %__MODULE__{
+        id: "nextcloud_notes",
+        banner: :lifestyle,
+        name: "Nextcloud Notes",
+        description: "Monitor Nextcloud Notes for new entries and changes.",
+        source_type: "nextcloud",
+        default_config: %{"watch_type" => "notes", "interval" => 120_000},
+        suggested_guild: nil,
+        kind: :book
+      },
+      %__MODULE__{
+        id: "nextcloud_calendar",
+        banner: :lifestyle,
+        name: "Nextcloud Calendar",
+        description: "Watch Nextcloud Calendar for upcoming events and changes.",
+        source_type: "nextcloud",
+        default_config: %{"watch_type" => "calendar", "interval" => 300_000},
+        suggested_guild: nil,
+        kind: :book
+      },
+      %__MODULE__{
+        id: "nextcloud_talk",
+        banner: :lifestyle,
+        name: "Nextcloud Talk",
+        description: "Monitor Nextcloud Talk conversations for new messages.",
+        source_type: "nextcloud",
+        default_config: %{"watch_type" => "talk", "interval" => 30_000},
+        suggested_guild: nil,
+        kind: :book
+      },
       %__MODULE__{
         id: "lodge_watcher",
         name: "Lodge Card Watcher",
