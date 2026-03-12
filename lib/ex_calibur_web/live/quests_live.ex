@@ -1070,6 +1070,16 @@ defmodule ExCaliburWeb.QuestsLive do
                 · listening for all Grimoire entries
               </span>
             <% end %>
+            <%= if @quest.trigger == "source" and @quest.source_ids != [] do %>
+              <p class="text-xs text-muted-foreground">
+                Triggered by: {Enum.map_join(@quest.source_ids, ", ", fn sid ->
+                  case Enum.find(@sources, &(to_string(&1.id) == sid)) do
+                    nil -> sid
+                    s -> s.config["name"] || s.book_id || to_string(s.id)
+                  end
+                end)}
+              </p>
+            <% end %>
           </div>
           <.badge variant="outline" class="text-xs shrink-0">{trigger_label(@quest.trigger)}</.badge>
         </div>
