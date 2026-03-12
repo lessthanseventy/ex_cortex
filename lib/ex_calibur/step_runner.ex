@@ -26,6 +26,23 @@ defmodule ExCalibur.StepRunner do
 
   @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
 
+  @dangerous_tools ~w(send_email create_github_issue comment_github run_quest)
+
+  def dangerous?(tool_name), do: tool_name in @dangerous_tools
+
+  def intercept_dangerous_tool(tool_name, tool_args, quest_id, context \\ nil) do
+    ExCalibur.Quests.create_proposal(%{
+      quest_id: quest_id,
+      type: "tool_action",
+      description: "Tool call: #{tool_name}",
+      details: %{"suggestion" => context || "Automated tool call"},
+      status: "pending",
+      tool_name: tool_name,
+      tool_args: tool_args,
+      context: context
+    })
+  end
+
   @doc "Build the ordered list of models to try: assigned model first, then fallback chain (deduped)."
   defdelegate fallback_models_for(model, chain), to: ExCalibur.LLM.Ollama
 
