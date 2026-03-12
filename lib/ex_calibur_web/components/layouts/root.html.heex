@@ -28,17 +28,18 @@
           <% end %>
         </a>
         <div class="flex overflow-x-auto">
-          <%= for {label, path} <- [
-            {"Lodge", ~p"/lodge"},
-            {"Guild Hall", ~p"/guild-hall"},
-            {"Quests", ~p"/quests"},
-            {"Grimoire", ~p"/grimoire"},
-            {"Library", ~p"/library"},
-            {"Town Square", ~p"/town-square"},
-            {"Settings", ~p"/settings"}
+          <%= for {label, path, tooltip} <- [
+            {"Town Square", ~p"/town-square", "Choose your guild and banner"},
+            {"Guild Hall", ~p"/guild-hall", "Manage members, roles, and charters"},
+            {"Quests", ~p"/quests", "Build workflows and set triggers"},
+            {"Library", ~p"/library", "Sources, scrolls, books, and dictionaries"},
+            {"Lodge", ~p"/lodge", "Bulletin board — notes, alerts, quest output"},
+            {"Grimoire", ~p"/grimoire", "Quest history and accumulated lore"},
+            {"Settings", ~p"/settings", "Tool and integration configuration"}
           ] do %>
             <a
               href={path}
+              title={tooltip}
               class={[
                 "px-4 py-4 text-sm whitespace-nowrap transition-colors border-b-2",
                 if(String.starts_with?(@conn.request_path, path),
