@@ -30,9 +30,21 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
 
 config :ex_calibur, :model_fallback_chain, ["devstral-small-2:24b"]
 
+config :ex_calibur, :nextcloud_roles, %{
+  "admin" => :super_admin,
+  "andrew" => :super_admin,
+  "robyn" => :admin,
+  "jude" => :user
+}
+
 config :ex_calibur,
   ecto_repos: [ExCalibur.Repo],
   generators: [timestamp_type: :utc_datetime]
+
+config :ex_calibur,
+  nextcloud_url: System.get_env("NEXTCLOUD_URL", "http://localhost:8080"),
+  nextcloud_user: System.get_env("NEXTCLOUD_USER", "admin"),
+  nextcloud_password: System.get_env("NEXTCLOUD_PASSWORD", "admin")
 
 config :ex_cellence, Oban,
   engine: Oban.Engines.Basic,
