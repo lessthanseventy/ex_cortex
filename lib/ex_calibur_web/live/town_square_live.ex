@@ -184,16 +184,26 @@ defmodule ExCaliburWeb.TownSquareLive do
   defp create_default_sources(guild_name) do
     books = Book.for_guild(guild_name)
 
-    Enum.each(books, fn book ->
-      %Source{}
-      |> Source.changeset(%{
-        source_type: book.source_type,
-        config: book.default_config,
-        book_id: book.id,
-        status: "paused"
-      })
-      |> ExCalibur.Repo.insert()
-    end)
+    source_ids =
+      Enum.flat_map(books, fn book ->
+        case %Source{}
+             |> Source.changeset(%{
+               source_type: book.source_type,
+               config: book.default_config,
+               book_id: book.id,
+               status: "paused"
+             })
+             |> ExCalibur.Repo.insert() do
+          {:ok, source} -> [to_string(source.id)]
+          _ -> []
+        end
+      end)
+
+    if source_ids != [] do
+      Quests.list_steps()
+      |> Enum.filter(&(&1.trigger == "source"))
+      |> Enum.each(&Quests.update_step(&1, %{source_ids: source_ids}))
+    end
   end
 
   defp current_guild_name do
