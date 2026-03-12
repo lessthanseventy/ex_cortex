@@ -30,6 +30,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
          {:ok, quest} <- create_quest(source, steps),
          {:ok, sweep_step} <- create_sweep_step(),
          {:ok, sweep_quest} <- create_sweep_quest(sweep_step) do
+      seed_lore()
       {:ok, %{source: source, steps: steps, quest: quest, sweep_quest: sweep_quest}}
     end
   end
@@ -186,10 +187,20 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   defp create_sweep_step do
     Quests.create_step(%{
       name: "SI: Product Analyst Sweep",
-      description:
-        "Product Analyst proactively analyzes the codebase, runs credo, checks Obsidian/Lore if available, and files up to 5 GitHub issues labeled self-improvement.",
+      description: """
+      Product Analyst proactively analyzes the codebase, runs credo, checks Obsidian/Lore if available, and files up to 5 GitHub issues labeled self-improvement.
+
+      If you write or modify any files (tests, source code, config), you MUST run `mix test` via run_sandbox afterward.
+      If the sandbox returns a compile error or test failure, fix the issue immediately — read the failing file, diagnose the error, correct it, and re-run.
+      Do NOT file a GitHub issue for a problem you introduced. Only file issues for pre-existing problems you cannot fix in this session.
+
+      Query lore before writing Elixir tests — the grimoire contains important testing patterns for this codebase.
+      """,
       trigger: "manual",
       output_type: "freeform",
+      loop_mode: "reflect",
+      max_iterations: 3,
+      loop_tools: ["run_sandbox", "read_file", "write_file", "edit_file", "list_files", "query_lore"],
       roster: [
         %{
           "who" => "all",
@@ -199,6 +210,130 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         }
       ]
     })
+  end
+
+  @lore_title "José Valim's Grimoire: Elixir Testing Patterns"
+
+  defp seed_lore do
+    existing =
+      ExCalibur.Repo.exists?(
+        from(e in ExCalibur.Lore.LoreEntry, where: e.title == @lore_title)
+      )
+
+    unless existing do
+      ExCalibur.Lore.create_entry(%{
+        title: @lore_title,
+        source: "manual",
+        importance: 5,
+        tags: ["elixir", "testing", "patterns", "grimoire"],
+        body: """
+        # José Valim's Grimoire: Elixir Testing Patterns
+
+        *Authoritative guidance on modern Elixir testing for this codebase.*
+
+        ---
+
+        ## Never mock module functions by assignment
+
+        This is invalid Elixir — modules are compiled bytecode, not mutable objects:
+
+        ```elixir
+        # WRONG — will not compile
+        MyModule.some_function = fn _ -> :ok end
+        ```
+
+        For DB-dependent code, use real data. For external services, inject the dependency
+        or define a behaviour and use `Mox`. When in doubt, test with the real thing.
+
+        ---
+
+        ## Use DataCase for anything that touches the database
+
+        ```elixir
+        # Pure unit test — no DB needed
+        defmodule MyTest do
+          use ExUnit.Case, async: true
+          ...
+        end
+
+        # DB-dependent test — use DataCase (wraps each test in a rolled-back transaction)
+        defmodule MyRepoTest do
+          use ExCalibur.DataCase, async: true
+          ...
+        end
+        ```
+
+        `async: true` is safe on DataCase because each test gets its own sandbox connection.
+        Use `async: false` only when tests share global state (PubSub subscriptions, named processes).
+
+        ---
+
+        ## Non-empty list checks
+
+        `length/1` traverses the entire list — O(n) — before you can check the result.
+        Prefer pattern matching or direct comparison:
+
+        ```elixir
+        # SLOW — avoid
+        assert length(list) > 0
+
+        # FAST — prefer
+        assert list != []
+
+        # Even better when you need the first element too
+        assert [_ | _] = list
+        ```
+
+        ---
+
+        ## Assert on structure, not just truthiness
+
+        ```elixir
+        # Weak
+        assert result
+
+        # Better — asserts shape and binds the value
+        assert {:ok, %{id: id}} = result
+        ```
+
+        ---
+
+        ## Async messages: assert_receive, not sleep
+
+        ```elixir
+        # BAD
+        Process.sleep(100)
+        assert something_happened()
+
+        # GOOD
+        assert_receive {:event, :my_event}, 500
+        ```
+
+        ---
+
+        ## Test the public interface, not private functions
+
+        Private functions are implementation details. Test them indirectly through the
+        public API. If a private function is complex enough to test directly, it should
+        probably be a separate module.
+
+        ---
+
+        ## ExUnit tags for selective running
+
+        ```elixir
+        @tag :integration
+        test "hits the real API" do ...
+
+        # Run only integration tests
+        # mix test --only integration
+
+        # Skip slow tests
+        # mix test --exclude slow
+        ```
+        """
+      })
+    end
   end
 
   defp create_sweep_quest(sweep_step) do
