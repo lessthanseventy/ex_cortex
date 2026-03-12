@@ -47,7 +47,9 @@ defmodule ExCaliburWeb.LodgeLive do
       end
 
     cards = Lodge.list_cards(opts)
-    assign(socket, cards: cards)
+    pinned = Enum.filter(cards, & &1.pinned)
+    feed = Enum.reject(cards, & &1.pinned)
+    assign(socket, cards: cards, pinned_cards: pinned, feed_cards: feed)
   end
 
   @impl true
@@ -156,13 +158,32 @@ defmodule ExCaliburWeb.LodgeLive do
   end
 
   @impl true
+  def handle_event("action_list_approve", %{"card-id" => id, "item-id" => item_id}, socket) do
+    update_action_list_item(id, item_id, "approved")
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
+  def handle_event("action_list_reject", %{"card-id" => id, "item-id" => item_id}, socket) do
+    update_action_list_item(id, item_id, "rejected")
+    {:noreply, load_cards(socket)}
+  end
+
+  @impl true
   def handle_event("approve_proposal", %{"card-id" => id}, socket) do
     card = Lodge.get_card!(id)
     proposal_id = card.metadata["proposal_id"]
 
     if proposal_id do
       proposal = ExCalibur.Repo.get(Proposal, proposal_id)
-      if proposal, do: ExCalibur.Quests.approve_proposal(proposal)
+
+      if proposal do
+        ExCalibur.Quests.approve_proposal(proposal)
+
+        if proposal.type == "tool_action" do
+          ExCalibur.Quests.execute_tool_proposal(proposal)
+        end
+      end
     end
 
     Lodge.dismiss_card(card)
@@ -197,7 +218,7 @@ defmodule ExCaliburWeb.LodgeLive do
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Lodge</h1>
         <p class="text-muted-foreground mt-1.5">
-          Your guild's bulletin board — notes, checklists, alerts, and quest output.
+          Your guild's dashboard — pinned cards, quest output, and notes.
         </p>
       </div>
 
@@ -209,8 +230,12 @@ defmodule ExCaliburWeb.LodgeLive do
                 name="card[type]"
                 class="h-9 text-sm border border-input rounded-md px-3 bg-background"
               >
+                <option value="briefing">Briefing</option>
                 <option value="note">Note</option>
                 <option value="checklist">Checklist</option>
+                <option value="table">Table</option>
+                <option value="metric">Metric</option>
+                <option value="freeform">Freeform</option>
                 <option value="meeting">Meeting</option>
                 <option value="alert">Alert</option>
                 <option value="link">Link</option>
@@ -277,20 +302,59 @@ defmodule ExCaliburWeb.LodgeLive do
         <% end %>
       </div>
 
-      <%= if @cards == [] do %>
-        <div class="rounded-lg border p-8 text-center">
-          <p class="text-muted-foreground text-sm">
-            No cards yet. Add one above or run a quest that posts to the Lodge.
-          </p>
-        </div>
-      <% else %>
-        <div class="space-y-4">
-          <%= for card <- @cards do %>
-            <.lodge_card card={card} />
-          <% end %>
+      <%!-- Pinned Cards Grid --%>
+      <%= if @pinned_cards != [] do %>
+        <div>
+          <h2 class="text-sm font-medium text-muted-foreground mb-3">Pinned</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <%= for card <- @pinned_cards do %>
+              <div class={card_grid_class(card)}>
+                <.lodge_card card={card} />
+              </div>
+            <% end %>
+          </div>
         </div>
       <% end %>
+
+      <%!-- Feed --%>
+      <div>
+        <%= if @pinned_cards != [] do %>
+          <h2 class="text-sm font-medium text-muted-foreground mb-3">Recent</h2>
+        <% end %>
+        <%= if @feed_cards == [] and @pinned_cards == [] do %>
+          <div class="rounded-lg border p-8 text-center">
+            <p class="text-muted-foreground text-sm">
+              No cards yet. Add one above or run a quest that posts to the Lodge.
+            </p>
+          </div>
+        <% else %>
+          <div class="space-y-4">
+            <%= for card <- @feed_cards do %>
+              <.lodge_card card={card} />
+            <% end %>
+          </div>
+        <% end %>
+      </div>
     </div>
     """
   end
+
+  defp update_action_list_item(card_id, item_id, status) do
+    card = Lodge.get_card!(card_id)
+    items = card.metadata["items"] || []
+
+    updated_items =
+      Enum.map(items, fn item ->
+        if item["id"] == item_id, do: Map.put(item, "status", status), else: item
+      end)
+
+    Lodge.update_card(card, %{metadata: Map.put(card.metadata, "items", updated_items)})
+  end
+
+  defp card_grid_class(%{type: "metric"}), do: "col-span-1"
+
+  defp card_grid_class(%{type: type}) when type in ~w(briefing table), do: "md:col-span-2 lg:col-span-2"
+
+  defp card_grid_class(%{type: "action_list"}), do: "col-span-1 md:col-span-2 lg:col-span-3"
+  defp card_grid_class(_), do: "col-span-1"
 end
