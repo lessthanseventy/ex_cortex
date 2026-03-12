@@ -18,10 +18,20 @@ defmodule ExCalibur.Tools.Registry do
     Registry.resolve_tools(:all_safe) # from step/member config
   """
 
-  alias ExCalibur.Tools.{QueryLore, FetchUrl, RunQuest}
+  alias ExCalibur.Tools.{
+    QueryLore,
+    FetchUrl,
+    RunQuest,
+    SearchObsidian,
+    SearchObsidianContent,
+    ReadObsidian,
+    ReadObsidianFrontmatter,
+    CreateObsidianNote,
+    DailyObsidian
+  }
 
-  @safe [QueryLore, FetchUrl]
-  @write []
+  @safe [QueryLore, FetchUrl, SearchObsidian, SearchObsidianContent, ReadObsidian, ReadObsidianFrontmatter]
+  @write [CreateObsidianNote, DailyObsidian]
   @dangerous [RunQuest]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
