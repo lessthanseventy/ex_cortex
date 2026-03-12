@@ -4,18 +4,20 @@ defmodule ExCalibur.Settings do
   use Ecto.Schema
 
   import Ecto.Changeset
+  import Ecto.Query
 
   @valid_banners ~w(tech lifestyle business)
 
   schema "settings" do
     field :banner, :string
+    field :config, :map, default: %{}
 
     timestamps()
   end
 
   def changeset(settings, attrs) do
     settings
-    |> cast(attrs, [:banner])
+    |> cast(attrs, [:banner, :config])
     |> validate_inclusion(:banner, @valid_banners)
   end
 
@@ -35,6 +37,22 @@ defmodule ExCalibur.Settings do
 
     case_result
     |> changeset(%{banner: banner})
+    |> ExCalibur.Repo.insert_or_update()
+  end
+
+  def get(key) when is_atom(key) do
+    case ExCalibur.Repo.one(from(s in __MODULE__)) do
+      nil -> nil
+      setting -> get_in(setting.config || %{}, [Atom.to_string(key)])
+    end
+  end
+
+  def put(key, value) when is_atom(key) do
+    setting = ExCalibur.Repo.one(from(s in __MODULE__)) || %__MODULE__{}
+    config = Map.put(setting.config || %{}, Atom.to_string(key), value)
+
+    setting
+    |> changeset(%{config: config})
     |> ExCalibur.Repo.insert_or_update()
   end
 end

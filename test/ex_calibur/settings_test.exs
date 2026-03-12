@@ -1,5 +1,5 @@
 defmodule ExCalibur.SettingsTest do
-  use ExCalibur.DataCase
+  use ExCalibur.DataCase, async: false
 
   alias ExCalibur.Settings
 
@@ -22,6 +22,23 @@ defmodule ExCalibur.SettingsTest do
     test "set_banner/1 validates banner value" do
       assert {:error, changeset} = Settings.set_banner("invalid")
       assert %{banner: ["is invalid"]} = errors_on(changeset)
+    end
+  end
+
+  describe "config" do
+    test "get/1 returns nil for unconfigured key" do
+      assert Settings.get(:obsidian_vault) == nil
+    end
+
+    test "put/2 stores and get/1 retrieves" do
+      Settings.put(:obsidian_vault, "MyVault")
+      assert Settings.get(:obsidian_vault) == "MyVault"
+    end
+
+    test "put/2 overwrites existing value" do
+      Settings.put(:obsidian_vault, "Old")
+      Settings.put(:obsidian_vault, "New")
+      assert Settings.get(:obsidian_vault) == "New"
     end
   end
 end
