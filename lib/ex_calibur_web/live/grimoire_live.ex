@@ -146,7 +146,9 @@ defmodule ExCaliburWeb.GrimoireLive do
             Quest log and telemetry for your guild's missions.
           </p>
           <p class="text-sm text-muted-foreground">
-            {length(@quests)} quests tracked · {Enum.sum(Enum.map(@run_stats, fn {_id, s} -> s.total end))} runs total
+            {length(@quests)} quests tracked · {Enum.sum(
+              Enum.map(@run_stats, fn {_id, s} -> s.total end)
+            )} runs total
           </p>
         </div>
 

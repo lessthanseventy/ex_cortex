@@ -505,7 +505,10 @@ defmodule ExCaliburWeb.QuestsLive do
           Structured workflows — build steps, set a trigger, run on demand or on schedule.
         </p>
         <p class="text-sm text-muted-foreground">
-          {length(@quests)} quests · {Enum.count(@quests, &(&1.trigger == "scheduled"))} scheduled · {Enum.count(@quests, &(&1.trigger == "source"))} source-triggered
+          {length(@quests)} quests · {Enum.count(@quests, &(&1.trigger == "scheduled"))} scheduled · {Enum.count(
+            @quests,
+            &(&1.trigger == "source")
+          )} source-triggered
         </p>
       </div>
 
