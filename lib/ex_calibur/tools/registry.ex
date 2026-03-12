@@ -48,9 +48,9 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.ReadEmail
   alias ExCalibur.Tools.ReadFile
   alias ExCalibur.Tools.ReadGithubIssue
+  alias ExCalibur.Tools.ReadImageText
   alias ExCalibur.Tools.ReadNextcloud
   alias ExCalibur.Tools.ReadNextcloudNotes
-  alias ExCalibur.Tools.ReadImageText
   alias ExCalibur.Tools.ReadObsidian
   alias ExCalibur.Tools.ReadObsidianFrontmatter
   alias ExCalibur.Tools.ReadPdf
@@ -114,7 +114,17 @@ defmodule ExCalibur.Tools.Registry do
     CreateNextcloudNote,
     NextcloudCalendar
   ]
-  @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub, MergePR, GitPull, RestartApp, CloseIssue, NextcloudTalk]
+  @dangerous [
+    RunQuest,
+    SendEmail,
+    CreateGithubIssue,
+    CommentGithub,
+    MergePR,
+    GitPull,
+    RestartApp,
+    CloseIssue,
+    NextcloudTalk
+  ]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
   def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())

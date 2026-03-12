@@ -6,7 +6,8 @@ defmodule ExCalibur.Tools.NextcloudTalk do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "nextcloud_talk",
-      description: "Send a message to a Nextcloud Talk conversation. This is a dangerous tool that sends visible messages.",
+      description:
+        "Send a message to a Nextcloud Talk conversation. This is a dangerous tool that sends visible messages.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

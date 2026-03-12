@@ -34,7 +34,7 @@ defmodule ExCalibur.Tools.WriteNextcloud do
   defp ensure_dirs("/"), do: :ok
 
   defp ensure_dirs(path) do
-    parts = path |> String.split("/", trim: true)
+    parts = String.split(path, "/", trim: true)
 
     Enum.reduce(parts, "", fn part, acc ->
       dir = "#{acc}/#{part}"
