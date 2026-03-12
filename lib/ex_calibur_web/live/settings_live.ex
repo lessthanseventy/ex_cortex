@@ -8,31 +8,26 @@ defmodule ExCaliburWeb.SettingsLive do
     obsidian: [
       {:obsidian_vault, "Vault name", "text", "e.g. notes"},
       {:obsidian_vault_path, "Vault path", "text", "Absolute path to vault folder for file sync"},
-      {:obsidian_sync_enabled, "Sync enabled", "checkbox",
-       "Auto-sync lore entries and lodge cards to Obsidian"}
+      {:obsidian_sync_enabled, "Sync enabled", "checkbox", "Auto-sync lore entries and lodge cards to Obsidian"}
     ],
     email: [
       {:notmuch_db_path, "Notmuch config path", "text",
        "Path to .notmuch-config (leave blank for default ~/.notmuch-config)"},
-      {:msmtp_account, "msmtp account", "text",
-       "Account name from ~/.msmtprc (leave blank for default)"}
+      {:msmtp_account, "msmtp account", "text", "Account name from ~/.msmtprc (leave blank for default)"}
     ],
     github: [
-      {:default_repo, "Default repo", "text",
-       "owner/repo used when no repo is specified"}
+      {:default_repo, "Default repo", "text", "owner/repo used when no repo is specified"}
     ],
     vision: [
       {:vision_provider, "Vision provider", "select", "ollama or claude"},
       {:ollama_vision_model, "Ollama vision model", "text", "e.g. llava (default)"}
     ],
     media: [
-      {:media_dir, "Media directory", "text",
-       "Where downloaded media is stored (default /tmp/ex_calibur/media)"},
+      {:media_dir, "Media directory", "text", "Where downloaded media is stored (default /tmp/ex_calibur/media)"},
       {:frame_mode, "Frame extraction mode", "select", "keyframes or interval"}
     ],
     web_search: [
-      {:ddgr_num_results, "Default result count", "text",
-       "Number of results per search (default 10)"}
+      {:ddgr_num_results, "Default result count", "text", "Number of results per search (default 10)"}
     ]
   ]
 
@@ -51,7 +46,7 @@ defmodule ExCaliburWeb.SettingsLive do
   def handle_event("save_section", %{"section" => section_str} = params, socket) do
     section = String.to_existing_atom(section_str)
     form_data = Map.get(params, "settings", %{})
-    keys = @sections[section] |> Enum.map(fn {k, _, _, _} -> k end)
+    keys = Enum.map(@sections[section], fn {k, _, _, _} -> k end)
 
     Enum.each(keys, fn key ->
       value = Map.get(form_data, Atom.to_string(key))
@@ -84,7 +79,12 @@ defmodule ExCaliburWeb.SettingsLive do
 
     ~H"""
     <div class="max-w-2xl mx-auto p-6 space-y-8">
-      <h1 class="text-2xl font-bold">Settings</h1>
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Settings</h1>
+        <p class="text-muted-foreground mt-1.5">
+          Configure tool integrations and external service connections.
+        </p>
+      </div>
 
       <%= for {section, fields} <- @sections do %>
         <div class="border rounded-lg p-4 space-y-4">
