@@ -5,50 +5,40 @@ defmodule ExCalibur.Tools.Registry do
   Returns `ReqLLM.Tool` structs — pass them directly to
   `ReqLLM.generate_text(model, context, tools: tools)`.
 
+  Tiers:
+  - safe      — read-only, low risk (query_lore, fetch_url)
+  - write     — write or mutate data (none yet)
+  - dangerous — execute code/pipelines (run_quest)
+
   Usage:
     Registry.list_safe()              # safe tools only
-    Registry.list_yolo()              # all tools
+    Registry.list_write()             # safe + write tools
+    Registry.list_dangerous()         # all tools
     Registry.get("query_lore")        # single tool by name
     Registry.resolve_tools(:all_safe) # from step/member config
   """
 
-  @safe_entries [
-    ExCalibur.Tools.QueryLore,
-    ExCalibur.Tools.RunQuest
-  ]
+  alias ExCalibur.Tools.{QueryLore, FetchUrl, RunQuest}
 
-  @yolo_entries [
-    ExCalibur.Tools.FetchUrl
-  ]
+  @safe [QueryLore, FetchUrl]
+  @write []
+  @dangerous [RunQuest]
 
-  def list_safe, do: Enum.map(@safe_entries, & &1.req_llm_tool())
+  def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
+  def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())
+  def list_dangerous, do: Enum.map(@safe ++ @write ++ @dangerous, & &1.req_llm_tool())
 
-  def list_yolo, do: list_safe() ++ Enum.map(@yolo_entries, & &1.req_llm_tool())
-
-  def get(name) when is_binary(name) do
-    Enum.find(list_yolo(), &(&1.name == name))
-  end
-
-  @doc """
-  Resolve a tools config value to a list of ReqLLM.Tool structs.
-
-  Accepts:
-  - :all_safe        — all safe tools
-  - :yolo            — all tools (safe + yolo)
-  - list of names    — specific tools by name
-  - nil / []         — empty list
-  """
-  def resolve_tools(nil), do: []
-  def resolve_tools([]), do: []
   def resolve_tools(:all_safe), do: list_safe()
-  def resolve_tools(:yolo), do: list_yolo()
+  def resolve_tools(:write), do: list_write()
+  def resolve_tools(:dangerous), do: list_dangerous()
+  def resolve_tools(:yolo), do: list_dangerous()
 
   def resolve_tools(names) when is_list(names) do
-    Enum.flat_map(names, fn name ->
-      case get(name) do
-        nil -> []
-        tool -> [tool]
-      end
-    end)
+    all = list_dangerous()
+    Enum.filter(all, &(&1.name in names))
+  end
+
+  def get(name) when is_binary(name) do
+    Enum.find(list_dangerous(), &(&1.name == name))
   end
 end

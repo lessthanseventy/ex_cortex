@@ -311,7 +311,9 @@ defmodule ExCalibur.StepRunner do
 
   defp resolve_member_tools(nil), do: []
   defp resolve_member_tools("all_safe"), do: ExCalibur.Tools.Registry.resolve_tools(:all_safe)
-  defp resolve_member_tools("yolo"), do: ExCalibur.Tools.Registry.resolve_tools(:yolo)
+  defp resolve_member_tools("write"), do: ExCalibur.Tools.Registry.resolve_tools(:write)
+  defp resolve_member_tools("dangerous"), do: ExCalibur.Tools.Registry.resolve_tools(:dangerous)
+  defp resolve_member_tools("yolo"), do: ExCalibur.Tools.Registry.resolve_tools(:dangerous)
   defp resolve_member_tools(names) when is_list(names), do: ExCalibur.Tools.Registry.resolve_tools(names)
   defp resolve_member_tools(_), do: []
 
