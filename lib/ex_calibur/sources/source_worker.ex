@@ -163,6 +163,7 @@ defmodule ExCalibur.Sources.SourceWorker do
   defp source_module("email"), do: ExCalibur.Sources.EmailSource
   defp source_module("media"), do: ExCalibur.Sources.MediaSource
   defp source_module("github_issues"), do: ExCalibur.Sources.GithubIssueWatcher
+  defp source_module("nextcloud"), do: ExCalibur.Sources.NextcloudWatcher
 
   defp get_interval(config), do: config["interval"] || 60_000
 

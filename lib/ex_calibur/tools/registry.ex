@@ -23,6 +23,7 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.CommentGithub
   alias ExCalibur.Tools.ConvertDocument
   alias ExCalibur.Tools.CreateGithubIssue
+  alias ExCalibur.Tools.CreateNextcloudNote
   alias ExCalibur.Tools.CreateObsidianNote
   alias ExCalibur.Tools.DailyObsidian
   alias ExCalibur.Tools.DescribeImage
@@ -38,6 +39,8 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.ListFiles
   alias ExCalibur.Tools.ListGithubNotifications
   alias ExCalibur.Tools.MergePR
+  alias ExCalibur.Tools.NextcloudCalendar
+  alias ExCalibur.Tools.NextcloudTalk
   alias ExCalibur.Tools.OpenPR
   alias ExCalibur.Tools.QueryDictionary
   alias ExCalibur.Tools.QueryJaeger
@@ -45,6 +48,8 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.ReadEmail
   alias ExCalibur.Tools.ReadFile
   alias ExCalibur.Tools.ReadGithubIssue
+  alias ExCalibur.Tools.ReadNextcloud
+  alias ExCalibur.Tools.ReadNextcloudNotes
   alias ExCalibur.Tools.ReadImageText
   alias ExCalibur.Tools.ReadObsidian
   alias ExCalibur.Tools.ReadObsidianFrontmatter
@@ -54,6 +59,7 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.RunSandbox
   alias ExCalibur.Tools.SearchEmail
   alias ExCalibur.Tools.SearchGithub
+  alias ExCalibur.Tools.SearchNextcloud
   alias ExCalibur.Tools.SearchObsidian
   alias ExCalibur.Tools.SearchObsidianContent
   alias ExCalibur.Tools.SendEmail
@@ -61,6 +67,7 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.WebFetch
   alias ExCalibur.Tools.WebSearch
   alias ExCalibur.Tools.WriteFile
+  alias ExCalibur.Tools.WriteNextcloud
 
   @safe [
     QueryLore,
@@ -87,7 +94,10 @@ defmodule ExCalibur.Tools.Registry do
     AnalyzeVideo,
     ReadFile,
     ListFiles,
-    RunSandbox
+    RunSandbox,
+    SearchNextcloud,
+    ReadNextcloud,
+    ReadNextcloudNotes
   ]
   @write [
     CreateObsidianNote,
@@ -99,9 +109,12 @@ defmodule ExCalibur.Tools.Registry do
     EditFile,
     GitCommit,
     GitPush,
-    OpenPR
+    OpenPR,
+    WriteNextcloud,
+    CreateNextcloudNote,
+    NextcloudCalendar
   ]
-  @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub, MergePR, GitPull, RestartApp, CloseIssue]
+  @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub, MergePR, GitPull, RestartApp, CloseIssue, NextcloudTalk]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
   def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())

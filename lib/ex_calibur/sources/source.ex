@@ -23,7 +23,7 @@ defmodule ExCalibur.Sources.Source do
     |> validate_required([:source_type])
     |> validate_inclusion(
       :source_type,
-      ~w(git directory feed webhook url websocket lodge obsidian email media github_issues)
+      ~w(git directory feed webhook url websocket lodge obsidian email media github_issues nextcloud)
     )
     |> validate_inclusion(:status, ~w(active paused error))
   end
