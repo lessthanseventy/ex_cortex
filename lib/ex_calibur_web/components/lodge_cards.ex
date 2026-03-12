@@ -321,12 +321,22 @@ defmodule ExCaliburWeb.Components.LodgeCards do
 
   defp lodge_card_header(assigns) do
     tags = Map.get(assigns.card, :tags, []) || []
-    assigns = assign(assigns, :tags, tags)
+    guild = Map.get(assigns.card, :guild_name, nil)
+    icon = type_icon(assigns.card.type)
+    assigns = assign(assigns, tags: tags, guild: guild, type_icon: icon)
 
     ~H"""
     <div class="flex items-center justify-between gap-2">
       <div class="flex items-center gap-2 min-w-0 flex-wrap">
+        <%= if @type_icon do %>
+          <span class="text-sm" title={@card.type}>{@type_icon}</span>
+        <% end %>
         <span class="font-medium truncate">{@card.title}</span>
+        <%= if @guild do %>
+          <.badge variant="outline" class={"text-[10px] shrink-0 " <> guild_color(@guild)}>
+            {@guild}
+          </.badge>
+        <% end %>
         <.badge variant="outline" class="text-xs shrink-0">{@card.type}</.badge>
         <%= if @card.pinned do %>
           <span class="text-xs text-muted-foreground shrink-0" title="pinned">pinned</span>
@@ -352,6 +362,20 @@ defmodule ExCaliburWeb.Components.LodgeCards do
   defp tag_color(tag) do
     Map.get(@tag_colors, tag, "bg-muted text-muted-foreground")
   end
+
+  defp type_icon("briefing"), do: "📜"
+  defp type_icon("checklist"), do: "☑️"
+  defp type_icon("action_list"), do: "⚖️"
+  defp type_icon("table"), do: "📊"
+  defp type_icon("media"), do: "🖼️"
+  defp type_icon("metric"), do: "📈"
+  defp type_icon("freeform"), do: "✏️"
+  defp type_icon(_), do: nil
+
+  defp guild_color("tech"), do: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+  defp guild_color("lifestyle"), do: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+  defp guild_color("business"), do: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+  defp guild_color(_), do: ""
 
   defp lodge_card_actions(assigns) do
     ~H"""
