@@ -194,7 +194,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       output_type: "freeform",
       loop_mode: "reflect",
       max_iterations: 5,
-      loop_tools: ["search_obsidian", "query_lore", "read_file", "list_files", "create_github_issue"],
+      loop_tools: ["search_obsidian", "query_lore", "query_jaeger", "read_file", "list_files", "create_github_issue"],
       roster: [
         %{
           "who" => "all",

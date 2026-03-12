@@ -146,6 +146,7 @@ defmodule ExCalibur.Charters.DevTeam do
           "list_files",
           "read_file",
           "run_sandbox",
+          "query_jaeger",
           "search_obsidian",
           "query_lore",
           "search_github",

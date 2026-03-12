@@ -40,6 +40,7 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.MergePR
   alias ExCalibur.Tools.OpenPR
   alias ExCalibur.Tools.QueryDictionary
+  alias ExCalibur.Tools.QueryJaeger
   alias ExCalibur.Tools.QueryLore
   alias ExCalibur.Tools.ReadEmail
   alias ExCalibur.Tools.ReadFile
@@ -64,6 +65,7 @@ defmodule ExCalibur.Tools.Registry do
   @safe [
     QueryLore,
     QueryDictionary,
+    QueryJaeger,
     FetchUrl,
     SearchObsidian,
     SearchObsidianContent,
