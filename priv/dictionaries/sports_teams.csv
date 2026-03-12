@@ -1,0 +1,155 @@
+team,abbreviation,league,conference_or_division,city
+Arizona Cardinals,ARI,NFL,NFC West,Glendale
+Atlanta Falcons,ATL,NFL,NFC South,Atlanta
+Baltimore Ravens,BAL,NFL,AFC North,Baltimore
+Buffalo Bills,BUF,NFL,AFC East,Orchard Park
+Carolina Panthers,CAR,NFL,NFC South,Charlotte
+Chicago Bears,CHI,NFL,NFC North,Chicago
+Cincinnati Bengals,CIN,NFL,AFC North,Cincinnati
+Cleveland Browns,CLE,NFL,AFC North,Cleveland
+Dallas Cowboys,DAL,NFL,NFC East,Arlington
+Denver Broncos,DEN,NFL,AFC West,Denver
+Detroit Lions,DET,NFL,NFC North,Detroit
+Green Bay Packers,GB,NFL,NFC North,Green Bay
+Houston Texans,HOU,NFL,AFC South,Houston
+Indianapolis Colts,IND,NFL,AFC South,Indianapolis
+Jacksonville Jaguars,JAX,NFL,AFC South,Jacksonville
+Kansas City Chiefs,KC,NFL,AFC West,Kansas City
+Las Vegas Raiders,LV,NFL,AFC West,Las Vegas
+Los Angeles Chargers,LAC,NFL,AFC West,Inglewood
+Los Angeles Rams,LAR,NFL,NFC West,Inglewood
+Miami Dolphins,MIA,NFL,AFC East,Miami Gardens
+Minnesota Vikings,MIN,NFL,NFC North,Minneapolis
+New England Patriots,NE,NFL,AFC East,Foxborough
+New Orleans Saints,NO,NFL,NFC South,New Orleans
+New York Giants,NYG,NFL,NFC East,East Rutherford
+New York Jets,NYJ,NFL,AFC East,East Rutherford
+Philadelphia Eagles,PHI,NFL,NFC East,Philadelphia
+Pittsburgh Steelers,PIT,NFL,AFC North,Pittsburgh
+San Francisco 49ers,SF,NFL,NFC West,Santa Clara
+Seattle Seahawks,SEA,NFL,NFC West,Seattle
+Tampa Bay Buccaneers,TB,NFL,NFC South,Tampa
+Tennessee Titans,TEN,NFL,AFC South,Nashville
+Washington Commanders,WAS,NFL,NFC East,Landover
+Atlanta Hawks,ATL,NBA,Southeast,Atlanta
+Boston Celtics,BOS,NBA,Atlantic,Boston
+Brooklyn Nets,BKN,NBA,Atlantic,Brooklyn
+Charlotte Hornets,CHA,NBA,Southeast,Charlotte
+Chicago Bulls,CHI,NBA,Central,Chicago
+Cleveland Cavaliers,CLE,NBA,Central,Cleveland
+Dallas Mavericks,DAL,NBA,Southwest,Dallas
+Denver Nuggets,DEN,NBA,Northwest,Denver
+Detroit Pistons,DET,NBA,Central,Detroit
+Golden State Warriors,GSW,NBA,Pacific,San Francisco
+Houston Rockets,HOU,NBA,Southwest,Houston
+Indiana Pacers,IND,NBA,Central,Indianapolis
+Los Angeles Clippers,LAC,NBA,Pacific,Inglewood
+Los Angeles Lakers,LAL,NBA,Pacific,Los Angeles
+Memphis Grizzlies,MEM,NBA,Southwest,Memphis
+Miami Heat,MIA,NBA,Southeast,Miami
+Milwaukee Bucks,MIL,NBA,Central,Milwaukee
+Minnesota Timberwolves,MIN,NBA,Northwest,Minneapolis
+New Orleans Pelicans,NOP,NBA,Southwest,New Orleans
+New York Knicks,NYK,NBA,Atlantic,New York
+Oklahoma City Thunder,OKC,NBA,Northwest,Oklahoma City
+Orlando Magic,ORL,NBA,Southeast,Orlando
+Philadelphia 76ers,PHI,NBA,Atlantic,Philadelphia
+Phoenix Suns,PHX,NBA,Pacific,Phoenix
+Portland Trail Blazers,POR,NBA,Northwest,Portland
+Sacramento Kings,SAC,NBA,Pacific,Sacramento
+San Antonio Spurs,SAS,NBA,Southwest,San Antonio
+Toronto Raptors,TOR,NBA,Atlantic,Toronto
+Utah Jazz,UTA,NBA,Northwest,Salt Lake City
+Washington Wizards,WAS,NBA,Southeast,Washington
+Arizona Diamondbacks,ARI,MLB,NL West,Phoenix
+Atlanta Braves,ATL,MLB,NL East,Atlanta
+Baltimore Orioles,BAL,MLB,AL East,Baltimore
+Boston Red Sox,BOS,MLB,AL East,Boston
+Chicago Cubs,CHC,MLB,NL Central,Chicago
+Chicago White Sox,CWS,MLB,AL Central,Chicago
+Cincinnati Reds,CIN,MLB,NL Central,Cincinnati
+Cleveland Guardians,CLE,MLB,AL Central,Cleveland
+Colorado Rockies,COL,MLB,NL West,Denver
+Detroit Tigers,DET,MLB,AL Central,Detroit
+Houston Astros,HOU,MLB,AL West,Houston
+Kansas City Royals,KC,MLB,AL Central,Kansas City
+Los Angeles Angels,LAA,MLB,AL West,Anaheim
+Los Angeles Dodgers,LAD,MLB,NL West,Los Angeles
+Miami Marlins,MIA,MLB,NL East,Miami
+Milwaukee Brewers,MIL,MLB,NL Central,Milwaukee
+Minnesota Twins,MIN,MLB,AL Central,Minneapolis
+New York Mets,NYM,MLB,NL East,New York
+New York Yankees,NYY,MLB,AL East,New York
+Oakland Athletics,OAK,MLB,AL West,Oakland
+Philadelphia Phillies,PHI,MLB,NL East,Philadelphia
+Pittsburgh Pirates,PIT,MLB,NL Central,Pittsburgh
+San Diego Padres,SD,MLB,NL West,San Diego
+San Francisco Giants,SF,MLB,NL West,San Francisco
+Seattle Mariners,SEA,MLB,AL West,Seattle
+St. Louis Cardinals,STL,MLB,NL Central,St. Louis
+Tampa Bay Rays,TB,MLB,AL East,St. Petersburg
+Texas Rangers,TEX,MLB,AL West,Arlington
+Toronto Blue Jays,TOR,MLB,AL East,Toronto
+Washington Nationals,WSH,MLB,NL East,Washington
+Anaheim Ducks,ANA,NHL,Pacific,Anaheim
+Arizona Coyotes,ARI,NHL,Central,Tempe
+Boston Bruins,BOS,NHL,Atlantic,Boston
+Buffalo Sabres,BUF,NHL,Atlantic,Buffalo
+Calgary Flames,CGY,NHL,Pacific,Calgary
+Carolina Hurricanes,CAR,NHL,Metropolitan,Raleigh
+Chicago Blackhawks,CHI,NHL,Central,Chicago
+Colorado Avalanche,COL,NHL,Central,Denver
+Columbus Blue Jackets,CBJ,NHL,Metropolitan,Columbus
+Dallas Stars,DAL,NHL,Central,Dallas
+Detroit Red Wings,DET,NHL,Atlantic,Detroit
+Edmonton Oilers,EDM,NHL,Pacific,Edmonton
+Florida Panthers,FLA,NHL,Atlantic,Sunrise
+Las Vegas Golden Knights,VGK,NHL,Pacific,Las Vegas
+Los Angeles Kings,LAK,NHL,Pacific,Los Angeles
+Minnesota Wild,MIN,NHL,Central,Saint Paul
+Montreal Canadiens,MTL,NHL,Atlantic,Montreal
+Nashville Predators,NSH,NHL,Central,Nashville
+New Jersey Devils,NJD,NHL,Metropolitan,Newark
+New York Islanders,NYI,NHL,Metropolitan,Elmont
+New York Rangers,NYR,NHL,Metropolitan,New York
+Ottawa Senators,OTT,NHL,Atlantic,Ottawa
+Philadelphia Flyers,PHI,NHL,Metropolitan,Philadelphia
+Pittsburgh Penguins,PIT,NHL,Metropolitan,Pittsburgh
+San Jose Sharks,SJS,NHL,Pacific,San Jose
+Seattle Kraken,SEA,NHL,Pacific,Seattle
+St. Louis Blues,STL,NHL,Central,St. Louis
+Tampa Bay Lightning,TBL,NHL,Atlantic,Tampa
+Toronto Maple Leafs,TOR,NHL,Atlantic,Toronto
+Vancouver Canucks,VAN,NHL,Pacific,Vancouver
+Washington Capitals,WSH,NHL,Metropolitan,Washington
+Winnipeg Jets,WPG,NHL,Central,Winnipeg
+Atlanta United FC,ATL,MLS,Eastern,Atlanta
+Austin FC,ATX,MLS,Western,Austin
+Charlotte FC,CLT,MLS,Eastern,Charlotte
+Chicago Fire FC,CHI,MLS,Eastern,Chicago
+FC Cincinnati,CIN,MLS,Eastern,Cincinnati
+Colorado Rapids,COL,MLS,Western,Commerce City
+Columbus Crew,CLB,MLS,Eastern,Columbus
+D.C. United,DC,MLS,Eastern,Washington
+FC Dallas,DAL,MLS,Western,Frisco
+Houston Dynamo FC,HOU,MLS,Western,Houston
+Sporting Kansas City,SKC,MLS,Western,Kansas City
+LA Galaxy,LA,MLS,Western,Carson
+Los Angeles FC,LAFC,MLS,Western,Los Angeles
+Inter Miami CF,MIA,MLS,Eastern,Fort Lauderdale
+Minnesota United FC,MIN,MLS,Western,Saint Paul
+CF Montreal,MTL,MLS,Eastern,Montreal
+Nashville SC,NSH,MLS,Eastern,Nashville
+New England Revolution,NE,MLS,Eastern,Foxborough
+New York City FC,NYCFC,MLS,Eastern,New York
+New York Red Bulls,NYRB,MLS,Eastern,Harrison
+Orlando City SC,ORL,MLS,Eastern,Orlando
+Philadelphia Union,PHI,MLS,Eastern,Chester
+Portland Timbers,POR,MLS,Western,Portland
+Real Salt Lake,RSL,MLS,Western,Sandy
+San Jose Earthquakes,SJ,MLS,Western,San Jose
+Seattle Sounders FC,SEA,MLS,Western,Seattle
+Toronto FC,TOR,MLS,Eastern,Toronto
+Vancouver Whitecaps FC,VAN,MLS,Western,Vancouver
+St. Louis City SC,STL,MLS,Western,St. Louis
+San Diego FC,SD,MLS,Western,San Diego

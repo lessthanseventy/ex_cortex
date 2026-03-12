@@ -1,0 +1,602 @@
+company,ticker,sector,index
+3M Company,MMM,Industrials,S&P 500
+A.O. Smith,AOS,Industrials,S&P 500
+Abbott Laboratories,ABT,Health Care,S&P 500
+AbbVie,ABBV,Health Care,S&P 500
+Accenture,ACN,Information Technology,S&P 500
+Activision Blizzard,ATVI,Communication Services,S&P 500
+Adobe,ADBE,Information Technology,S&P 500
+Advance Auto Parts,AAP,Consumer Discretionary,S&P 500
+Advanced Micro Devices,AMD,Information Technology,S&P 500
+Agilent Technologies,A,Health Care,S&P 500
+Air Products and Chemicals,APD,Materials,S&P 500
+Airbnb,ABNB,Consumer Discretionary,S&P 500
+Akamai Technologies,AKAM,Information Technology,S&P 500
+Albemarle,ALB,Materials,S&P 500
+Alexandria Real Estate Equities,ARE,Real Estate,S&P 500
+Align Technology,ALGN,Health Care,S&P 500
+Allegion,ALLE,Industrials,S&P 500
+Alliant Energy,LNT,Utilities,S&P 500
+Allstate,ALL,Financials,S&P 500
+Alphabet Class A,GOOGL,Communication Services,S&P 500
+Alphabet Class C,GOOG,Communication Services,S&P 500
+Altria Group,MO,Consumer Staples,S&P 500
+Amazon.com,AMZN,Consumer Discretionary,S&P 500
+Amcor,AMCR,Materials,S&P 500
+Ameren,AEE,Utilities,S&P 500
+American Airlines Group,AAL,Industrials,S&P 500
+American Electric Power,AEP,Utilities,S&P 500
+American Express,AXP,Financials,S&P 500
+American International Group,AIG,Financials,S&P 500
+American Tower,AMT,Real Estate,S&P 500
+American Water Works,AWK,Utilities,S&P 500
+Ameriprise Financial,AMP,Financials,S&P 500
+AmerisourceBergen,ABC,Health Care,S&P 500
+Ametek,AME,Industrials,S&P 500
+Amgen,AMGN,Health Care,S&P 500
+Amphenol,APH,Information Technology,S&P 500
+Analog Devices,ADI,Information Technology,S&P 500
+Ansys,ANSS,Information Technology,S&P 500
+Aon,AON,Financials,S&P 500
+Apple,AAPL,Information Technology,S&P 500
+Applied Materials,AMAT,Information Technology,S&P 500
+Aptiv,APTV,Consumer Discretionary,S&P 500
+Arch Capital Group,ACGL,Financials,S&P 500
+Archer-Daniels-Midland,ADM,Consumer Staples,S&P 500
+Arthur J. Gallagher,AJG,Financials,S&P 500
+Assurant,AIZ,Financials,S&P 500
+AT&T,T,Communication Services,S&P 500
+Atmos Energy,ATO,Utilities,S&P 500
+Automatic Data Processing,ADP,Information Technology,S&P 500
+AutoZone,AZO,Consumer Discretionary,S&P 500
+Avalonbay Communities,AVB,Real Estate,S&P 500
+Avery Dennison,AVY,Materials,S&P 500
+Axon Enterprise,AXON,Industrials,S&P 500
+Baker Hughes,BKR,Energy,S&P 500
+Ball Corporation,BALL,Materials,S&P 500
+Bank of America,BAC,Financials,S&P 500
+Baxter International,BAX,Health Care,S&P 500
+Becton Dickinson,BDX,Health Care,S&P 500
+Berkshire Hathaway B,BRK.B,Financials,S&P 500
+Best Buy,BBY,Consumer Discretionary,S&P 500
+Bio-Rad Laboratories,BIO,Health Care,S&P 500
+Bio-Techne,TECH,Health Care,S&P 500
+Biogen,BIIB,Health Care,S&P 500
+BlackRock,BLK,Financials,S&P 500
+Boeing,BA,Industrials,S&P 500
+Booking Holdings,BKNG,Consumer Discretionary,S&P 500
+BorgWarner,BWA,Consumer Discretionary,S&P 500
+Boston Properties,BXP,Real Estate,S&P 500
+Boston Scientific,BSX,Health Care,S&P 500
+Bristol-Myers Squibb,BMY,Health Care,S&P 500
+Broadcom,AVGO,Information Technology,S&P 500
+Broadridge Financial Solutions,BR,Information Technology,S&P 500
+Brown & Brown,BRO,Financials,S&P 500
+Brown-Forman B,BF.B,Consumer Staples,S&P 500
+Bunge,BG,Consumer Staples,S&P 500
+Cadence Design Systems,CDNS,Information Technology,S&P 500
+Campbell Soup,CPB,Consumer Staples,S&P 500
+Capital One Financial,COF,Financials,S&P 500
+Cardinal Health,CAH,Health Care,S&P 500
+Carlisle Companies,CSL,Industrials,S&P 500
+Carnival,CCL,Consumer Discretionary,S&P 500
+Carter's,CRI,Consumer Discretionary,S&P 500
+Caterpillar,CAT,Industrials,S&P 500
+Cboe Global Markets,CBOE,Financials,S&P 500
+CBRE Group,CBRE,Real Estate,S&P 500
+CDW Corporation,CDW,Information Technology,S&P 500
+Celanese,CE,Materials,S&P 500
+Centene,CNC,Health Care,S&P 500
+CenterPoint Energy,CNP,Utilities,S&P 500
+CF Industries,CF,Materials,S&P 500
+Charles River Laboratories,CRL,Health Care,S&P 500
+Charles Schwab,SCHW,Financials,S&P 500
+Charter Communications,CHTR,Communication Services,S&P 500
+Chevron,CVX,Energy,S&P 500
+Chipotle Mexican Grill,CMG,Consumer Discretionary,S&P 500
+Church & Dwight,CHD,Consumer Staples,S&P 500
+Cigna Group,CI,Health Care,S&P 500
+Cintas,CTAS,Industrials,S&P 500
+Cisco Systems,CSCO,Information Technology,S&P 500
+Citigroup,C,Financials,S&P 500
+Citizens Financial Group,CFG,Financials,S&P 500
+Citrix Systems,CTXS,Information Technology,S&P 500
+Clorox,CLX,Consumer Staples,S&P 500
+CME Group,CME,Financials,S&P 500
+CMS Energy,CMS,Utilities,S&P 500
+Coca-Cola,KO,Consumer Staples,S&P 500
+Cognizant Technology Solutions,CTSH,Information Technology,S&P 500
+Colgate-Palmolive,CL,Consumer Staples,S&P 500
+Comcast,CMCSA,Communication Services,S&P 500
+Comerica,CMA,Financials,S&P 500
+ConAgra Brands,CAG,Consumer Staples,S&P 500
+ConocoPhillips,COP,Energy,S&P 500
+Consolidated Edison,ED,Utilities,S&P 500
+Constellation Brands,STZ,Consumer Staples,S&P 500
+Constellation Energy,CEG,Utilities,S&P 500
+CooperCompanies,COO,Health Care,S&P 500
+Corning,GLW,Information Technology,S&P 500
+Corteva,CTVA,Materials,S&P 500
+CoStar Group,CSGP,Real Estate,S&P 500
+Costco Wholesale,COST,Consumer Staples,S&P 500
+Crown Holdings,CCK,Materials,S&P 500
+CSX Corporation,CSX,Industrials,S&P 500
+Cummins,CMI,Industrials,S&P 500
+CVS Health,CVS,Health Care,S&P 500
+Danaher,DHR,Health Care,S&P 500
+Darden Restaurants,DRI,Consumer Discretionary,S&P 500
+DaVita,DVA,Health Care,S&P 500
+Deere & Company,DE,Industrials,S&P 500
+Delta Air Lines,DAL,Industrials,S&P 500
+Devon Energy,DVN,Energy,S&P 500
+Dexcom,DXCM,Health Care,S&P 500
+Digital Realty Trust,DLR,Real Estate,S&P 500
+Dollar General,DG,Consumer Staples,S&P 500
+Dollar Tree,DLTR,Consumer Staples,S&P 500
+Dominion Energy,D,Utilities,S&P 500
+Dover Corporation,DOV,Industrials,S&P 500
+Dow,DOW,Materials,S&P 500
+DR Horton,DHI,Consumer Discretionary,S&P 500
+DTE Energy,DTE,Utilities,S&P 500
+Duke Energy,DUK,Utilities,S&P 500
+Duke Realty,DRE,Real Estate,S&P 500
+Eastman Chemical,EMN,Materials,S&P 500
+Eaton Corporation,ETN,Industrials,S&P 500
+eBay,EBAY,Consumer Discretionary,S&P 500
+Ecolab,ECL,Materials,S&P 500
+Edison International,EIX,Utilities,S&P 500
+Edwards Lifesciences,EW,Health Care,S&P 500
+Electronic Arts,EA,Communication Services,S&P 500
+Eli Lilly,LLY,Health Care,S&P 500
+Emerson Electric,EMR,Industrials,S&P 500
+Entegris,ENTG,Information Technology,S&P 500
+Entergy,ETR,Utilities,S&P 500
+EOG Resources,EOG,Energy,S&P 500
+Epam Systems,EPAM,Information Technology,S&P 500
+Equinix,EQIX,Real Estate,S&P 500
+Equitable Holdings,EQH,Financials,S&P 500
+Equity Residential,EQR,Real Estate,S&P 500
+Essex Property Trust,ESS,Real Estate,S&P 500
+Estee Lauder,EL,Consumer Staples,S&P 500
+Everest Re Group,RE,Financials,S&P 500
+Evergy,EVRG,Utilities,S&P 500
+Eversource Energy,ES,Utilities,S&P 500
+Exelon,EXC,Utilities,S&P 500
+Expedia Group,EXPE,Consumer Discretionary,S&P 500
+Expeditors International,EXPD,Industrials,S&P 500
+Extra Space Storage,EXR,Real Estate,S&P 500
+ExxonMobil,XOM,Energy,S&P 500
+F5,FFIV,Information Technology,S&P 500
+Factset Research Systems,FDS,Financials,S&P 500
+Fair Isaac,FICO,Information Technology,S&P 500
+Fastenal,FAST,Industrials,S&P 500
+Federal Realty Investment Trust,FRT,Real Estate,S&P 500
+FedEx,FDX,Industrials,S&P 500
+Fidelity National Information Services,FIS,Information Technology,S&P 500
+Fifth Third Bancorp,FITB,Financials,S&P 500
+First Solar,FSLR,Information Technology,S&P 500
+Fiserv,FISV,Information Technology,S&P 500
+FleetCor Technologies,FLT,Information Technology,S&P 500
+Ford Motor Company,F,Consumer Discretionary,S&P 500
+Fortinet,FTNT,Information Technology,S&P 500
+Fortive,FTV,Industrials,S&P 500
+Fox Corporation A,FOXA,Communication Services,S&P 500
+Franklin Resources,BEN,Financials,S&P 500
+Freeport-McMoRan,FCX,Materials,S&P 500
+Gartner,IT,Information Technology,S&P 500
+General Dynamics,GD,Industrials,S&P 500
+General Electric,GE,Industrials,S&P 500
+General Mills,GIS,Consumer Staples,S&P 500
+General Motors,GM,Consumer Discretionary,S&P 500
+Genuine Parts Company,GPC,Consumer Discretionary,S&P 500
+Gilead Sciences,GILD,Health Care,S&P 500
+Globe Life,GL,Financials,S&P 500
+Goldman Sachs,GS,Financials,S&P 500
+Halliburton,HAL,Energy,S&P 500
+Hartford Financial Services,HIG,Financials,S&P 500
+Hasbro,HAS,Consumer Discretionary,S&P 500
+HCA Healthcare,HCA,Health Care,S&P 500
+Healthpeak Properties,PEAK,Real Estate,S&P 500
+Henry Schein,HSIC,Health Care,S&P 500
+Hershey,HSY,Consumer Staples,S&P 500
+Hess Corporation,HES,Energy,S&P 500
+Hewlett Packard Enterprise,HPE,Information Technology,S&P 500
+Hilton Worldwide Holdings,HLT,Consumer Discretionary,S&P 500
+Hologic,HOLX,Health Care,S&P 500
+Home Depot,HD,Consumer Discretionary,S&P 500
+Honeywell International,HON,Industrials,S&P 500
+Hormel Foods,HRL,Consumer Staples,S&P 500
+Host Hotels & Resorts,HST,Real Estate,S&P 500
+Howmet Aerospace,HWM,Industrials,S&P 500
+HP Inc.,HPQ,Information Technology,S&P 500
+Hubbell,HUBB,Industrials,S&P 500
+HubSpot,HUBS,Information Technology,S&P 500
+Humana,HUM,Health Care,S&P 500
+Huntington Bancshares,HBAN,Financials,S&P 500
+Huntington Ingalls Industries,HII,Industrials,S&P 500
+IDEX Corporation,IEX,Industrials,S&P 500
+Illinois Tool Works,ITW,Industrials,S&P 500
+Illumina,ILMN,Health Care,S&P 500
+Incyte,INCY,Health Care,S&P 500
+Ingersoll Rand,IR,Industrials,S&P 500
+Intel,INTC,Information Technology,S&P 500
+International Business Machines,IBM,Information Technology,S&P 500
+International Flavors & Fragrances,IFF,Materials,S&P 500
+International Paper,IP,Materials,S&P 500
+Interpublic Group,IPG,Communication Services,S&P 500
+Intuit,INTU,Information Technology,S&P 500
+Intuitive Surgical,ISRG,Health Care,S&P 500
+Invesco,IVZ,Financials,S&P 500
+IQvia Holdings,IQV,Health Care,S&P 500
+Iron Mountain,IRM,Real Estate,S&P 500
+Jack Henry & Associates,JKHY,Information Technology,S&P 500
+Jabil,JBL,Information Technology,S&P 500
+Jacobs Solutions,J,Industrials,S&P 500
+Johnson & Johnson,JNJ,Health Care,S&P 500
+Johnson Controls International,JCI,Industrials,S&P 500
+JPMorgan Chase,JPM,Financials,S&P 500
+Juniper Networks,JNPR,Information Technology,S&P 500
+Kellanova,K,Consumer Staples,S&P 500
+KeyCorp,KEY,Financials,S&P 500
+Keysight Technologies,KEYS,Information Technology,S&P 500
+Kimco Realty,KIM,Real Estate,S&P 500
+Kimberly-Clark,KMB,Consumer Staples,S&P 500
+Kindred Biosciences,KIN,Health Care,S&P 500
+Kinder Morgan,KMI,Energy,S&P 500
+KLA Corporation,KLAC,Information Technology,S&P 500
+Kraft Heinz,KHC,Consumer Staples,S&P 500
+Kroger,KR,Consumer Staples,S&P 500
+L3Harris Technologies,LHX,Industrials,S&P 500
+Laboratory Corporation of America,LH,Health Care,S&P 500
+Lam Research,LRCX,Information Technology,S&P 500
+Lamb Weston Holdings,LW,Consumer Staples,S&P 500
+Las Vegas Sands,LVS,Consumer Discretionary,S&P 500
+Leidos Holdings,LDOS,Industrials,S&P 500
+Lennar,LEN,Consumer Discretionary,S&P 500
+Lincoln National,LNC,Financials,S&P 500
+Linde,LIN,Materials,S&P 500
+Live Nation Entertainment,LYV,Communication Services,S&P 500
+LKQ Corporation,LKQ,Consumer Discretionary,S&P 500
+Lockheed Martin,LMT,Industrials,S&P 500
+Loews,L,Financials,S&P 500
+Lowe's Companies,LOW,Consumer Discretionary,S&P 500
+LPL Financial Holdings,LPLA,Financials,S&P 500
+Lululemon Athletica,LULU,Consumer Discretionary,S&P 500
+Lyondell Basell Industries,LYB,Materials,S&P 500
+Marathon Oil,MRO,Energy,S&P 500
+Marathon Petroleum,MPC,Energy,S&P 500
+MarketAxess Holdings,MKTX,Financials,S&P 500
+Marriott International,MAR,Consumer Discretionary,S&P 500
+Marsh & McLennan,MMC,Financials,S&P 500
+Martin Marietta Materials,MLM,Materials,S&P 500
+Masco Corporation,MAS,Industrials,S&P 500
+Mastercard,MA,Information Technology,S&P 500
+Match Group,MTCH,Communication Services,S&P 500
+McCormick & Company,MKC,Consumer Staples,S&P 500
+McDonald's,MCD,Consumer Discretionary,S&P 500
+McKesson,MCK,Health Care,S&P 500
+Medtronic,MDT,Health Care,S&P 500
+Merck & Co,MRK,Health Care,S&P 500
+Meta Platforms,META,Communication Services,S&P 500
+Mettler-Toledo International,MTD,Health Care,S&P 500
+MGM Resorts International,MGM,Consumer Discretionary,S&P 500
+Microchip Technology,MCHP,Information Technology,S&P 500
+Micron Technology,MU,Information Technology,S&P 500
+Microsoft,MSFT,Information Technology,S&P 500
+Mid-America Apartment Communities,MAA,Real Estate,S&P 500
+Moderna,MRNA,Health Care,S&P 500
+Mohawk Industries,MHK,Consumer Discretionary,S&P 500
+Molina Healthcare,MOH,Health Care,S&P 500
+Molson Coors Beverage Company,TAP,Consumer Staples,S&P 500
+Mondelez International,MDLZ,Consumer Staples,S&P 500
+Monolithic Power Systems,MPWR,Information Technology,S&P 500
+Monster Beverage,MNST,Consumer Staples,S&P 500
+Moody's Corporation,MCO,Financials,S&P 500
+Morgan Stanley,MS,Financials,S&P 500
+Motorola Solutions,MSI,Information Technology,S&P 500
+MSCI,MSCI,Financials,S&P 500
+NetApp,NTAP,Information Technology,S&P 500
+Netflix,NFLX,Communication Services,S&P 500
+New York Times,NYT,Communication Services,S&P 500
+Newell Brands,NWL,Consumer Discretionary,S&P 500
+Newmont,NEM,Materials,S&P 500
+News Corp A,NWSA,Communication Services,S&P 500
+NextEra Energy,NEE,Utilities,S&P 500
+Nike,NKE,Consumer Discretionary,S&P 500
+NiSource,NI,Utilities,S&P 500
+Nokia (ADR),NOK,Information Technology,S&P 500
+Norfolk Southern,NSC,Industrials,S&P 500
+Northern Trust,NTRS,Financials,S&P 500
+Northrop Grumman,NOC,Industrials,S&P 500
+NortonLifeLock,NLOK,Information Technology,S&P 500
+NRG Energy,NRG,Utilities,S&P 500
+Nucor,NUE,Materials,S&P 500
+NVR,NVR,Consumer Discretionary,S&P 500
+NXP Semiconductors,NXPI,Information Technology,S&P 500
+O'Reilly Automotive,ORLY,Consumer Discretionary,S&P 500
+Occidental Petroleum,OXY,Energy,S&P 500
+Old Dominion Freight Line,ODFL,Industrials,S&P 500
+Omnicom Group,OMC,Communication Services,S&P 500
+ON Semiconductor,ON,Information Technology,S&P 500
+Oracle,ORCL,Information Technology,S&P 500
+Otis Worldwide,OTIS,Industrials,S&P 500
+PACCAR,PCAR,Industrials,S&P 500
+Packaging Corporation of America,PKG,Materials,S&P 500
+Palo Alto Networks,PANW,Information Technology,S&P 500
+Parker-Hannifin,PH,Industrials,S&P 500
+Paychex,PAYX,Information Technology,S&P 500
+Paycom Software,PAYC,Information Technology,S&P 500
+PayPal Holdings,PYPL,Information Technology,S&P 500
+Penn Entertainment,PENN,Consumer Discretionary,S&P 500
+PepsiCo,PEP,Consumer Staples,S&P 500
+PerkinElmer,PKI,Health Care,S&P 500
+Pfizer,PFE,Health Care,S&P 500
+Philip Morris International,PM,Consumer Staples,S&P 500
+Phillips 66,PSX,Energy,S&P 500
+Pinnacle West Capital,PNW,Utilities,S&P 500
+Pioneer Natural Resources,PXD,Energy,S&P 500
+PNC Financial Services,PNC,Financials,S&P 500
+Pool Corporation,POOL,Consumer Discretionary,S&P 500
+PPG Industries,PPG,Materials,S&P 500
+PPL Corporation,PPL,Utilities,S&P 500
+Procter & Gamble,PG,Consumer Staples,S&P 500
+Progressive Corporation,PGR,Financials,S&P 500
+Prologis,PLD,Real Estate,S&P 500
+Prudential Financial,PRU,Financials,S&P 500
+Public Storage,PSA,Real Estate,S&P 500
+PulteGroup,PHM,Consumer Discretionary,S&P 500
+PVH Corp,PVH,Consumer Discretionary,S&P 500
+Qorvo,QRVO,Information Technology,S&P 500
+Qualcomm,QCOM,Information Technology,S&P 500
+Quest Diagnostics,DGX,Health Care,S&P 500
+Quanta Services,PWR,Industrials,S&P 500
+Raymond James Financial,RJF,Financials,S&P 500
+Realty Income,O,Real Estate,S&P 500
+Regency Centers,REG,Real Estate,S&P 500
+Regeneron Pharmaceuticals,REGN,Health Care,S&P 500
+Regions Financial,RF,Financials,S&P 500
+Republic Services,RSG,Industrials,S&P 500
+ResMed,RMD,Health Care,S&P 500
+Robert Half International,RHI,Industrials,S&P 500
+Rockwell Automation,ROK,Industrials,S&P 500
+Rollins,ROL,Industrials,S&P 500
+Roper Technologies,ROP,Information Technology,S&P 500
+Ross Stores,ROST,Consumer Discretionary,S&P 500
+Royal Caribbean Cruises,RCL,Consumer Discretionary,S&P 500
+S&P Global,SPGI,Financials,S&P 500
+Salesforce,CRM,Information Technology,S&P 500
+SBA Communications,SBAC,Real Estate,S&P 500
+Schlumberger (SLB),SLB,Energy,S&P 500
+Seagate Technology,STX,Information Technology,S&P 500
+Sempra Energy,SRE,Utilities,S&P 500
+ServiceNow,NOW,Information Technology,S&P 500
+Sherwin-Williams,SHW,Materials,S&P 500
+Simon Property Group,SPG,Real Estate,S&P 500
+Skyworks Solutions,SWKS,Information Technology,S&P 500
+SolarEdge Technologies,SEDG,Information Technology,S&P 500
+Southern Company,SO,Utilities,S&P 500
+Southwest Airlines,LUV,Industrials,S&P 500
+Splunk,SPLK,Information Technology,S&P 500
+Stanley Black & Decker,SWK,Industrials,S&P 500
+State Street Corporation,STT,Financials,S&P 500
+Steel Dynamics,STLD,Materials,S&P 500
+Stericycle,SRCL,Industrials,S&P 500
+Stryker,SYK,Health Care,S&P 500
+Synchrony Financial,SYF,Financials,S&P 500
+Synopsys,SNPS,Information Technology,S&P 500
+T. Rowe Price Group,TROW,Financials,S&P 500
+Take-Two Interactive Software,TTWO,Communication Services,S&P 500
+Target,TGT,Consumer Staples,S&P 500
+TE Connectivity,TEL,Information Technology,S&P 500
+Teradyne,TER,Information Technology,S&P 500
+Tesla,TSLA,Consumer Discretionary,S&P 500
+Texas Instruments,TXN,Information Technology,S&P 500
+Textron,TXT,Industrials,S&P 500
+The AES Corporation,AES,Utilities,S&P 500
+Thermo Fisher Scientific,TMO,Health Care,S&P 500
+TJX Companies,TJX,Consumer Discretionary,S&P 500
+Tractor Supply Company,TSCO,Consumer Discretionary,S&P 500
+Trane Technologies,TT,Industrials,S&P 500
+TransDigm Group,TDG,Industrials,S&P 500
+Travelers Companies,TRV,Financials,S&P 500
+Trimble,TRMB,Information Technology,S&P 500
+Twitter (now X),TWTR,Communication Services,S&P 500
+Tyson Foods,TSN,Consumer Staples,S&P 500
+UDR Inc.,UDR,Real Estate,S&P 500
+Union Pacific,UNP,Industrials,S&P 500
+United Airlines Holdings,UAL,Industrials,S&P 500
+United Parcel Service,UPS,Industrials,S&P 500
+United Rentals,URI,Industrials,S&P 500
+UnitedHealth Group,UNH,Health Care,S&P 500
+Universal Health Services,UHS,Health Care,S&P 500
+Unum Group,UNM,Financials,S&P 500
+VeriSign,VRSN,Information Technology,S&P 500
+Verisk Analytics,VRSK,Industrials,S&P 500
+Verizon Communications,VZ,Communication Services,S&P 500
+Vertex Pharmaceuticals,VRTX,Health Care,S&P 500
+VF Corporation,VFC,Consumer Discretionary,S&P 500
+Visa,V,Information Technology,S&P 500
+Vornado Realty Trust,VNO,Real Estate,S&P 500
+Vulcan Materials,VMC,Materials,S&P 500
+W.R. Berkley,WRB,Financials,S&P 500
+W.W. Grainger,GWW,Industrials,S&P 500
+Walgreens Boots Alliance,WBA,Consumer Staples,S&P 500
+Walmart,WMT,Consumer Staples,S&P 500
+Walt Disney Company,DIS,Communication Services,S&P 500
+Warner Bros. Discovery,WBD,Communication Services,S&P 500
+Waste Management,WM,Industrials,S&P 500
+Waters Corporation,WAT,Health Care,S&P 500
+Wells Fargo,WFC,Financials,S&P 500
+Welltower,WELL,Real Estate,S&P 500
+West Pharmaceutical Services,WST,Health Care,S&P 500
+Western Digital,WDC,Information Technology,S&P 500
+Westinghouse Air Brake Technologies,WAB,Industrials,S&P 500
+Willis Towers Watson,WTW,Financials,S&P 500
+Wynn Resorts,WYNN,Consumer Discretionary,S&P 500
+Xcel Energy,XEL,Utilities,S&P 500
+Xylem,XYL,Industrials,S&P 500
+Yum! Brands,YUM,Consumer Discretionary,S&P 500
+Zebra Technologies,ZBRA,Information Technology,S&P 500
+Zimmer Biomet Holdings,ZBH,Health Care,S&P 500
+Zions Bancorporation,ZION,Financials,S&P 500
+Zoetis,ZTS,Health Care,S&P 500
+Accel Entertainment,ACEL,Consumer Discretionary,S&P 500
+Agree Realty,ADC,Real Estate,S&P 500
+Alnylam Pharmaceuticals,ALNY,Health Care,S&P 500
+Amcor plc,AMCR,Materials,S&P 500
+Apartment Income REIT,AIRC,Real Estate,S&P 500
+Arista Networks,ANET,Information Technology,S&P 500
+Aspen Technology,AZPN,Information Technology,S&P 500
+Bandwidth,BAND,Communication Services,S&P 500
+Biohaven Pharmaceutical,BHVN,Health Care,S&P 500
+BioMarin Pharmaceutical,BMRN,Health Care,S&P 500
+Builders FirstSource,BLDR,Industrials,S&P 500
+CACI International,CACI,Information Technology,S&P 500
+Camden Property Trust,CPT,Real Estate,S&P 500
+CarMax,KMX,Consumer Discretionary,S&P 500
+Carrier Global,CARR,Industrials,S&P 500
+Catalent,CTLT,Health Care,S&P 500
+Ceridian HCM Holding,CDAY,Information Technology,S&P 500
+Chesapeake Energy,CHK,Energy,S&P 500
+Chubb,CB,Financials,S&P 500
+Cinemark Holdings,CNK,Communication Services,S&P 500
+Cloudflare,NET,Information Technology,S&P 500
+Cognex,CGNX,Information Technology,S&P 500
+Copa Holdings,CPA,Industrials,S&P 500
+Crowdstrike Holdings,CRWD,Information Technology,S&P 500
+Cullen/Frost Bankers,CFR,Financials,S&P 500
+Curtiss-Wright,CW,Industrials,S&P 500
+Datadog,DDOG,Information Technology,S&P 500
+DexCom,DXCM,Health Care,S&P 500
+Diamondback Energy,FANG,Energy,S&P 500
+Dominion Midstream Partners,DM,Energy,S&P 500
+DoorDash,DASH,Consumer Discretionary,S&P 500
+DPZ Domino's Pizza,DPZ,Consumer Discretionary,S&P 500
+EastWest Bancorp,EWBC,Financials,S&P 500
+Elastic N.V.,ESTC,Information Technology,S&P 500
+Eli Lilly and Company,LLY,Health Care,S&P 500
+Etsy,ETSY,Consumer Discretionary,S&P 500
+Euronet Worldwide,EEFT,Information Technology,S&P 500
+Exelixis,EXEL,Health Care,S&P 500
+ExlService Holdings,EXLS,Information Technology,S&P 500
+Fabrinet,FN,Information Technology,S&P 500
+Five Below,FIVE,Consumer Discretionary,S&P 500
+Flex Ltd.,FLEX,Information Technology,S&P 500
+FlexJet,FLEXJET,Industrials,S&P 500
+Flowers Foods,FLO,Consumer Staples,S&P 500
+Fortuna Silver Mines,FSM,Materials,S&P 500
+Fortune Brands Innovations,FBIN,Industrials,S&P 500
+Fox Factory Holding,FOXF,Consumer Discretionary,S&P 500
+Genpact,G,Information Technology,S&P 500
+GEO Group,GEO,Real Estate,S&P 500
+Glacier Bancorp,GBCI,Financials,S&P 500
+Globant,GLOB,Information Technology,S&P 500
+Globe Life,GL,Financials,S&P 500
+Graco,GGG,Industrials,S&P 500
+Graham Holdings,GHC,Consumer Discretionary,S&P 500
+Grand Canyon Education,LOPE,Consumer Discretionary,S&P 500
+Graphic Packaging Holding,GPK,Materials,S&P 500
+Grocery Outlet Holding,GO,Consumer Staples,S&P 500
+H.B. Fuller,FUL,Materials,S&P 500
+Hackett Group,HCKT,Information Technology,S&P 500
+Healthcare Realty Trust,HR,Real Estate,S&P 500
+Helmerich & Payne,HP,Energy,S&P 500
+HF Sinclair,DINO,Energy,S&P 500
+Highpeak Energy,HPK,Energy,S&P 500
+Hillenbrand,HI,Industrials,S&P 500
+HireQuest,HQI,Industrials,S&P 500
+Idexx Laboratories,IDXX,Health Care,S&P 500
+Insight Direct,NSIT,Information Technology,S&P 500
+Installed Building Products,IBP,Industrials,S&P 500
+InterDigital,IDCC,Information Technology,S&P 500
+IPG Photonics,IPGP,Information Technology,S&P 500
+ITT Inc.,ITT,Industrials,S&P 500
+John B. Sanfilippo & Son,JBSS,Consumer Staples,S&P 500
+Jones Lang LaSalle,JLL,Real Estate,S&P 500
+Kadant,KAI,Industrials,S&P 500
+Kforce,KFRC,Industrials,S&P 500
+Kratos Defense & Security Solutions,KTOS,Industrials,S&P 500
+LCI Industries,LCII,Consumer Discretionary,S&P 500
+Limoneira,LMNR,Consumer Staples,S&P 500
+Live Oak Bancshares,LOB,Financials,S&P 500
+Louisiana-Pacific,LPX,Materials,S&P 500
+Macy's,M,Consumer Discretionary,S&P 500
+ManpowerGroup,MAN,Industrials,S&P 500
+Masimo,MASI,Health Care,S&P 500
+Matthews International,MATW,Industrials,S&P 500
+Maximus,MMS,Information Technology,S&P 500
+Mercury Systems,MRCY,Industrials,S&P 500
+Meritage Homes,MTH,Consumer Discretionary,S&P 500
+Methode Electronics,MEI,Information Technology,S&P 500
+Minerals Technologies,MTX,Materials,S&P 500
+Modine Manufacturing,MOD,Industrials,S&P 500
+MSCI Inc.,MSCI,Financials,S&P 500
+National Fuel Gas,NFG,Utilities,S&P 500
+National Instruments,NATI,Information Technology,S&P 500
+NCI Information Systems,NCIT,Information Technology,S&P 500
+NetScout Systems,NTCT,Information Technology,S&P 500
+Novanta,NOVT,Health Care,S&P 500
+OGE Energy,OGE,Utilities,S&P 500
+Omega Healthcare Investors,OHI,Real Estate,S&P 500
+On Assignment,ASGN,Industrials,S&P 500
+Onsemi,ON,Information Technology,S&P 500
+Open Text,OTEX,Information Technology,S&P 500
+Palantir Technologies,PLTR,Information Technology,S&P 500
+Parsons Corporation,PSN,Information Technology,S&P 500
+Paylocity Holding,PCTY,Information Technology,S&P 500
+PBF Energy,PBF,Energy,S&P 500
+PDC Energy,PDCE,Energy,S&P 500
+Performance Food Group,PFGC,Consumer Staples,S&P 500
+Photronics,PLAB,Information Technology,S&P 500
+Physicians Realty Trust,DOC,Real Estate,S&P 500
+Prestige Consumer Healthcare,PBH,Health Care,S&P 500
+Pure Storage,PSTG,Information Technology,S&P 500
+Rexnord,RXN,Industrials,S&P 500
+Roper Technologies,ROP,Industrials,S&P 500
+RPC Group,RPC,Industrials,S&P 500
+Rush Street Interactive,RSI,Consumer Discretionary,S&P 500
+SAIC,SAIC,Information Technology,S&P 500
+Sarepta Therapeutics,SRPT,Health Care,S&P 500
+Science Applications International,SAIC,Information Technology,S&P 500
+SEI Investments,SEIC,Financials,S&P 500
+Select Medical Holdings,SEM,Health Care,S&P 500
+Sensata Technologies,ST,Industrials,S&P 500
+Silicon Laboratories,SLAB,Information Technology,S&P 500
+Silicon Motion Technology,SIMO,Information Technology,S&P 500
+Silk Road Medical,SILK,Health Care,S&P 500
+SiTime,SITM,Information Technology,S&P 500
+Snap-on,SNA,Industrials,S&P 500
+Snowflake,SNOW,Information Technology,S&P 500
+Solventum,SOLV,Health Care,S&P 500
+SPS Commerce,SPSC,Information Technology,S&P 500
+Sterling Infrastructure,STRL,Industrials,S&P 500
+Stride,LRN,Consumer Discretionary,S&P 500
+Sun Communities,SUI,Real Estate,S&P 500
+Sunbelt Rentals (AHHI),AHHI,Industrials,S&P 500
+SVB Financial Group,SIVB,Financials,S&P 500
+Sysco Corporation,SYY,Consumer Staples,S&P 500
+Terreno Realty,TRNO,Real Estate,S&P 500
+Texas Pacific Land,TPL,Energy,S&P 500
+Toro Company,TTC,Industrials,S&P 500
+Tronox Holdings,TROX,Materials,S&P 500
+UiPath,PATH,Information Technology,S&P 500
+Ultralife,ULBI,Industrials,S&P 500
+United Bankshares,UBSI,Financials,S&P 500
+United Fire Group,UFCS,Financials,S&P 500
+Unitil,UTL,Utilities,S&P 500
+US Bancorp,USB,Financials,S&P 500
+US Foods Holding,USFD,Consumer Staples,S&P 500
+Valero Energy,VLO,Energy,S&P 500
+Varex Imaging,VREX,Health Care,S&P 500
+Viatris,VTRS,Health Care,S&P 500
+Virtus Investment Partners,VRTS,Financials,S&P 500
+Watts Water Technologies,WTS,Industrials,S&P 500
+Webster Financial,WBS,Financials,S&P 500
+Western Alliance Bancorporation,WAL,Financials,S&P 500
+WEX,WEX,Information Technology,S&P 500
+Weyerhaeuser,WY,Real Estate,S&P 500
+WhiteWave Foods,WWAV,Consumer Staples,S&P 500
+Woodward,WWD,Industrials,S&P 500
+WW International,WW,Consumer Discretionary,S&P 500
+YETI Holdings,YETI,Consumer Discretionary,S&P 500
+Zurich Insurance Group,ZURVY,Financials,S&P 500
