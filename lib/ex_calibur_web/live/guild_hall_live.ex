@@ -25,12 +25,27 @@ defmodule ExCaliburWeb.GuildHallLive do
     strategy_previews =
       Map.new(members, fn m -> {m.id, m.strategy} end)
 
+    quests = ExCalibur.Quests.list_quests()
+
+    member_quests =
+      Map.new(members, fn m ->
+        matching =
+          Enum.filter(quests, fn q ->
+            Enum.any?(q.steps || [], fn step ->
+              Enum.any?(step["roster"] || [], fn r -> r["who"] == m.name end)
+            end)
+          end)
+
+        {m.name, Enum.map(matching, & &1.name)}
+      end)
+
     banner = Settings.get_banner()
     banner_atom = if banner, do: String.to_existing_atom(banner)
 
     {:ok,
      assign(socket,
        members: members,
+       member_quests: member_quests,
        expanded: MapSet.new(),
        custom_prefill: %{name: "", team: "", system_prompt: ""},
        ollama_models: list_ollama_models(),
@@ -207,6 +222,7 @@ defmodule ExCaliburWeb.GuildHallLive do
           expanded={MapSet.member?(@expanded, member.id)}
           ollama_models={@ollama_models}
           strategy_preview={Map.get(@strategy_previews, member.id, member.strategy)}
+          member_quests={Map.get(@member_quests, member.name, [])}
         />
       </div>
 
@@ -274,6 +290,7 @@ defmodule ExCaliburWeb.GuildHallLive do
   attr :expanded, :boolean, required: true
   attr :ollama_models, :list, required: true
   attr :strategy_preview, :string, required: true
+  attr :member_quests, :list, default: []
 
   defp member_card(assigns) do
     ~H"""
@@ -296,6 +313,11 @@ defmodule ExCaliburWeb.GuildHallLive do
               <.badge variant="outline" class="text-xs shrink-0">{@member.team}</.badge>
             <% end %>
           </div>
+          <%= if @member_quests != [] do %>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              Used in: {Enum.join(@member_quests, ", ")}
+            </p>
+          <% end %>
           <.rank_pill rank={@member.rank} model={@member.model} />
         </div>
         <button
