@@ -43,7 +43,6 @@ services:
     image: docker.io/jaegertracing/all-in-one:latest
     ports:
       - "16686:16686"  # Jaeger UI
-      - "14250:14250"  # Jaeger gRPC (collector → jaeger)
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
       METRICS_STORAGE_TYPE: prometheus
