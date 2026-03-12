@@ -90,7 +90,7 @@ defmodule ExCalibur.Charters.CultureDesk do
         source_ids: [],
         output_type: "freeform",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image", "analyze_video"]
       },
       %{
         name: "Weekly Arts Roundup",
@@ -111,7 +111,7 @@ defmodule ExCalibur.Charters.CultureDesk do
         entry_title_template: "Arts Roundup — {date}",
         context_providers: [%{"type" => "lore", "limit" => 10}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image", "analyze_video"]
       },
       %{
         name: "Deep Cut",
@@ -130,7 +130,7 @@ defmodule ExCalibur.Charters.CultureDesk do
         source_ids: [],
         output_type: "freeform",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image", "analyze_video"]
       }
     ]
   end

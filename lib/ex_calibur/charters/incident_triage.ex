@@ -123,7 +123,7 @@ defmodule ExCalibur.Charters.IncidentTriage do
         log_title_template: nil,
         context_providers: [%{"type" => "lore", "tags" => ["incidents"], "limit" => 10, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_github", "search_email"]
       },
       %{
         name: "Page On-Call",
@@ -187,7 +187,7 @@ defmodule ExCalibur.Charters.IncidentTriage do
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
             "strategy" => perspective.strategy,
-            "tools" => "all_safe"
+            "tools" => "write"
           }
         }
       end)

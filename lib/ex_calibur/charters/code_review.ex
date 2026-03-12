@@ -120,7 +120,7 @@ defmodule ExCalibur.Charters.CodeReview do
         log_title_template: "Code Review Log — {date}",
         context_providers: [%{"type" => "lore", "tags" => ["code-review"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_github", "search_obsidian"]
       },
       %{
         name: "File Code Review Issue",
@@ -184,7 +184,7 @@ defmodule ExCalibur.Charters.CodeReview do
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
             "strategy" => perspective.strategy,
-            "tools" => "all_safe"
+            "tools" => "write"
           }
         }
       end)

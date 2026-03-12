@@ -110,7 +110,7 @@ defmodule ExCalibur.Charters.TheSkeptics do
           %{"type" => "lore", "tags" => ["decisions", "findings"], "limit" => 5, "sort" => "importance"}
         ],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "search_obsidian"]
       }
     ]
   end

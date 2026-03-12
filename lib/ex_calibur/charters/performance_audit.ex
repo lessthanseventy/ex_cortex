@@ -119,7 +119,7 @@ defmodule ExCalibur.Charters.PerformanceAudit do
         log_title_template: nil,
         context_providers: [%{"type" => "lore", "tags" => ["performance"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_github"]
       },
       %{
         name: "File Performance Regression",

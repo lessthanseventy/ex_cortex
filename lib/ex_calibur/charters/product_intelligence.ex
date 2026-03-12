@@ -101,7 +101,7 @@ defmodule ExCalibur.Charters.ProductIntelligence do
           %{"type" => "lore", "tags" => ["product", "feedback", "market"], "limit" => 5, "sort" => "top"}
         ],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "search_email"]
       },
       %{
         name: "Full Intelligence Review",

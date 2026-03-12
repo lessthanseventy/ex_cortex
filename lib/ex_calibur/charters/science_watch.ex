@@ -94,7 +94,7 @@ defmodule ExCalibur.Charters.ScienceWatch do
         write_mode: "append",
         entry_title_template: "Science Brief — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "read_pdf"]
       },
       %{
         name: "Hype Check",
@@ -133,7 +133,7 @@ defmodule ExCalibur.Charters.ScienceWatch do
         entry_title_template: "Research Roundup — {date}",
         context_providers: [%{"type" => "lore", "limit" => 20}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "read_pdf"]
       }
     ]
   end

@@ -93,7 +93,7 @@ defmodule ExCalibur.Charters.TechDispatch do
         write_mode: "append",
         entry_title_template: "Tech Brief — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "search_obsidian"]
       },
       %{
         name: "Weekly Tech Trends",
@@ -115,7 +115,7 @@ defmodule ExCalibur.Charters.TechDispatch do
         entry_title_template: "Weekly Tech Trends — {date}",
         context_providers: [%{"type" => "lore", "limit" => 30}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "search_obsidian"]
       },
       %{
         name: "Hype Check",

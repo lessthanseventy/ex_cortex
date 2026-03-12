@@ -121,7 +121,7 @@ defmodule ExCalibur.Charters.RiskAssessment do
         log_title_template: nil,
         context_providers: [%{"type" => "lore", "tags" => ["risk"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search"]
       },
       %{
         name: "Page On High Risk",

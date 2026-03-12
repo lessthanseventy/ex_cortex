@@ -120,7 +120,7 @@ defmodule ExCalibur.Charters.DependencyAudit do
         log_title_template: "Dependency Audit Log — {date}",
         context_providers: [%{"type" => "lore", "tags" => ["deps"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_github", "web_search"]
       },
       %{
         name: "File Vulnerability Issue",

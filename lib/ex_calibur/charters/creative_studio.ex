@@ -108,7 +108,7 @@ defmodule ExCalibur.Charters.CreativeStudio do
         source_ids: [],
         output_type: "freeform",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "read_obsidian"]
       },
       %{
         name: "Tone Review",

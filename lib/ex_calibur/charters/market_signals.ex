@@ -94,7 +94,7 @@ defmodule ExCalibur.Charters.MarketSignals do
         write_mode: "append",
         entry_title_template: "Market Brief — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch"]
       },
       %{
         name: "Weekly Market Roundup",
@@ -114,7 +114,7 @@ defmodule ExCalibur.Charters.MarketSignals do
         context_providers: [%{"type" => "lore", "limit" => 10}],
         entry_title_template: "Market Roundup — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch"]
       },
       %{
         name: "Risk Check",

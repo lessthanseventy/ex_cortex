@@ -121,7 +121,7 @@ defmodule ExCalibur.Charters.AccessibilityReview do
         log_title_template: "A11y Log — {date}",
         context_providers: [%{"type" => "lore", "tags" => ["a11y"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch"]
       },
       %{
         name: "Post A11y Alert",

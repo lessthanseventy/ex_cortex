@@ -50,6 +50,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
 
     Enum.flat_map(members, fn {member_id, rank} ->
       builtin = BuiltinMember.get(member_id)
+      tools = if member_id == "journal-keeper", do: "write", else: "all_safe"
 
       [
         %{
@@ -63,7 +64,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
             "strategy" => builtin.ranks.apprentice.strategy,
-            "tools" => "all_safe"
+            "tools" => tools
           }
         },
         %{
@@ -77,7 +78,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
             "strategy" => builtin.ranks[rank].strategy,
-            "tools" => "all_safe"
+            "tools" => tools
           }
         }
       ]
@@ -193,7 +194,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         write_mode: "append",
         entry_title_template: "Journal — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
       %{
         name: "Daily Check-in",
@@ -208,7 +209,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         write_mode: "append",
         entry_title_template: "Check-in — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
 
       # --- Daily Rhythm ---
@@ -228,7 +229,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         entry_title_template: "Morning Briefing — {date}",
         context_providers: [%{"type" => "lore", "limit" => 10, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
       %{
         name: "Midday Pulse",
@@ -246,7 +247,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         entry_title_template: "Midday Pulse — {date}",
         context_providers: [%{"type" => "lore", "limit" => 5, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
       %{
         name: "Evening Wrap",
@@ -265,7 +266,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         entry_title_template: "Evening Wrap — {date}",
         context_providers: [%{"type" => "lore", "limit" => 8, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
 
       # --- News & Briefings ---
@@ -300,7 +301,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         entry_title_template: "Weekly News Digest — {date}",
         context_providers: [%{"type" => "lore", "limit" => 30, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
 
       # --- Reflection & Synthesis ---
@@ -320,7 +321,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         entry_title_template: "Weekly Reflection — {date}",
         context_providers: [%{"type" => "lore", "limit" => 20}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       },
       %{
         name: "Monthly Review",
@@ -339,7 +340,7 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         entry_title_template: "Monthly Review — {date}",
         context_providers: [%{"type" => "lore", "limit" => 60, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "web_search"]
       }
     ]
   end

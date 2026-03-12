@@ -115,7 +115,7 @@ defmodule ExCalibur.Charters.QualityCollective do
           %{"type" => "lore", "tags" => ["a11y", "quality"], "limit" => 5, "sort" => "top"}
         ],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search"]
       }
     ]
   end

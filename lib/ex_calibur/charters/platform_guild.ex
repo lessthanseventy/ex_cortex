@@ -112,7 +112,7 @@ defmodule ExCalibur.Charters.PlatformGuild do
           %{"type" => "lore", "tags" => ["platform", "security", "performance"], "limit" => 5, "sort" => "top"}
         ],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_github"]
       }
     ]
   end

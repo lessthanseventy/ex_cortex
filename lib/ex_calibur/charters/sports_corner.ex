@@ -91,7 +91,7 @@ defmodule ExCalibur.Charters.SportsCorner do
         write_mode: "append",
         entry_title_template: "Sports — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image"]
       },
       %{
         name: "Weekend Roundup",
@@ -112,7 +112,7 @@ defmodule ExCalibur.Charters.SportsCorner do
         entry_title_template: "Weekend Roundup — {date}",
         context_providers: [%{"type" => "lore", "limit" => 10}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image"]
       }
     ]
   end

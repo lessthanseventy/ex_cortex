@@ -126,7 +126,7 @@ defmodule ExCalibur.Charters.ContractReview do
         log_title_template: "Contract Review Log — {date}",
         context_providers: [%{"type" => "lore", "tags" => ["contracts"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_lore", "search_obsidian", "search_email", "web_search"]
       },
       %{
         name: "Email Contract Risk Summary",
