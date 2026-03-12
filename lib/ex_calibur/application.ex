@@ -7,6 +7,13 @@ defmodule ExCalibur.Application do
 
   alias ExCalibur.Sources.SourceSupervisor
 
+  require Logger
+
+  @cli_tools ~w(
+    obsidian-cli notmuch msmtp yt-dlp ffmpeg tesseract
+    ddgr w3m pandoc pdftotext jq gh git podman
+  )
+
   @impl true
   def start(_type, _args) do
     # SaladUI requires TwMerge.Cache ETS table
@@ -37,7 +44,29 @@ defmodule ExCalibur.Application do
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ExCalibur.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+    check_cli_tools()
+    write_pid_file()
+    result
+  end
+
+  defp write_pid_file do
+    pid = System.pid()
+    path = Path.join(File.cwd!(), ".ex_calibur.pid")
+    File.write!(path, pid)
+    Logger.info("PID file written: #{path} (#{pid})")
+  end
+
+  defp check_cli_tools do
+    {found, missing} =
+      Enum.split_with(@cli_tools, &System.find_executable/1)
+
+    if missing != [] do
+      Logger.warning("CLI tools not found: #{Enum.join(missing, ", ")} — related tools/sources may fail")
+    end
+
+    Logger.info("CLI tools available: #{Enum.join(found, ", ")}")
+    :persistent_term.put(:cli_tool_status, %{available: found, missing: missing})
   end
 
   # Tell Phoenix to update the endpoint configuration

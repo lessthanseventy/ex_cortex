@@ -519,7 +519,7 @@ defmodule ExCaliburWeb.GrimoireLive do
     }
   end
 
-  defp check_ollama(url, api_key \\ nil) do
+  defp check_ollama(url, api_key) do
     headers = if api_key, do: [{"authorization", "Bearer #{api_key}"}], else: []
 
     case Req.get("#{url}/api/tags", headers: headers, receive_timeout: 2_000, connect_options: [timeout: 2_000]) do

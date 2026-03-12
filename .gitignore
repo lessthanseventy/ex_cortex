@@ -35,5 +35,6 @@ ex_cellence_server-*.tar
 npm-debug.log
 /assets/node_modules/
 
-# Git worktrees
+# Self-improvement loop
+.ex_calibur.pid
 .worktrees/
