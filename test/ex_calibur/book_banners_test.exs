@@ -13,7 +13,7 @@ defmodule ExCalibur.BookBannersTest do
 
     test "filter_by_banner/1 returns matching and nil-banner books" do
       tech = Book.filter_by_banner(:tech)
-      assert length(tech) > 0
+      assert tech != []
       assert Enum.all?(tech, &(&1.banner in [:tech, nil]))
     end
   end

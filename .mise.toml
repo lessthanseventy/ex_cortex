@@ -8,7 +8,6 @@ description = "Start db + observability stack in docker, run app locally with li
 run = """
 docker compose up -d db otel-collector jaeger prometheus grafana
 until pg_isready -h localhost -p 5433 -U excellence -q; do sleep 1; done
-OLLAMA_URL=http://localhost:11434 \
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
 PORT=${PORT:-4001} \
 mix phx.server

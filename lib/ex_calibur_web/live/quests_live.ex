@@ -44,15 +44,13 @@ defmodule ExCaliburWeb.QuestsLive do
     banner_atom = if banner, do: String.to_existing_atom(banner)
 
     board_templates =
-      Board.all()
-      |> then(fn templates ->
+      then(Board.all_with_status(), fn templates ->
         if banner_atom do
-          Enum.filter(templates, &(&1.banner == banner_atom))
+          Enum.filter(templates, &(&1.template.banner == banner_atom))
         else
           templates
         end
       end)
-      |> Enum.map(&board_with_status/1)
 
     {:ok,
      assign(socket,
@@ -427,14 +425,12 @@ defmodule ExCaliburWeb.QuestsLive do
     quest = Quests.get_quest!(String.to_integer(id))
     run_id = "quest-#{quest.id}"
 
-    {:ok, quest_run} = Quests.create_quest_run(%{quest_id: quest.id, status: "running"})
-
     running = Map.put(socket.assigns.running, run_id, %{status: "running", result: nil})
     parent = self()
 
     Task.start(fn ->
       result = ExCalibur.QuestRunner.run(quest, "")
-      send(parent, {:quest_run_complete, run_id, quest_run.id, result})
+      send(parent, {:quest_run_complete, run_id, result})
     end)
 
     {:noreply, assign(socket, running: running)}
@@ -473,15 +469,12 @@ defmodule ExCaliburWeb.QuestsLive do
   end
 
   @impl true
-  def handle_info({:quest_run_complete, run_id, quest_run_id, result}, socket) do
+  def handle_info({:quest_run_complete, run_id, result}, socket) do
     {status, results} =
       case result do
         {:ok, outcome} -> {"complete", outcome}
         {:error, reason} -> {"failed", %{error: inspect(reason)}}
       end
-
-    quest_run = ExCalibur.Repo.get!(ExCalibur.Quests.QuestRun, quest_run_id)
-    Quests.update_quest_run(quest_run, %{status: status, step_results: results})
 
     running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
     {:noreply, assign(socket, running: running)}
@@ -1441,7 +1434,8 @@ defmodule ExCaliburWeb.QuestsLive do
               </p>
               <div class="space-y-2">
                 <%= for run <- Enum.take(@runs, 5) do %>
-                  <% all_tool_calls = run.step_results |> Map.values() |> Enum.flat_map(&(Map.get(&1, "tool_calls", []))) %>
+                  <% all_tool_calls =
+                    run.step_results |> Map.values() |> Enum.flat_map(&Map.get(&1, "tool_calls", [])) %>
                   <div class="space-y-1">
                     <div class="flex items-center gap-3 text-xs text-muted-foreground">
                       <span class={[
@@ -1467,7 +1461,11 @@ defmodule ExCaliburWeb.QuestsLive do
                           <div class="text-xs">
                             <span class="font-mono text-accent-foreground">{call["tool"]}</span>
                             <%= if call["output"] && String.length(call["output"]) > 0 do %>
-                              <span class="text-muted-foreground/60"> → {String.slice(call["output"], 0, 80)}{if String.length(call["output"]) > 80, do: "…"}</span>
+                              <span class="text-muted-foreground/60">
+                                → {String.slice(call["output"], 0, 80)}{if String.length(
+                                                                             call["output"]
+                                                                           ) > 80, do: "…"}
+                              </span>
                             <% end %>
                           </div>
                         <% end %>
@@ -1559,12 +1557,6 @@ defmodule ExCaliburWeb.QuestsLive do
 
   defp assign_steps(socket) do
     assign(socket, steps: Quests.list_steps())
-  end
-
-  defp board_with_status(template) do
-    requirements = Board.check_requirements(template)
-    readiness = Board.readiness(template)
-    %{template: template, requirements: requirements, readiness: readiness}
   end
 
   defp board_tab_category("all"), do: nil

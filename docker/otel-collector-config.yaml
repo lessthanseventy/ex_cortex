@@ -29,7 +29,6 @@ exporters:
       insecure: true
   prometheus:
     endpoint: 0.0.0.0:8889
-    namespace: ex_calibur
 
 service:
   pipelines:

@@ -13,7 +13,7 @@ defmodule ExCalibur.BoardBannersTest do
 
     test "filter_by_banner/1 returns only matching templates" do
       tech = Board.filter_by_banner(:tech)
-      assert length(tech) > 0
+      assert tech != []
       assert Enum.all?(tech, &(&1.banner == :tech))
     end
   end

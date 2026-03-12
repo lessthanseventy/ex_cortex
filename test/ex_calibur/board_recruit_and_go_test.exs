@@ -10,7 +10,7 @@ defmodule ExCalibur.Board.RecruitAndGoTest do
 
       {:ok, result} = Board.recruit_and_go(template)
       assert result.quest
-      assert length(result.steps_created) > 0
+      assert result.steps_created != []
     end
 
     test "returns ok even for templates with no suggested_team" do

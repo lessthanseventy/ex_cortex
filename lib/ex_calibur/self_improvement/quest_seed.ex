@@ -37,6 +37,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   defp cleanup do
     Repo.delete_all(from q in Quest, where: q.name in @si_quest_names)
     Repo.delete_all(from s in Step, where: s.name in @si_step_names)
+
     Repo.delete_all(
       from s in Source,
         where: s.source_type == "github_issues" and s.name == "Self-Improvement Issues"
@@ -53,7 +54,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       config: %{
         "repo" => repo,
         "label" => "self-improvement",
-        "interval" => 300_000
+        "interval" => 3_600_000
       },
       status: "active"
     })
@@ -83,9 +84,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Code Writer implements the issue in a git worktree — reads relevant files, writes the implementation, runs tests, and opens a PR.",
         trigger: "manual",
         output_type: "freeform",
-        loop_mode: "reflect",
-        max_iterations: 3,
-        loop_tools: ["run_sandbox", "read_file"],
         roster: [
           %{
             "who" => "all",
@@ -192,9 +190,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         "Product Analyst proactively analyzes the codebase, runs credo, checks Obsidian/Lore if available, and files up to 5 GitHub issues labeled self-improvement.",
       trigger: "manual",
       output_type: "freeform",
-      loop_mode: "reflect",
-      max_iterations: 5,
-      loop_tools: ["search_obsidian", "query_lore", "query_jaeger", "read_file", "list_files", "create_github_issue"],
       roster: [
         %{
           "who" => "all",

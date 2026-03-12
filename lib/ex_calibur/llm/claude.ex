@@ -162,8 +162,7 @@ defmodule ExCalibur.LLM.Claude do
   defp extract_call_info(%ReqLLM.ToolCall{id: id, function: %{name: name}}), do: {name, id}
   defp extract_call_info(%{name: name, id: id}), do: {name, id}
 
-  defp extract_call_args(%ReqLLM.ToolCall{function: %{arguments: args}}) when is_binary(args),
-    do: Jason.decode!(args)
+  defp extract_call_args(%ReqLLM.ToolCall{function: %{arguments: args}}) when is_binary(args), do: Jason.decode!(args)
 
   defp extract_call_args(%ReqLLM.ToolCall{function: %{arguments: args}}), do: args
   defp extract_call_args(%{arguments: args}) when is_binary(args), do: Jason.decode!(args)

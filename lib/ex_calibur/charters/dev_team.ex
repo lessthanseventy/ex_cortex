@@ -107,7 +107,7 @@ defmodule ExCalibur.Charters.DevTeam do
             "rank" => Enum.at(["apprentice", "journeyman", "master"], idx, "master"),
             "model" => perspective.model,
             "strategy" => perspective.strategy,
-            "tools" => "write"
+            "tools" => "dangerous"
           }
         }
       end)

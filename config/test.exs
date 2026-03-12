@@ -1,13 +1,10 @@
 import Config
 
-# Disable OTel exporter in tests — no Jaeger running
-config :opentelemetry, traces_exporter: :none
-
-# Configure ex_cellence to use our repo and test-mode Oban
 alias Ecto.Adapters.SQL.Sandbox
 
 # Configure your database
 #
+# Configure ex_cellence to use our repo and test-mode Oban
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
@@ -25,6 +22,8 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   secret_key_base: "KY64T6XteuWzRYjr2XCLj1kG0olZI3nQ91FCAv0Ky5SVo187Hj3GvvchhKEzFRWY",
   server: false
 
+# Return a fixed model list in tests to avoid hitting the real Ollama server
+config :ex_calibur, :ollama_models, ["gemma3:4b", "gemma3:12b", "phi4-mini"]
 config :ex_calibur, :sql_sandbox, true
 
 config :ex_cellence, Oban, testing: :manual
@@ -36,11 +35,11 @@ config :excessibility,
   live_view_mod: Excessibility.LiveView,
   system_mod: Excessibility.System
 
-# Return a fixed model list in tests to avoid hitting the real Ollama server
-config :ex_calibur, :ollama_models, ["gemma3:4b", "gemma3:12b", "phi4-mini"]
-
 # Print only warnings and errors during test
 config :logger, level: :warning
+
+# Disable OTel exporter in tests — no Jaeger running
+config :opentelemetry, traces_exporter: :none
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

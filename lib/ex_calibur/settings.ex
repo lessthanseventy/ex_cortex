@@ -40,6 +40,13 @@ defmodule ExCalibur.Settings do
     |> ExCalibur.Repo.insert_or_update()
   end
 
+  def get_all do
+    case ExCalibur.Repo.one(from(s in __MODULE__)) do
+      nil -> %{}
+      setting -> setting.config || %{}
+    end
+  end
+
   def get(key) when is_atom(key) do
     case ExCalibur.Repo.one(from(s in __MODULE__)) do
       nil -> nil

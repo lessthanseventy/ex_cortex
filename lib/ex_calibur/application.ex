@@ -23,24 +23,32 @@ defmodule ExCalibur.Application do
       TwMerge.Cache.insert(:class_tree, TwMerge.ClassTree.generate())
     end
 
-    children = [
-      ExCaliburWeb.Telemetry,
-      ExCalibur.Repo,
-      {Oban, Application.fetch_env!(:ex_cellence, Oban)},
-      {DNSCluster, query: Application.get_env(:ex_calibur, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: ExCalibur.PubSub},
-      {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
-      {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor, max_children: 4},
-      {Task.Supervisor, name: ExCalibur.AsyncTaskSupervisor},
-      ExCalibur.QuestDebouncer,
-      SourceSupervisor,
-      {Task, fn -> SourceSupervisor.start_all_active() end},
-      ExCalibur.PubSubBridge,
-      ExCalibur.ScheduledQuestRunner,
-      ExCalibur.LoreTriggerRunner,
-      ExCalibur.LodgeTriggerRunner,
-      ExCaliburWeb.Endpoint
-    ]
+    sandbox? = Application.get_env(:ex_calibur, :sql_sandbox, false)
+
+    children =
+      [
+        ExCaliburWeb.Telemetry,
+        ExCalibur.Repo,
+        {Oban, Application.fetch_env!(:ex_cellence, Oban)},
+        {DNSCluster, query: Application.get_env(:ex_calibur, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: ExCalibur.PubSub},
+        {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
+        {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor, max_children: 4},
+        {Task.Supervisor, name: ExCalibur.AsyncTaskSupervisor},
+        ExCalibur.QuestDebouncer,
+        SourceSupervisor,
+        {Task, fn -> SourceSupervisor.start_all_active() end},
+        ExCalibur.PubSubBridge,
+        ExCaliburWeb.Endpoint
+      ] ++
+        if(sandbox?,
+          do: [],
+          else: [
+            ExCalibur.ScheduledQuestRunner,
+            ExCalibur.LoreTriggerRunner,
+            ExCalibur.LodgeTriggerRunner
+          ]
+        )
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

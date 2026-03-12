@@ -19,7 +19,7 @@ defmodule ExCalibur.QuestRunner.RecordingTest do
 
       # Verify a quest run was created
       runs = Quests.list_quest_runs(quest)
-      assert length(runs) >= 1
+      assert runs != []
       run = List.first(runs)
       assert run.quest_id == quest.id
       assert run.status in ["complete", "failed"]

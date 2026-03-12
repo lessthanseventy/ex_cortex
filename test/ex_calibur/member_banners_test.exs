@@ -13,7 +13,7 @@ defmodule ExCalibur.MemberBannersTest do
 
     test "filter_by_banner/1 returns matching members" do
       tech = BuiltinMember.filter_by_banner(:tech)
-      assert length(tech) > 0
+      assert tech != []
       assert Enum.all?(tech, &(&1.banner == :tech))
     end
   end

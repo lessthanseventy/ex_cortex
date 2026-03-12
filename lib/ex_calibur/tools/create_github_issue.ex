@@ -10,10 +10,6 @@ defmodule ExCalibur.Tools.CreateGithubIssue do
         "properties" => %{
           "title" => %{"type" => "string", "description" => "Issue title"},
           "body" => %{"type" => "string", "description" => "Issue body (markdown supported)"},
-          "repo" => %{
-            "type" => "string",
-            "description" => "Repository in 'owner/repo' format (optional if default_repo configured)"
-          },
           "labels" => %{
             "type" => "array",
             "items" => %{"type" => "string"},
@@ -27,11 +23,11 @@ defmodule ExCalibur.Tools.CreateGithubIssue do
   end
 
   def call(%{"title" => title, "body" => body} = params) do
-    repo = Map.get(params, "repo") || ExCalibur.Settings.get(:default_repo)
+    repo = ExCalibur.Settings.get(:default_repo)
 
     case repo do
       nil ->
-        {:error, "repo required — pass 'repo' param or configure default_repo in settings"}
+        {:error, "no default_repo configured in settings — set it before using this tool"}
 
       repo ->
         labels = Map.get(params, "labels", [])

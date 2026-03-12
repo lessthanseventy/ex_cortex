@@ -85,7 +85,8 @@ services:
       - ..:/app:Z
     environment:
       DATABASE_URL: ecto://excellence:excellence@db/ex_calibur
-      OLLAMA_URL: http://ollama:11434
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       PHX_SERVER: "true"
       PORT: "4001"

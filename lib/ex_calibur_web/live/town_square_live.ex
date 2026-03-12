@@ -146,9 +146,7 @@ defmodule ExCaliburWeb.TownSquareLive do
   def handle_event("reset_banner", _, socket) do
     Settings.set_banner(nil)
 
-    {:noreply,
-     socket
-     |> assign(banner: nil, filtered_guilds: socket.assigns.guilds)}
+    {:noreply, assign(socket, banner: nil, filtered_guilds: socket.assigns.guilds)}
   end
 
   @impl true

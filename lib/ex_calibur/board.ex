@@ -10,6 +10,7 @@ defmodule ExCalibur.Board do
   import Ecto.Query
 
   alias ExCalibur.Heralds.Herald
+  alias ExCalibur.Quests.Quest
   alias ExCalibur.Repo
   alias ExCalibur.Sources.Source
   alias Excellence.Schemas.Member
@@ -75,7 +76,7 @@ defmodule ExCalibur.Board do
 
         installed =
           Repo.exists?(
-            from(q in ExCalibur.Quests.Quest,
+            from(q in Quest,
               where: q.status in ["active", "paused"],
               where: like(q.name, ^"%#{quest_prefix}%")
             )
@@ -102,6 +103,105 @@ defmodule ExCalibur.Board do
       missing == 1 -> :almost
       true -> :unavailable
     end
+  end
+
+  @doc """
+  Like all/0 but annotates each template with requirements and readiness using
+  batched DB queries — O(4) queries for any number of templates instead of O(N*M).
+  Returns list of %{template, requirements, readiness} maps.
+  """
+  def all_with_status do
+    templates = all()
+
+    source_types = flat_requirements(templates, :source_type)
+    herald_types = flat_requirements(templates, :herald_type)
+    not_installed_ids = flat_requirements(templates, :not_installed)
+    needs_members = Enum.any?(templates, &(:any_members in (&1.requires || [])))
+
+    present_source_types =
+      if source_types == [] do
+        MapSet.new()
+      else
+        from(s in Source,
+          where: s.source_type in ^source_types and s.status in ["active", "paused"],
+          select: s.source_type
+        )
+        |> Repo.all()
+        |> MapSet.new()
+      end
+
+    present_herald_types =
+      if herald_types == [] do
+        MapSet.new()
+      else
+        from(h in Herald, where: h.type in ^herald_types, select: h.type)
+        |> Repo.all()
+        |> MapSet.new()
+      end
+
+    has_active_members =
+      needs_members &&
+        Repo.exists?(from(m in Member, where: m.type == "role" and m.status == "active"))
+
+    installed_prefixes =
+      if not_installed_ids == [] do
+        MapSet.new()
+      else
+        prefixes = Enum.map(not_installed_ids, &template_id_to_quest_prefix/1)
+
+        from(q in Quest,
+          where: q.status in ["active", "paused"],
+          select: q.name
+        )
+        |> Repo.all()
+        |> then(fn names ->
+          Enum.filter(prefixes, fn prefix ->
+            Enum.any?(names, &String.contains?(&1, prefix))
+          end)
+        end)
+        |> MapSet.new()
+      end
+
+    Enum.map(templates, fn template ->
+      reqs =
+        Enum.map(template.requires || [], fn
+          {:source_type, type} ->
+            {MapSet.member?(present_source_types, type), "#{humanize(type)} source"}
+
+          {:herald_type, type} ->
+            {MapSet.member?(present_herald_types, type), "#{humanize(type)} herald"}
+
+          :any_members ->
+            {has_active_members, "Active members"}
+
+          {:not_installed, id} ->
+            prefix = template_id_to_quest_prefix(id)
+            {!MapSet.member?(installed_prefixes, prefix), "Not included in #{humanize(id)}"}
+        end)
+
+      missing = Enum.count(reqs, fn {met, _} -> !met end)
+
+      readiness =
+        cond do
+          reqs == [] -> :ready
+          missing == 0 -> :ready
+          missing == 1 -> :almost
+          true -> :unavailable
+        end
+
+      %{template: template, requirements: reqs, readiness: readiness}
+    end)
+  end
+
+  defp flat_requirements(templates, type) do
+    templates
+    |> Enum.flat_map(fn t ->
+      t.requires
+      |> Kernel.||([])
+      |> Enum.filter(&match?({^type, _}, &1))
+      |> Enum.map(fn {_, v} -> v end)
+    end)
+    |> Enum.uniq()
   end
 
   @doc """

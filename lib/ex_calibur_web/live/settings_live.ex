@@ -64,9 +64,11 @@ defmodule ExCaliburWeb.SettingsLive do
   end
 
   defp load_all_settings do
+    all = Settings.get_all()
+
     @sections
     |> Enum.flat_map(fn {_section, fields} ->
-      Enum.map(fields, fn {key, _, _, _} -> {key, Settings.get(key)} end)
+      Enum.map(fields, fn {key, _, _, _} -> {key, Map.get(all, Atom.to_string(key))} end)
     end)
     |> Map.new()
   end

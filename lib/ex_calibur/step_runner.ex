@@ -383,16 +383,22 @@ defmodule ExCalibur.StepRunner do
 
   defp run_step(members, _how, input_text) do
     Enum.map(members, fn member ->
+      require Logger
+
       result = call_member(member, input_text)
       r = Map.put(result, :member, member.name)
-      require Logger
-      Logger.info("[StepRunner] #{member.name} (#{member.provider}/#{member.model}): verdict=#{r.verdict} confidence=#{r.confidence} tool_calls=#{length(r[:tool_calls] || [])}")
+
+      Logger.info(
+        "[StepRunner] #{member.name} (#{member.provider}/#{member.model}): verdict=#{r.verdict} confidence=#{r.confidence} tool_calls=#{length(r[:tool_calls] || [])}"
+      )
+
       r
     end)
   end
 
   defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text) do
-    prompt = system_prompt || default_claude_prompt()
+    base = system_prompt || default_claude_prompt()
+    prompt = ensure_verdict_format(base, tools)
 
     result =
       if tools == [] do
@@ -402,10 +408,38 @@ defmodule ExCalibur.StepRunner do
       end
 
     case result do
-      {:ok, text, tool_log} -> parse_verdict(text) |> Map.put(:tool_calls, tool_log)
-      {:ok, text} -> parse_verdict(text) |> Map.put(:tool_calls, [])
-      {:error, _, _} -> %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
-      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
+      {:ok, text, tool_log} ->
+        require Logger
+
+        Logger.debug("[StepRunner] raw response (#{byte_size(text)}B): #{String.slice(text, 0, 300)}")
+        text |> parse_verdict() |> Map.put(:tool_calls, tool_log)
+
+      {:ok, text} ->
+        require Logger
+
+        Logger.debug("[StepRunner] raw response (#{byte_size(text)}B): #{String.slice(text, 0, 300)}")
+        text |> parse_verdict() |> Map.put(:tool_calls, [])
+
+      {:error, _, _} ->
+        %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
+
+      {:error, _} ->
+        %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
+    end
+  end
+
+  defp ensure_verdict_format(prompt, tools) do
+    verdict_suffix =
+      if tools == [] do
+        "\n\nRespond with:\nACTION: pass | warn | fail | abstain\nCONFIDENCE: 0.0-1.0\nREASON: your reasoning"
+      else
+        "\n\nYou have access to tools — use them to gather information before giving your verdict.\n\nRespond with:\nACTION: pass | warn | fail | abstain\nCONFIDENCE: 0.0-1.0\nREASON: your reasoning"
+      end
+
+    if String.contains?(prompt, "ACTION:") do
+      prompt
+    else
+      prompt <> verdict_suffix
     end
   end
 

@@ -6,7 +6,7 @@ defmodule ExCalibur.Integration.EverydayCouncilFlowTest do
 
   test "resource_definitions returns valid member configs" do
     defs = EverydayCouncil.resource_definitions()
-    assert length(defs) > 0
+    assert defs != []
 
     Enum.each(defs, fn d ->
       assert d.type == "role"
@@ -18,7 +18,7 @@ defmodule ExCalibur.Integration.EverydayCouncilFlowTest do
   test "journal-keeper gets write tool tier" do
     defs = EverydayCouncil.resource_definitions()
     journal_keepers = Enum.filter(defs, &(&1.config["member_id"] == "journal-keeper"))
-    assert length(journal_keepers) > 0
+    assert journal_keepers != []
 
     Enum.each(journal_keepers, fn d ->
       assert d.config["tools"] == "write"
@@ -51,7 +51,7 @@ defmodule ExCalibur.Integration.EverydayCouncilFlowTest do
 
   test "Books includes Everyday Council entries" do
     books = Book.for_guild("Everyday Council")
-    assert length(books) > 0
+    assert books != []
   end
 
   test "Registry resolve_tools(:write) includes obsidian write tools" do

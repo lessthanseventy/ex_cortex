@@ -52,7 +52,7 @@ defmodule ExCalibur.Tools.QueryJaeger do
         limit: limit,
         lookback: lookback
       }
-      |> then(fn q -> if operation != "", do: Map.put(q, :operation, operation), else: q end)
+      |> then(fn q -> if operation == "", do: q, else: Map.put(q, :operation, operation) end)
       |> then(fn q ->
         if min_duration_ms > 0,
           do: Map.put(q, :minDuration, "#{min_duration_ms}ms"),
@@ -77,7 +77,7 @@ defmodule ExCalibur.Tools.QueryJaeger do
   end
 
   defp format_traces(%{"data" => []}, op) do
-    filter = if op != "", do: " for operation '#{op}'", else: ""
+    filter = if op == "", do: "", else: " for operation '#{op}'"
     "No traces found#{filter}. Either Jaeger is empty or the lookback window is too short."
   end
 
@@ -103,7 +103,7 @@ defmodule ExCalibur.Tools.QueryJaeger do
       |> Enum.take(20)
       |> Enum.map_join("\n", fn t ->
         error_flag = if t.has_error, do: " ❌", else: ""
-        attrs = if t.attrs != "", do: " [#{t.attrs}]", else: ""
+        attrs = if t.attrs == "", do: "", else: " [#{t.attrs}]"
         "- #{t.root_op}#{error_flag} #{t.duration_ms}ms#{attrs}"
       end)
 
@@ -124,6 +124,7 @@ defmodule ExCalibur.Tools.QueryJaeger do
     has_error =
       Enum.any?(spans, fn span ->
         tags = span["tags"] || []
+
         Enum.any?(tags, fn t -> t["key"] == "error" and t["value"] == true end) or
           Enum.any?(tags, fn t -> t["key"] == "otel.status_code" and t["value"] == "ERROR" end)
       end)
