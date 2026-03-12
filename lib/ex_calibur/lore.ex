@@ -63,6 +63,7 @@ defmodule ExCalibur.Lore do
       with {:ok, entry} <- result do
         Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore", {:lore_updated, entry.title})
         Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore_triggers", {:lore_entry_created, entry})
+        Task.start(fn -> ExCalibur.Obsidian.Sync.sync_lore_entry(entry) end)
       end
 
       result

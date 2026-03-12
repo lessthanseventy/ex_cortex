@@ -56,6 +56,7 @@ defmodule ExCalibur.Lodge do
     case create_card(attrs) do
       {:ok, card} ->
         Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
+        Task.start(fn -> ExCalibur.Obsidian.Sync.sync_lodge_card(card) end)
         {:ok, card}
 
       error ->
