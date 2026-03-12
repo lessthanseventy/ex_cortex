@@ -182,8 +182,9 @@ defmodule ExCalibur.Charters.EverydayCouncil do
 
       # --- Journaling & Intake ---
       %{
-        name: "Journal Intake",
-        description: "Drop a link, note, doc, or thought. The journal keeper processes it into a structured lore entry.",
+        name: "Smart Intake",
+        description:
+          "Intelligent intake — drop a link, doc, image, video, email, or thought. Auto-detects content type and routes to appropriate tools for extraction, then summarizes, tags, and cross-references.",
         status: "active",
         trigger: "source",
         roster: [
@@ -192,9 +193,21 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         source_ids: [],
         output_type: "artifact",
         write_mode: "append",
-        entry_title_template: "Journal — {date}",
+        entry_title_template: "Intake — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: [
+          "query_lore",
+          "search_obsidian",
+          "web_search",
+          "web_fetch",
+          "read_pdf",
+          "describe_image",
+          "read_image_text",
+          "download_media",
+          "extract_frames",
+          "analyze_video",
+          "create_obsidian_note"
+        ]
       },
       %{
         name: "Daily Check-in",
@@ -302,6 +315,271 @@ defmodule ExCalibur.Charters.EverydayCouncil do
         context_providers: [%{"type" => "lore", "limit" => 30, "sort" => "newest"}],
         loop_mode: "reflect",
         loop_tools: ["query_lore", "search_obsidian", "web_search"]
+      },
+
+      # --- Email & GitHub ---
+      %{
+        name: "Email Triage",
+        description:
+          "Morning email triage. Scan inbox, surface what matters, flag what needs action, dismiss the noise. Output as a pinned briefing card.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 7 * * *",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "news-correspondent", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "email-triage",
+        pinned: true,
+        pin_order: 1,
+        loop_mode: "reflect",
+        loop_tools: ["query_lore", "search_email", "read_email"]
+      },
+      %{
+        name: "Email Cleanup",
+        description:
+          "Weekly email cleanup. Find subscriptions you never open, threads gone stale, and newsletters gathering dust. Present as an action list to unsubscribe or keep.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 22 * * 0",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "scope-realist", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "email-cleanup",
+        pinned: true,
+        loop_mode: "reflect",
+        loop_tools: ["query_lore", "search_email", "read_email"]
+      },
+      %{
+        name: "GitHub Pulse",
+        description:
+          "Daily GitHub activity check. Surface open PRs, new issues, notifications. Output as a pinned table card.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 8 * * *",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "evidence-collector", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "github-pulse",
+        pinned: true,
+        pin_order: 2,
+        loop_mode: "reflect",
+        loop_tools: ["query_lore", "search_github", "read_github_issue", "list_github_notifications"]
+      },
+      %{
+        name: "GitHub Weekly",
+        description:
+          "Weekly GitHub summary. Merged PRs, closed issues, contribution patterns. Output as a briefing card.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 9 * * 1",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "the-historian", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        loop_mode: "reflect",
+        loop_tools: ["query_lore", "search_github", "read_github_issue"]
+      },
+      %{
+        name: "Research Agent",
+        description:
+          "Deep research on a topic. Web search, cross-reference with lore and Obsidian, produce a comprehensive freeform artifact and lodge card.",
+        status: "active",
+        trigger: "manual",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "evidence-collector", "when" => "on_trigger", "how" => "solo"},
+          %{"who" => "journeyman", "preferred_who" => "challenger", "when" => "always", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        loop_mode: "reflect",
+        loop_tools: [
+          "query_lore",
+          "web_search",
+          "web_fetch",
+          "search_obsidian",
+          "read_obsidian",
+          "search_email",
+          "read_pdf"
+        ]
+      },
+      %{
+        name: "Weekly Life Synthesis",
+        description:
+          "Sunday evening synthesis. Pull threads from journal, email, GitHub, and Obsidian into a holistic weekly briefing.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 19 * * 0",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "the-historian", "when" => "on_trigger", "how" => "solo"},
+          %{"who" => "journeyman", "preferred_who" => "life-coach", "when" => "always", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "weekly-synthesis",
+        pinned: true,
+        loop_mode: "reflect",
+        loop_tools: ["query_lore", "search_obsidian", "read_obsidian", "search_email", "search_github"]
+      },
+
+      # --- Multi-Modal Intake ---
+      %{
+        name: "PDF Deep Read",
+        description:
+          "Drop a PDF path. Extract, summarize, cross-reference with lore, optionally create an Obsidian note.",
+        status: "active",
+        trigger: "manual",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "journal-keeper", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "artifact",
+        write_mode: "append",
+        entry_title_template: "PDF Read — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["read_pdf", "query_lore", "web_search", "create_obsidian_note"]
+      },
+      %{
+        name: "Image Analysis",
+        description: "Drop an image path. Describe, extract text, cross-reference with lore.",
+        status: "active",
+        trigger: "manual",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "journal-keeper", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "artifact",
+        write_mode: "append",
+        entry_title_template: "Image Analysis — {date}",
+        loop_mode: "reflect",
+        loop_tools: ["describe_image", "read_image_text", "query_lore"]
+      },
+      %{
+        name: "Video Breakdown",
+        description:
+          "Drop a video URL or path. Download, extract key frames (max 20), analyze, create an Obsidian note with summary.",
+        status: "active",
+        trigger: "manual",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "journal-keeper", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "artifact",
+        write_mode: "append",
+        entry_title_template: "Video Breakdown — {date}",
+        loop_mode: "reflect",
+        loop_tools: [
+          "download_media",
+          "extract_frames",
+          "analyze_video",
+          "extract_audio",
+          "create_obsidian_note",
+          "query_lore"
+        ]
+      },
+
+      # --- Cross-Guild Intelligence ---
+      %{
+        name: "Morning Command Brief",
+        description:
+          "7am comprehensive briefing. Pulls email highlights, GitHub activity, and today's priorities into a dashboard update.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 7 * * *",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "life-coach", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "command-brief",
+        pinned: true,
+        pin_order: 0,
+        loop_mode: "reflect",
+        loop_tools: [
+          "query_lore",
+          "search_email",
+          "search_github",
+          "list_github_notifications",
+          "web_search",
+          "search_obsidian"
+        ]
+      },
+      %{
+        name: "Trend Detector",
+        description:
+          "Daily pattern detection. What topics keep recurring in your lore, searches, and notes? Surface as a metric card.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 10 * * *",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "the-historian", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "trend-detector",
+        pinned: true,
+        loop_mode: "reflect",
+        loop_tools: ["query_lore", "web_search", "search_obsidian"]
+      },
+      %{
+        name: "Obsidian Librarian",
+        description:
+          "Nightly vault maintenance. Find orphaned notes, broken links, missing tags. Present as a checklist card.",
+        status: "active",
+        trigger: "scheduled",
+        schedule: "0 3 * * *",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "journal-keeper", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        pin_slug: "obsidian-librarian",
+        pinned: true,
+        loop_mode: "reflect",
+        loop_tools: [
+          "search_obsidian",
+          "search_obsidian_content",
+          "read_obsidian",
+          "read_obsidian_frontmatter",
+          "create_obsidian_note",
+          "daily_obsidian"
+        ]
+      },
+
+      # --- Proactive Automation ---
+      %{
+        name: "Issue Drafter",
+        description:
+          "Draft a GitHub issue based on research. Searches existing issues, cross-references lore, then queues the create_github_issue call for approval.",
+        status: "active",
+        trigger: "manual",
+        roster: [
+          %{"who" => "apprentice", "preferred_who" => "evidence-collector", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        loop_mode: "reflect",
+        loop_tools: ["search_github", "read_github_issue", "query_lore", "create_github_issue"]
+      },
+      %{
+        name: "Email Responder",
+        description:
+          "Draft and queue an email response. Reads the thread, searches lore for context, drafts reply, queues send_email for approval.",
+        status: "active",
+        trigger: "manual",
+        roster: [
+          %{"who" => "journeyman", "preferred_who" => "news-correspondent", "when" => "on_trigger", "how" => "solo"}
+        ],
+        source_ids: [],
+        output_type: "lodge_card",
+        loop_mode: "reflect",
+        loop_tools: ["read_email", "search_email", "query_lore", "web_search", "send_email"]
       },
 
       # --- Reflection & Synthesis ---
