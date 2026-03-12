@@ -523,7 +523,7 @@ defmodule ExCaliburWeb.QuestsLive do
           <%= if @quests == [] do %>
             <div class="text-center py-12 text-muted-foreground">
               <p class="text-sm">
-                No quests yet. Create one in Quest Templates → Custom below.
+                No quests yet. Install one from the Quest Board above, or create your own.
               </p>
             </div>
           <% end %>

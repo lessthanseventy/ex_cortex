@@ -160,7 +160,7 @@ defmodule ExCaliburWeb.GrimoireLive do
                   <p class="text-muted-foreground text-sm">
                     No quests yet. Create one from the
                     <a href="/quests" class="underline text-primary">Quests</a>
-                    page.
+                    page. Once quests run, their history and lore entries show up here.
                   </p>
                 </div>
               <% else %>
@@ -298,7 +298,11 @@ defmodule ExCaliburWeb.GrimoireLive do
         </.card_header>
         <.card_content>
           <%= if @runs == [] do %>
-            <p class="text-sm text-muted-foreground">No runs yet.</p>
+            <p class="text-sm text-muted-foreground">
+              No runs yet. Run this quest from the
+              <a href="/quests" class="underline text-primary">Quests</a>
+              page, or set a trigger to run it automatically.
+            </p>
           <% else %>
             <table class="w-full caption-bottom text-sm" aria-label="Quest run history">
               <thead class="[&_tr]:border-b">
@@ -335,7 +339,9 @@ defmodule ExCaliburWeb.GrimoireLive do
         </.card_header>
         <.card_content>
           <%= if @lore_entries == [] do %>
-            <p class="text-sm text-muted-foreground">No lore entries yet.</p>
+            <p class="text-sm text-muted-foreground">
+              No lore entries yet. Lore is written by quest steps as they process input.
+            </p>
           <% else %>
             <div class="space-y-3">
               <div :for={entry <- @lore_entries} class="rounded-md border p-3">
