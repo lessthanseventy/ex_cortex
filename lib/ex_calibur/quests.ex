@@ -156,4 +156,22 @@ defmodule ExCalibur.Quests do
   def reject_proposal(%Proposal{} = proposal) do
     proposal |> Proposal.changeset(%{status: "rejected"}) |> Repo.update()
   end
+
+  def execute_tool_proposal(%Proposal{type: "tool_action", tool_name: tool_name, tool_args: tool_args} = proposal) do
+    case ExCalibur.Tools.Registry.get(tool_name) do
+      nil ->
+        update_proposal(proposal, %{status: "failed", result: "Tool #{tool_name} not found"})
+
+      tool_mod ->
+        case tool_mod.call(tool_args) do
+          {:ok, result} ->
+            update_proposal(proposal, %{status: "executed", result: to_string(result)})
+
+          {:error, reason} ->
+            update_proposal(proposal, %{status: "failed", result: inspect(reason)})
+        end
+    end
+  end
+
+  def execute_tool_proposal(_proposal), do: :noop
 end
