@@ -74,6 +74,36 @@ defmodule ExCalibur.Sources.Book do
         suggested_guild: "Everyday Council",
         kind: :book
       },
+      %__MODULE__{
+        id: "obsidian_watcher",
+        banner: :lifestyle,
+        name: "Obsidian Watcher",
+        description: "Watch an Obsidian vault folder for new or changed notes and process them automatically.",
+        source_type: "obsidian",
+        default_config: %{"interval" => 60_000},
+        suggested_guild: "Everyday Council",
+        kind: :book
+      },
+      %__MODULE__{
+        id: "email_inbox",
+        banner: :lifestyle,
+        name: "Email Inbox",
+        description: "Monitor your notmuch email database for new messages and feed them into the council.",
+        source_type: "email",
+        default_config: %{"query" => "tag:new", "interval" => 300_000, "limit" => 50},
+        suggested_guild: "Everyday Council",
+        kind: :book
+      },
+      %__MODULE__{
+        id: "youtube_channel",
+        banner: :lifestyle,
+        name: "YouTube Channel",
+        description: "Monitor a YouTube channel or playlist for new videos via yt-dlp.",
+        source_type: "media",
+        default_config: %{"url" => "", "interval" => 3_600_000},
+        suggested_guild: nil,
+        kind: :book
+      },
       # Code Review
       %__MODULE__{
         id: "code_review_pr_webhook",
