@@ -68,7 +68,8 @@ defmodule ExCalibur.Sources.Book do
         id: "everyday_council_intake",
         banner: :lifestyle,
         name: "Personal Intake",
-        description: "Webhook endpoint for dropping in links, notes, PDFs, or thoughts for the Journal Keeper to process.",
+        description:
+          "Webhook endpoint for dropping in links, notes, PDFs, or thoughts for the Journal Keeper to process.",
         source_type: "webhook",
         default_config: %{},
         suggested_guild: "Everyday Council",
@@ -113,6 +114,18 @@ defmodule ExCalibur.Sources.Book do
         source_type: "webhook",
         default_config: %{},
         suggested_guild: "Code Review",
+        kind: :book
+      },
+      # Dev Team
+      %__MODULE__{
+        id: "github_issue_watcher",
+        banner: :tech,
+        name: "GitHub Issue Watcher",
+        description:
+          "Watches a GitHub repository for open issues with a specific label. Use with the Dev Team guild to automatically pick up and work self-improvement issues.",
+        source_type: "github_issues",
+        default_config: %{"repo" => "", "label" => "self-improvement", "interval" => 300_000},
+        suggested_guild: "Dev Team",
         kind: :book
       },
       # Content Moderation
