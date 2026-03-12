@@ -4,13 +4,15 @@ defmodule ExCalibur.Lodge do
   import Ecto.Query
 
   alias ExCalibur.Lodge.Card
+  alias ExCalibur.Lodge.CardVersion
+  alias ExCalibur.Obsidian.Sync
   alias ExCalibur.Repo
 
   def list_cards(opts \\ []) do
     query =
       from(c in Card,
         where: c.status == "active",
-        order_by: [desc: c.pinned, desc: c.inserted_at]
+        order_by: [desc: c.pinned, asc: c.pin_order, desc: c.inserted_at]
       )
 
     query =
@@ -52,13 +54,52 @@ defmodule ExCalibur.Lodge do
     Repo.delete(card)
   end
 
+  def upsert_card(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" do
+    case Repo.one(from(c in Card, where: c.pin_slug == ^slug)) do
+      nil ->
+        create_card(attrs)
+
+      existing ->
+        %CardVersion{}
+        |> CardVersion.changeset(%{
+          card_id: existing.id,
+          body: existing.body,
+          metadata: existing.metadata,
+          replaced_at: DateTime.truncate(DateTime.utc_now(), :second)
+        })
+        |> Repo.insert()
+
+        update_card(existing, attrs)
+    end
+  end
+
+  def upsert_card(attrs), do: create_card(attrs)
+
+  def post_card(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" do
+    case upsert_card(attrs) do
+      {:ok, card} ->
+        Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
+
+        Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+          Sync.sync_lodge_card(card)
+        end)
+
+        {:ok, card}
+
+      error ->
+        error
+    end
+  end
+
   def post_card(attrs) do
     case create_card(attrs) do
       {:ok, card} ->
         Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
+
         Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-          ExCalibur.Obsidian.Sync.sync_lodge_card(card)
+          Sync.sync_lodge_card(card)
         end)
+
         {:ok, card}
 
       error ->

@@ -181,6 +181,62 @@ defmodule ExCalibur.LodgeTest do
     end
   end
 
+  describe "upsert_card/1" do
+    test "creates a new card when pin_slug does not exist" do
+      assert {:ok, card} =
+               Lodge.upsert_card(%{
+                 type: "briefing",
+                 card_type: "briefing",
+                 title: "Test Card",
+                 body: "Hello",
+                 source: "quest",
+                 pin_slug: "test-card",
+                 pinned: true
+               })
+
+      assert card.pin_slug == "test-card"
+      assert card.pinned == true
+    end
+
+    test "updates existing card when pin_slug matches, saving version" do
+      {:ok, original} =
+        Lodge.upsert_card(%{
+          type: "briefing",
+          card_type: "briefing",
+          title: "V1",
+          body: "Original body",
+          source: "quest",
+          pin_slug: "test-card",
+          pinned: true
+        })
+
+      {:ok, updated} =
+        Lodge.upsert_card(%{
+          type: "briefing",
+          card_type: "briefing",
+          title: "V2",
+          body: "Updated body",
+          source: "quest",
+          pin_slug: "test-card",
+          pinned: true
+        })
+
+      assert updated.id == original.id
+      assert updated.title == "V2"
+      assert updated.body == "Updated body"
+
+      versions = ExCalibur.Repo.all(ExCalibur.Lodge.CardVersion)
+      assert length(versions) == 1
+      assert hd(versions).body == "Original body"
+    end
+
+    test "creates card without pin_slug (no upsert)" do
+      {:ok, c1} = Lodge.upsert_card(%{type: "note", title: "A", body: "", source: "manual"})
+      {:ok, c2} = Lodge.upsert_card(%{type: "note", title: "B", body: "", source: "manual"})
+      assert c1.id != c2.id
+    end
+  end
+
   describe "delete_card/1" do
     test "deletes a card" do
       {:ok, card} = Lodge.create_card(%{type: "note", title: "Delete me", source: "manual"})
