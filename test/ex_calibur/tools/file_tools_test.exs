@@ -6,7 +6,7 @@ defmodule ExCalibur.Tools.FileToolsTest do
   alias ExCalibur.Tools.ReadFile
   alias ExCalibur.Tools.WriteFile
 
-  @tmp_dir System.tmp_dir!() |> Path.join("ex_calibur_tool_test")
+  @tmp_dir Path.join(System.tmp_dir!(), "ex_calibur_tool_test")
 
   setup do
     File.rm_rf!(@tmp_dir)
@@ -44,14 +44,19 @@ defmodule ExCalibur.Tools.FileToolsTest do
     test "replaces text in file" do
       path = Path.join(@tmp_dir, "edit.txt")
       File.write!(path, "hello world")
-      assert {:ok, _} = EditFile.call(%{"path" => "edit.txt", "old" => "world", "new" => "elixir", "working_dir" => @tmp_dir})
+
+      assert {:ok, _} =
+               EditFile.call(%{"path" => "edit.txt", "old" => "world", "new" => "elixir", "working_dir" => @tmp_dir})
+
       assert File.read!(path) == "hello elixir"
     end
 
     test "errors when old text not found" do
       path = Path.join(@tmp_dir, "edit.txt")
       File.write!(path, "hello")
-      assert {:error, _} = EditFile.call(%{"path" => "edit.txt", "old" => "missing", "new" => "x", "working_dir" => @tmp_dir})
+
+      assert {:error, _} =
+               EditFile.call(%{"path" => "edit.txt", "old" => "missing", "new" => "x", "working_dir" => @tmp_dir})
     end
   end
 

@@ -1,12 +1,29 @@
 defmodule ExCalibur.SelfImprovement.QuestSeed do
   @moduledoc "Seeds the self-improvement pipeline — called when Dev Team charter is installed."
 
+  import Ecto.Query
+
   alias ExCalibur.Quests
+  alias ExCalibur.Quests.Quest
+  alias ExCalibur.Quests.Step
   alias ExCalibur.Repo
   alias ExCalibur.Sources.Source
 
+  @si_step_names [
+    "SI: PM Triage",
+    "SI: Code Writer",
+    "SI: Code Reviewer",
+    "SI: QA",
+    "SI: UX Designer",
+    "SI: PM Merge Decision",
+    "SI: Product Analyst Sweep"
+  ]
+
+  @si_quest_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
+
   def seed(opts \\ %{}) do
     repo = Map.get(opts, :repo, "")
+    cleanup()
 
     with {:ok, source} <- create_source(repo),
          {:ok, steps} <- create_steps(),
@@ -15,6 +32,15 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
          {:ok, sweep_quest} <- create_sweep_quest(sweep_step) do
       {:ok, %{source: source, steps: steps, quest: quest, sweep_quest: sweep_quest}}
     end
+  end
+
+  defp cleanup do
+    Repo.delete_all(from q in Quest, where: q.name in @si_quest_names)
+    Repo.delete_all(from s in Step, where: s.name in @si_step_names)
+    Repo.delete_all(
+      from s in Source,
+        where: s.source_type == "github_issues" and s.name == "Self-Improvement Issues"
+    )
   end
 
   # --- Private ---
@@ -163,9 +189,12 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_step(%{
       name: "SI: Product Analyst Sweep",
       description:
-        "Product Analyst reads Obsidian notes and queries Lore to understand user workflows and frustrations, then files up to 3 GitHub issues.",
+        "Product Analyst proactively analyzes the codebase, runs credo, checks Obsidian/Lore if available, and files up to 5 GitHub issues labeled self-improvement.",
       trigger: "manual",
       output_type: "freeform",
+      loop_mode: "reflect",
+      max_iterations: 5,
+      loop_tools: ["search_obsidian", "query_lore", "read_file", "list_files", "create_github_issue"],
       roster: [
         %{
           "who" => "all",
@@ -179,11 +208,11 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
   defp create_sweep_quest(sweep_step) do
     Quests.create_quest(%{
-      name: "SI: Daily Analyst Sweep",
+      name: "SI: Analyst Sweep",
       description:
-        "Product Analyst does a daily codebase sweep — reading Obsidian notes, querying Lore, and filing GitHub issues for discovered improvements.",
+        "Product Analyst proactively analyzes the codebase every 4 hours — reading code, running credo, checking Obsidian/Lore if available, and filing GitHub issues.",
       trigger: "scheduled",
-      schedule: "0 9 * * *",
+      schedule: "0 */4 * * *",
       steps: [%{"step_id" => sweep_step.id, "order" => 1}],
       status: "active"
     })

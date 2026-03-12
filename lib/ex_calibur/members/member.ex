@@ -3,9 +3,9 @@ defmodule ExCalibur.Members.BuiltinMember do
   defstruct [:id, :name, :description, :category, :system_prompt, :ranks, :banner]
 
   @default_ranks %{
-    apprentice: %{model: "phi4-mini", strategy: "cot"},
-    journeyman: %{model: "gemma3:4b", strategy: "cod"},
-    master: %{model: "llama3:8b", strategy: "cod"}
+    apprentice: %{model: "ministral-3:3b", strategy: "cot"},
+    journeyman: %{model: "gemma3:12b", strategy: "cod"},
+    master: %{model: "deepseek-v3.2", strategy: "cod"}
   }
 
   def all, do: editors() ++ analysts() ++ specialists() ++ advisors() ++ validators() ++ wildcards() ++ life_use()
@@ -793,9 +793,9 @@ defmodule ExCalibur.Members.BuiltinMember do
   end
 
   @life_ranks %{
-    apprentice: %{model: "phi4-mini", strategy: "cod"},
-    journeyman: %{model: "gemma3:4b", strategy: "cot"},
-    master: %{model: "llama3:8b", strategy: "cot"}
+    apprentice: %{model: "ministral-3:3b", strategy: "cod"},
+    journeyman: %{model: "gemma3:12b", strategy: "cot"},
+    master: %{model: "deepseek-v3.2", strategy: "cot"}
   }
 
   def life_use do

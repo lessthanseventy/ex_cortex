@@ -2,8 +2,9 @@ defmodule ExCalibur.Tools.GitToolsTest do
   use ExUnit.Case, async: true
 
   alias ExCalibur.Tools.GitCommit
+  alias ExCalibur.Tools.RunSandbox
 
-  @tmp_dir System.tmp_dir!() |> Path.join("ex_calibur_git_test_#{:rand.uniform(99_999)}")
+  @tmp_dir Path.join(System.tmp_dir!(), "ex_calibur_git_test_#{:rand.uniform(99_999)}")
 
   setup do
     File.rm_rf!(@tmp_dir)
@@ -31,13 +32,13 @@ defmodule ExCalibur.Tools.GitToolsTest do
   end
 
   test "run_sandbox allows mix test" do
-    assert ExCalibur.Tools.RunSandbox.call(%{"command" => "mix test --help", "working_dir" => @tmp_dir}) !=
+    assert RunSandbox.call(%{"command" => "mix test --help", "working_dir" => @tmp_dir}) !=
              {:error, "not allowed"}
   end
 
   test "run_sandbox blocks disallowed commands" do
     assert {:error, msg} =
-             ExCalibur.Tools.RunSandbox.call(%{"command" => "rm -rf /", "working_dir" => @tmp_dir})
+             RunSandbox.call(%{"command" => "rm -rf /", "working_dir" => @tmp_dir})
 
     assert msg =~ "not allowed"
   end

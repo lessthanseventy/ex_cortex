@@ -18,7 +18,7 @@ defmodule ExCalibur.Settings do
   def changeset(settings, attrs) do
     settings
     |> cast(attrs, [:banner, :config])
-    |> validate_inclusion(:banner, @valid_banners)
+    |> validate_inclusion(:banner, [nil | @valid_banners])
   end
 
   def get_banner do

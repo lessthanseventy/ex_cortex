@@ -155,7 +155,7 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
             "name" => "Brand New Role",
             "system_prompt" => "You do new things.",
             "rank" => "journeyman",
-            "model" => "phi4-mini:latest",
+            "model" => "gemma3:4b",
             "strategy" => "cot"
           }
         })

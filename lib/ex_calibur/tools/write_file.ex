@@ -20,7 +20,7 @@ defmodule ExCalibur.Tools.WriteFile do
 
   def call(%{"path" => path, "content" => content} = params) do
     working_dir = Map.get(params, "working_dir", File.cwd!())
-    full_path = Path.join(working_dir, path) |> Path.expand()
+    full_path = working_dir |> Path.join(path) |> Path.expand()
 
     if String.starts_with?(full_path, Path.expand(working_dir)) do
       File.mkdir_p!(Path.dirname(full_path))

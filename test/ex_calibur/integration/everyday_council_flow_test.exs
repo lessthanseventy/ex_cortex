@@ -25,10 +25,10 @@ defmodule ExCalibur.Integration.EverydayCouncilFlowTest do
     end)
   end
 
-  test "quest_definitions includes source-triggered Journal Intake" do
+  test "quest_definitions includes source-triggered Smart Intake" do
     quests = EverydayCouncil.quest_definitions()
-    intake = Enum.find(quests, &(&1.name == "Journal Intake"))
-    assert intake != nil
+    intake = Enum.find(quests, &(&1.name == "Smart Intake"))
+    assert intake
     assert intake.trigger == "source"
     assert "query_lore" in intake.loop_tools
     assert "search_obsidian" in intake.loop_tools
@@ -37,7 +37,7 @@ defmodule ExCalibur.Integration.EverydayCouncilFlowTest do
   test "quest_definitions includes scheduled Morning Briefing" do
     quests = EverydayCouncil.quest_definitions()
     briefing = Enum.find(quests, &(&1.name == "Morning Briefing"))
-    assert briefing != nil
+    assert briefing
     assert briefing.trigger == "scheduled"
     assert briefing.output_type == "artifact"
   end
@@ -45,7 +45,7 @@ defmodule ExCalibur.Integration.EverydayCouncilFlowTest do
   test "campaign_definitions includes Intake Loop" do
     campaigns = EverydayCouncil.campaign_definitions()
     intake_loop = Enum.find(campaigns, &(&1.name == "Intake Loop"))
-    assert intake_loop != nil
+    assert intake_loop
     assert intake_loop.trigger == "source"
   end
 

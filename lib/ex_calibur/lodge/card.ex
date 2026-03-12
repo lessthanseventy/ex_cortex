@@ -27,7 +27,21 @@ defmodule ExCalibur.Lodge.Card do
 
   def changeset(card, attrs) do
     card
-    |> cast(attrs, [:type, :title, :body, :metadata, :pinned, :source, :quest_id, :status, :tags, :card_type, :pin_slug, :pin_order, :guild_name])
+    |> cast(attrs, [
+      :type,
+      :title,
+      :body,
+      :metadata,
+      :pinned,
+      :source,
+      :quest_id,
+      :status,
+      :tags,
+      :card_type,
+      :pin_slug,
+      :pin_order,
+      :guild_name
+    ])
     |> validate_required([:type, :title, :source, :status])
     |> validate_inclusion(:type, @valid_types)
     |> validate_inclusion(:status, @valid_statuses)

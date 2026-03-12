@@ -1,5 +1,7 @@
 [env]
 DATABASE_URL = "ecto://excellence:excellence@localhost:5433/ex_calibur"
+OLLAMA_URL = "https://api.ollama.com"
+OLLAMA_API_KEY = "ee5a0aa7b39e41fa96c8110d89e36a48.bIMTVyGfSaYXWn2EfGkyZXjz"
 
 [tasks.dev]
 description = "Start db in docker, run app locally with live reload (uses local Ollama)"

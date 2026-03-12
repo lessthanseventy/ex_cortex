@@ -23,7 +23,7 @@ defmodule ExCalibur.Sources.ObsidianWatcher do
     case list_notes(config) do
       {:ok, current_notes} ->
         current_set = MapSet.new(current_notes)
-        new_titles = MapSet.difference(current_set, state.seen_titles) |> MapSet.to_list()
+        new_titles = current_set |> MapSet.difference(state.seen_titles) |> MapSet.to_list()
 
         items =
           Enum.flat_map(new_titles, fn title ->

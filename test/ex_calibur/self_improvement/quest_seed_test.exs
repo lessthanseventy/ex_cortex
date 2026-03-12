@@ -36,16 +36,12 @@ defmodule ExCalibur.SelfImprovement.QuestSeedTest do
   test "seed creates a scheduled sweep quest" do
     assert {:ok, %{sweep_quest: sweep_quest}} = QuestSeed.seed(%{repo: "owner/repo"})
     assert sweep_quest.trigger == "scheduled"
-    assert sweep_quest.schedule == "0 9 * * *"
+    assert sweep_quest.schedule == "0 */4 * * *"
     assert length(sweep_quest.steps) == 1
   end
 
-  test "seed returns error when source creation fails" do
-    # Empty source_type would fail, but we test via bad repo — source creates fine but
-    # let's just ensure idempotency is handled via unique step name constraint
+  test "seed is idempotent — calling twice succeeds" do
     assert {:ok, _} = QuestSeed.seed(%{repo: "owner/repo-1"})
-    # Seeding again with different repo still works (different step names if we had them,
-    # but since names are unique, this will fail as expected)
-    assert {:error, _} = QuestSeed.seed(%{repo: "owner/repo-2"})
+    assert {:ok, _} = QuestSeed.seed(%{repo: "owner/repo-2"})
   end
 end

@@ -33,7 +33,7 @@ defmodule ExCalibur.LodgeTriggerRunner do
         Task.start(fn -> QuestRunner.run(quest, input) end)
       end)
     rescue
-      e in DBConnection.OwnershipError ->
+      e in [DBConnection.OwnershipError, DBConnection.ConnectionError] ->
         _ = e
         :ok
 

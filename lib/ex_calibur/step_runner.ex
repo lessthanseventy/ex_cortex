@@ -166,14 +166,24 @@ defmodule ExCalibur.StepRunner do
 
     roster = quest.roster || []
 
-    with [step | _] <- roster,
-         [member | _] <- resolve_members(step),
-         raw when is_binary(raw) <- call_member_raw(member, augmented) do
-      {:ok, %{output: raw, member: member.name}}
-    else
-      [] -> {:error, :no_roster}
-      nil -> {:error, :llm_failed}
-      error -> error
+    case roster do
+      [] ->
+        {:error, :no_roster}
+
+      [step | _] ->
+        case resolve_members(step) do
+          [] ->
+            {:error, :no_roster}
+
+          [member | _] ->
+            case call_member_raw(member, augmented) do
+              {raw, tool_calls} when is_binary(raw) ->
+                {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
+
+              nil ->
+                {:error, :llm_failed}
+            end
+        end
     end
   end
 
@@ -389,12 +399,15 @@ defmodule ExCalibur.StepRunner do
       end
 
     case result do
-      {:ok, text} -> parse_verdict(text)
-      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})"}
+      {:ok, text, tool_log} -> parse_verdict(text) |> Map.put(:tool_calls, tool_log)
+      {:ok, text} -> parse_verdict(text) |> Map.put(:tool_calls, [])
+      {:error, _, _} -> %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
+      {:error, _} -> %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
     end
   end
 
   # Like call_member but returns raw text — used for freeform quests.
+  # Returns {text, tool_log} tuple or nil on failure.
   defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text) do
     prompt = system_prompt || ""
 
@@ -406,7 +419,8 @@ defmodule ExCalibur.StepRunner do
       end
 
     case result do
-      {:ok, text} -> text
+      {:ok, text, tool_log} -> {text, tool_log}
+      {:ok, text} -> {text, []}
       _ -> nil
     end
   end

@@ -29,7 +29,8 @@ defmodule ExCalibur.Tools.ListFiles do
     search_dir = if subdir == "", do: working_dir, else: Path.join(working_dir, subdir)
 
     files =
-      Path.join(search_dir, pattern)
+      search_dir
+      |> Path.join(pattern)
       |> Path.wildcard()
       |> Enum.map(&Path.relative_to(&1, working_dir))
       |> Enum.sort()

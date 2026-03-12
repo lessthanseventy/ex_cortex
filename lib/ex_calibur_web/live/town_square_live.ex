@@ -31,7 +31,8 @@ defmodule ExCaliburWeb.TownSquareLive do
     "Sports Corner" => ExCalibur.Charters.SportsCorner,
     "Market Signals" => ExCalibur.Charters.MarketSignals,
     "Culture Desk" => ExCalibur.Charters.CultureDesk,
-    "Science Watch" => ExCalibur.Charters.ScienceWatch
+    "Science Watch" => ExCalibur.Charters.ScienceWatch,
+    "Dev Team" => ExCalibur.Charters.DevTeam
   }
 
   def charters, do: @charters
@@ -104,15 +105,22 @@ defmodule ExCaliburWeb.TownSquareLive do
         ExCalibur.Repo.delete_all(from(s in Source))
 
         banner = mod.metadata().banner
+        Settings.set_banner(to_string(banner))
         install_guild(mod)
         install_steps(mod)
         install_quests(mod)
         create_default_sources(guild_name, banner)
+        post_install(guild_name)
+
+        flash_msg =
+          if guild_name == "Dev Team",
+            do: "Dev Team installed! Set your repo in Stacks to activate the GitHub issue watcher.",
+            else: "#{guild_name} Guild installed!"
 
         {:noreply,
          socket
          |> assign(confirming: nil)
-         |> put_flash(:info, "#{guild_name} Guild installed!")
+         |> put_flash(:info, flash_msg)
          |> push_navigate(to: @post_install_redirect)}
     end
   end
@@ -132,6 +140,15 @@ defmodule ExCaliburWeb.TownSquareLive do
      socket
      |> assign(banner: banner, filtered_guilds: filtered)
      |> put_flash(:info, "Flying under the #{String.capitalize(banner)} banner!")}
+  end
+
+  @impl true
+  def handle_event("reset_banner", _, socket) do
+    Settings.set_banner(nil)
+
+    {:noreply,
+     socket
+     |> assign(banner: nil, filtered_guilds: socket.assigns.guilds)}
   end
 
   @impl true
@@ -181,6 +198,23 @@ defmodule ExCaliburWeb.TownSquareLive do
       end)
     end
   end
+
+  defp post_install("Dev Team") do
+    require Logger
+
+    case ExCalibur.SelfImprovement.QuestSeed.seed() do
+      {:ok, result} ->
+        Logger.info("[TownSquare] QuestSeed succeeded: #{inspect(Map.keys(result))}")
+
+      {:error, reason} ->
+        Logger.error("[TownSquare] QuestSeed failed: #{inspect(reason)}")
+
+      other ->
+        Logger.warning("[TownSquare] QuestSeed unexpected: #{inspect(other)}")
+    end
+  end
+
+  defp post_install(_guild_name), do: :ok
 
   defp create_default_sources(guild_name, banner) do
     guild_books = Book.for_guild(guild_name)
@@ -255,7 +289,15 @@ defmodule ExCaliburWeb.TownSquareLive do
         </div>
       <% else %>
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Town Square</h1>
+          <div class="flex items-start justify-between">
+            <h1 class="text-3xl font-bold tracking-tight">Town Square</h1>
+            <button
+              phx-click="reset_banner"
+              class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Change banner
+            </button>
+          </div>
           <p class="text-muted-foreground mt-1.5">
             Choose your guild. Installing a new guild replaces the current one.
           </p>

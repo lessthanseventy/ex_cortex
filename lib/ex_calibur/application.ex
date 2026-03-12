@@ -5,6 +5,7 @@ defmodule ExCalibur.Application do
 
   use Application
 
+  alias ExCalibur.Quests.QuestRun
   alias ExCalibur.Sources.SourceSupervisor
 
   require Logger
@@ -56,16 +57,14 @@ defmodule ExCalibur.Application do
 
     try do
       running_runs =
-        ExCalibur.Repo.all(
-          from(qr in ExCalibur.Quests.QuestRun, where: qr.status == "running")
-        )
+        ExCalibur.Repo.all(from(qr in QuestRun, where: qr.status == "running"))
 
       if running_runs != [] do
         Logger.info("[Boot] Found #{length(running_runs)} interrupted quest run(s) — marking complete")
 
         Enum.each(running_runs, fn run ->
           ExCalibur.Repo.update_all(
-            from(qr in ExCalibur.Quests.QuestRun, where: qr.id == ^run.id),
+            from(qr in QuestRun, where: qr.id == ^run.id),
             set: [status: "complete"]
           )
         end)

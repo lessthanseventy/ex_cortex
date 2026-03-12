@@ -40,9 +40,7 @@ defmodule ExCalibur.Tools.CloseIssue do
         )
       end
 
-      case System.cmd("gh", ["issue", "close", to_string(issue_number), "--repo", repo],
-             stderr_to_stdout: true
-           ) do
+      case System.cmd("gh", ["issue", "close", to_string(issue_number), "--repo", repo], stderr_to_stdout: true) do
         {output, 0} -> {:ok, "Issue ##{issue_number} closed: #{String.trim(output)}"}
         {output, _} -> {:error, "Close failed: #{output}"}
       end

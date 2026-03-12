@@ -3,7 +3,7 @@ defmodule ExCalibur.WorktreeTest do
 
   alias ExCalibur.Worktree
 
-  @tmp_dir System.tmp_dir!() |> Path.join("ex_calibur_worktree_test_#{:rand.uniform(99999)}")
+  @tmp_dir Path.join(System.tmp_dir!(), "ex_calibur_worktree_test_#{:rand.uniform(99_999)}")
 
   setup do
     File.rm_rf!(@tmp_dir)

@@ -16,6 +16,7 @@ defmodule ExCalibur.LearningLoopTest do
       reflect_on_verdict: [],
       loop_tools: []
     }
+
     step_run = %{id: 1, results: %{}, input: "test input"}
     assert {:ok, []} = LearningLoop.retrospect(step, step_run)
   end

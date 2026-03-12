@@ -72,16 +72,22 @@ defmodule ExCaliburWeb.GuildHallLive do
   defp filter_by_banner(members, banner_atom), do: Enum.filter(members, &(&1.banner == banner_atom))
 
   defp list_ollama_models do
-    url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    api_key = Application.get_env(:ex_calibur, :ollama_api_key)
-    headers = if api_key, do: [{"authorization", "Bearer #{api_key}"}], else: []
-
-    case Req.get("#{url}/api/tags", headers: headers) do
-      {:ok, %{status: 200, body: %{"models" => models}}} ->
-        models |> Enum.map(& &1["name"]) |> Enum.sort()
+    case Application.get_env(:ex_calibur, :ollama_models) do
+      models when is_list(models) ->
+        models
 
       _ ->
-        []
+        url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+        api_key = Application.get_env(:ex_calibur, :ollama_api_key)
+        headers = if api_key, do: [{"authorization", "Bearer #{api_key}"}], else: []
+
+        case Req.get("#{url}/api/tags", headers: headers) do
+          {:ok, %{status: 200, body: %{"models" => models}}} ->
+            models |> Enum.map(& &1["name"]) |> Enum.sort()
+
+          _ ->
+            []
+        end
     end
   end
 

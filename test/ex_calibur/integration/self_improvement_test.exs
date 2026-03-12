@@ -3,8 +3,7 @@ defmodule ExCalibur.Integration.SelfImprovementTest do
 
   alias ExCalibur.Worktree
 
-  @tmp_dir System.tmp_dir!()
-           |> Path.join("self_improve_integration_#{:rand.uniform(99999)}")
+  @tmp_dir Path.join(System.tmp_dir!(), "self_improve_integration_#{:rand.uniform(99_999)}")
 
   setup do
     File.rm_rf!(@tmp_dir)

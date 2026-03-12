@@ -18,7 +18,7 @@ defmodule ExCalibur.Tools.ReadFile do
 
   def call(%{"path" => path} = params) do
     working_dir = Map.get(params, "working_dir", File.cwd!())
-    full_path = Path.join(working_dir, path) |> Path.expand()
+    full_path = working_dir |> Path.join(path) |> Path.expand()
 
     if String.starts_with?(full_path, Path.expand(working_dir)) do
       case File.read(full_path) do

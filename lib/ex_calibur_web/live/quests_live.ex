@@ -1439,20 +1439,40 @@ defmodule ExCaliburWeb.QuestsLive do
               <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Recent Runs
               </p>
-              <div class="space-y-1">
+              <div class="space-y-2">
                 <%= for run <- Enum.take(@runs, 5) do %>
-                  <div class="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span class={[
-                      "shrink-0 font-medium",
-                      run.status == "complete" && "text-green-600",
-                      run.status == "failed" && "text-destructive",
-                      run.status == "running" && "text-amber-500"
-                    ]}>
-                      {run.status}
-                    </span>
-                    <span class="text-muted-foreground/60">
-                      {Calendar.strftime(run.inserted_at, "%b %d %H:%M")}
-                    </span>
+                  <% all_tool_calls = run.step_results |> Map.values() |> Enum.flat_map(&(Map.get(&1, "tool_calls", []))) %>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span class={[
+                        "shrink-0 font-medium",
+                        run.status == "complete" && "text-green-600",
+                        run.status == "failed" && "text-destructive",
+                        run.status == "running" && "text-amber-500"
+                      ]}>
+                        {run.status}
+                      </span>
+                      <span class="text-muted-foreground/60">
+                        {Calendar.strftime(run.inserted_at, "%b %d %H:%M")}
+                      </span>
+                      <%= if all_tool_calls != [] do %>
+                        <span class="text-muted-foreground/50">
+                          {length(all_tool_calls)} tool call{if length(all_tool_calls) != 1, do: "s"}
+                        </span>
+                      <% end %>
+                    </div>
+                    <%= if all_tool_calls != [] do %>
+                      <div class="ml-2 space-y-1 border-l border-muted pl-2">
+                        <%= for call <- all_tool_calls do %>
+                          <div class="text-xs">
+                            <span class="font-mono text-accent-foreground">{call["tool"]}</span>
+                            <%= if call["output"] && String.length(call["output"]) > 0 do %>
+                              <span class="text-muted-foreground/60"> → {String.slice(call["output"], 0, 80)}{if String.length(call["output"]) > 80, do: "…"}</span>
+                            <% end %>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% end %>
                   </div>
                 <% end %>
               </div>

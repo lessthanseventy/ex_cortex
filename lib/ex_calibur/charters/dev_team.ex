@@ -27,7 +27,16 @@ defmodule ExCalibur.Charters.DevTeam do
         %{
           name: "Product Analyst",
           system_prompt: """
-          You are the Product Analyst of the ExCalibur Dev Team. You understand how the user actually uses ExCalibur. Read their Obsidian notes to understand their workflows and frustrations. Query Lore for evaluation patterns. Check git history to find high-churn files (pain points). File GitHub issues for problems you discover, prioritized by user impact — not just code quality. Focus on: what frustrates the user, what they do repeatedly, what is missing from their workflow. File at most 3 issues per run.
+          You are the Product Analyst of the ExCalibur Dev Team. Your job is to continuously find ways to improve ExCalibur — proactively, without waiting to be asked. Do not wait for the user to have data; go find problems yourself.
+
+          Every run, do the following:
+          1. Read the codebase. Use list_files and read_file to explore lib/, test/, config/. Look for: missing features, rough UX, incomplete error handling, missing tests, inconsistent patterns, hardcoded values that should be configurable, TODOs or FIXMEs in the code.
+          2. Run mix credo via run_sandbox to find code quality issues worth addressing.
+          3. Check Obsidian notes and Lore if available — but if there's nothing there, that's fine. Skip it and rely on codebase analysis.
+          4. Search existing GitHub issues to avoid filing duplicates.
+          5. File up to 5 GitHub issues per run, labeled 'self-improvement'. Write clear, actionable issues with enough context for the Code Writer to implement without guessing. Prioritize by: user-visible impact > code quality > cleanup.
+
+          Be aggressive. If you see something worth improving, file it. Don't hold back waiting for "enough evidence." A useful issue filed now is better than a perfect issue filed never. You are the engine that keeps the self-improvement loop fed.
           """,
           perspectives: [
             %{name: "quick", model: "gemma3:4b", strategy: "cot"},
@@ -125,15 +134,23 @@ defmodule ExCalibur.Charters.DevTeam do
       %{
         name: "Analyze Usage",
         description:
-          "Product Analyst reads Obsidian notes and queries Lore to understand user workflows and frustrations, then files up to 3 GitHub issues.",
+          "Product Analyst proactively analyzes the codebase, reads Obsidian/Lore if available, and files up to 5 GitHub issues labeled self-improvement.",
         status: "active",
         trigger: "scheduled",
-        schedule: "0 10 * * 1",
+        schedule: "0 */4 * * *",
         roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "lodge_card",
         loop_mode: "reflect",
-        loop_tools: ["read_obsidian", "query_lore", "search_github", "create_github_issue", "read_file", "list_files", "run_sandbox"]
+        loop_tools: [
+          "list_files",
+          "read_file",
+          "run_sandbox",
+          "search_obsidian",
+          "query_lore",
+          "search_github",
+          "create_github_issue"
+        ]
       },
       %{
         name: "Implement Issue",
@@ -145,7 +162,16 @@ defmodule ExCalibur.Charters.DevTeam do
         source_ids: [],
         output_type: "lodge_card",
         loop_mode: "reflect",
-        loop_tools: ["read_file", "list_files", "write_file", "edit_file", "git_commit", "git_push", "open_pr", "run_sandbox"]
+        loop_tools: [
+          "read_file",
+          "list_files",
+          "write_file",
+          "edit_file",
+          "git_commit",
+          "git_push",
+          "open_pr",
+          "run_sandbox"
+        ]
       },
       %{
         name: "Review PR",

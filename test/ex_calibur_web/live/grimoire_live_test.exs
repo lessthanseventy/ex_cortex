@@ -59,10 +59,13 @@ defmodule ExCaliburWeb.GrimoireLiveTest do
     assert html =~ "Telemetry"
   end
 
-  test "telemetry tab renders SaladUI card with telemetry placeholder", %{conn: conn} do
+  test "telemetry tab renders health and stats widgets", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/grimoire")
-    assert html =~ "System Telemetry"
-    assert html =~ "Run quests to start collecting telemetry data"
+    assert html =~ "CLI Tools"
+    assert html =~ "Sources"
+    assert html =~ "Ollama"
+    assert html =~ "Uptime"
+    assert html =~ "Quest Runs"
   end
 
   test "redirects to town square when no banner set", %{conn: conn} do

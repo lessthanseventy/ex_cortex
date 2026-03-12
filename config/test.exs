@@ -33,6 +33,9 @@ config :excessibility,
   live_view_mod: Excessibility.LiveView,
   system_mod: Excessibility.System
 
+# Return a fixed model list in tests to avoid hitting the real Ollama server
+config :ex_calibur, :ollama_models, ["gemma3:4b", "gemma3:12b", "phi4-mini"]
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

@@ -20,11 +20,9 @@ defmodule ExCalibur.Tools.EditFile do
 
   def call(%{"path" => path, "old" => old, "new" => new} = params) do
     working_dir = Map.get(params, "working_dir", File.cwd!())
-    full_path = Path.join(working_dir, path) |> Path.expand()
+    full_path = working_dir |> Path.join(path) |> Path.expand()
 
-    if not String.starts_with?(full_path, Path.expand(working_dir)) do
-      {:error, "Path #{path} is outside working directory"}
-    else
+    if String.starts_with?(full_path, Path.expand(working_dir)) do
       case File.read(full_path) do
         {:ok, content} ->
           count = length(String.split(content, old)) - 1
@@ -44,6 +42,8 @@ defmodule ExCalibur.Tools.EditFile do
         {:error, reason} ->
           {:error, "Cannot read #{path}: #{reason}"}
       end
+    else
+      {:error, "Path #{path} is outside working directory"}
     end
   end
 end

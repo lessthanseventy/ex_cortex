@@ -23,7 +23,7 @@ defmodule ExCalibur.LLM do
               user_text :: String.t(),
               tools :: [map()],
               opts :: keyword()
-            ) :: {:ok, String.t()} | {:error, term()}
+            ) :: {:ok, String.t(), [map()]} | {:error, term()}
 
   @callback configured?() :: boolean()
 

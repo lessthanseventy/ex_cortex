@@ -23,6 +23,8 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/ex_calibur"
+import SaladUI from "salad_ui/assets/salad_ui"
+import "salad_ui/assets/salad_ui/components/tabs"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
@@ -34,6 +36,7 @@ window.addEventListener("phx:reset-form", ({detail: {id}}) => {
 
 const Hooks = {
   ...colocatedHooks,
+  SaladUI: SaladUI.SaladUIHook,
   AutoDismissFlash: {
     mounted() {
       this.timer = setTimeout(() => {

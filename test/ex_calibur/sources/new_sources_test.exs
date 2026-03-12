@@ -1,6 +1,8 @@
 defmodule ExCalibur.Sources.NewSourcesTest do
   use ExUnit.Case, async: true
 
+  alias ExCalibur.Sources.Book
+
   test "ObsidianWatcher module exists" do
     assert Code.ensure_loaded?(ExCalibur.Sources.ObsidianWatcher)
   end
@@ -14,17 +16,17 @@ defmodule ExCalibur.Sources.NewSourcesTest do
   end
 
   test "Book includes obsidian_watcher entry" do
-    book = ExCalibur.Sources.Book.get("obsidian_watcher")
+    book = Book.get("obsidian_watcher")
     assert book.source_type == "obsidian"
   end
 
   test "Book includes email_inbox entry" do
-    book = ExCalibur.Sources.Book.get("email_inbox")
+    book = Book.get("email_inbox")
     assert book.source_type == "email"
   end
 
   test "Book includes youtube_channel entry" do
-    book = ExCalibur.Sources.Book.get("youtube_channel")
+    book = Book.get("youtube_channel")
     assert book.source_type == "media"
   end
 end

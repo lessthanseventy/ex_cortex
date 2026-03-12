@@ -259,7 +259,22 @@ defmodule ExCalibur.QuestRunner do
 
   defp resolve_step(_), do: nil
 
-  defp inspect_result({:ok, result}) when is_map(result), do: %{"status" => "ok", "data" => inspect(result)}
+  defp inspect_result({:ok, result}) when is_map(result) do
+    tool_calls = extract_tool_calls(result)
+    base = %{"status" => "ok", "data" => inspect(Map.drop(result, [:tool_calls]))}
+    if tool_calls != [], do: Map.put(base, "tool_calls", tool_calls), else: base
+  end
+
   defp inspect_result({:error, reason}), do: %{"status" => "error", "reason" => inspect(reason)}
   defp inspect_result(other), do: %{"status" => "unknown", "data" => inspect(other)}
+
+  defp extract_tool_calls(%{tool_calls: calls}) when is_list(calls), do: calls
+
+  defp extract_tool_calls(%{steps: steps}) when is_list(steps) do
+    steps
+    |> Enum.flat_map(fn step -> Map.get(step, :results, []) end)
+    |> Enum.flat_map(fn r -> Map.get(r, :tool_calls, []) end)
+  end
+
+  defp extract_tool_calls(_), do: []
 end

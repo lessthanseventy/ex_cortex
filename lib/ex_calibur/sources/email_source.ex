@@ -69,9 +69,7 @@ defmodule ExCalibur.Sources.EmailSource do
     query = config["query"] || "tag:new"
     limit = config["limit"] || 50
 
-    case System.cmd("notmuch", ["search", "--format=json", "--limit=#{limit}", query],
-           stderr_to_stdout: true
-         ) do
+    case System.cmd("notmuch", ["search", "--format=json", "--limit=#{limit}", query], stderr_to_stdout: true) do
       {output, 0} ->
         case Jason.decode(output) do
           {:ok, threads} -> {:ok, threads}
@@ -86,9 +84,7 @@ defmodule ExCalibur.Sources.EmailSource do
   end
 
   defp fetch_thread(thread_id) do
-    case System.cmd("notmuch", ["show", "--format=text", "--body=true", thread_id],
-           stderr_to_stdout: true
-         ) do
+    case System.cmd("notmuch", ["show", "--format=text", "--body=true", thread_id], stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
       {output, code} -> {:error, "notmuch show exited #{code}: #{output}"}
     end

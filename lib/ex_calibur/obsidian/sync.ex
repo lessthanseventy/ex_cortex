@@ -23,6 +23,11 @@ defmodule ExCalibur.Obsidian.Sync do
     else
       _ -> :skipped
     end
+  rescue
+    DBConnection.OwnershipError -> :skipped
+    DBConnection.ConnectionError -> :skipped
+  catch
+    :exit, _ -> :skipped
   end
 
   def sync_lodge_card(card) do
@@ -32,6 +37,11 @@ defmodule ExCalibur.Obsidian.Sync do
     else
       _ -> :skipped
     end
+  rescue
+    DBConnection.OwnershipError -> :skipped
+    DBConnection.ConnectionError -> :skipped
+  catch
+    :exit, _ -> :skipped
   end
 
   defp do_sync_lore(entry, vault_path) do

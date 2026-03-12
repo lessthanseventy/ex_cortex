@@ -26,8 +26,11 @@ defmodule ExCalibur.LLM.Ollama do
   @impl true
   def complete_with_tools(model, system_prompt, user_text, _tools, opts \\ []) do
     # TODO: Wire Ollama native tool calling when available
-    # For now, fall back to plain completion
-    complete(model, system_prompt, user_text, opts)
+    # For now, fall back to plain completion (no tool log)
+    case complete(model, system_prompt, user_text, opts) do
+      {:ok, text} -> {:ok, text, []}
+      error -> error
+    end
   end
 
   @impl true
