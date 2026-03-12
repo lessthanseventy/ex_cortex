@@ -39,7 +39,9 @@ defmodule ExCalibur.Tools.Registry do
     CommentGithub,
     JqQuery,
     ReadPdf,
-    ConvertDocument
+    ConvertDocument,
+    WebFetch,
+    WebSearch
   }
 
   @safe [
@@ -57,7 +59,9 @@ defmodule ExCalibur.Tools.Registry do
     ListGithubNotifications,
     JqQuery,
     ReadPdf,
-    ConvertDocument
+    ConvertDocument,
+    WebFetch,
+    WebSearch
   ]
   @write [CreateObsidianNote, DailyObsidian]
   @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub]
