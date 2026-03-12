@@ -220,6 +220,9 @@ defmodule ExCaliburWeb.LodgeLive do
         <p class="text-muted-foreground mt-1.5">
           Your guild's dashboard — pinned cards, quest output, and notes.
         </p>
+        <p class="text-sm text-muted-foreground">
+          {length(@cards)} cards · {length(@pinned_cards)} pinned
+        </p>
       </div>
 
       <div class="rounded-lg border border-dashed p-4">
@@ -324,7 +327,10 @@ defmodule ExCaliburWeb.LodgeLive do
         <%= if @feed_cards == [] and @pinned_cards == [] do %>
           <div class="rounded-lg border p-8 text-center">
             <p class="text-muted-foreground text-sm">
-              No cards yet. Add one above or run a quest that posts to the Lodge.
+              No cards yet. Cards appear here when quests run, or you can create one above.
+            </p>
+            <p class="text-xs text-muted-foreground mt-2">
+              Set up quests from the <a href="/quests" class="underline text-primary">Quests</a> page.
             </p>
           </div>
         <% else %>
