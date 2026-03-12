@@ -21,14 +21,24 @@ defmodule ExCalibur.StepRunner do
   alias ExCalibur.Repo
   alias Excellence.Schemas.Member
 
+  require Logger
+
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
   @rank_order %{"apprentice" => 0, "journeyman" => 1, "master" => 2}
 
   @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
 
   @dangerous_tools ~w(send_email create_github_issue comment_github run_quest merge_pr git_pull restart_app close_issue)
+  @write_tool_names ~w(write_file edit_file git_commit create_obsidian_note daily_obsidian)
 
   def dangerous?(tool_name), do: tool_name in @dangerous_tools
+
+  @doc "Returns true if the given tool list contains any write tools that modify files."
+  def has_write_tools?(loop_tools) when is_list(loop_tools) do
+    Enum.any?(loop_tools, &(&1 in @write_tool_names))
+  end
+
+  def has_write_tools?(_), do: false
 
   def intercept_dangerous_tool(tool_name, tool_args, quest_id, context \\ nil) do
     ExCalibur.Quests.create_proposal(%{
@@ -176,11 +186,23 @@ defmodule ExCalibur.StepRunner do
             {:error, :no_roster}
 
           [member | _] ->
+            should_rollback = has_write_tools?(quest.loop_tools || [])
+            if should_rollback, do: git_snapshot()
+
             case call_member_raw(member, augmented) do
+              {raw, tool_calls} when is_binary(raw) and raw != "" ->
+                {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
+
               {raw, tool_calls} when is_binary(raw) ->
+                if should_rollback do
+                  Logger.info("[StepRunner] Empty response after tool iterations — rolling back")
+                  git_rollback()
+                end
+
                 {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
 
               nil ->
+                if should_rollback, do: git_rollback()
                 {:error, :llm_failed}
             end
         end
@@ -757,5 +779,25 @@ defmodule ExCalibur.StepRunner do
   defp parse_card_type(description) when is_binary(description) do
     desc = String.downcase(description)
     Enum.find(@valid_card_types, fn type -> String.contains?(desc, type) end)
+  end
+
+  # ---------------------------------------------------------------------------
+  # Git rollback helpers
+  # ---------------------------------------------------------------------------
+
+  defp git_snapshot do
+    case System.cmd("git", ["stash", "create"], stderr_to_stdout: true) do
+      {ref, 0} when ref != "" -> {:ok, String.trim(ref)}
+      _ -> :no_snapshot
+    end
+  end
+
+  defp git_rollback do
+    Logger.info("[StepRunner] Rolling back uncommitted changes")
+    System.cmd("git", ["checkout", "--", "."], stderr_to_stdout: true)
+
+    System.cmd("git", ["clean", "-fd", "--exclude=_build", "--exclude=deps", "--exclude=.elixir_ls"],
+      stderr_to_stdout: true
+    )
   end
 end
