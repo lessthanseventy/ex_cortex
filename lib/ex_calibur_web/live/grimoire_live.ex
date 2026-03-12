@@ -145,6 +145,9 @@ defmodule ExCaliburWeb.GrimoireLive do
           <p class="text-muted-foreground mt-1.5">
             Quest log and telemetry for your guild's missions.
           </p>
+          <p class="text-sm text-muted-foreground">
+            {length(@quests)} quests tracked · {Enum.sum(Enum.map(@run_stats, fn {_id, s} -> s.total end))} runs total
+          </p>
         </div>
 
         <.tabs id="grimoire-tabs" default="quest-log">

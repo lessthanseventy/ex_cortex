@@ -259,6 +259,11 @@ defmodule ExCaliburWeb.TownSquareLive do
           <p class="text-muted-foreground mt-1.5">
             Choose your guild. Installing a new guild replaces the current one.
           </p>
+          <%= if @current_guild do %>
+            <p class="text-sm text-muted-foreground">
+              Current guild: {@current_guild}
+            </p>
+          <% end %>
         </div>
 
         <div class="space-y-3">

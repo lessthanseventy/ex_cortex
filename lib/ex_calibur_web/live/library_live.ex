@@ -455,6 +455,9 @@ defmodule ExCaliburWeb.LibraryLive do
         <p class="text-muted-foreground mt-1.5">
           Manage active sources and browse scrolls and books to add more.
         </p>
+        <p class="text-sm text-muted-foreground">
+          {length(@sources)} sources active · {length(@dictionaries)} dictionaries
+        </p>
       </div>
 
       <%!-- Active Sources --%>

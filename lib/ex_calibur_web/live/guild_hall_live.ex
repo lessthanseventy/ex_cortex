@@ -128,6 +128,9 @@ defmodule ExCaliburWeb.GuildHallLive do
           <p class="text-muted-foreground mt-1.5">
             Guild roles — each member runs evaluations with their own model and strategy.
           </p>
+          <p class="text-sm text-muted-foreground">
+            {length(@members)} members · {Enum.count(@members, & &1.active)} active
+          </p>
         </div>
         <.button
           type="button"
