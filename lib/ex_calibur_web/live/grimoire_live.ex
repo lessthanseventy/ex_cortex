@@ -7,11 +7,14 @@ defmodule ExCaliburWeb.GrimoireLive do
   import SaladUI.Card
   import SaladUI.Tabs
 
+  alias ExCalibur.Lodge.Card
   alias ExCalibur.Lore
+  alias ExCalibur.Lore.LoreEntry
   alias ExCalibur.Quests
   alias ExCalibur.Quests.QuestRun
   alias ExCalibur.Repo
   alias ExCalibur.Settings
+  alias ExCalibur.Sources.Source
 
   @impl true
   def mount(_params, _session, socket) do
@@ -29,6 +32,7 @@ defmodule ExCaliburWeb.GrimoireLive do
 
     quests = Quests.list_quests()
     run_stats = load_run_stats(quests)
+    telemetry = load_telemetry(quests, run_stats)
 
     {:ok,
      assign(socket,
@@ -36,6 +40,7 @@ defmodule ExCaliburWeb.GrimoireLive do
        active_tab: "quest-log",
        quests: quests,
        run_stats: run_stats,
+       telemetry: telemetry,
        selected_quest_id: nil,
        selected_quest: nil,
        quest_runs: [],
@@ -180,16 +185,123 @@ defmodule ExCaliburWeb.GrimoireLive do
 
           <.tabs_content value="telemetry">
             <div class="space-y-4 mt-4">
+              <%!-- Overview Stats --%>
+              <div class="grid gap-4 grid-cols-2 md:grid-cols-4">
+                <.card>
+                  <.card_content class="pt-6">
+                    <div class="text-2xl font-bold">{@telemetry.uptime}</div>
+                    <p class="text-xs text-muted-foreground">Uptime</p>
+                  </.card_content>
+                </.card>
+                <.card>
+                  <.card_content class="pt-6">
+                    <div class="text-2xl font-bold">{@telemetry.total_runs}</div>
+                    <p class="text-xs text-muted-foreground">Quest Runs</p>
+                  </.card_content>
+                </.card>
+                <.card>
+                  <.card_content class="pt-6">
+                    <div class="text-2xl font-bold">{@telemetry.lore_count}</div>
+                    <p class="text-xs text-muted-foreground">Lore Entries</p>
+                  </.card_content>
+                </.card>
+                <.card>
+                  <.card_content class="pt-6">
+                    <div class="text-2xl font-bold">{@telemetry.card_count}</div>
+                    <p class="text-xs text-muted-foreground">Lodge Cards</p>
+                  </.card_content>
+                </.card>
+              </div>
+
+              <%!-- Sources --%>
               <.card>
                 <.card_header>
-                  <.card_title>System Telemetry</.card_title>
+                  <.card_title>Sources</.card_title>
                   <.card_description>
-                    Monitoring widgets will be available when evaluation data is collected.
+                    Data sources feeding your guilds.
                   </.card_description>
                 </.card_header>
                 <.card_content>
-                  <p class="text-sm text-muted-foreground">
-                    Run quests to start collecting telemetry data.
+                  <div class="flex items-center gap-4 text-sm">
+                    <div>
+                      <span class="text-2xl font-bold">{@telemetry.sources.total}</span>
+                      <span class="text-muted-foreground ml-1">total</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                      <span>{@telemetry.sources.active} active</span>
+                    </div>
+                    <%= if @telemetry.sources.paused > 0 do %>
+                      <div class="flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-yellow-500"></span>
+                        <span>{@telemetry.sources.paused} paused</span>
+                      </div>
+                    <% end %>
+                    <%= if @telemetry.sources.error > 0 do %>
+                      <div class="flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                        <span class="text-destructive">{@telemetry.sources.error} errored</span>
+                      </div>
+                    <% end %>
+                  </div>
+                </.card_content>
+              </.card>
+
+              <%!-- Ollama --%>
+              <.card>
+                <.card_header>
+                  <.card_title>Ollama</.card_title>
+                  <.card_description>
+                    LLM backend at {@telemetry.ollama.url}
+                  </.card_description>
+                </.card_header>
+                <.card_content>
+                  <div class="flex items-center gap-2 text-sm">
+                    <%= if @telemetry.ollama.reachable do %>
+                      <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                      <span>Reachable — {length(@telemetry.ollama.models)} models loaded</span>
+                    <% else %>
+                      <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                      <span class="text-destructive">Unreachable</span>
+                    <% end %>
+                  </div>
+                  <%= if @telemetry.ollama.reachable and @telemetry.ollama.models != [] do %>
+                    <div class="flex flex-wrap gap-1.5 mt-3">
+                      <%= for model <- @telemetry.ollama.models do %>
+                        <.badge variant="secondary">{model}</.badge>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </.card_content>
+              </.card>
+
+              <%!-- CLI Tools --%>
+              <.card>
+                <.card_header>
+                  <.card_title>CLI Tools</.card_title>
+                  <.card_description>
+                    External binaries used by tools and sources — checked at startup.
+                  </.card_description>
+                </.card_header>
+                <.card_content>
+                  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    <%= for tool <- @telemetry.cli_tools.available do %>
+                      <div class="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                        <span class="h-2 w-2 rounded-full bg-green-500 shrink-0"></span>
+                        <span class="truncate">{tool}</span>
+                      </div>
+                    <% end %>
+                    <%= for tool <- @telemetry.cli_tools.missing do %>
+                      <div class="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+                        <span class="h-2 w-2 rounded-full bg-muted shrink-0"></span>
+                        <span class="truncate">{tool}</span>
+                      </div>
+                    <% end %>
+                  </div>
+                  <p class="text-xs text-muted-foreground mt-3">
+                    {length(@telemetry.cli_tools.available)} available · {length(
+                      @telemetry.cli_tools.missing
+                    )} missing
                   </p>
                 </.card_content>
               </.card>
@@ -366,6 +478,73 @@ defmodule ExCaliburWeb.GrimoireLive do
       </.card>
     </div>
     """
+  end
+
+  defp load_telemetry(_quests, run_stats) do
+    total_runs = run_stats |> Map.values() |> Enum.sum_by(& &1.total)
+    lore_count = Repo.aggregate(LoreEntry, :count)
+    card_count = Repo.aggregate(Card, :count)
+
+    source_counts =
+      from(s in Source, group_by: s.status, select: {s.status, count(s.id)})
+      |> Repo.all()
+      |> Map.new()
+
+    sources = %{
+      total: Enum.sum(Map.values(source_counts)),
+      active: Map.get(source_counts, "active", 0),
+      paused: Map.get(source_counts, "paused", 0),
+      error: Map.get(source_counts, "error", 0)
+    }
+
+    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    ollama_api_key = Application.get_env(:ex_calibur, :ollama_api_key)
+    ollama = check_ollama(ollama_url, ollama_api_key)
+
+    cli_tools =
+      try do
+        :persistent_term.get(:cli_tool_status)
+      rescue
+        ArgumentError -> %{available: [], missing: []}
+      end
+
+    %{
+      uptime: format_uptime(),
+      total_runs: total_runs,
+      lore_count: lore_count,
+      card_count: card_count,
+      sources: sources,
+      ollama: ollama,
+      cli_tools: cli_tools
+    }
+  end
+
+  defp check_ollama(url, api_key \\ nil) do
+    headers = if api_key, do: [{"authorization", "Bearer #{api_key}"}], else: []
+
+    case Req.get("#{url}/api/tags", headers: headers, receive_timeout: 2_000, connect_options: [timeout: 2_000]) do
+      {:ok, %{status: 200, body: %{"models" => models}}} ->
+        %{reachable: true, url: url, models: Enum.map(models, & &1["name"])}
+
+      _ ->
+        %{reachable: false, url: url, models: []}
+    end
+  rescue
+    _ -> %{reachable: false, url: url, models: []}
+  end
+
+  defp format_uptime do
+    {uptime_ms, _} = :erlang.statistics(:wall_clock)
+    total_seconds = div(uptime_ms, 1000)
+    days = div(total_seconds, 86_400)
+    hours = div(rem(total_seconds, 86_400), 3600)
+    minutes = div(rem(total_seconds, 3600), 60)
+
+    cond do
+      days > 0 -> "#{days}d #{hours}h"
+      hours > 0 -> "#{hours}h #{minutes}m"
+      true -> "#{minutes}m"
+    end
   end
 
   defp run_status_variant("complete"), do: "default"

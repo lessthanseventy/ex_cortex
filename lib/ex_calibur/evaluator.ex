@@ -46,7 +46,9 @@ defmodule ExCalibur.Evaluator do
         ollama_url =
           Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
 
-        provider = Keyword.get(opts, :provider, Ollama.new(base_url: ollama_url))
+        ollama_api_key = Application.get_env(:ex_calibur, :ollama_api_key)
+
+        provider = Keyword.get(opts, :provider, Ollama.new(base_url: ollama_url, api_key: ollama_api_key))
 
         roles = build_roles_from_charter(meta)
         actions_mod = build_actions_from_charter(meta)

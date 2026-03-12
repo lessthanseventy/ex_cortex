@@ -25,6 +25,7 @@ config :ex_calibur, ExCaliburWeb.Endpoint, http: [port: String.to_integer(System
 # Ollama URL (Docker: http://ollama:11434, local: http://127.0.0.1:11434)
 config :ex_calibur,
   ollama_url: System.get_env("OLLAMA_URL") || "http://127.0.0.1:11434",
+  ollama_api_key: System.get_env("OLLAMA_API_KEY"),
   anthropic_api_key: System.get_env("ANTHROPIC_API_KEY")
 
 # Apply DATABASE_URL for any env when set (e.g., Docker dev)

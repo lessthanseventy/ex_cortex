@@ -43,6 +43,7 @@ defmodule ExCalibur.LLM.Ollama do
 
   defp client(opts) do
     url = Keyword.get(opts, :url, Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434"))
-    Ollama.new(base_url: url)
+    api_key = Keyword.get(opts, :api_key, Application.get_env(:ex_calibur, :ollama_api_key))
+    Ollama.new(base_url: url, api_key: api_key)
   end
 end

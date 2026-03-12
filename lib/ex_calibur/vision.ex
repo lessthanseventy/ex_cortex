@@ -17,8 +17,9 @@ defmodule ExCalibur.Vision do
 
   defp ollama_vision(image_b64, prompt) do
     ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    ollama_api_key = Application.get_env(:ex_calibur, :ollama_api_key)
     model = Settings.get(:ollama_vision_model) || "llava"
-    ollama = Ollama.new(base_url: ollama_url)
+    ollama = Ollama.new(base_url: ollama_url, api_key: ollama_api_key)
 
     messages = [%{role: :user, content: prompt, images: [image_b64]}]
 

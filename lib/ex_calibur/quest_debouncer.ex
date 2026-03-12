@@ -102,7 +102,8 @@ defmodule ExCalibur.QuestDebouncer do
 
   defp summarise_batches(batches) do
     ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama = Ollama.new(base_url: ollama_url)
+    ollama_api_key = Application.get_env(:ex_calibur, :ollama_api_key)
+    ollama = Ollama.new(base_url: ollama_url, api_key: ollama_api_key)
 
     Enum.map_join(batches, "\n\n", fn {label, items} -> summarise_source(label, items, ollama) end)
   end
