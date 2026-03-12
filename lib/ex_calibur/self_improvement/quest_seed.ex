@@ -70,6 +70,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Project Manager evaluates a self-improvement GitHub issue, writes an implementation plan, and decides whether to proceed or reject.",
         trigger: "manual",
         output_type: "freeform",
+        dangerous_tool_mode: "intercept",
+        max_tool_iterations: 10,
         roster: [
           %{
             "who" => "all",
@@ -85,6 +87,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Code Writer implements the issue in a git worktree — reads relevant files, writes the implementation, runs tests, and opens a PR.",
         trigger: "manual",
         output_type: "freeform",
+        dangerous_tool_mode: "execute",
+        max_tool_iterations: 10,
         roster: [
           %{
             "who" => "all",
@@ -100,6 +104,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Code Reviewer checks the PR for correctness, security, and pattern adherence. Comments findings and approves or requests changes.",
         trigger: "manual",
         output_type: "verdict",
+        dangerous_tool_mode: "intercept",
+        max_tool_iterations: 10,
         roster: [
           %{
             "who" => "all",
@@ -115,6 +121,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "QA / Test Writer runs the test suite and credo, writes missing tests, and issues a verdict that gates merge.",
         trigger: "manual",
         output_type: "verdict",
+        dangerous_tool_mode: "execute",
+        max_tool_iterations: 10,
         loop_mode: "reflect",
         max_iterations: 3,
         loop_tools: ["run_sandbox", "read_file"],
@@ -138,6 +146,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         """,
         trigger: "manual",
         output_type: "verdict",
+        dangerous_tool_mode: "execute",
+        max_tool_iterations: 10,
         loop_tools: ["run_sandbox"],
         roster: [
           %{
@@ -154,6 +164,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Project Manager reviews QA and review outcomes and decides: auto-merge low-risk changes or escalate to CTO via lodge proposal.",
         trigger: "manual",
         output_type: "freeform",
+        dangerous_tool_mode: "intercept",
+        max_tool_iterations: 10,
         roster: [
           %{
             "who" => "all",
@@ -174,10 +186,16 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   end
 
   defp create_quest(source, steps) do
+    # Gate flags: Code Reviewer (index 2) and QA (index 3) are verdict gates
+    gate_indices = MapSet.new([2, 3])
+
     step_entries =
       steps
       |> Enum.with_index(1)
-      |> Enum.map(fn {step, order} -> %{"step_id" => step.id, "order" => order} end)
+      |> Enum.map(fn {step, order} ->
+        entry = %{"step_id" => step.id, "order" => order}
+        if order in gate_indices, do: Map.put(entry, "gate", true), else: entry
+      end)
 
     Quests.create_quest(%{
       name: "Self-Improvement Loop",
@@ -204,6 +222,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       """,
       trigger: "manual",
       output_type: "freeform",
+      dangerous_tool_mode: "intercept",
+      max_tool_iterations: 10,
       loop_mode: "reflect",
       max_iterations: 3,
       loop_tools: ["run_sandbox", "read_file", "write_file", "edit_file", "list_files", "query_lore"],
