@@ -71,7 +71,10 @@ defmodule ExCalibur.QuestRunner do
 
               resolved_step ->
                 Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
+                t0 = System.monotonic_time(:millisecond)
                 result = StepRunner.run(resolved_step, current_input)
+                ms = System.monotonic_time(:millisecond) - t0
+                Logger.info("[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
 
                 # Async learning loop — runs retrospect without blocking the quest
                 step_run_data = %{id: quest_run.id, results: inspect_result(result), input: current_input}

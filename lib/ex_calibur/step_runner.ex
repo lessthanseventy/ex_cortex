@@ -384,7 +384,10 @@ defmodule ExCalibur.StepRunner do
   defp run_step(members, _how, input_text) do
     Enum.map(members, fn member ->
       result = call_member(member, input_text)
-      Map.put(result, :member, member.name)
+      r = Map.put(result, :member, member.name)
+      require Logger
+      Logger.info("[StepRunner] #{member.name} (#{member.provider}/#{member.model}): verdict=#{r.verdict} confidence=#{r.confidence} tool_calls=#{length(r[:tool_calls] || [])}")
+      r
     end)
   end
 

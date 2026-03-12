@@ -2,6 +2,8 @@ defmodule ExCalibur.LLM.Ollama do
   @moduledoc "Ollama LLM provider."
   @behaviour ExCalibur.LLM
 
+  require Logger
+
   alias Excellence.LLM.Ollama
 
   @impl true
@@ -16,9 +18,23 @@ defmodule ExCalibur.LLM.Ollama do
     ]
 
     Enum.reduce_while(models, {:error, :all_models_failed}, fn m, acc ->
+      t0 = System.monotonic_time(:millisecond)
+      Logger.debug("[Ollama] → #{m} (#{byte_size(user_text)}B input)")
+
       case Ollama.chat(ollama, m, messages) do
-        {:ok, text} when is_binary(text) -> {:halt, {:ok, text}}
-        _ -> {:cont, acc}
+        {:ok, text} when is_binary(text) ->
+          ms = System.monotonic_time(:millisecond) - t0
+          Logger.info("[Ollama] ✓ #{m} #{ms}ms (#{byte_size(text)}B output)")
+          {:halt, {:ok, text}}
+
+        {:error, reason} ->
+          ms = System.monotonic_time(:millisecond) - t0
+          Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect(reason)}")
+          {:cont, acc}
+
+        other ->
+          Logger.warning("[Ollama] ✗ #{m} unexpected response: #{inspect(other)}")
+          {:cont, acc}
       end
     end)
   end

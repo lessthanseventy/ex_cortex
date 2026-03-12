@@ -2,6 +2,8 @@ defmodule ExCalibur.LLM.Claude do
   @moduledoc "Claude (Anthropic) LLM provider."
   @behaviour ExCalibur.LLM
 
+  require Logger
+
   @model_ids %{
     "claude_haiku" => "anthropic:claude-haiku-4-5",
     "claude-haiku-4-5" => "anthropic:claude-haiku-4-5",
@@ -54,26 +56,43 @@ defmodule ExCalibur.LLM.Claude do
   @max_tool_iterations 5
 
   defp run_agent_loop(_model_spec, _context, _tools, iter, tool_log) when iter >= @max_tool_iterations do
+    Logger.warning("[Claude] Max iterations (#{@max_tool_iterations}) reached")
     {:error, :max_iterations_exceeded, tool_log}
   end
 
   defp run_agent_loop(model_spec, context, tools, iter, tool_log) do
+    t0 = System.monotonic_time(:millisecond)
+    Logger.debug("[Claude] → #{model_spec} iter=#{iter} tools=#{length(tools)}")
+
     case ReqLLM.generate_text(model_spec, context, tools: tools) do
       {:ok, response} ->
+        ms = System.monotonic_time(:millisecond) - t0
+
         case ReqLLM.Response.classify(response) do
           %{type: :final_answer, text: text} ->
+            Logger.info("[Claude] ✓ #{model_spec} #{ms}ms after #{iter} iter(s), #{length(tool_log)} tool call(s)")
             {:ok, text, tool_log}
 
           %{type: :tool_calls, tool_calls: calls} ->
+            Logger.debug("[Claude] #{model_spec} #{ms}ms — #{length(calls)} tool call(s) at iter #{iter}")
             {next_context, new_entries} = execute_tools_with_log(response.context, calls, tools)
+
+            Enum.each(new_entries, fn %{tool: name, output: out} ->
+              Logger.debug("[Claude] tool #{name} → #{String.slice(to_string(out), 0, 120)}")
+            end)
+
             run_agent_loop(model_spec, next_context, tools, iter + 1, tool_log ++ new_entries)
         end
 
       {:error, reason} ->
+        ms = System.monotonic_time(:millisecond) - t0
+        Logger.warning("[Claude] ✗ #{model_spec} failed after #{ms}ms: #{inspect(reason)}")
         {:error, inspect(reason), tool_log}
     end
   rescue
-    e -> {:error, Exception.message(e), tool_log}
+    e ->
+      Logger.error("[Claude] exception in agent loop: #{Exception.message(e)}")
+      {:error, Exception.message(e), tool_log}
   end
 
   defp execute_tools_with_log(context, calls, tools) do
