@@ -30,6 +30,10 @@ defmodule ExCalibur.Quests.Step do
     field :reflect_threshold, :float, default: 0.6
     field :reflect_on_verdict, {:array, :string}, default: []
     field :max_iterations, :integer, default: 3
+    field :pin_slug, :string
+    field :pin_order, :integer, default: 0
+    field :cards, :map, default: %{}
+    field :guild_name, :string
     timestamps()
   end
 
@@ -55,7 +59,11 @@ defmodule ExCalibur.Quests.Step do
     :loop_tools,
     :reflect_threshold,
     :reflect_on_verdict,
-    :max_iterations
+    :max_iterations,
+    :pin_slug,
+    :pin_order,
+    :cards,
+    :guild_name
   ]
 
   def changeset(step, attrs) do
