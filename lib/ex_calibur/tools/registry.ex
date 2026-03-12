@@ -18,35 +18,36 @@ defmodule ExCalibur.Tools.Registry do
     Registry.resolve_tools(:all_safe) # from step/member config
   """
 
-  alias ExCalibur.Tools.{
-    QueryLore,
-    QueryDictionary,
-    FetchUrl,
-    RunQuest,
-    SearchObsidian,
-    SearchObsidianContent,
-    ReadObsidian,
-    ReadObsidianFrontmatter,
-    CreateObsidianNote,
-    DailyObsidian,
-    SearchEmail,
-    ReadEmail,
-    SendEmail,
-    SearchGithub,
-    ReadGithubIssue,
-    ListGithubNotifications,
-    CreateGithubIssue,
-    CommentGithub,
-    JqQuery,
-    ReadPdf,
-    ConvertDocument,
-    WebFetch,
-    WebSearch,
-    DownloadMedia,
-    ExtractAudio,
-    ExtractFrames,
-    TranscribeAudio
-  }
+  alias ExCalibur.Tools.AnalyzeVideo
+  alias ExCalibur.Tools.CommentGithub
+  alias ExCalibur.Tools.ConvertDocument
+  alias ExCalibur.Tools.CreateGithubIssue
+  alias ExCalibur.Tools.CreateObsidianNote
+  alias ExCalibur.Tools.DailyObsidian
+  alias ExCalibur.Tools.DescribeImage
+  alias ExCalibur.Tools.DownloadMedia
+  alias ExCalibur.Tools.ExtractAudio
+  alias ExCalibur.Tools.ExtractFrames
+  alias ExCalibur.Tools.FetchUrl
+  alias ExCalibur.Tools.JqQuery
+  alias ExCalibur.Tools.ListGithubNotifications
+  alias ExCalibur.Tools.QueryDictionary
+  alias ExCalibur.Tools.QueryLore
+  alias ExCalibur.Tools.ReadEmail
+  alias ExCalibur.Tools.ReadGithubIssue
+  alias ExCalibur.Tools.ReadImageText
+  alias ExCalibur.Tools.ReadObsidian
+  alias ExCalibur.Tools.ReadObsidianFrontmatter
+  alias ExCalibur.Tools.ReadPdf
+  alias ExCalibur.Tools.RunQuest
+  alias ExCalibur.Tools.SearchEmail
+  alias ExCalibur.Tools.SearchGithub
+  alias ExCalibur.Tools.SearchObsidian
+  alias ExCalibur.Tools.SearchObsidianContent
+  alias ExCalibur.Tools.SendEmail
+  alias ExCalibur.Tools.TranscribeAudio
+  alias ExCalibur.Tools.WebFetch
+  alias ExCalibur.Tools.WebSearch
 
   @safe [
     QueryLore,
@@ -66,7 +67,10 @@ defmodule ExCalibur.Tools.Registry do
     ConvertDocument,
     WebFetch,
     WebSearch,
-    TranscribeAudio
+    TranscribeAudio,
+    DescribeImage,
+    ReadImageText,
+    AnalyzeVideo
   ]
   @write [CreateObsidianNote, DailyObsidian, DownloadMedia, ExtractAudio, ExtractFrames]
   @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub]
