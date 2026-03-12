@@ -2,10 +2,14 @@ defmodule ExCaliburWeb.LodgeLive do
   @moduledoc false
   use ExCaliburWeb, :live_view
 
+  import Ecto.Query, only: [from: 2]
   import ExCaliburWeb.Components.LodgeCards
 
   alias ExCalibur.Lodge
   alias ExCalibur.Quests.Proposal
+  alias ExCalibur.Quests.Quest
+  alias ExCalibur.Quests.QuestRun
+  alias ExCalibur.Repo
   alias ExCalibur.Settings
   alias Excellence.Schemas.Member
 
@@ -22,7 +26,7 @@ defmodule ExCaliburWeb.LodgeLive do
     import Ecto.Query
 
     has_members =
-      ExCalibur.Repo.exists?(from(r in Member, where: r.type == "role"))
+      Repo.exists?(from(r in Member, where: r.type == "role"))
 
     if has_members do
       if connected?(socket) do
@@ -32,7 +36,15 @@ defmodule ExCaliburWeb.LodgeLive do
         Lodge.sync_augury()
       end
 
-      {:ok, load_cards(assign(socket, page_title: "Lodge", selected_tags: [], filter_tags: []))}
+      {:ok,
+       load_cards(
+         assign(socket,
+           page_title: "Lodge",
+           selected_tags: [],
+           filter_tags: [],
+           dev_team_status: load_dev_team_status()
+         )
+       )}
     else
       {:ok, push_navigate(socket, to: ~p"/town-square")}
     end
@@ -175,7 +187,7 @@ defmodule ExCaliburWeb.LodgeLive do
     proposal_id = card.metadata["proposal_id"]
 
     if proposal_id do
-      proposal = ExCalibur.Repo.get(Proposal, proposal_id)
+      proposal = Repo.get(Proposal, proposal_id)
 
       if proposal do
         ExCalibur.Quests.approve_proposal(proposal)
@@ -203,7 +215,7 @@ defmodule ExCaliburWeb.LodgeLive do
     proposal_id = card.metadata["proposal_id"]
 
     if proposal_id do
-      proposal = ExCalibur.Repo.get(Proposal, proposal_id)
+      proposal = Repo.get(Proposal, proposal_id)
       if proposal, do: ExCalibur.Quests.reject_proposal(proposal)
     end
 
@@ -305,6 +317,36 @@ defmodule ExCaliburWeb.LodgeLive do
         <% end %>
       </div>
 
+      <%!-- Dev Team Status --%>
+      <%= if @dev_team_status != [] do %>
+        <div class="rounded-lg border bg-muted/30 px-4 py-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-medium text-muted-foreground uppercase tracking-wide mr-1">
+              Dev Team
+            </span>
+            <%= for entry <- @dev_team_status do %>
+              <div class="flex items-center gap-1.5 text-xs rounded-full border bg-background px-2.5 py-1">
+                <span class={[
+                  "h-1.5 w-1.5 rounded-full",
+                  entry.last_run == nil && "bg-muted",
+                  entry.last_run && entry.last_run.status == "complete" && "bg-green-500",
+                  entry.last_run && entry.last_run.status == "failed" && "bg-red-500",
+                  entry.last_run && entry.last_run.status == "running" && "bg-amber-400 animate-pulse"
+                ]}>
+                </span>
+                <span class="font-medium">{entry.quest.name}</span>
+                <span class="text-muted-foreground">
+                  {format_lodge_time(entry.last_run && entry.last_run.inserted_at)}
+                </span>
+                <%= if entry.artifact_count > 0 do %>
+                  <span class="text-primary">· {entry.artifact_count} filed</span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
       <%!-- Pinned Cards Grid --%>
       <%= if @pinned_cards != [] do %>
         <div>
@@ -355,6 +397,55 @@ defmodule ExCaliburWeb.LodgeLive do
       end)
 
     Lodge.update_card(card, %{metadata: Map.put(card.metadata, "items", updated_items)})
+  end
+
+  defp load_dev_team_status do
+    quests =
+      Repo.all(
+        from q in Quest,
+          where: q.name in ["Daily Dev Triage", "Analyze Usage"],
+          order_by: q.name
+      )
+
+    quest_ids = Enum.map(quests, & &1.id)
+
+    last_runs =
+      from(r in QuestRun,
+        where: r.quest_id in ^quest_ids,
+        order_by: [desc: r.inserted_at]
+      )
+      |> Repo.all()
+      |> Enum.group_by(& &1.quest_id)
+      |> Map.new(fn {id, [latest | _]} -> {id, latest} end)
+
+    Enum.map(quests, fn q ->
+      run = Map.get(last_runs, q.id)
+
+      artifact_count =
+        if run do
+          run.step_results
+          |> Map.values()
+          |> Enum.flat_map(&Map.get(&1, "tool_calls", []))
+          |> Enum.count(fn call -> call["tool"] in ["create_github_issue", "open_pr"] end)
+        else
+          0
+        end
+
+      %{quest: q, last_run: run, artifact_count: artifact_count}
+    end)
+  end
+
+  defp format_lodge_time(nil), do: "never"
+
+  defp format_lodge_time(dt) do
+    diff = NaiveDateTime.diff(NaiveDateTime.utc_now(), dt, :second)
+
+    cond do
+      diff < 60 -> "just now"
+      diff < 3600 -> "#{div(diff, 60)}m ago"
+      diff < 86_400 -> "#{div(diff, 3600)}h ago"
+      true -> "#{div(diff, 86_400)}d ago"
+    end
   end
 
   defp card_grid_class(%{type: "metric"}), do: "col-span-1"

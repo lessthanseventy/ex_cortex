@@ -11,6 +11,7 @@ defmodule ExCaliburWeb.GrimoireLive do
   alias ExCalibur.Lore
   alias ExCalibur.Lore.LoreEntry
   alias ExCalibur.Quests
+  alias ExCalibur.Quests.Quest
   alias ExCalibur.Quests.QuestRun
   alias ExCalibur.Repo
   alias ExCalibur.Settings
@@ -275,6 +276,68 @@ defmodule ExCaliburWeb.GrimoireLive do
                 </.card_content>
               </.card>
 
+              <%!-- Dev Team Pipeline --%>
+              <%= if @telemetry.dev_team != [] do %>
+                <.card>
+                  <.card_header>
+                    <.card_title>Self-Improvement Pipeline</.card_title>
+                    <.card_description>
+                      Dev Team quest status — last run and artifacts produced.
+                    </.card_description>
+                  </.card_header>
+                  <.card_content>
+                    <div class="space-y-2">
+                      <%= for entry <- @telemetry.dev_team do %>
+                        <div class="flex items-start gap-3 text-sm py-1 border-b last:border-0">
+                          <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                              <span class="font-medium truncate">{entry.quest.name}</span>
+                              <%= if entry.last_run do %>
+                                <.badge
+                                  variant={run_status_variant(entry.last_run.status)}
+                                  class="text-xs"
+                                >
+                                  {entry.last_run.status}
+                                </.badge>
+                              <% end %>
+                            </div>
+                            <%= if entry.last_run do %>
+                              <div class="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
+                                <span>{format_time(entry.last_run.inserted_at)}</span>
+                                <%= if entry.tool_call_count > 0 do %>
+                                  <span>
+                                    · {entry.tool_call_count} tool call{if entry.tool_call_count != 1,
+                                      do: "s"}
+                                  </span>
+                                <% end %>
+                              </div>
+                              <%= if entry.artifacts != [] do %>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                  <%= for url <- Enum.uniq(entry.artifacts) do %>
+                                    <a
+                                      href={url}
+                                      target="_blank"
+                                      class="text-xs text-primary underline underline-offset-2"
+                                    >
+                                      {url |> String.split("/") |> Enum.take(-2) |> Enum.join("/")}
+                                    </a>
+                                  <% end %>
+                                </div>
+                              <% end %>
+                            <% else %>
+                              <div class="text-xs text-muted-foreground mt-0.5">Never run</div>
+                            <% end %>
+                          </div>
+                          <.badge variant="outline" class="text-xs shrink-0">
+                            {entry.quest.trigger}
+                          </.badge>
+                        </div>
+                      <% end %>
+                    </div>
+                  </.card_content>
+                </.card>
+              <% end %>
+
               <%!-- CLI Tools --%>
               <.card>
                 <.card_header>
@@ -421,30 +484,59 @@ defmodule ExCaliburWeb.GrimoireLive do
               page, or set a trigger to run it automatically.
             </p>
           <% else %>
-            <table class="w-full caption-bottom text-sm" aria-label="Quest run history">
-              <thead class="[&_tr]:border-b">
-                <tr class="border-b transition-colors">
-                  <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
-                    Status
-                  </th>
-                  <th class="h-10 px-2 text-left align-middle font-medium text-muted-foreground">
-                    Started
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr :for={run <- @runs} class="border-b transition-colors hover:bg-muted/50">
-                  <td class="p-2 align-middle">
+            <div class="space-y-3">
+              <%= for run <- @runs do %>
+                <% all_tool_calls =
+                  run.step_results |> Map.values() |> Enum.flat_map(&Map.get(&1, "tool_calls", [])) %>
+                <% artifacts =
+                  all_tool_calls
+                  |> Enum.flat_map(fn call ->
+                    Regex.scan(~r{https://github\.com/\S+}, call["output"] || "")
+                    |> List.flatten()
+                  end) %>
+                <div class="rounded-md border p-3 space-y-2">
+                  <div class="flex items-center gap-3 text-sm">
                     <.badge variant={run_status_variant(run.status)}>
                       {run.status}
                     </.badge>
-                  </td>
-                  <td class="p-2 align-middle text-muted-foreground">
-                    {format_time(run.inserted_at)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    <span class="text-muted-foreground">{format_time(run.inserted_at)}</span>
+                    <%= if all_tool_calls != [] do %>
+                      <span class="text-xs text-muted-foreground/60">
+                        {length(all_tool_calls)} tool call{if length(all_tool_calls) != 1,
+                          do: "s"}
+                      </span>
+                    <% end %>
+                  </div>
+                  <%= if all_tool_calls != [] do %>
+                    <div class="space-y-1 border-l-2 border-muted pl-3">
+                      <%= for call <- all_tool_calls do %>
+                        <div class="text-xs space-y-0.5">
+                          <span class="font-mono text-accent-foreground">{call["tool"]}</span>
+                          <%= if call["output"] && call["output"] != "" do %>
+                            <div class="text-muted-foreground/70 break-words">
+                              {call["output"]}
+                            </div>
+                          <% end %>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <%= if artifacts != [] do %>
+                    <div class="flex flex-wrap gap-1.5">
+                      <%= for url <- Enum.uniq(artifacts) do %>
+                        <a
+                          href={url}
+                          target="_blank"
+                          class="inline-flex items-center gap-1 text-xs rounded-full border px-2 py-0.5 text-primary hover:bg-muted transition-colors"
+                        >
+                          ↗ {url |> String.split("/") |> Enum.take(-2) |> Enum.join("/")}
+                        </a>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
           <% end %>
         </.card_content>
       </.card>
@@ -513,8 +605,48 @@ defmodule ExCaliburWeb.GrimoireLive do
       card_count: card_count,
       sources: sources,
       ollama: ollama,
-      cli_tools: cli_tools
+      cli_tools: cli_tools,
+      dev_team: load_dev_team_status()
     }
+  end
+
+  @dev_team_quest_names ~w(Daily Dev Triage Analyze Usage Implement Issue Review PR QA Check UX Review Merge Decision)
+
+  defp load_dev_team_status do
+    quests =
+      Repo.all(from q in Quest, where: q.name in @dev_team_quest_names, order_by: q.name)
+
+    quest_ids = Enum.map(quests, & &1.id)
+
+    last_runs =
+      from(r in QuestRun,
+        where: r.quest_id in ^quest_ids,
+        order_by: [desc: r.inserted_at]
+      )
+      |> Repo.all()
+      |> Enum.group_by(& &1.quest_id)
+      |> Map.new(fn {id, [latest | _]} -> {id, latest} end)
+
+    Enum.map(quests, fn q ->
+      run = Map.get(last_runs, q.id)
+
+      tool_calls =
+        if run do
+          run.step_results
+          |> Map.values()
+          |> Enum.flat_map(&Map.get(&1, "tool_calls", []))
+        else
+          []
+        end
+
+      artifacts =
+        Enum.flat_map(tool_calls, fn call ->
+          output = call["output"] || ""
+          ~r{https://github\.com/\S+} |> Regex.scan(output) |> List.flatten()
+        end)
+
+      %{quest: q, last_run: run, tool_call_count: length(tool_calls), artifacts: artifacts}
+    end)
   end
 
   defp format_uptime do
