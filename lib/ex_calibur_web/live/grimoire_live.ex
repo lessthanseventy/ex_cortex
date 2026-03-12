@@ -497,9 +497,7 @@ defmodule ExCaliburWeb.GrimoireLive do
       error: Map.get(source_counts, "error", 0)
     }
 
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama_api_key = Application.get_env(:ex_calibur, :ollama_api_key)
-    ollama = check_ollama(ollama_url, ollama_api_key)
+    ollama = ExCalibur.OllamaCache.get_status()
 
     cli_tools =
       try do
@@ -517,20 +515,6 @@ defmodule ExCaliburWeb.GrimoireLive do
       ollama: ollama,
       cli_tools: cli_tools
     }
-  end
-
-  defp check_ollama(url, api_key) do
-    headers = if api_key, do: [{"authorization", "Bearer #{api_key}"}], else: []
-
-    case Req.get("#{url}/api/tags", headers: headers, receive_timeout: 2_000, connect_options: [timeout: 2_000]) do
-      {:ok, %{status: 200, body: %{"models" => models}}} ->
-        %{reachable: true, url: url, models: Enum.map(models, & &1["name"])}
-
-      _ ->
-        %{reachable: false, url: url, models: []}
-    end
-  rescue
-    _ -> %{reachable: false, url: url, models: []}
   end
 
   defp format_uptime do
