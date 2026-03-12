@@ -183,20 +183,53 @@ defmodule ExCalibur.StepRunner do
 
     case run_artifact(quest, augmented) do
       {:ok, attrs} ->
-        card_type = attrs[:card_type] || parse_card_type(quest.description) || "note"
+        cards_spec = quest[:cards] || []
 
-        card_attrs = %{
-          type: card_type,
-          title: attrs.title,
-          body: attrs.body,
-          tags: attrs[:tags] || [],
-          source: "quest",
-          quest_id: quest[:id],
-          metadata: attrs[:metadata] || %{}
-        }
+        if cards_spec == [] do
+          card_type = attrs[:card_type] || parse_card_type(quest.description) || "note"
+          pin_slug = quest[:pin_slug]
+          pinned = quest[:pinned] || false
 
-        ExCalibur.Lodge.post_card(card_attrs)
-        {:ok, %{lodge_card: card_attrs}}
+          card_attrs = %{
+            type: card_type,
+            card_type: card_type,
+            title: attrs.title,
+            body: attrs.body,
+            tags: attrs[:tags] || [],
+            source: "quest",
+            quest_id: quest[:id],
+            metadata: attrs[:metadata] || %{},
+            pin_slug: pin_slug,
+            pinned: pinned,
+            pin_order: quest[:pin_order] || 0,
+            guild_name: quest[:guild_name]
+          }
+
+          ExCalibur.Lodge.post_card(card_attrs)
+          {:ok, %{lodge_card: card_attrs}}
+        else
+          posted =
+            Enum.map(cards_spec, fn spec ->
+              card_attrs = %{
+                type: spec["card_type"] || "briefing",
+                card_type: spec["card_type"] || "briefing",
+                title: attrs.title,
+                body: attrs.body,
+                tags: attrs[:tags] || [],
+                source: "quest",
+                quest_id: quest[:id],
+                metadata: attrs[:metadata] || %{},
+                pin_slug: spec["pin_slug"],
+                pinned: spec["pinned"] || false,
+                pin_order: spec["pin_order"] || 0,
+                guild_name: quest[:guild_name]
+              }
+
+              ExCalibur.Lodge.post_card(card_attrs)
+            end)
+
+          {:ok, %{lodge_cards: posted}}
+        end
 
       error ->
         error

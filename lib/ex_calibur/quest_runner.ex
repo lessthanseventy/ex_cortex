@@ -143,6 +143,23 @@ defmodule ExCalibur.QuestRunner do
     "## Prior Step: #{step_name}\nHerald delivered (#{type})\n"
   end
 
+  def result_to_text({:ok, %{lodge_card: %{title: title, body: body}}}, step_name, next_step_name) do
+    question =
+      if next_step_name,
+        do: "\n**Open question for #{next_step_name}:** How does this card inform your evaluation?",
+        else: ""
+
+    """
+    ## Prior Step: #{step_name}
+    **Lodge Card:** #{title}
+    #{String.slice(body || "", 0, 500)}#{question}
+    """
+  end
+
+  def result_to_text({:ok, %{lodge_cards: _cards}}, step_name, _next) do
+    "## Prior Step: #{step_name}\nMultiple lodge cards posted.\n"
+  end
+
   def result_to_text(_, _, _), do: ""
 
   # Keep arity-1 version for backwards compatibility
