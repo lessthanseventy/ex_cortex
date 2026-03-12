@@ -9,13 +9,13 @@ defmodule ExCalibur.QuestRunner do
   Branch steps: %{"type" => "branch", "steps" => [...], "synthesizer" => "...", "order" => 1}
   """
 
-  require OpenTelemetry.Tracer, as: Tracer
-
   alias ExCalibur.LearningLoop
+  alias ExCalibur.Lodge
   alias ExCalibur.Quests
   alias ExCalibur.StepRunner
 
   require Logger
+  require OpenTelemetry.Tracer, as: Tracer
 
   @doc "Run all steps of a quest, returning the final step result."
   def run(%{steps: steps} = quest, _input) when steps == [] do
@@ -101,7 +101,10 @@ defmodule ExCalibur.QuestRunner do
                   end
 
                 ms = System.monotonic_time(:millisecond) - t0
-                Logger.info("[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
+
+                Logger.info(
+                  "[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}"
+                )
 
                 # Async learning loop — runs retrospect without blocking the quest
                 step_run_data = %{id: quest_run.id, results: inspect_result(result), input: current_input}
@@ -133,6 +136,10 @@ defmodule ExCalibur.QuestRunner do
 
     {:ok, quest_run} = Quests.update_quest_run(quest_run, %{status: final_status, step_results: step_results})
     Phoenix.PubSub.broadcast(ExCalibur.PubSub, "quest_runs", {:quest_run_completed, quest_run})
+
+    Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+      post_artifacts(step_results, quest, quest_run)
+    end)
 
     Tracer.set_attributes(%{"quest.status" => final_status, "quest.run_id" => quest_run.id})
 
@@ -291,10 +298,71 @@ defmodule ExCalibur.QuestRunner do
 
   defp resolve_step(_), do: nil
 
+  @artifact_tools ~w(create_github_issue open_pr merge_pr)
+
+  defp post_artifacts(step_results, quest, quest_run) do
+    step_results
+    |> Map.values()
+    |> Enum.flat_map(&Map.get(&1, "tool_calls", []))
+    |> Enum.filter(&(&1["tool"] in @artifact_tools))
+    |> Enum.flat_map(fn call ->
+      output = call["output"] || ""
+
+      output
+      |> then(&Regex.scan(~r{https://github\.com/\S+}, &1))
+      |> List.flatten()
+      |> Enum.map(&{call["tool"], &1, output})
+    end)
+    |> Enum.uniq_by(fn {_tool, url, _} -> url end)
+    |> Enum.each(fn {tool, url, output} ->
+      {type_tag, title} = artifact_card_info(tool, url, output)
+
+      case Lodge.create_card(%{
+             type: "link",
+             title: title,
+             body: output,
+             source: "quest:#{quest.name}",
+             tags: ["self-improvement", type_tag],
+             metadata: %{"url" => url, "quest_run_id" => quest_run.id},
+             status: "active"
+           }) do
+        {:ok, _} -> Logger.info("[QuestRunner] Posted artifact card: #{title}")
+        {:error, e} -> Logger.warning("[QuestRunner] Failed to post artifact card: #{inspect(e)}")
+      end
+    end)
+  end
+
+  defp artifact_card_info("create_github_issue", url, _output) do
+    num = url |> String.split("/") |> List.last()
+    {"issue", "Issue ##{num}"}
+  end
+
+  defp artifact_card_info("open_pr", url, _output) do
+    num = url |> String.split("/") |> List.last()
+    {"pr", "PR ##{num}"}
+  end
+
+  defp artifact_card_info("merge_pr", url, output) do
+    num = url |> String.split("/") |> List.last()
+
+    title =
+      case Regex.run(~r{PR #\d+ merged}, output) do
+        [match] -> match
+        _ -> "PR ##{num} merged"
+      end
+
+    {"merged", title}
+  end
+
+  defp artifact_card_info(tool, url, _output) do
+    num = url |> String.split("/") |> List.last()
+    {tool, "Artifact ##{num}"}
+  end
+
   defp inspect_result({:ok, result}) when is_map(result) do
     tool_calls = extract_tool_calls(result)
-    base = %{"status" => "ok", "data" => inspect(Map.drop(result, [:tool_calls]))}
-    if tool_calls != [], do: Map.put(base, "tool_calls", tool_calls), else: base
+    base = %{"status" => "ok", "data" => inspect(Map.delete(result, :tool_calls))}
+    if tool_calls == [], do: base, else: Map.put(base, "tool_calls", tool_calls)
   end
 
   defp inspect_result({:error, reason}), do: %{"status" => "error", "reason" => inspect(reason)}
