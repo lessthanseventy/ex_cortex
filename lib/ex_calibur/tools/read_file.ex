@@ -1,0 +1,32 @@
+defmodule ExCalibur.Tools.ReadFile do
+  @moduledoc "Tool: read a file from the working directory."
+
+  def req_llm_tool do
+    ReqLLM.Tool.new!(
+      name: "read_file",
+      description: "Read the contents of a file. Path is relative to the working directory.",
+      parameter_schema: %{
+        "type" => "object",
+        "properties" => %{
+          "path" => %{"type" => "string", "description" => "Relative file path to read"}
+        },
+        "required" => ["path"]
+      },
+      callback: &call/1
+    )
+  end
+
+  def call(%{"path" => path} = params) do
+    working_dir = Map.get(params, "working_dir", File.cwd!())
+    full_path = Path.join(working_dir, path) |> Path.expand()
+
+    if String.starts_with?(full_path, Path.expand(working_dir)) do
+      case File.read(full_path) do
+        {:ok, content} -> {:ok, content}
+        {:error, reason} -> {:error, "Cannot read #{path}: #{reason}"}
+      end
+    else
+      {:error, "Path #{path} is outside working directory"}
+    end
+  end
+end

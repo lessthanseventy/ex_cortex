@@ -26,14 +26,17 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.DailyObsidian
   alias ExCalibur.Tools.DescribeImage
   alias ExCalibur.Tools.DownloadMedia
+  alias ExCalibur.Tools.EditFile
   alias ExCalibur.Tools.ExtractAudio
   alias ExCalibur.Tools.ExtractFrames
   alias ExCalibur.Tools.FetchUrl
   alias ExCalibur.Tools.JqQuery
+  alias ExCalibur.Tools.ListFiles
   alias ExCalibur.Tools.ListGithubNotifications
   alias ExCalibur.Tools.QueryDictionary
   alias ExCalibur.Tools.QueryLore
   alias ExCalibur.Tools.ReadEmail
+  alias ExCalibur.Tools.ReadFile
   alias ExCalibur.Tools.ReadGithubIssue
   alias ExCalibur.Tools.ReadImageText
   alias ExCalibur.Tools.ReadObsidian
@@ -48,6 +51,7 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.TranscribeAudio
   alias ExCalibur.Tools.WebFetch
   alias ExCalibur.Tools.WebSearch
+  alias ExCalibur.Tools.WriteFile
 
   @safe [
     QueryLore,
@@ -70,9 +74,11 @@ defmodule ExCalibur.Tools.Registry do
     TranscribeAudio,
     DescribeImage,
     ReadImageText,
-    AnalyzeVideo
+    AnalyzeVideo,
+    ReadFile,
+    ListFiles
   ]
-  @write [CreateObsidianNote, DailyObsidian, DownloadMedia, ExtractAudio, ExtractFrames]
+  @write [CreateObsidianNote, DailyObsidian, DownloadMedia, ExtractAudio, ExtractFrames, WriteFile, EditFile]
   @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
