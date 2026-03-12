@@ -26,7 +26,7 @@ defmodule ExCalibur.StepRunner do
 
   @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
 
-  @dangerous_tools ~w(send_email create_github_issue comment_github run_quest)
+  @dangerous_tools ~w(send_email create_github_issue comment_github run_quest merge_pr git_pull restart_app close_issue)
 
   def dangerous?(tool_name), do: tool_name in @dangerous_tools
 
