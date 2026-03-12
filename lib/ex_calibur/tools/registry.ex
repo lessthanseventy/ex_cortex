@@ -19,6 +19,7 @@ defmodule ExCalibur.Tools.Registry do
   """
 
   alias ExCalibur.Tools.AnalyzeVideo
+  alias ExCalibur.Tools.CloseIssue
   alias ExCalibur.Tools.CommentGithub
   alias ExCalibur.Tools.ConvertDocument
   alias ExCalibur.Tools.CreateGithubIssue
@@ -30,9 +31,14 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.ExtractAudio
   alias ExCalibur.Tools.ExtractFrames
   alias ExCalibur.Tools.FetchUrl
+  alias ExCalibur.Tools.GitCommit
+  alias ExCalibur.Tools.GitPull
+  alias ExCalibur.Tools.GitPush
   alias ExCalibur.Tools.JqQuery
   alias ExCalibur.Tools.ListFiles
   alias ExCalibur.Tools.ListGithubNotifications
+  alias ExCalibur.Tools.MergePR
+  alias ExCalibur.Tools.OpenPR
   alias ExCalibur.Tools.QueryDictionary
   alias ExCalibur.Tools.QueryLore
   alias ExCalibur.Tools.ReadEmail
@@ -42,7 +48,9 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.ReadObsidian
   alias ExCalibur.Tools.ReadObsidianFrontmatter
   alias ExCalibur.Tools.ReadPdf
+  alias ExCalibur.Tools.RestartApp
   alias ExCalibur.Tools.RunQuest
+  alias ExCalibur.Tools.RunSandbox
   alias ExCalibur.Tools.SearchEmail
   alias ExCalibur.Tools.SearchGithub
   alias ExCalibur.Tools.SearchObsidian
@@ -76,10 +84,22 @@ defmodule ExCalibur.Tools.Registry do
     ReadImageText,
     AnalyzeVideo,
     ReadFile,
-    ListFiles
+    ListFiles,
+    RunSandbox
   ]
-  @write [CreateObsidianNote, DailyObsidian, DownloadMedia, ExtractAudio, ExtractFrames, WriteFile, EditFile]
-  @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub]
+  @write [
+    CreateObsidianNote,
+    DailyObsidian,
+    DownloadMedia,
+    ExtractAudio,
+    ExtractFrames,
+    WriteFile,
+    EditFile,
+    GitCommit,
+    GitPush,
+    OpenPR
+  ]
+  @dangerous [RunQuest, SendEmail, CreateGithubIssue, CommentGithub, MergePR, GitPull, RestartApp, CloseIssue]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
   def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())
