@@ -1,345 +1,189 @@
 # ExCalibur
 
-A Phoenix web application for running multi-agent AI evaluation pipelines, structured autonomous workflows (quests), and continuous self-improvement. Organizes AI agents into named **guilds**, gives them **quests** (multi-step pipelines with tool calling), and lets them evaluate content, write code, file issues, and improve the system itself — all under a human-in-the-loop approval model.
+ExCalibur is a local-first AI agent platform. You give it teams of AI agents, wire them up to your data sources, and they work autonomously — reviewing code, triaging issues, summarizing feeds, running tests, filing bugs, and improving the system itself.
+
+It runs entirely on your machine. No cloud, no SaaS, no data leaving your network. Just Ollama, a Postgres database, and a Phoenix web UI.
 
 ---
 
-## Contents
+## What it can do
 
-- [Concepts](#concepts)
-- [Architecture](#architecture)
-- [Self-Improvement Loop](#self-improvement-loop)
-- [Pages](#pages)
-- [Tools](#tools)
-- [Sources](#sources)
-- [Running It](#running-it)
-- [Configuration](#configuration)
-- [Observability](#observability)
-- [Development](#development)
+### Review your pull requests
 
----
+Point the Code Review guild at your repo. Every new commit triggers a multi-agent review: a Security Auditor checks for vulnerabilities, a Style Reviewer flags readability issues, an Architecture Reviewer looks at structural concerns. Each agent runs independently, then they vote on a verdict. You get a structured report with confidence scores and reasoning.
 
-## Concepts
+Works on any language. Takes about 30 seconds per PR with local models.
 
-### Guilds and Members
+### Watch your feeds and stay on top of things
 
-A **guild** is a multi-agent team defined by a **charter** — a data structure specifying which roles are in the team, what models they use, and how they reach decisions.
+Subscribe to RSS feeds, newsletters, Nextcloud files, or webhooks. When new content arrives, the appropriate guild evaluates it automatically. The Risk Assessment guild can flag concerning content in your security feeds. The Content Moderation guild can screen community submissions. The Incident Triage guild can prioritize your on-call alerts.
 
-A **member** (internally: role) is an individual agent with a system prompt, a rank (apprentice / journeyman / master), and one or more **perspectives** — model variants that evaluate from different angles simultaneously.
+Everything lands in the Lodge — a live dashboard showing verdict history, agent confidence trends, and drift over time.
 
-Built-in guilds: Code Review, Content Moderation, Accessibility Review, Risk Assessment, Performance Audit, Dependency Audit, Incident Triage, Contract Review, and the Dev Team (self-improvement).
+### Monitor your own codebase
 
-### Quests and Steps
+The built-in **Analyst Sweep** runs every 4 hours. It:
+- Reads your codebase
+- Runs `mix credo` (or your linter)
+- Finds test coverage gaps, unhandled errors, TODO comments, and complexity hotspots
+- Cross-references what's already in your GitHub backlog
+- Files new issues for anything worth fixing
 
-A **quest** is a multi-step pipeline. Each **step** runs a roster of members against an input and produces a structured result. Steps chain together — each step's output is prepended to the next step's input as a formatted handoff block.
+You end up with a continuously-maintained backlog driven by actual analysis, not just manual triage.
 
-Step options:
-- **Verdict output** — members vote pass/warn/fail with confidence and reasoning
-- **Freeform output** — members write artifact text (summaries, code, analysis)
-- **Gate flag** — halt the quest if the verdict is fail
-- **Loop tools** — list of tools agents may call during the step
-- **Dangerous tool mode** — execute / intercept / dry_run for dangerous tool calls
-- **Max iterations** — circuit breaker on the agent tool-calling loop
+### Improve itself
 
-### Lore
+This is the interesting one. ExCalibur includes a Dev Team guild that reads its own GitHub issues, writes fixes, reviews the code, runs the test suite, and merges approved changes. The loop:
 
-**Lore** entries are knowledge artifacts produced by quest runs: summaries, findings, decisions. Tagged and stored for retrieval by future quests via the `query_lore` tool. Browsed in the Grimoire.
-
-### Sources and Books
-
-**Sources** are data pipeline workers — they poll or receive data and feed it into guild evaluation. A **Book** is a pre-configured source template. Install a Book from the Library to create an active Source managed in Stacks.
-
-Source types: `git`, `directory`, `feed`, `webhook`, `url`, `websocket`, `github_issues`, `obsidian`, `nextcloud`, `email`, `media`, `lodge`.
-
-### Proposals
-
-When an agent tries to call a write or dangerous tool, instead of executing it immediately the system creates a **Proposal** — a record with the action description and suggested parameters. Proposals appear in the Lodge for human review and can be approved or rejected.
-
----
-
-## Architecture
-
-### Evaluation Pipeline
-
-The simple evaluation path (Evaluate page, no tool calling):
-
-```mermaid
-flowchart TD
-    Input[User Input Text] --> E[Evaluator.evaluate]
-    E --> Guild{Current guild?}
-    Guild -- none --> Err[error: no guild installed]
-    Guild -- found --> Build[Build dynamic Role modules\nfrom charter metadata]
-    Build --> Orch[Orchestrator.evaluate]
-    Orch --> FanOut[Fan out to role variants\nin parallel]
-    FanOut --> LLM1[Member A\nalpha perspective]
-    FanOut --> LLM2[Member B\nbeta perspective]
-    FanOut --> LLM3[Member C\nstrict perspective]
-    LLM1 & LLM2 & LLM3 --> Consensus[Per-role consensus]
-    Consensus --> Cross[Cross-role decision\nstrategy: majority / unanimous / veto]
-    Cross --> Verdict[Verdict: approve / reject]
-    Verdict --> PubSub[PubSub broadcast]
-    PubSub --> Lodge[Lodge updates live]
+```
+Issue filed → PM Triage → Code Writer → Code Reviewer → QA → Merge/Escalate
 ```
 
-### Quest Pipeline
+Low-risk changes (formatting, tests, small fixes) get auto-merged. Anything touching core logic creates a proposal in the Lodge for you to approve. The system literally gets better on its own, and you stay in control of what lands.
 
-The full quest path — multi-step with tool-calling agents:
+### Run structured multi-step workflows
 
-```mermaid
-flowchart TD
-    Trigger[Trigger: manual / scheduled / source event] --> QR[QuestRunner.run]
+Quests are pipelines where each step is a team of agents with access to tools. A step can:
 
-    subgraph Per Step
-        SR[StepRunner.run] --> CTX[Assemble context\nlore, git diffs, files]
-        CTX --> Roster[Run roster members\nvia Ollama or Claude]
-        Roster --> Tools{Tool call?}
-        Tools -- safe --> Exec[Execute immediately]
-        Tools -- write / dangerous --> Propose[Create Proposal]
-        Exec --> Roster
-        Propose --> Roster
-        Roster --> Result[Step result]
-    end
+- Read files, search GitHub, query your lore store
+- Run sandboxed shell commands (`mix test`, `mix credo`, etc.)
+- Write files, create commits, open pull requests
+- File issues, send emails, post to Nextcloud Talk
 
-    QR --> SR
-    Result --> Gate{Gated step?}
-    Gate -- fail verdict --> Halt[Quest halted]
-    Gate -- pass / not gated --> Handoff[Handoff block\nprepended to next input]
-    Handoff --> SR
-    Result --> Run[QuestRun record updated]
-    Run --> PubSub2[PubSub broadcast]
-```
+Each tool call that touches the outside world goes through a Proposal — an approval record you can review, approve, or reject from the Lodge. Agents that call safe tools (read, search, fetch) proceed immediately. Agents that want to write or send things create a proposal and wait.
 
-### Supervision Tree
+### Build your own guild
 
-```mermaid
-graph TD
-    App[ExCalibur.Application] --> Repo[ExCalibur.Repo]
-    App --> Oban[Oban]
-    App --> PubSub[ExCalibur.PubSub]
-    App --> SourceSupervisor[Sources.SourceSupervisor\nDynamicSupervisor]
-    App --> Debouncer[QuestDebouncer]
-    App --> Bridge[PubSubBridge]
-    App --> Web[ExCaliburWeb.Endpoint]
-    App --> Sched[ScheduledQuestRunner]
-    App --> LoreTrigger[LoreTriggerRunner]
-    App --> LodgeTrigger[LodgeTriggerRunner]
-    SourceSupervisor --> W1[SourceWorker A]
-    SourceSupervisor --> W2[SourceWorker B]
-    SourceSupervisor --> Wn[...]
-```
+Charters are just Elixir modules with metadata functions. Define your own roles with custom system prompts, pick models and perspectives for each role, wire up consensus strategy, and install it. The existing guilds are all written this way — there's nothing special about them.
 
 ---
 
-## Self-Improvement Loop
-
-ExCalibur includes a Dev Team guild that autonomously improves itself. Two interlocking loops:
+## How it works
 
 ```mermaid
 flowchart LR
-    subgraph Analyst Sweep - every 4 hours
-        AS1[Codebase Health Scan\nmix credo + targeted reads]
-        AS2[Opportunity Scan\nproduct lens]
-        AS3[Backlog Synthesis\nPM approves shortlist]
-        AS4[Issue Filing\ncreate GitHub issues]
-        AS1 --> AS2 --> AS3 --> AS4
+    Sources[Sources\ngit · rss · webhook\ngithub · obsidian · email] --> Eval
+
+    subgraph Eval [Guild Evaluation]
+        direction TB
+        Input --> RoleA[Member A\nalpha perspective]
+        Input --> RoleB[Member B\nbeta perspective]
+        Input --> RoleC[Member C\nstrict perspective]
+        RoleA & RoleB & RoleC --> Consensus[Consensus\nvote → verdict]
     end
 
-    subgraph Self-Improvement Loop - per issue
-        SI1[PM Triage\naccept or reject]
-        SI2[Code Writer\nworktree + implement]
-        SI3[Code Reviewer\ngate: fail halts quest]
-        SI4[QA\ngate: fail halts quest]
-        SI5[PM Merge Decision\nauto-merge or escalate]
-        SI1 --> SI2 --> SI3 --> SI4 --> SI5
-    end
-
-    AS4 -- labeled self-improvement --> SI1
-    SI5 -- approved --> GH[GitHub PR merged]
-    SI5 -- escalated --> Lodge[Lodge proposal\nfor human review]
+    Eval --> Lodge[Lodge\ndashboard + proposals]
+    Lodge --> Lore[Lore store\nknowledge across runs]
+    Lore --> Eval
 ```
 
-**Guardrails:**
-- Circuit breaker on tool-calling loops — skips tools after 3 consecutive empty results
-- Verdict gates — Code Reviewer and QA steps halt the quest on fail
-- Dangerous tool interception — `create_github_issue`, `merge_pr`, etc. produce Proposals
-- Rollback — failed freeform steps with write tools stash and restore working tree
+Agents in a step have access to tools. Safe tools execute immediately. Write and dangerous tools create Proposals.
 
-Seed the SI pipeline: `ExCalibur.SelfImprovement.QuestSeed.seed(%{repo: "owner/repo"})`
-
----
-
-## Pages
-
-| Route | Page | Purpose |
-|---|---|---|
-| `/lodge` | Lodge | Dashboard — verdict history, agent health, drift monitor |
-| `/town-square` | Town Square | Charter browser — install roles from a charter |
-| `/guild-hall` | Guild Hall | Browse and install complete guilds |
-| `/quests` | Quests | Design and run multi-step quest pipelines |
-| `/grimoire` | Grimoire | Lore browser — search and view knowledge artifacts |
-| `/library` | Library | Browse Books and Scrolls, install as sources |
-| `/stacks` | Stacks | Manage active sources — pause, resume, delete |
-| `/evaluate` | Evaluate | One-shot guild evaluation with live verdict feed |
-| `/settings` | Settings | App config — Ollama URL, API keys, default repo |
-| `/guide` | Guide | Docs and onboarding |
-
-`/` redirects to `/lodge` (or `/guild-hall` if no members are installed).
+```mermaid
+flowchart LR
+    Agent[Agent] --> ToolCall{Tool call}
+    ToolCall -- read / search / fetch --> Exec[Execute now]
+    ToolCall -- write / create / send --> Proposal[Create Proposal]
+    Exec --> Result[Result back to agent]
+    Proposal --> Lodge2[Lodge: awaiting approval]
+    Lodge2 -- approved --> Exec
+```
 
 ---
 
-## Tools
+## Built-in guilds
 
-Tools are tiered by risk. Steps declare which tools agents may call via `loop_tools`.
-
-### Safe — execute immediately
-
-| Tool | Description |
+| Guild | What it does |
 |---|---|
-| `query_lore` | Search lore store by tags |
-| `read_file` | Read a local file |
-| `list_files` | List directory contents |
-| `fetch_url` | Fetch web content |
-| `web_search` | Web search |
-| `web_fetch` | Full page fetch |
-| `search_github` | Search GitHub issues/PRs/repos |
-| `read_github_issue` | Fetch issue detail |
-| `list_github_notifications` | GitHub notification inbox |
-| `search_obsidian` | Obsidian vault search |
-| `read_obsidian` | Read a note |
-| `read_obsidian_frontmatter` | Extract note metadata |
-| `search_obsidian_content` | Full-text vault search |
-| `search_email` | Search email |
-| `read_email` | Read a message |
-| `read_pdf` | Extract PDF text |
-| `convert_document` | Document format conversion |
-| `describe_image` | Vision API description |
-| `read_image_text` | OCR |
-| `analyze_video` | Video analysis |
-| `transcribe_audio` | Speech to text |
-| `jq_query` | JSON processing |
-| `query_jaeger` | Query distributed traces |
-| `run_sandbox` | Allowlisted mix commands: `test`, `credo`, `format`, `excessibility`, `deps.audit` |
-| `search_nextcloud` | Nextcloud file search |
-| `read_nextcloud` | Read a Nextcloud file |
-| `read_nextcloud_notes` | Read Nextcloud Notes |
-| `query_dictionary` | Word definitions |
+| **Code Review** | Security, style, and architecture review |
+| **Content Moderation** | Safety, bias, and policy checking |
+| **Accessibility Review** | WCAG compliance and assistive tech compatibility |
+| **Risk Assessment** | Risk identification, compliance, fraud signals |
+| **Performance Audit** | Bottleneck and scalability analysis |
+| **Dependency Audit** | Vulnerability and version scanning |
+| **Incident Triage** | Severity classification and response suggestions |
+| **Contract Review** | Legal document analysis and risk flagging |
+| **Dev Team** | Self-improvement — code, reviews, tests, merges |
 
-### Write — create Proposal
-
-| Tool | Description |
-|---|---|
-| `write_file` | Create or overwrite a file |
-| `edit_file` | Targeted line-level edit |
-| `git_commit` | Commit staged changes |
-| `git_push` | Push to remote |
-| `open_pr` | Open or draft a pull request |
-| `create_obsidian_note` | Create or append a note |
-| `daily_obsidian` | Daily journal entry |
-| `download_media` | Cache a media file |
-| `extract_audio` | Extract audio from video |
-| `extract_frames` | Extract video frames |
-| `setup_worktree` | Create a git worktree |
-| `write_nextcloud` | Write a Nextcloud file |
-| `create_nextcloud_note` | Create a Nextcloud note |
-| `nextcloud_calendar` | Create a calendar event |
-
-### Dangerous — create Proposal
-
-| Tool | Description |
-|---|---|
-| `create_github_issue` | File a GitHub issue |
-| `comment_github` | Add a comment |
-| `merge_pr` | Merge a pull request |
-| `close_issue` | Close an issue |
-| `git_pull` | Fetch from origin |
-| `send_email` | Send an email |
-| `run_quest` | Trigger another quest |
-| `restart_app` | Restart the Phoenix server |
-| `nextcloud_talk` | Send a Nextcloud Talk message |
+Each guild can be installed from the Guild Hall. Installing a guild creates member records in the database and wires them to the evaluation pipeline.
 
 ---
 
-## Sources
+## Built-in sources
 
-Sources run as supervised GenServer workers under `ExCalibur.Sources.SourceSupervisor`.
-
-| Type | Behavior |
+| Type | What it watches |
 |---|---|
-| `git` | Polls a Git repo for new commits; generates per-file diffs |
-| `directory` | Watches a local directory for file changes |
-| `feed` | Polls RSS/Atom feeds |
-| `webhook` | Receives `POST /api/webhooks/:source_id` (optional Bearer auth) |
-| `url` | Polls a URL and detects content changes |
-| `websocket` | Connects to a WebSocket stream |
-| `github_issues` | Watches GitHub issues with a label filter |
-| `obsidian` | Watches an Obsidian vault for new/changed notes |
-| `nextcloud` | Polls Nextcloud Activity API |
-| `email` | Checks an email inbox |
-| `media` | Processes media files (video/audio) |
-| `lodge` | Internal metrics stream |
+| `git` | Commits in a local git repo |
+| `directory` | File changes in a directory |
+| `feed` | RSS/Atom feeds |
+| `webhook` | `POST /api/webhooks/:id` endpoint |
+| `url` | Content changes at a URL |
+| `websocket` | WebSocket stream |
+| `github_issues` | GitHub issues matching a label |
+| `obsidian` | New or changed notes in an Obsidian vault |
+| `nextcloud` | Nextcloud activity feed |
+| `email` | Email inbox |
+| `media` | Video/audio files for transcription and analysis |
+
+Install a source from the Library (using a Book template) or define one manually in Stacks.
 
 ---
 
-## Running It
-
-### Docker Compose (recommended)
+## Running it
 
 ```bash
 docker compose up
 ```
 
-| Service | URL | Notes |
-|---|---|---|
-| Phoenix app | http://localhost:4001 | Live reload enabled |
-| Jaeger UI | http://localhost:16686 | Trace browser |
-| Grafana | http://localhost:3000 | Anonymous login, auto-provisioned |
-| Prometheus | http://localhost:9090 | |
-| Nextcloud | http://localhost:8080 | admin / admin — optional |
+That's it. Starts the app, Postgres, Ollama, Jaeger, Prometheus, and Grafana. Visit http://localhost:4001.
 
-Database: TimescaleDB/PostgreSQL 16 on port 5433.
+| Service | URL |
+|---|---|
+| ExCalibur | http://localhost:4001 |
+| Jaeger traces | http://localhost:16686 |
+| Grafana | http://localhost:3000 |
+| Nextcloud (optional) | http://localhost:8080 |
 
-Custom port: `PORT=4001 docker compose up`
+Custom port: `PORT=4002 docker compose up`
 
-### Local Dev (deps via Docker)
-
-```bash
-# Start only external deps
-docker compose up db ollama jaeger
-
-# Install Elixir deps, create and migrate DB
-mix setup
-
-# Start the server
-mix phx.server
-```
-
-Visit http://localhost:4000.
-
-### First Run
+### First run
 
 ```bash
-# Full DB reset + install Dev Team guild
+# Reset DB and install the Dev Team guild
 mix ecto.fresh
 ```
 
-Then:
-1. Go to **Guild Hall** and install a guild
-2. Go to **Quests** to design pipelines
-3. Go to **Evaluate** to run a quick one-shot evaluation
-4. Go to **Lodge** to monitor results
+Then open the Guild Hall and install whichever guild fits your use case.
+
+### Local dev without Docker
+
+```bash
+docker compose up db ollama jaeger   # just the deps
+mix setup
+mix phx.server
+```
+
+---
+
+## Tools available to agents
+
+Agents call tools during quest steps. Steps declare which tools they're allowed to use.
+
+**Safe** (execute immediately): `read_file`, `list_files`, `fetch_url`, `web_search`, `query_lore`, `search_github`, `read_github_issue`, `search_obsidian`, `read_obsidian`, `search_email`, `read_email`, `read_pdf`, `convert_document`, `describe_image`, `read_image_text`, `transcribe_audio`, `analyze_video`, `jq_query`, `run_sandbox` (allowlisted mix commands only), `query_jaeger`, `search_nextcloud`, `read_nextcloud`, `read_nextcloud_notes`, `query_dictionary`
+
+**Write** (create Proposal): `write_file`, `edit_file`, `git_commit`, `git_push`, `open_pr`, `create_obsidian_note`, `setup_worktree`, `write_nextcloud`, `create_nextcloud_note`, `nextcloud_calendar`
+
+**Dangerous** (create Proposal): `create_github_issue`, `comment_github`, `merge_pr`, `close_issue`, `git_pull`, `send_email`, `run_quest`, `restart_app`, `nextcloud_talk`
 
 ---
 
 ## Configuration
 
-### Environment Variables
+Most things are configurable at `/settings` in the UI. The main env vars:
 
 ```bash
-# LLM
-OLLAMA_URL=http://localhost:11434       # default
+OLLAMA_URL=http://localhost:11434       # local Ollama endpoint
 OLLAMA_API_KEY=                         # optional
-
-# Observability
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 # Nextcloud (optional)
@@ -348,137 +192,29 @@ NEXTCLOUD_USER=admin
 NEXTCLOUD_PASSWORD=admin
 
 # Production
-SECRET_KEY_BASE=...                     # mix phx.gen.secret
-PHX_HOST=your-domain.com
-PORT=4000
+SECRET_KEY_BASE=...
+PHX_HOST=your-host.com
 DATABASE_URL=ecto://user:pass@host/db
 ```
 
-### Runtime Settings
-
-Editable at `/settings` and stored in the database:
-
-- Ollama URL and API key
-- Default GitHub repo (`owner/repo`) used by GitHub tools
-- Claude API key (for steps using Claude models)
-- Nextcloud credentials
-- Banner text
-
-### Model Fallback Chain
-
-If the primary model is unavailable, steps fall back:
-
-```elixir
-config :ex_calibur, :model_fallback_chain, ["devstral-small-2:24b"]
-```
-
-### Production Build
-
-```bash
-docker build -t ex-calibur -f Dockerfile .
-```
-
-Required env: `DATABASE_URL`, `SECRET_KEY_BASE`, `PHX_HOST`, `OLLAMA_URL`.
+The GitHub tools need a `gh` CLI authenticated on the host and a default repo set in Settings.
 
 ---
 
 ## Observability
 
-All HTTP requests, DB queries, and LLM calls emit OpenTelemetry traces.
-
-```mermaid
-flowchart LR
-    App[ExCalibur] -->|OTLP HTTP| Collector[OTel Collector]
-    Collector -->|OTLP gRPC| Jaeger
-    Collector --> Prometheus
-    Prometheus --> Grafana
-```
-
-The `query_jaeger` tool lets quest steps inspect traces from previous runs — useful for the self-improvement loop to validate that changes improved performance.
+All requests, DB queries, and LLM calls emit OpenTelemetry traces. They land in Jaeger automatically when running via Docker Compose. Agents can query their own traces using the `query_jaeger` tool — useful for the self-improvement loop to verify that a change actually made things faster.
 
 ---
 
 ## Development
 
-### Test Commands
-
 ```bash
-mix test                              # all tests
-mix test test/path/file_test.exs      # specific file
-mix test --only focus                 # focused tests
+mix test                 # run the test suite
+mix credo                # static analysis
+mix format               # format (Styler rewrites aggressively — don't fight it)
+mix excessibility        # LiveView accessibility snapshot tests
+mix precommit            # compile + format + test
 ```
 
-### Code Quality
-
-```bash
-mix credo                             # static analysis
-mix format                            # formatting (Styler plugin rewrites aggressively)
-mix deps.audit                        # security
-mix excessibility                     # LiveView accessibility snapshot tests
-mix precommit                         # compile + unlock + format + test
-```
-
-### Key Patterns
-
-**Warnings are errors in test.** Prefix unused variables with `_`, don't delete them.
-
-**Styler rewrites code on `mix format`.** Don't fight it.
-
-**SaladUI.Button is imported globally** via `html_helpers`. Don't use CoreComponents' button.
-
-**PubSub topics:**
-
-| Topic | When |
-|---|---|
-| `"evaluation:results"` | New evaluation verdict |
-| `"quest_runs"` | Quest run status change |
-| `"lore"` | New lore entry |
-| `"lodge"` | Lodge card update |
-| `"sources"` | Source status change |
-
-### Project Structure
-
-```
-lib/
-  ex_calibur/
-    application.ex              # Supervision tree
-    evaluator.ex                # Guild evaluation (one-shot path)
-    quest_runner.ex             # Multi-step quest execution
-    step_runner.ex              # Single step + tool calling loop
-    board.ex                    # Quest board state
-    settings.ex                 # Runtime settings
-
-    charters/                   # Guild definitions (20+)
-    self_improvement/           # SI quest seed
-    sources/                    # Source workers and type modules
-    tools/                      # Tool implementations (50+)
-    llm/                        # Ollama and Claude clients
-    quests/                     # Ecto schemas: Quest, Step, QuestRun, Proposal
-    lore/                       # Lore Ecto schema
-
-  ex_calibur_web/
-    live/                       # LiveView pages
-    router.ex
-    endpoint.ex
-
-  ex_calibur_ui/
-    components/                 # Shared form components
-
-docker-compose.yml
-Dockerfile / Dockerfile.dev
-priv/repo/migrations/
-```
-
-### Guild Terminology vs Internal Names
-
-| UI | Internal |
-|---|---|
-| Guild | Charter |
-| Member | Role |
-| Quest | Pipeline |
-| Lodge | Dashboard |
-| Grimoire | Lore browser |
-| Book | Source template |
-| Scroll | Pre-configured feed source |
-| Ritual | Middleware (always-on behavior) |
-| Discipline | Perspective (model variant) |
+See [CLAUDE.md](CLAUDE.md) for contributor conventions.
