@@ -432,8 +432,9 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       ## Your job
 
-      **Step 1: Check the existing backlog**
-      Search GitHub for open issues. Understand what's already being tracked.
+      **Step 1: Check the existing backlog — you MUST call search_github**
+      Call search_github with query "self-improvement" to see what's already open.
+      If it returns empty, that means no issues exist yet — note that and continue.
       Identify any open issues that appear stale (no activity, no longer relevant) — note them but don't close them here.
 
       **Step 2: Synthesize**
@@ -474,16 +475,22 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       Your context includes the PM's shortlist from the Backlog Synthesis step.
       Look for lines starting with "APPROVED:" — those are the items to file.
 
-      ## For each APPROVED item
+      ## For each APPROVED item — do this in order, one item at a time
 
-      1. Search GitHub to confirm no open issue already covers this exact topic.
-         If a duplicate exists, skip this item and note it.
-      2. If no duplicate: call create_github_issue with:
+      1. Call search_github with the issue title as the query to check for duplicates.
+         - If search returns results: check if any open issue covers the same topic. If yes, skip this item.
+         - If search returns empty results or no match: that means no duplicate exists — proceed to file.
+         **Empty search results = no duplicates = file the issue. Do not stop.**
+
+      2. Call create_github_issue with:
          - title: the APPROVED title (clear, specific, actionable)
          - body: describe the problem concretely — what is broken or missing, where in the codebase,
            what the impact is, and what a fix would look like. Be specific enough that a developer
            can start working without needing to ask questions.
          - labels: ["self-improvement"]
+
+      **You MUST call create_github_issue for each APPROVED item that has no duplicate.**
+      If you reach the end without calling create_github_issue at least once, you have failed this task.
 
       ## Quality bar for issue bodies
 
