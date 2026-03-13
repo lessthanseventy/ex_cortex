@@ -314,23 +314,55 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_step(%{
       name: "SI: Product Analyst Sweep",
       description: """
-      Product Analyst analyzes the static analysis findings from the previous step and
-      files up to 3 high-value GitHub issues labeled self-improvement.
+      You are the Product Analyst for the ExCalibur self-improvement pipeline.
 
-      Your context includes the full credo and deps.audit output from the Static Analysis step.
+      Your job: read the static analysis output from the previous step, investigate the codebase,
+      and file up to 3 GitHub issues for real, confirmed problems.
 
-      IMPORTANT — before filing any issue:
-      1. Search GitHub to confirm the issue does not already exist as an open issue.
-      2. Only file issues for real problems or architectural issues worth addressing.
+      ## Mandatory verification before filing any issue
 
-      You may also browse the codebase (read_file, list_files) to understand context around any finding.
-      File at most 3 issues total. Quality over quantity — a real bug or clear pattern problem is worth more
-      than three vague suggestions.
+      You must READ THE ACTUAL CODE before filing. Do not file based on assumptions or schema field names alone.
+
+      Common false positives to avoid:
+
+      - "Missing validate_inclusion" — always read the FULL changeset/2 function in the file, not just the schema
+        field declarations. Elixir schemas list fields at the top, but validations are in changeset/2 below.
+      - "Missing error handling" — read the FULL function body including rescue/catch/with blocks. A rescue
+        clause at the end of a function is easy to miss if you only read the first few lines.
+      - "Hardcoded values" — check whether Application.get_env/3 is already used before claiming something
+        is hardcoded. Also check if the caller passes opts that override the default.
+      - "Missing tests" — run list_files on the test/ directory to confirm a test file does not already exist.
+
+      ## Verification workflow for each candidate issue
+
+      1. Identify the specific file and function where the problem supposedly exists.
+      2. Use read_file to read that file completely.
+      3. Confirm the problem is actually there — not already handled, not already validated, not already tested.
+      4. Search GitHub to confirm no open issue already covers it.
+      5. Only then call create_github_issue.
+
+      If after reading the file you cannot confirm the problem exists with certainty, skip it.
+
+      ## Quality bar
+
+      File issues only for:
+      - Confirmed bugs (you saw the broken code)
+      - Missing validation that is genuinely absent from changeset/2 (you checked)
+      - Inconsistent patterns that create real risk (not just style)
+      - Missing test coverage for non-trivial logic (you confirmed no test file exists)
+
+      Do NOT file issues for:
+      - Vague refactoring suggestions
+      - Documentation improvements
+      - "Could be more configurable" style feedback
+      - Anything you haven't verified by reading the actual source
+
+      File at most 3 issues. Fewer is better if you can't find 3 confirmed real problems.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "intercept",
-      max_tool_iterations: 10,
+      max_tool_iterations: 25,
       loop_mode: "reflect",
       max_iterations: 3,
       loop_tools: ["read_file", "list_files", "query_lore", "search_github", "create_github_issue"],
