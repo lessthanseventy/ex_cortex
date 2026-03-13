@@ -355,15 +355,20 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       You are NOT looking for bugs or code quality issues. You are thinking about product value:
       what should ExCalibur be able to do that it currently can't, or does poorly?
 
+      ## Tools available: read_file, query_lore ONLY
+      Do NOT call list_files — it is not available in this step and will waste iterations.
+      You already know which files to read from the instructions below.
+
       Work through these angles — each requires reading actual code first:
 
       **Unfinished or partially-implemented features**
       - query_lore with tags ["self-improvement", "project"] to understand what's been in progress
-      - Read lib/ex_calibur/self_improvement/ — is the SI pipeline complete or are there gaps?
-      - Look at lib/ex_calibur/board/ — are quest templates missing for common patterns?
+      - Read lib/ex_calibur/self_improvement/quest_seed.ex — is the SI pipeline complete or are there gaps?
+      - Read lib/ex_calibur/board/generation.ex — are quest templates missing for common patterns?
 
       **User experience gaps**
-      - Read lib/ex_calibur_web/live/ to understand what the pages actually do
+      - Read lib/ex_calibur_web/live/quests_live.ex to understand what the Quests page does
+      - Read lib/ex_calibur_web/live/lodge_live.ex to understand the Lodge page
       - Is there functionality that would obviously be useful but is absent from these pages?
 
       **Integration opportunities**
@@ -391,7 +396,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       output_type: "freeform",
       dangerous_tool_mode: "execute",
       max_tool_iterations: 10,
-      loop_tools: ["read_file", "list_files", "query_lore"],
+      loop_tools: ["read_file", "query_lore"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
     })
   end
