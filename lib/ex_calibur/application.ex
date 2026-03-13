@@ -29,7 +29,8 @@ defmodule ExCalibur.Application do
       [
         ExCaliburWeb.Telemetry,
         ExCalibur.Repo,
-        {Oban, Application.fetch_env!(:ex_cellence, Oban)},
+        ExCalibur.Agent.Registry,
+        {Oban, Application.fetch_env!(:ex_calibur, Oban)},
         {DNSCluster, query: Application.get_env(:ex_calibur, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ExCalibur.PubSub},
         {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
@@ -39,7 +40,6 @@ defmodule ExCalibur.Application do
         ExCalibur.QuestDebouncer,
         SourceSupervisor,
         {Task, fn -> SourceSupervisor.start_all_active() end},
-        ExCalibur.PubSubBridge,
         ExCaliburWeb.Endpoint
       ] ++
         if(sandbox?,

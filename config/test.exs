@@ -4,7 +4,6 @@ alias Ecto.Adapters.SQL.Sandbox
 
 # Configure your database
 #
-# Configure ex_cellence to use our repo and test-mode Oban
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
@@ -22,11 +21,11 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   secret_key_base: "KY64T6XteuWzRYjr2XCLj1kG0olZI3nQ91FCAv0Ky5SVo187Hj3GvvchhKEzFRWY",
   server: false
 
+config :ex_calibur, Oban, testing: :manual
+
 # Return a fixed model list in tests to avoid hitting the real Ollama server
 config :ex_calibur, :ollama_models, ["gemma3:4b", "gemma3:12b", "phi4-mini"]
 config :ex_calibur, :sql_sandbox, true
-
-config :ex_cellence, Oban, testing: :manual
 
 config :excessibility,
   endpoint: ExCaliburWeb.Endpoint,

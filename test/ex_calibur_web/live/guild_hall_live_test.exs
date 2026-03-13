@@ -5,7 +5,7 @@ defmodule ExCaliburWeb.GuildHallLiveTest do
   import Phoenix.LiveViewTest
 
   alias ExCalibur.Repo
-  alias Excellence.Schemas.Member
+  alias ExCalibur.Schemas.Member
 
   defp insert_member(attrs \\ %{}) do
     defaults = %{

@@ -2,6 +2,7 @@ defmodule ExCalibur.ContextProviders.MemberRosterTest do
   use ExCalibur.DataCase, async: true
 
   alias ExCalibur.ContextProviders.MemberRoster
+  alias ExCalibur.Schemas.Member
 
   test "returns empty string when no active members" do
     result = MemberRoster.build(%{"type" => "member_roster"}, %{}, "")
@@ -10,8 +11,8 @@ defmodule ExCalibur.ContextProviders.MemberRosterTest do
 
   test "lists active role members" do
     {:ok, _} =
-      %Excellence.Schemas.Member{}
-      |> Excellence.Schemas.Member.changeset(%{
+      %Member{}
+      |> Member.changeset(%{
         name: "Test Analyst",
         type: "role",
         status: "active",

@@ -1,7 +1,7 @@
 defmodule ExCalibur.MemberTeamTest do
   use ExCalibur.DataCase, async: true
 
-  alias Excellence.Schemas.Member
+  alias ExCalibur.Schemas.Member
 
   test "team can be set on a member changeset" do
     attrs = %{

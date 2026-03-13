@@ -28,6 +28,11 @@ config :ex_calibur, ExCaliburWeb.Endpoint,
   pubsub_server: ExCalibur.PubSub,
   live_view: [signing_salt: "dE89EITe"]
 
+config :ex_calibur, Oban,
+  engine: Oban.Engines.Basic,
+  queues: [default: 10],
+  repo: ExCalibur.Repo
+
 config :ex_calibur, :model_fallback_chain, ["devstral-small-2:24b"]
 
 config :ex_calibur, :nextcloud_roles, %{
@@ -45,17 +50,6 @@ config :ex_calibur,
   nextcloud_url: System.get_env("NEXTCLOUD_URL", "http://localhost:8080"),
   nextcloud_user: System.get_env("NEXTCLOUD_USER", "admin"),
   nextcloud_password: System.get_env("NEXTCLOUD_PASSWORD", "admin")
-
-config :ex_cellence, Oban,
-  engine: Oban.Engines.Basic,
-  queues: [default: 10, learning: 5, tuning: 3, mining: 2],
-  repo: ExCalibur.Repo
-
-# ex_cellence uses ExCalibur.Repo — single DB connection pool
-config :ex_cellence, :repo, ExCalibur.Repo
-
-config :ex_cellence,
-  ecto_repos: [ExCalibur.Repo]
 
 # Configure Elixir's Logger
 config :logger, :default_formatter,

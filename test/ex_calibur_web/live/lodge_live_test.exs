@@ -5,7 +5,7 @@ defmodule ExCaliburWeb.LodgeLiveTest do
   import Phoenix.LiveViewTest
 
   alias ExCalibur.Lodge
-  alias Excellence.Schemas.Member
+  alias ExCalibur.Schemas.Member
 
   defp insert_member do
     %Member{}

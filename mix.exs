@@ -58,9 +58,9 @@ defmodule ExCalibur.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      # Excellence packages
-      {:ex_cellence, path: "ex_cellence", override: true},
-      {:ex_cellence_dashboard, path: "ex_cellence_dashboard"},
+      # Job processing
+      {:oban, "~> 2.18"},
+      {:crontab, "~> 1.1"},
       # UI
       {:salad_ui, "~> 1.0.0-beta.3"},
       {:mdex, "~> 0.11"},
