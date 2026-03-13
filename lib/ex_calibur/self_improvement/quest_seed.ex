@@ -326,7 +326,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_step(%{
       name: "SI: Codebase Health Scan",
       description: """
-      You are the Code Reviewer performing a codebase health scan.
+      You are the Code Auditor performing a codebase health scan.
 
       Your context includes the static analysis output from the previous step.
 
@@ -368,7 +368,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       dangerous_tool_mode: "execute",
       max_tool_iterations: 20,
       loop_tools: ["read_file", "list_files"],
-      roster: [%{"who" => "journeyman", "preferred_who" => "Code Reviewer", "how" => "solo", "when" => "sequential"}]
+      roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })
   end
 
@@ -461,7 +461,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       dangerous_tool_mode: "execute",
       max_tool_iterations: 15,
       loop_tools: ["search_github", "query_lore"],
-      roster: [%{"who" => "journeyman", "preferred_who" => "Project Manager", "how" => "solo", "when" => "sequential"}]
+      roster: [%{"who" => "journeyman", "preferred_who" => "Backlog Manager", "how" => "solo", "when" => "sequential"}]
     })
   end
 
@@ -652,7 +652,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       - Runs `mix credo --all`, `mix deps.audit`, `mix test`
       - Outputs raw results only — no interpretation
 
-      **Step 2: SI: Codebase Health Scan** (Code Reviewer)
+      **Step 2: SI: Codebase Health Scan** (Code Auditor)
       - Reads static analysis output, then browses lib/ and test/
       - Looks for: test coverage gaps, error handling gaps, TODO comments, large functions
       - Outputs a structured findings report with file:line evidence
@@ -665,7 +665,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       - Outputs an opportunity list with effort estimates
       - Does NOT file issues — just reports
 
-      **Step 4: SI: Backlog Synthesis** (Project Manager)
+      **Step 4: SI: Backlog Synthesis** (Backlog Manager)
       - Receives health scan AND opportunity scan findings
       - Searches GitHub to understand existing open issues
       - Synthesizes into a ranked shortlist of 3–5 items approved for filing
