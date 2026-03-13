@@ -267,6 +267,11 @@ defmodule ExCalibur.QuestRunner do
     "## Prior Step: #{step_name}\nMultiple lodge cards posted.\n"
   end
 
+  def result_to_text({:ok, %{output: output}}, step_name, _next_step_name)
+      when is_binary(output) and output != "" do
+    "## Prior Step: #{step_name}\n#{output}\n"
+  end
+
   def result_to_text(_, _, _), do: ""
 
   # Keep arity-1 version for backwards compatibility
