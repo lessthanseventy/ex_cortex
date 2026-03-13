@@ -9,6 +9,7 @@ defmodule ExCalibur.LLM.Ollama do
 
   @max_tool_iterations 15
   @empty_threshold 3
+  @max_tools_per_turn 8
 
   @impl true
   def complete(model, system_prompt, user_text, opts \\ []) do
@@ -116,8 +117,15 @@ defmodule ExCalibur.LLM.Ollama do
        ) do
     case call_models(ollama, models, ollama_tools, messages, iter) do
       {:ok, %{"tool_calls" => calls} = msg} when is_list(calls) and calls != [] ->
-        {tool_msgs, new_entries, new_bs} = execute_tool_calls(calls, tools, bs, opts)
-        assistant_msg = %{role: "assistant", content: Map.get(msg, "content", ""), tool_calls: calls}
+        capped = Enum.take(calls, @max_tools_per_turn)
+
+        if length(calls) > @max_tools_per_turn do
+          Logger.warning("[Ollama] capping #{length(calls)} tool calls to #{@max_tools_per_turn} per turn")
+        end
+
+        {tool_msgs, new_entries, new_bs} = execute_tool_calls(capped, tools, bs, opts)
+        # Use capped (not calls) so assistant message matches the tool results we actually return
+        assistant_msg = %{role: "assistant", content: Map.get(msg, "content", ""), tool_calls: capped}
 
         new_state = %{
           state
@@ -239,7 +247,8 @@ defmodule ExCalibur.LLM.Ollama do
   end
 
   defp run_tool(name, _args, nil) do
-    o = "Tool #{name} not found"
+    o = "Tool '#{name}' is not available in this step. Stop calling it."
+    Logger.warning("[Ollama] unknown tool called: #{name}")
     {o, %{tool: name, input: %{}, output: o}}
   end
 
@@ -286,7 +295,12 @@ defmodule ExCalibur.LLM.Ollama do
   @doc "Returns true if a tool output is empty, an empty list, or an error."
   def empty_result?(output) when is_binary(output) do
     trimmed = String.trim(output)
-    trimmed == "" or trimmed == "[]" or trimmed == "[]\n" or String.starts_with?(trimmed, "Error:")
+
+    trimmed == "" or
+      trimmed == "[]" or
+      trimmed == "[]\n" or
+      String.starts_with?(trimmed, "Error:") or
+      String.contains?(trimmed, "is not available in this step")
   end
 
   def empty_result?(_), do: true

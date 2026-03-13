@@ -1,6 +1,8 @@
 defmodule ExCalibur.Evaluator do
   @moduledoc false
 
+  require Logger
+
   alias Excellence.LLM.Ollama
   alias Excellence.Orchestrator
 
@@ -94,7 +96,16 @@ defmodule ExCalibur.Evaluator do
             end
           end
 
-        Module.create(mod_name, contents, Macro.Env.location(__ENV__))
+        try do
+          Module.create(mod_name, contents, Macro.Env.location(__ENV__))
+        rescue
+          error ->
+            Logger.error("Failed to create dynamic role module #{inspect(mod_name)}: #{inspect(error)}",
+              context: %{role_name: role_def.name, error_type: Exception.message(error)}
+            )
+            # Fallback to a basic role module to prevent complete failure
+            fallback_role_module(mod_name, role_def)
+        end
       end
 
       mod_name
@@ -122,10 +133,43 @@ defmodule ExCalibur.Evaluator do
       try do
         Module.create(mod_name, contents, Macro.Env.location(__ENV__))
       rescue
-        ArgumentError -> :ok
+        error ->
+          Logger.error("Failed to create dynamic actions module #{inspect(mod_name)}: #{inspect(error)}",
+            context: %{actions: meta.actions, error_type: Exception.message(error)}
+          )
+          # Return a module that exists to prevent complete failure
+          Excellence.DynamicActions.Template
       end
     end
 
     mod_name
+  end
+
+  defp fallback_role_module(mod_name, role_def) do
+    # Create a minimal fallback role module that can be used when the main creation fails
+    contents =
+      quote do
+        use Excellence.Role
+
+        system_prompt("Fallback role for #{inspect(role_def.name)} - basic evaluation capabilities")
+
+        # Add basic perspective as fallback
+        perspective(:basic, model: "llama3", strategy: :default, name: "#{role_def.name}.fallback")
+
+        def build_prompt(input, _context) do
+          "Fallback evaluation for #{inspect(role_def.name)}:\n\n#{inspect(input)}"
+        end
+      end
+
+    try do
+      Module.create(mod_name, contents, Macro.Env.location(__ENV__))
+    rescue
+      error ->
+        Logger.error("Fallback role module creation also failed for #{inspect(mod_name)}: #{inspect(error)}",
+          context: %{role_name: role_def.name, error_type: Exception.message(error)}
+        )
+        # If fallback also fails, return a known working module
+        Excellence.Roles.Fallback
+    end
   end
 end

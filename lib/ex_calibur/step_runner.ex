@@ -573,8 +573,10 @@ defmodule ExCalibur.StepRunner do
     [
       dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",
       quest_id: Map.get(quest, :id),
-      override_tools: override
+      override_tools: override,
+      max_tool_iterations: Map.get(quest, :max_tool_iterations)
     ]
+    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
   end
 
   defp try_escalate_rank(rank, quest, augmented, threshold, escalate_on) do

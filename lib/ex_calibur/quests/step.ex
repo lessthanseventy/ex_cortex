@@ -93,6 +93,9 @@ defmodule ExCalibur.Quests.Step do
     |> validate_inclusion(:min_rank, ~w(apprentice journeyman master),
       message: "must be apprentice, journeyman, or master"
     )
+    |> validate_inclusion(:loop_mode, ["reflect", "sequential", "parallel", "dynamic"],
+      message: "must be reflect, sequential, parallel, or dynamic"
+    )
     |> unique_constraint(:name)
   end
 end

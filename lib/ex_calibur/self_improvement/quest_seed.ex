@@ -24,6 +24,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     "SI: Backlog Synthesis",
     "SI: Issue Filing"
   ]
+  # Note: "SI: Static Analysis" stays in the cleanup list so it's removed if present from old seeds
 
   @si_quest_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
 
@@ -126,8 +127,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         output_type: "freeform",
         dangerous_tool_mode: "execute",
         max_tool_iterations: 15,
-        loop_mode: "reflect",
-        max_iterations: 5,
         loop_tools: [
           "setup_worktree",
           "read_file",
@@ -192,8 +191,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         output_type: "verdict",
         dangerous_tool_mode: "intercept",
         max_tool_iterations: 10,
-        loop_mode: "reflect",
-        max_iterations: 3,
         loop_tools: ["run_sandbox", "read_file"],
         roster: [
           %{
@@ -279,7 +276,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
   defp create_sweep_steps do
     results = [
-      create_static_analysis_step(),
       create_health_scan_step(),
       create_opportunity_scan_step(),
       create_backlog_synthesis_step(),
@@ -292,82 +288,45 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     end
   end
 
-  defp create_static_analysis_step do
-    Quests.create_step(%{
-      name: "SI: Static Analysis",
-      description: """
-      Call run_sandbox("mix credo --all"). Then call run_sandbox("mix deps.audit"). Then call run_sandbox("mix test").
-      Output the raw results. Nothing else.
-
-      Do not greet. Do not explain. Do not make recommendations. Do not ask questions.
-      Your entire response must be the raw tool output in this format:
-
-      ## Credo Findings
-      <exact credo output>
-
-      ## Dependency Audit
-      <exact deps.audit output>
-
-      ## Test Results
-      <exact mix test output>
-
-      If you output anything other than these three sections, you have failed this task.
-      """,
-      trigger: "manual",
-      output_type: "freeform",
-      dangerous_tool_mode: "execute",
-      max_tool_iterations: 5,
-      loop_tools: ["run_sandbox"],
-      roster: [%{"who" => "journeyman", "preferred_who" => "QA / Test Writer", "how" => "solo", "when" => "sequential"}]
-    })
-  end
-
   defp create_health_scan_step do
     Quests.create_step(%{
       name: "SI: Codebase Health Scan",
       description: """
-      You are the Code Auditor performing a codebase health scan.
+      You are the Code Auditor performing a scheduled codebase health scan.
 
-      Your context includes the static analysis output from the previous step.
+      ## Step 1: Run static analysis (do this first, no matter what)
 
-      ## IMPORTANT: Read at most 10 files total. Be selective.
+      Call run_sandbox("mix credo --all") and run_sandbox("mix test").
+      These tell you where real problems are so you don't waste reads on clean files.
 
-      Do NOT list all files and read everything. That will overflow the context and time out.
-      Focus only on files that are likely to have real issues based on their purpose.
+      ## Step 2: Read targeted files (at most 6 read_file calls)
 
-      ## Step 1: Get the file structure (1-2 list_files calls max)
-
-      Call list_files("lib/ex_calibur") to see top-level modules.
-      Do NOT recurse into every subdirectory.
-
-      ## Step 2: Read only high-risk files (at most 8 read_file calls)
-
-      Prioritize files that are most likely to have issues:
-      - External integrations: lib/ex_calibur/llm/ollama.ex, lib/ex_calibur/sources/github_issue_watcher.ex
+      Use the credo output to guide which files to read. Also prioritize:
       - Core pipeline: lib/ex_calibur/quest_runner.ex, lib/ex_calibur/step_runner.ex
-      - Any file flagged by credo in the previous step
-      - Files with "trigger", "runner", "worker", or "watcher" in their name
+      - External integrations: lib/ex_calibur/llm/ollama.ex
+      - Any file with "runner", "worker", or "watcher" in its name that credo flagged
 
-      Skip charter files (lib/ex_calibur/charters/*) — they are data definitions, not logic.
-      Skip Ecto schema files — they have no behavior to audit.
+      Call list_files with path "lib/ex_calibur" (not a glob pattern) to see top-level modules.
+      Do NOT call list_files with pattern "**/*.ex" — it returns thousands of files and wastes iterations.
+      Skip charter files and Ecto schema files — they have no behavior to audit.
 
-      ## Step 3: Write your findings
+      ## Step 3: Write your findings immediately after reading
 
-      After reading your selected files, write the report immediately. Do not read more files after this.
+      Do not read more than 6 files. After your reads, write the report now.
 
       For each finding:
-      - Category (test gap / error handling / TODO / complexity)
-      - File path and function name
-      - One sentence explaining the specific issue
+      - Category: test gap | error handling | TODO | complexity | security
+      - File and function name
+      - One sentence explaining the issue
 
-      Do NOT file any GitHub issues. Do NOT make recommendations. Just report what you found.
-      If you find nothing notable, say so — that's a valid result.
+      Do NOT file issues. Do NOT make recommendations beyond listing findings.
+      If you find nothing notable, say so.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 8,
-      loop_tools: ["read_file", "list_files"],
+      max_tool_iterations: 10,
+      loop_tools: ["run_sandbox", "read_file", "list_files"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })
   end
@@ -445,38 +404,35 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       Your context includes the health scan findings AND the opportunity scan from the previous steps.
 
-      ## Your job
+      ## Step 1: Check existing open issues (one tool call)
 
-      **Step 1: Check the existing backlog — you MUST call search_github**
-      Call search_github with query "self-improvement" to see what's already open.
-      If it returns empty, that means no issues exist yet — note that and continue.
-      Identify any open issues that appear stale (no activity, no longer relevant) — note them but don't close them here.
+      Call search_github with query "existing issues" and label "self-improvement" to see what is already tracked.
+      If it returns empty (`[]`), that is fine — it means no issues are open yet. Continue.
+      Use the results to avoid duplicating anything already open.
 
-      **Step 2: Synthesize**
-      From the health scan + opportunity scan, identify the highest-value items to act on.
-      Consider: real impact vs effort, whether it's already tracked, whether it blocks other work.
+      ## Step 2: Synthesize and produce the shortlist
 
-      **Step 3: Produce the shortlist**
-      Pick 3–5 items maximum. For each item, write:
+      From the health scan + opportunity scan, pick 3–5 high-value items not already tracked.
+      Exclude: vague suggestions, style improvements, credo baseline noise, anything already open.
+
+      For each approved item write EXACTLY this format (the next step parses it literally):
 
       ---
-      APPROVED: <title>
+      APPROVED: <specific, actionable title>
       Type: bug | feature | improvement | tech-debt
       Source: health-scan | opportunity-scan
-      Why now: <one sentence — what's the cost of not doing this>
+      Why now: <one sentence — cost of not doing this>
       Effort: small | medium | large
+      Body hint: <2-3 sentences describing the problem, file path if known, what done looks like>
       ---
 
-      Items NOT on this list will not be filed. Be ruthless — only include things that are genuinely worth a
-      developer's time. Vague suggestions, style improvements, and anything already tracked should be excluded.
-
-      End your response with the shortlist only. Do not include a summary or recommendations beyond the list.
+      Output the shortlist. Nothing else after it.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 15,
-      loop_tools: ["search_github", "query_lore"],
+      max_tool_iterations: 5,
+      loop_tools: ["search_github"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Backlog Manager", "how" => "solo", "when" => "sequential"}]
     })
   end
@@ -485,61 +441,32 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_step(%{
       name: "SI: Issue Filing",
       description: """
-      You are the Product Analyst filing GitHub issues from the PM's approved shortlist.
+      You are the Product Analyst filing GitHub issues.
 
-      Your context includes findings from the entire sweep: static analysis, health scan,
-      opportunity scan, and the Backlog Manager's synthesis.
+      ⚠️ YOU HAVE EXACTLY ONE TOOL: create_github_issue
+      DO NOT CALL: list_files, run_sandbox, read_file, search_github, or any other tool.
+      Those tools do not exist in this step. Calling them will waste your iterations and fail the task.
 
-      ## Step 1: Find items to file
+      ## Your task
 
-      Look for lines starting with "APPROVED:" in the Backlog Manager's output — those are pre-approved.
-      If you find APPROVED: items, use those.
-      If the Backlog Manager produced no APPROVED: items (or its output is missing), that is fine —
-      look directly at the health scan and opportunity scan findings and pick the 3 most actionable
-      items yourself. The Backlog Manager is a helper, not a gatekeeper.
+      1. Scan your context for blocks starting with "APPROVED:" — each is an issue to file.
+         If none exist, pick the 3 most actionable items from any analysis in your context.
 
-      ## Sanity check BEFORE filing anything
-
-      ExCalibur is a Phoenix LiveView web app for AI agent orchestration.
-      It has: guilds, members, quests, sources, lore, lodge, grimoire.
-      It does NOT have: physics engines, audio systems, gamepads, collision detection, or anything else
-      unrelated to AI agent workflows and web UI.
-
-      Before calling create_github_issue for any item, ask: "Does this belong in ExCalibur?"
-      If the answer is no — skip it entirely, it was a hallucination from a previous step.
-
-      ## For each APPROVED item — do this in order, one item at a time
-
-      1. Call search_github with the issue title as the query to check for duplicates.
-         - If search returns results: check if any open issue covers the same topic. If yes, skip this item.
-         - If search returns empty results or no match: that means no duplicate exists — proceed to file.
-         **Empty search results = no duplicates = file the issue. Do not stop.**
-
-      2. Call create_github_issue with:
-         - title: the APPROVED title (clear, specific, actionable)
-         - body: describe the problem concretely — what is broken or missing, where in the codebase,
-           what the impact is, and what a fix would look like. Be specific enough that a developer
-           can start working without needing to ask questions.
+      2. For each item, immediately call create_github_issue:
+         - title: the APPROVED title
+         - body: 3–5 sentences — what is wrong or missing, which file/module, why it matters, what done looks like
          - labels: ["self-improvement"]
 
-      **You MUST call create_github_issue for each APPROVED item that has no duplicate.**
-      If you reach the end without calling create_github_issue at least once, you have failed this task.
+      3. When done, output: "Filed N issues: [title1], [title2], ..."
 
-      ## Quality bar for issue bodies
-
-      A good issue body answers:
-      - What exactly is the problem? (not "X could be better" — "X does Y when it should do Z")
-      - Where is it? (file path, function name if applicable)
-      - Why does it matter? (what breaks, what's risky, what's blocked)
-      - What would done look like? (acceptance criteria)
-
-      File each APPROVED item as a separate issue. When done, summarize what was filed and what was skipped.
+      Call create_github_issue immediately. Do not call any other tool first.
+      **If you finish without calling create_github_issue at least once, you have failed.**
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "intercept",
       max_tool_iterations: 20,
-      loop_tools: ["search_github", "create_github_issue"],
+      loop_tools: ["create_github_issue"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
     })
   end
@@ -735,36 +662,34 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       Two overlapping systems handle self-improvement.
 
-      ## SI: Analyst Sweep — scheduled every 4 hours (five steps)
+      ## SI: Analyst Sweep — scheduled every 4 hours (four steps)
 
       A full team runs every 4 hours to find and file high-quality improvement issues.
 
-      **Step 1: SI: Static Analysis** (QA / Test Writer)
-      - Runs `mix credo --all`, `mix deps.audit`, `mix test`
-      - Outputs raw results only — no interpretation
-
-      **Step 2: SI: Codebase Health Scan** (Code Auditor)
-      - Reads static analysis output, then browses lib/ and test/
+      **Step 1: SI: Codebase Health Scan** (Code Auditor)
+      - Runs `mix credo --all` and `mix test` inline to get fresh static analysis data
+      - Then reads up to 6 targeted files guided by the credo output
       - Looks for: test coverage gaps, error handling gaps, TODO comments, large functions
       - Outputs a structured findings report with file:line evidence
       - Does NOT file issues — just reports
 
-      **Step 3: SI: Feature & Opportunity Scan** (Product Analyst)
+      **Step 2: SI: Feature & Opportunity Scan** (Product Analyst)
       - Different lens: product value, not code quality
       - Looks for missing features, incomplete functionality, UX gaps, integration opportunities
       - Queries lore to understand what's been deferred or worked on
       - Outputs an opportunity list with effort estimates
       - Does NOT file issues — just reports
 
-      **Step 4: SI: Backlog Synthesis** (Backlog Manager)
+      **Step 3: SI: Backlog Synthesis** (Backlog Manager)
       - Receives health scan AND opportunity scan findings
-      - Searches GitHub to understand existing open issues
+      - Calls search_github once with label "self-improvement" to check existing open issues
       - Synthesizes into a ranked shortlist of 3–5 items approved for filing
+      - Outputs each item as an APPROVED: block with Type/Source/Why now/Effort/Body hint fields
       - This is the gate — nothing gets filed without PM approval
 
-      **Step 5: SI: Issue Filing** (Product Analyst)
-      - Receives only the PM's approved shortlist
-      - Does a final duplicate check per item, then files each as a GitHub issue
+      **Step 4: SI: Issue Filing** (Product Analyst)
+      - Receives the PM's APPROVED: shortlist (duplicate check already done by Backlog Synthesis)
+      - Calls create_github_issue once per APPROVED item — no per-item search needed
       - Issues go to the self-improvement label for the SI Loop to pick up
 
       ## Self-Improvement Loop — source-triggered by GitHub issues labeled `self-improvement`
@@ -781,7 +706,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       - Static Analysis outputs raw results only — no decisions, no interpretation
       - Health Scan and Opportunity Scan report findings — they do NOT file issues
       - Only the PM's approved shortlist gets filed (Step 4 → Step 5)
-      - Issue Filing does a final duplicate search before each create_github_issue call
+      - Backlog Synthesis does the duplicate check (one search_github call); Issue Filing trusts it
+      - Issue Filing calls create_github_issue directly — no per-item search, no hesitation
       - UX Designer uses `mix excessibility` — not `mix test` or `mix format`
       """
     },
@@ -850,7 +776,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_quest(%{
       name: "SI: Analyst Sweep",
       description:
-        "Every 4 hours: static analysis → codebase health scan → feature opportunity scan → PM backlog synthesis → issue filing.",
+        "Every 4 hours: codebase health scan (with inline static analysis) → feature opportunity scan → PM backlog synthesis → issue filing.",
       trigger: "scheduled",
       schedule: "0 */4 * * *",
       steps: step_entries,

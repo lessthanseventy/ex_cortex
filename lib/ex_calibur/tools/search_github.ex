@@ -4,7 +4,7 @@ defmodule ExCalibur.Tools.SearchGithub do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "search_github",
-      description: "Search GitHub issues, pull requests, or repositories using the gh CLI.",
+      description: "Search GitHub issues, pull requests, or repositories using the gh CLI. Use `label` to filter issues by label (e.g. 'self-improvement') — this is more reliable than text search for label-based lookups.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -14,6 +14,7 @@ defmodule ExCalibur.Tools.SearchGithub do
             "description" => "What to search: 'issues', 'prs', or 'repos' (default: 'issues')",
             "enum" => ["issues", "prs", "repos"]
           },
+          "label" => %{"type" => "string", "description" => "Filter issues by label (uses gh issue list, more reliable than text search for labels)"},
           "limit" => %{"type" => "integer", "description" => "Maximum results to return (default 20)"}
         },
         "required" => ["query"]
@@ -25,9 +26,10 @@ defmodule ExCalibur.Tools.SearchGithub do
   def call(%{"query" => query} = params) do
     type = Map.get(params, "type", "issues")
     limit = Map.get(params, "limit", 20)
+    label = Map.get(params, "label")
     repo = ExCalibur.Settings.get(:default_repo)
 
-    args = build_args(type, query, limit, repo)
+    args = build_args(type, query, limit, repo, label)
 
     case System.cmd("gh", args, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
@@ -35,17 +37,23 @@ defmodule ExCalibur.Tools.SearchGithub do
     end
   end
 
-  defp build_args("repos", query, limit, _repo) do
+  defp build_args("repos", query, limit, _repo, _label) do
     ["search", "repos", query, "--limit", to_string(limit), "--json", "name,fullName,description,url,stargazersCount"]
   end
 
-  defp build_args("prs", query, limit, repo) do
+  defp build_args("prs", query, limit, repo, _label) do
     clean = strip_repo_incompatible_qualifiers(query)
     base = ["search", "prs", clean, "--limit", to_string(limit), "--json", "number,title,state,url"]
     if repo, do: base ++ ["--repo", repo], else: base
   end
 
-  defp build_args(_issues, query, limit, repo) do
+  # When a label is given, use `gh issue list --label` (searches label index, not full text)
+  defp build_args(_issues, _query, limit, repo, label) when is_binary(label) and label != "" do
+    base = ["issue", "list", "--label", label, "--state", "open", "--limit", to_string(limit), "--json", "number,title,state,url"]
+    if repo, do: base ++ ["--repo", repo], else: base
+  end
+
+  defp build_args(_issues, query, limit, repo, _label) do
     clean = strip_repo_incompatible_qualifiers(query)
     base = ["search", "issues", clean, "--limit", to_string(limit), "--json", "number,title,state,url"]
     if repo, do: base ++ ["--repo", repo, "--state", "open"], else: base
