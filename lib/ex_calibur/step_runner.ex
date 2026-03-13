@@ -353,6 +353,7 @@ defmodule ExCalibur.StepRunner do
 
   defp effective_tools(member_tools, opts) do
     case Keyword.get(opts, :override_tools) do
+      :none -> []
       names when is_list(names) and names != [] -> resolve_member_tools(names)
       _ -> member_tools
     end
@@ -568,7 +569,13 @@ defmodule ExCalibur.StepRunner do
 
   defp dangerous_tool_opts(quest) do
     loop_tools = Map.get(quest, :loop_tools)
-    override = if is_list(loop_tools) and loop_tools != [], do: loop_tools, else: nil
+
+    override =
+      cond do
+        is_list(loop_tools) and loop_tools != [] -> loop_tools
+        is_list(loop_tools) -> :none
+        true -> nil
+      end
 
     [
       dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",

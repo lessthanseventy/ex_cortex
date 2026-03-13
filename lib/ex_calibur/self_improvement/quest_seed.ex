@@ -349,6 +349,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
+      loop_tools: [],
       context_providers: [
         %{"type" => "sandbox", "commands" => ["mix credo --all", "mix test"], "label" => "## Static Analysis Results"},
         %{
@@ -393,6 +394,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
+      loop_tools: [],
       context_providers: [
         %{"type" => "lore", "tags" => ["project", "self-improvement", "pipeline"], "limit" => 3, "sort" => "top"},
         %{
@@ -444,6 +446,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
+      loop_tools: [],
       context_providers: [
         %{"type" => "github_issues", "label" => "self-improvement", "header" => "## Currently Open Self-Improvement Issues"}
       ],
