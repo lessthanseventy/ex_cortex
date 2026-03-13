@@ -10,6 +10,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   alias ExCalibur.Repo
   alias ExCalibur.Sources.Source
 
+  # Old names kept here so cleanup deletes them on re-seed
   @si_step_names [
     "SI: PM Triage",
     "SI: Code Writer",
@@ -22,7 +23,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     "SI: Codebase Health Scan",
     "SI: Feature & Opportunity Scan",
     "SI: Backlog Synthesis",
-    "SI: Issue Filing"
+    "SI: Issue Filing",
+    "SI: Backlog & Issue Filing"
   ]
 
   # Note: "SI: Static Analysis" stays in the cleanup list so it's removed if present from old seeds
@@ -320,8 +322,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     results = [
       create_health_scan_step(),
       create_opportunity_scan_step(),
-      create_backlog_synthesis_step(),
-      create_issue_filing_step()
+      create_backlog_and_file_step()
     ]
 
     case Enum.find(results, &match?({:error, _}, &1)) do
@@ -414,78 +415,60 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     })
   end
 
-  defp create_backlog_synthesis_step do
+  defp create_backlog_and_file_step do
     Quests.create_step(%{
-      name: "SI: Backlog Synthesis",
+      name: "SI: Backlog & Issue Filing",
       description: """
-      You are the Project Manager synthesizing the team's findings into an actionable shortlist.
+      You are the Project Manager. Your job is to synthesize findings from this sweep and
+      immediately file approved items as GitHub issues — no handoff, no intermediate list.
 
       The health scan findings, opportunity scan, and currently open GitHub issues are all
-      provided above in context. You do not need to call any tools.
+      provided above in context.
 
-      ## Your task
+      ## Ignore these — they are expected test environment noise, not real bugs
 
-      From the health scan + opportunity scan findings, pick 3–5 high-value items that are NOT
-      already listed in the open GitHub issues above.
+      - Any `Req.TransportError` or `econnrefused` errors (Nextcloud is not running in dev/test)
+      - Any Postgrex/DBConnection sandbox errors from test output
+      - Credo complexity warnings on `__before_compile__` macros (this is a known false positive)
 
-      Exclude: vague suggestions, style improvements, credo baseline noise, duplicates.
+      ## Step 1: Pick 3–5 items worth filing
 
-      For each approved item write EXACTLY this format (the next step parses it literally):
+      From the health scan + opportunity scan, identify items that are:
+      - NOT already in the open GitHub issues above
+      - Specific and actionable (not vague refactoring suggestions)
+      - Real problems in the actual codebase, not test environment artifacts
 
-      ---
-      APPROVED: <specific, actionable title>
-      Type: bug | feature | improvement | tech-debt
-      Source: health-scan | opportunity-scan
-      Why now: <one sentence — cost of not doing this>
-      Effort: small | medium | large
-      Body hint: <2-3 sentences describing the problem, file path if known, what done looks like>
-      ---
+      Exclude: duplicates, style noise, speculative issues ("may not follow the same pattern").
 
-      Output the shortlist. Nothing else after it.
-      If there is nothing worth filing (all findings already tracked or too vague), say so.
-      """,
-      trigger: "manual",
-      output_type: "freeform",
-      dangerous_tool_mode: "execute",
-      loop_tools: [],
-      context_providers: [
-        %{"type" => "github_issues", "label" => "self-improvement", "header" => "## Currently Open Self-Improvement Issues"}
-      ],
-      roster: [%{"who" => "journeyman", "preferred_who" => "Backlog Manager", "how" => "solo", "when" => "sequential"}]
-    })
-  end
+      ## Step 2: File each one immediately
 
-  defp create_issue_filing_step do
-    Quests.create_step(%{
-      name: "SI: Issue Filing",
-      description: """
-      You are the Product Analyst filing GitHub issues.
+      For each item, call `create_github_issue` right away — do not output a list first.
+      - title: specific, actionable
+      - body: 3–5 sentences — what is wrong, which file/module, why it matters, what done looks like
+      - labels: ["self-improvement"]
 
-      ⚠️ YOU HAVE EXACTLY ONE TOOL: create_github_issue
-      DO NOT CALL: list_files, run_sandbox, read_file, search_github, or any other tool.
-      Those tools do not exist in this step. Calling them will waste your iterations and fail the task.
+      ## If nothing is worth filing
 
-      ## Your task
+      Output: "Nothing to file — all findings are already tracked or below threshold."
+      Do not call create_github_issue.
 
-      1. Scan your context for blocks starting with "APPROVED:" — each is an issue to file.
-         If none exist, pick the 3 most actionable items from any analysis in your context.
+      ## When done
 
-      2. For each item, immediately call create_github_issue:
-         - title: the APPROVED title
-         - body: 3–5 sentences — what is wrong or missing, which file/module, why it matters, what done looks like
-         - labels: ["self-improvement"]
-
-      3. When done, output: "Filed N issues: [title1], [title2], ..."
-
-      Call create_github_issue immediately. Do not call any other tool first.
-      **If you finish without calling create_github_issue at least once, you have failed.**
+      Output: "Filed N issues: [title1], [title2], ..."
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "intercept",
-      max_tool_iterations: 20,
+      max_tool_iterations: 15,
       loop_tools: ["create_github_issue"],
-      roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
+      context_providers: [
+        %{
+          "type" => "github_issues",
+          "label" => "self-improvement",
+          "header" => "## Currently Open Self-Improvement Issues"
+        }
+      ],
+      roster: [%{"who" => "journeyman", "preferred_who" => "Backlog Manager", "how" => "solo", "when" => "sequential"}]
     })
   end
 
@@ -699,17 +682,12 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       - Outputs 3–6 opportunities with effort estimates and file citations
       - Does NOT file issues — just reports
 
-      **Step 3: SI: Backlog Synthesis** (Backlog Manager)
+      **Step 3: SI: Backlog & Issue Filing** (Backlog Manager)
       - Context provider pre-fetches open GitHub issues labeled `self-improvement`
-      - Model has NO tools — synthesizes findings and deduplicates against injected issues
-      - Picks 3–5 high-value items not already tracked
-      - Outputs each as an APPROVED: block with Type/Source/Why now/Effort/Body hint
-      - This is the gate — nothing gets filed without PM approval
-
-      **Step 4: SI: Issue Filing** (Product Analyst)
-      - Only tool is `create_github_issue` — one call per APPROVED block
+      - Synthesizes health scan + opportunity scan findings, deduplicates against open issues
+      - Picks 3–5 high-value items not already tracked and files them directly via `create_github_issue`
+      - No handoff — synthesis and filing happen in the same step
       - Issues labeled `self-improvement` get picked up by the SI Loop
-      - Does NOT search or explore — just files what the PM approved
 
       ## Self-Improvement Loop — source-triggered by GitHub issues labeled `self-improvement`
 
@@ -723,7 +701,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       ## Key workflow rules
 
       - Scan steps have NO tools — all data is pre-injected by context providers
-      - Only Issue Filing calls tools (`create_github_issue`)
+      - Only Backlog & Issue Filing calls tools (`create_github_issue`)
       - Code Writer MUST use setup_worktree and pass working_dir to every tool call
       - Code Writer opens a REAL GitHub PR with full description and Closes #N
       - UX Designer uses `mix excessibility` — not `mix test` or `mix format`
@@ -795,7 +773,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_quest(%{
       name: "SI: Analyst Sweep",
       description:
-        "Every 4 hours: codebase health scan (with inline static analysis) → feature opportunity scan → PM backlog synthesis → issue filing.",
+        "Every 4 hours: codebase health scan → feature opportunity scan → backlog synthesis + issue filing in one step.",
       trigger: "scheduled",
       schedule: "0 */4 * * *",
       steps: step_entries,
