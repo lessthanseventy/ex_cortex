@@ -55,5 +55,7 @@ defmodule ExCalibur.ContextProviders.ContextProvider do
 
   defp module_for("dictionary"), do: Module.concat([ExCalibur, ContextProviders, Dictionary])
 
+  defp module_for("sandbox"), do: Module.concat([ExCalibur, ContextProviders, Sandbox])
+
   defp module_for(_), do: nil
 end

@@ -336,33 +336,30 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Code Auditor performing a codebase health scan.
 
-      ⚠️ YOUR ONLY TOOLS ARE: run_sandbox, read_file
-      list_files DOES NOT EXIST. Do not call it. If you try to call list_files, it will fail.
+      The credo and test results have been run for you and are provided above as context.
+      You do not need to run any tools to get this data — it is already here.
 
-      ## DO THIS RIGHT NOW — in exactly this order:
+      ## Your task
 
-      **CALL 1 (mandatory, do it immediately):** run_sandbox with "mix credo --all"
-      **CALL 2 (mandatory):** run_sandbox with "mix test"
+      Analyze the credo output and test results above.
 
-      After those two calls, read at most 3 specific files that credo flagged.
-      If credo is clean, read these high-value targets:
-      - lib/ex_calibur/step_runner.ex
-      - lib/ex_calibur/quest_runner.ex
-      - lib/ex_calibur/llm/ollama.ex
+      If credo flagged specific files, you may use read_file to look at up to 3 of them.
+      Focus on: lib/ex_calibur/step_runner.ex, lib/ex_calibur/quest_runner.ex, lib/ex_calibur/llm/ollama.ex
 
-      **After your reads, STOP calling tools and write your findings.**
-
-      Format each finding as:
+      Then write your findings report. Format each finding as:
       - [Category: test gap | error handling | TODO | complexity] File:line — one sentence
 
       3–8 findings max. If credo and tests are clean, say so in one paragraph.
-      Do NOT file issues. Do NOT make recommendations.
+      Do NOT file issues. Do NOT make recommendations. Stop after writing your report.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 6,
-      loop_tools: ["run_sandbox", "read_file"],
+      max_tool_iterations: 4,
+      loop_tools: ["read_file"],
+      context_providers: [
+        %{"type" => "sandbox", "commands" => ["mix credo --all", "mix test"], "label" => "## Static Analysis Results"}
+      ],
       roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })
   end
@@ -373,66 +370,44 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Product Analyst performing an opportunity scan.
 
-      Your context includes the health scan findings from the previous step.
+      Project context and health scan findings are provided above.
 
-      ## FIRST: Ground yourself in what ExCalibur actually is
+      ## What you are looking for
 
-      Before doing anything else, call query_lore with tags ["project"] to understand the project.
-      ExCalibur is a Phoenix LiveView web application for AI agent orchestration. It has these pages:
-      Lodge, Town Square, Guild Hall, Quests, Grimoire, Library, Settings, Evaluate.
-      It works with guilds (agent teams), members (roles), quests (pipelines), sources, and lore entries.
+      Product value — NOT code quality. What should ExCalibur be able to do that it currently
+      can't, or does poorly? Every suggestion must relate to lib/ or test/ code in THIS app.
 
-      **You are looking for improvements to THIS specific app — ExCalibur.**
-      Do NOT suggest features for game engines, audio systems, physics engines, or any other domain.
-      Every suggestion must relate to something you can find evidence for in lib/ or test/.
+      ExCalibur is a Phoenix LiveView app for AI agent orchestration: guilds (agent teams),
+      members (roles), quests (pipelines), sources, lore, lodge. Do NOT suggest features for
+      unrelated domains.
 
-      ## Your job — a DIFFERENT lens than the Code Auditor
+      ## Use read_file to examine these specific files (in order of value):
 
-      You are NOT looking for bugs or code quality issues. You are thinking about product value:
-      what should ExCalibur be able to do that it currently can't, or does poorly?
+      1. lib/ex_calibur/self_improvement/quest_seed.ex — SI pipeline gaps?
+      2. lib/ex_calibur_web/live/quests_live.ex — Quests page UX gaps?
+      3. lib/ex_calibur_web/live/lodge_live.ex — Lodge page gaps?
+      4. lib/ex_calibur/board/generation.ex — missing quest templates?
 
-      ## Tools available: read_file, query_lore ONLY
-      Do NOT call list_files — it is not available in this step and will waste iterations.
-      You already know which files to read from the instructions below.
-
-      Work through these angles — each requires reading actual code first:
-
-      **Unfinished or partially-implemented features**
-      - query_lore with tags ["self-improvement", "project"] to understand what's been in progress
-      - Read lib/ex_calibur/self_improvement/quest_seed.ex — is the SI pipeline complete or are there gaps?
-      - Read lib/ex_calibur/board/generation.ex — are quest templates missing for common patterns?
-
-      **User experience gaps**
-      - Read lib/ex_calibur_web/live/quests_live.ex to understand what the Quests page does
-      - Read lib/ex_calibur_web/live/lodge_live.ex to understand the Lodge page
-      - Is there functionality that would obviously be useful but is absent from these pages?
-
-      **Integration opportunities**
-      - query_lore broadly for entries describing known pain points or workarounds
-      - What integrations does the codebase partially implement but not finish?
+      Read at most 4 files, then write your output immediately.
 
       ## Output format
 
-      Write a list of opportunities grounded in code evidence. For each:
-      - What's missing or incomplete (cite the file you read)
-      - Why it would matter (user impact or developer impact)
-      - Where in the codebase it would live (exact file/module)
-      - Rough effort: small (hours) / medium (days) / large (week+)
+      For each opportunity:
+      - What's missing or incomplete (cite the file)
+      - Why it matters (user impact)
+      - Where it would live (exact module)
+      - Effort: small | medium | large
 
-      ## IMPORTANT: Read at most 8 files total, then write your output.
-
-      Do not spend all your iterations reading files. After 5-6 file reads, stop and write your findings.
-      You will hit a hard iteration limit — if you haven't written your output by then, it will be lost.
-
-      Do NOT suggest features you can't tie to actual code you read.
-      Do NOT repeat health scan findings (those are code quality, not features).
-      Aim for 3–8 genuine opportunities. If you find nothing notable after reading the code, say so.
+      3–6 opportunities. Do NOT repeat health scan findings.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 10,
-      loop_tools: ["read_file", "query_lore"],
+      max_tool_iterations: 6,
+      loop_tools: ["read_file"],
+      context_providers: [
+        %{"type" => "lore", "tags" => ["project", "self-improvement", "pipeline"], "limit" => 4, "sort" => "top"}
+      ],
       roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
     })
   end
