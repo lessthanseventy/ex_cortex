@@ -182,7 +182,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         Your job is to VERIFY, not to write code. Do not create or modify any files.
 
         1. Run `mix test` via run_sandbox. Report pass/fail.
-        2. Run `mix credo --all` via run_sandbox. Report any NEW warnings (ignore the ~46 pre-existing baseline issues listed in your lore).
+        2. Run `mix credo --all` via run_sandbox. Report any warnings introduced by this change.
         3. Issue your verdict: pass (all tests pass, no new credo warnings), warn (tests pass but minor concerns), fail (test failures or new credo errors).
         """,
         trigger: "manual",
@@ -192,9 +192,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         loop_mode: "reflect",
         max_iterations: 3,
         loop_tools: ["run_sandbox", "read_file"],
-        context_providers: [
-          %{"type" => "lore", "tags" => ["credo", "baseline"], "sort" => "importance", "limit" => 1}
-        ],
         roster: [
           %{
             "who" => "all",
@@ -321,9 +318,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       Your context includes the full credo and deps.audit output from the Static Analysis step.
 
       IMPORTANT — before filing any issue:
-      1. Cross-reference against the credo baseline in your lore. Do NOT file issues for anything on that list.
-      2. Search GitHub to confirm the issue does not already exist as an open issue.
-      3. Only file issues for NEW problems not in the baseline, or architectural issues worth addressing.
+      1. Search GitHub to confirm the issue does not already exist as an open issue.
+      2. Only file issues for real problems or architectural issues worth addressing.
 
       You may also browse the codebase (read_file, list_files) to understand context around any finding.
       File at most 3 issues total. Quality over quantity — a real bug or clear pattern problem is worth more
@@ -336,9 +332,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       loop_mode: "reflect",
       max_iterations: 3,
       loop_tools: ["read_file", "list_files", "query_lore"],
-      context_providers: [
-        %{"type" => "lore", "tags" => ["credo", "baseline"], "sort" => "importance", "limit" => 1}
-      ],
       roster: [
         %{
           "who" => "journeyman",
@@ -498,7 +491,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       **Step 2: SI: Product Analyst Sweep** — analyzes findings, files GitHub issues
       - Receives the static analysis output from Step 1 as context
-      - Cross-references against the credo baseline lore entry
       - Files at most 3 high-value issues (quality > quantity)
       - Uses journeyman model (devstral) for reliable analysis
 
@@ -514,8 +506,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       ## Key workflow rules
 
       - Static Analysis outputs raw results only — no decisions
-      - Product Analyst reads lore before filing any issues
-      - Do NOT file issues for anything in the credo baseline lore entry
+      - Product Analyst searches GitHub before filing any issues (no duplicates)
       - UX Designer uses `mix excessibility` — not `mix test` or `mix format`
       """
     },
@@ -554,83 +545,6 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       Used for higher-stakes tasks configured to use the Claude provider.
       """
     },
-    %{
-      title: "ExCalibur: Credo Baseline",
-      tags: ["credo", "code-quality", "baseline", "known-issues"],
-      importance: 5,
-      body: """
-      # ExCalibur: Credo Baseline
-
-      `mix credo --all` reports 46 pre-existing refactoring opportunities. Do NOT file GitHub issues
-      for any of these. They are accepted technical debt. Only file issues for NEW problems
-      introduced by recent changes.
-
-      ## Full baseline — do not file issues for these
-
-      ### ExCalibur.LLM.Claude (lib/ex_calibur/llm/claude.ex)
-      - execute_tools_with_log — nested depth 4 (line 196)
-      - execute_tools_with_log — cyclomatic complexity 14 (line 132)
-      - run_agent_loop — nested depth 3 (line 114)
-
-      ### ExCalibur.LLM.Ollama (lib/ex_calibur/llm/ollama.ex)
-      - execute_or_intercept_tool — nested depth 3 (line 236)
-      - run_tool_loop — nested depth 3 (line 132)
-      - run_tool_loop — arity 10 (lines 97, 104)
-      - run_tool_loop — cyclomatic complexity 10 (line 104)
-      - execute_tool_calls — nested depth 3 (line 204)
-
-      ### ExCalibur.StepRunner (lib/ex_calibur/step_runner.ex)
-      - run — cyclomatic complexity 19 (line 212)
-      - run — nested depth 4 (lines 205, 107)
-      - run — cyclomatic complexity 16 (line 173)
-      - run — cyclomatic complexity 10 (line 79)
-      - run — nested depth 3 (line 244)
-      - run_artifact — nested depth 4 (line 664)
-      - gather_reflect_context — nested depth 3 (line 603)
-      - parse_artifact — cyclomatic complexity 13 (line 737)
-
-      ### ExCalibur.QuestRunner (lib/ex_calibur/quest_runner.ex)
-      - do_run — cyclomatic complexity 29 (line 51)
-
-      ### ExCalibur.Board (lib/ex_calibur/board.ex)
-      - install — cyclomatic complexity 20 (line 211)
-      - install — nested depth 4 (line 272)
-      - all_with_status — nested depth 3 (line 158)
-      - all_with_status — cyclomatic complexity 13 (line 113)
-
-      ### ExCaliburWeb LiveViews
-      - GuildHallLive.handle_event — cyclomatic complexity 15 (line 848)
-      - GuildHallLive.handle_event — cyclomatic complexity 10 (line 807)
-      - GuildHallLive.mount_guild_hall — nested depth 4 (line 35)
-      - GuildHallLive.to_unified — cyclomatic complexity 13 (line 92)
-      - SettingsLive.handle_event — nested depth 3 (line 64)
-      - QuestsLive.handle_event — nested depth 3 (line 164)
-      - QuestsLive.handle_event — cyclomatic complexity 12 (lines 276, 347)
-      - QuestsLive.build_schedule_from_params — cyclomatic complexity 18 (line 1515)
-      - LodgeLive.handle_event — nested depth 3 (line 195)
-      - LodgeLive.load_dev_team_status — nested depth 3 (line 429)
-      - TownSquareLive.install_quests — nested depth 3 (line 191)
-      - GrimoireLive.load_run_stats — nested depth 3 (line 124)
-
-      ### Other modules
-      - TrustScorer.record_run — nested depth 4 (lib/ex_calibur/trust_scorer.ex:26)
-      - Tools.AnalyzeVideo.call — nested depth 4 (lib/ex_calibur/tools/analyze_video.ex:66)
-      - Sources.LodgeWatcher.fetch — cyclomatic complexity 14 (lib/ex_calibur/sources/lodge_watcher.ex:18)
-      - Tools.EditFile.call — nested depth 3 (lib/ex_calibur/tools/edit_file.ex:30)
-      - Sources.MediaSource.list_videos — nested depth 3 (lib/ex_calibur/sources/media_source.ex:58)
-      - Sources.ObsidianWatcher.fetch — nested depth 3 (lib/ex_calibur/sources/obsidian_watcher.ex:30)
-      - Sources.EmailSource.fetch — nested depth 3 (lib/ex_calibur/sources/email_source.ex:24)
-      - Lore.write_artifact — nested depth 3 (lib/ex_calibur/lore.ex:67)
-      - ContextProviders.QuestHistory.build — nested depth 3 (lib/ex_calibur/context_providers/quest_history.ex:35)
-      - ContextProviders.MemberStats.build — nested depth 3 (lib/ex_calibur/context_providers/member_stats.ex:30)
-
-      ## What IS worth filing issues for
-
-      - New credo issues not in this list (introduced by a recent commit)
-      - `length/1` checks in tests that can be replaced with `!= []`
-      - Specific bugs with reproduction steps
-      """
-    }
   ]
 
   defp seed_lore do
