@@ -4,7 +4,8 @@ defmodule ExCalibur.Tools.ListFiles do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "list_files",
-      description: "List files matching a glob pattern. Only searches app source directories (lib/, test/, config/, priv/repo/, docs/) — not deps or path dependencies.",
+      description:
+        "List files matching a glob pattern. Only searches app source directories (lib/, test/, config/, priv/repo/, docs/) — not deps or path dependencies.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -24,8 +25,7 @@ defmodule ExCalibur.Tools.ListFiles do
   end
 
   # Directories that are never relevant to the app's own source code
-  @ignored ~w(_build deps .git .elixir_ls node_modules priv/static/assets
-              ex_cellence ex_cellence_dashboard ex_cellence_ui)
+  @ignored ~w(_build deps .git .elixir_ls node_modules priv/static/assets)
 
   def call(%{"pattern" => pattern} = params) do
     working_dir = Map.get(params, "working_dir", File.cwd!())
