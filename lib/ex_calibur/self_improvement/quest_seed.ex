@@ -298,6 +298,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       output_type: "freeform",
       dangerous_tool_mode: "intercept",
       max_tool_iterations: 5,
+      loop_tools: ["run_sandbox"],
       roster: [
         %{
           "who" => "apprentice",
@@ -331,10 +332,11 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       max_tool_iterations: 10,
       loop_mode: "reflect",
       max_iterations: 3,
-      loop_tools: ["read_file", "list_files", "query_lore"],
+      loop_tools: ["read_file", "list_files", "query_lore", "search_github", "create_github_issue"],
       roster: [
         %{
-          "who" => "journeyman",
+          "who" => "all",
+          "preferred_who" => "Product Analyst",
           "how" => "solo",
           "when" => "sequential"
         }
