@@ -41,16 +41,30 @@ defmodule ExCalibur.StepRunner do
   def has_write_tools?(_), do: false
 
   def intercept_dangerous_tool(tool_name, tool_args, quest_id, context \\ nil) do
+    {description, suggestion} = proposal_content(tool_name, tool_args, context)
+
     ExCalibur.Quests.create_proposal(%{
       quest_id: quest_id,
       type: "tool_action",
-      description: "Tool call: #{tool_name}",
-      details: %{"suggestion" => context || "Automated tool call"},
+      description: description,
+      details: %{"suggestion" => suggestion},
       status: "pending",
       tool_name: tool_name,
       tool_args: tool_args,
       context: context
     })
+  end
+
+  defp proposal_content("create_github_issue", %{"title" => title, "body" => body}, _context) do
+    {title, body}
+  end
+
+  defp proposal_content("create_github_issue", %{"title" => title}, _context) do
+    {title, "No description provided."}
+  end
+
+  defp proposal_content(tool_name, _args, context) do
+    {"Tool call: #{tool_name}", context || "Automated tool call"}
   end
 
   @doc "Build the ordered list of models to try: assigned model first, then fallback chain (deduped)."

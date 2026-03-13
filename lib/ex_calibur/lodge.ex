@@ -106,25 +106,43 @@ defmodule ExCalibur.Lodge do
   def sync_proposals do
     pending = ExCalibur.Quests.list_proposals(status: "pending")
 
-    existing_ids =
+    existing_cards =
       [type: "proposal"]
       |> list_cards()
-      |> MapSet.new(& &1.metadata["proposal_id"])
+      |> Map.new(&{&1.metadata["proposal_id"], &1})
 
-    for proposal <- pending, proposal.id not in existing_ids do
-      create_card(%{
-        type: "proposal",
-        title: proposal.description,
-        body: proposal.details["suggestion"] || "",
-        source: "quest",
-        quest_id: proposal.quest_id,
-        metadata: %{
-          "proposal_id" => proposal.id,
-          "proposal_type" => proposal.type
-        }
-      })
+    for proposal <- pending do
+      title = proposal_card_title(proposal)
+      body = proposal_card_body(proposal)
+
+      case Map.get(existing_cards, proposal.id) do
+        nil ->
+          create_card(%{
+            type: "proposal",
+            title: title,
+            body: body,
+            source: "quest",
+            quest_id: proposal.quest_id,
+            metadata: %{
+              "proposal_id" => proposal.id,
+              "proposal_type" => proposal.type
+            }
+          })
+
+        existing ->
+          if existing.title != title or existing.body != body do
+            update_card(existing, %{title: title, body: body})
+          end
+      end
     end
   end
+
+  defp proposal_card_title(%{tool_name: "create_github_issue", tool_args: %{"title" => t}}), do: t
+  defp proposal_card_title(%{description: desc}), do: desc
+
+  defp proposal_card_body(%{tool_name: "create_github_issue", tool_args: %{"body" => b}}), do: b
+  defp proposal_card_body(%{details: %{"suggestion" => s}}) when is_binary(s), do: s
+  defp proposal_card_body(_), do: ""
 
   def sync_augury do
     augury_entry =
