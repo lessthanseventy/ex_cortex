@@ -18,7 +18,11 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     "SI: UX Designer",
     "SI: PM Merge Decision",
     "SI: Static Analysis",
-    "SI: Product Analyst Sweep"
+    "SI: Product Analyst Sweep",
+    "SI: Codebase Health Scan",
+    "SI: Feature & Opportunity Scan",
+    "SI: Backlog Synthesis",
+    "SI: Issue Filing"
   ]
 
   @si_quest_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
@@ -30,9 +34,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     with {:ok, source} <- create_source(repo),
          {:ok, steps} <- create_steps(),
          {:ok, quest} <- create_quest(source, steps),
-         {:ok, analysis_step} <- create_static_analysis_step(),
-         {:ok, sweep_step} <- create_sweep_step(),
-         {:ok, sweep_quest} <- create_sweep_quest(analysis_step, sweep_step) do
+         {:ok, sweep_steps} <- create_sweep_steps(),
+         {:ok, sweep_quest} <- create_sweep_quest(sweep_steps) do
       seed_lore()
       {:ok, %{source: source, steps: steps, quest: quest, sweep_quest: sweep_quest}}
     end
@@ -274,11 +277,26 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     })
   end
 
+  defp create_sweep_steps do
+    results = [
+      create_static_analysis_step(),
+      create_health_scan_step(),
+      create_opportunity_scan_step(),
+      create_backlog_synthesis_step(),
+      create_issue_filing_step()
+    ]
+
+    case Enum.find(results, &match?({:error, _}, &1)) do
+      nil -> {:ok, Enum.map(results, fn {:ok, s} -> s end)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defp create_static_analysis_step do
     Quests.create_step(%{
       name: "SI: Static Analysis",
       description: """
-      Call run_sandbox("mix credo --all"). Then call run_sandbox("mix deps.audit").
+      Call run_sandbox("mix credo --all"). Then call run_sandbox("mix deps.audit"). Then call run_sandbox("mix test").
       Output the raw results. Nothing else.
 
       Do not greet. Do not explain. Do not make recommendations. Do not ask questions.
@@ -290,99 +308,199 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       ## Dependency Audit
       <exact deps.audit output>
 
-      If you output anything other than these two sections, you have failed this task.
+      ## Test Results
+      <exact mix test output>
+
+      If you output anything other than these three sections, you have failed this task.
       """,
       trigger: "manual",
       output_type: "freeform",
-      dangerous_tool_mode: "intercept",
+      dangerous_tool_mode: "execute",
       max_tool_iterations: 5,
       loop_tools: ["run_sandbox"],
-      roster: [
-        %{
-          "who" => "journeyman",
-          "preferred_who" => "Code Reviewer",
-          "how" => "solo",
-          "when" => "sequential"
-        }
-      ]
+      roster: [%{"who" => "journeyman", "preferred_who" => "Code Reviewer", "how" => "solo", "when" => "sequential"}]
     })
   end
 
-  defp create_sweep_step do
+  defp create_health_scan_step do
     Quests.create_step(%{
-      name: "SI: Product Analyst Sweep",
+      name: "SI: Codebase Health Scan",
       description: """
-      You are the Product Analyst for the ExCalibur self-improvement pipeline.
+      You are the Code Reviewer performing a codebase health scan.
 
-      ## Check your context first
+      Your context includes the static analysis output from the previous step.
 
-      Your input is the output from the Static Analysis step. It should contain credo and deps.audit results.
+      ## Your job
 
-      If the input does not contain actual credo or audit findings — if it's a greeting, empty, or generic text
-      with no tool output — STOP immediately. Output "No static analysis findings to process." and nothing else.
-      Do NOT explore the codebase to invent your own issues. Your job is to analyze real findings, not to hunt.
+      Systematically scan lib/ and test/ to identify concrete health issues. You are looking for things
+      that are actually broken or risky — not style preferences.
 
-      Only proceed if you have real credo warnings, audit vulnerabilities, or similar concrete findings.
+      Work through these categories:
 
-      ## Your job (when you have real findings)
+      **Test coverage gaps**
+      - list_files("lib/**/*.ex") then list_files("test/**/*.exs")
+      - For each significant module in lib/, check whether a corresponding test file exists
+      - Flag modules with substantial logic and no tests
 
-      Analyze the static analysis output and file up to 3 GitHub issues for confirmed, real problems.
+      **Error handling gaps**
+      - Read files flagged by credo or that look risky (large files, external integrations)
+      - Look for missing rescue clauses on DB calls, HTTP calls, file I/O
+      - Look for bare pattern matches that could crash on unexpected input
 
-      ## Mandatory verification before filing any issue
+      **TODO/FIXME comments**
+      - These are deferred work explicitly flagged by developers — worth tracking
 
-      You must READ THE ACTUAL CODE before filing. Do not file based on assumptions or schema field names alone.
+      **Functions over ~60 lines**
+      - Large functions are hard to test and maintain; note them with file:line
 
-      Common false positives to avoid:
+      ## Output format
 
-      - "Missing validate_inclusion" — always read the FULL changeset/2 function in the file, not just the schema
-        field declarations. Elixir schemas list fields at the top, but validations are in changeset/2 below.
-      - "Missing error handling" — read the FULL function body including rescue/catch/with blocks. A rescue
-        clause at the end of a function is easy to miss if you only read the first few lines.
-      - "Hardcoded values" — check whether Application.get_env/3 is already used before claiming something
-        is hardcoded. Also check if the caller passes opts that override the default.
-      - "Missing tests" — run list_files on the test/ directory to confirm a test file does not already exist.
+      Write a structured findings report. For each finding:
+      - Category (test gap / error handling / TODO / complexity)
+      - File path and function name
+      - One sentence explaining the specific issue
 
-      ## Verification workflow for each candidate issue
+      Do NOT file any GitHub issues. Do NOT make recommendations. Just report what you found with evidence.
+      If credo was clean and tests all passed and you find nothing notable, say so — that's a valid result.
+      """,
+      trigger: "manual",
+      output_type: "freeform",
+      dangerous_tool_mode: "execute",
+      max_tool_iterations: 20,
+      loop_tools: ["read_file", "list_files"],
+      roster: [%{"who" => "journeyman", "preferred_who" => "Code Reviewer", "how" => "solo", "when" => "sequential"}]
+    })
+  end
 
-      1. Identify the specific file and function where the problem supposedly exists.
-      2. Use read_file to read that file completely.
-      3. Confirm the problem is actually there — not already handled, not already validated, not already tested.
-      4. Search GitHub to confirm no open issue already covers it.
-      5. Only then call create_github_issue.
+  defp create_opportunity_scan_step do
+    Quests.create_step(%{
+      name: "SI: Feature & Opportunity Scan",
+      description: """
+      You are the Product Analyst performing an opportunity scan.
 
-      If after reading the file you cannot confirm the problem exists with certainty, skip it.
+      Your context includes the health scan findings from the previous step.
 
-      ## Quality bar
+      ## Your job — a DIFFERENT lens than the Code Reviewer
 
-      File issues only for:
-      - Confirmed bugs (you saw the broken code)
-      - Missing validation that is genuinely absent from changeset/2 (you checked)
-      - Inconsistent patterns that create real risk (not just style)
-      - Missing test coverage for non-trivial logic (you confirmed no test file exists)
+      You are NOT looking for bugs or code quality issues. You are thinking about product value:
+      what should this app be able to do that it currently can't, or does poorly?
 
-      Do NOT file issues for:
-      - Vague refactoring suggestions
-      - Documentation improvements
-      - "Could be more configurable" style feedback
-      - Anything you haven't verified by reading the actual source
+      Work through these angles:
 
-      File at most 3 issues. Fewer is better if you can't find 3 confirmed real problems.
+      **Unfinished or partially-implemented features**
+      - query_lore with tags ["self-improvement", "project"] to understand what's been in progress
+      - Look at Board templates (lib/ex_calibur/board/) — are any patterns missing or thin?
+      - Read lib/ex_calibur/self_improvement/ — is the pipeline complete or are there gaps?
+
+      **User experience gaps**
+      - Think about the pages: Lodge, Town Square, Guild Hall, Quests, Grimoire, Library, Settings
+      - Is there functionality that would obviously be useful but is absent?
+
+      **Integration opportunities**
+      - What external tools or workflows could this app connect to that it doesn't yet?
+
+      **Recurring friction**
+      - query_lore broadly — are there lore entries describing known pain points or workarounds?
+
+      ## Output format
+
+      Write a list of opportunities. For each:
+      - What's missing or incomplete
+      - Why it would matter (user impact or developer impact)
+      - Where in the codebase it would live (rough file/module area)
+      - Rough effort: small (hours) / medium (days) / large (week+)
+
+      Do NOT file GitHub issues. Do NOT repeat health scan findings (those are code quality, not features).
+      Aim for 3–8 genuine opportunities. If you find nothing notable, say so.
+      """,
+      trigger: "manual",
+      output_type: "freeform",
+      dangerous_tool_mode: "execute",
+      max_tool_iterations: 20,
+      loop_tools: ["read_file", "list_files", "query_lore"],
+      roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
+    })
+  end
+
+  defp create_backlog_synthesis_step do
+    Quests.create_step(%{
+      name: "SI: Backlog Synthesis",
+      description: """
+      You are the Project Manager synthesizing the team's findings into an actionable shortlist.
+
+      Your context includes the health scan findings AND the opportunity scan from the previous steps.
+
+      ## Your job
+
+      **Step 1: Check the existing backlog**
+      Search GitHub for open issues. Understand what's already being tracked.
+      Identify any open issues that appear stale (no activity, no longer relevant) — note them but don't close them here.
+
+      **Step 2: Synthesize**
+      From the health scan + opportunity scan, identify the highest-value items to act on.
+      Consider: real impact vs effort, whether it's already tracked, whether it blocks other work.
+
+      **Step 3: Produce the shortlist**
+      Pick 3–5 items maximum. For each item, write:
+
+      ---
+      APPROVED: <title>
+      Type: bug | feature | improvement | tech-debt
+      Source: health-scan | opportunity-scan
+      Why now: <one sentence — what's the cost of not doing this>
+      Effort: small | medium | large
+      ---
+
+      Items NOT on this list will not be filed. Be ruthless — only include things that are genuinely worth a
+      developer's time. Vague suggestions, style improvements, and anything already tracked should be excluded.
+
+      End your response with the shortlist only. Do not include a summary or recommendations beyond the list.
+      """,
+      trigger: "manual",
+      output_type: "freeform",
+      dangerous_tool_mode: "execute",
+      max_tool_iterations: 15,
+      loop_tools: ["search_github", "query_lore"],
+      roster: [%{"who" => "journeyman", "preferred_who" => "Project Manager", "how" => "solo", "when" => "sequential"}]
+    })
+  end
+
+  defp create_issue_filing_step do
+    Quests.create_step(%{
+      name: "SI: Issue Filing",
+      description: """
+      You are the Product Analyst filing GitHub issues from the PM's approved shortlist.
+
+      Your context includes the PM's shortlist from the Backlog Synthesis step.
+      Look for lines starting with "APPROVED:" — those are the items to file.
+
+      ## For each APPROVED item
+
+      1. Search GitHub to confirm no open issue already covers this exact topic.
+         If a duplicate exists, skip this item and note it.
+      2. If no duplicate: call create_github_issue with:
+         - title: the APPROVED title (clear, specific, actionable)
+         - body: describe the problem concretely — what is broken or missing, where in the codebase,
+           what the impact is, and what a fix would look like. Be specific enough that a developer
+           can start working without needing to ask questions.
+         - labels: ["self-improvement"]
+
+      ## Quality bar for issue bodies
+
+      A good issue body answers:
+      - What exactly is the problem? (not "X could be better" — "X does Y when it should do Z")
+      - Where is it? (file path, function name if applicable)
+      - Why does it matter? (what breaks, what's risky, what's blocked)
+      - What would done look like? (acceptance criteria)
+
+      File each APPROVED item as a separate issue. When done, summarize what was filed and what was skipped.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "intercept",
-      max_tool_iterations: 25,
-      loop_mode: "reflect",
-      max_iterations: 3,
-      loop_tools: ["read_file", "list_files", "query_lore", "search_github", "create_github_issue"],
-      roster: [
-        %{
-          "who" => "journeyman",
-          "preferred_who" => "Product Analyst",
-          "how" => "solo",
-          "when" => "sequential"
-        }
-      ]
+      max_tool_iterations: 20,
+      loop_tools: ["search_github", "create_github_issue"],
+      roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
     })
   end
 
@@ -526,31 +644,53 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       Two overlapping systems handle self-improvement.
 
-      ## SI: Analyst Sweep — scheduled every 4 hours (two steps)
+      ## SI: Analyst Sweep — scheduled every 4 hours (five steps)
 
-      **Step 1: SI: Static Analysis** — runs deterministic tools, outputs raw results
-      - Runs `mix credo --all` and `mix deps.audit`
-      - Uses a fast/cheap model — no reasoning, just tool execution and formatted output
-      - Outputs structured findings for the next step to analyze
+      A full team runs every 4 hours to find and file high-quality improvement issues.
 
-      **Step 2: SI: Product Analyst Sweep** — analyzes findings, files GitHub issues
-      - Receives the static analysis output from Step 1 as context
-      - Files at most 3 high-value issues (quality > quantity)
-      - Uses journeyman model (devstral) for reliable analysis
+      **Step 1: SI: Static Analysis** (Code Reviewer)
+      - Runs `mix credo --all`, `mix deps.audit`, `mix test`
+      - Outputs raw results only — no interpretation
+
+      **Step 2: SI: Codebase Health Scan** (Code Reviewer)
+      - Reads static analysis output, then browses lib/ and test/
+      - Looks for: test coverage gaps, error handling gaps, TODO comments, large functions
+      - Outputs a structured findings report with file:line evidence
+      - Does NOT file issues — just reports
+
+      **Step 3: SI: Feature & Opportunity Scan** (Product Analyst)
+      - Different lens: product value, not code quality
+      - Looks for missing features, incomplete functionality, UX gaps, integration opportunities
+      - Queries lore to understand what's been deferred or worked on
+      - Outputs an opportunity list with effort estimates
+      - Does NOT file issues — just reports
+
+      **Step 4: SI: Backlog Synthesis** (Project Manager)
+      - Receives health scan AND opportunity scan findings
+      - Searches GitHub to understand existing open issues
+      - Synthesizes into a ranked shortlist of 3–5 items approved for filing
+      - This is the gate — nothing gets filed without PM approval
+
+      **Step 5: SI: Issue Filing** (Product Analyst)
+      - Receives only the PM's approved shortlist
+      - Does a final duplicate check per item, then files each as a GitHub issue
+      - Issues go to the self-improvement label for the SI Loop to pick up
 
       ## Self-Improvement Loop — source-triggered by GitHub issues labeled `self-improvement`
 
-      1. SI: PM Triage — evaluates issue, writes implementation plan
+      1. SI: PM Triage — evaluates issue, writes implementation plan or rejects
       2. SI: Code Writer — implements in a worktree, opens PR
       3. SI: Code Reviewer — reviews correctness and patterns (verdict gate)
       4. SI: QA — runs tests, issues a verdict (verdict gate)
       5. SI: UX Designer — runs `mix excessibility`, checks accessibility
-      6. SI: PM Merge Decision — auto-merge or escalate to CTO
+      6. SI: PM Merge Decision — auto-merge low-risk changes or escalate
 
       ## Key workflow rules
 
-      - Static Analysis outputs raw results only — no decisions
-      - Product Analyst searches GitHub before filing any issues (no duplicates)
+      - Static Analysis outputs raw results only — no decisions, no interpretation
+      - Health Scan and Opportunity Scan report findings — they do NOT file issues
+      - Only the PM's approved shortlist gets filed (Step 4 → Step 5)
+      - Issue Filing does a final duplicate search before each create_github_issue call
       - UX Designer uses `mix excessibility` — not `mix test` or `mix format`
       """
     },
@@ -610,17 +750,19 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     end)
   end
 
-  defp create_sweep_quest(analysis_step, sweep_step) do
+  defp create_sweep_quest(sweep_steps) do
+    step_entries =
+      sweep_steps
+      |> Enum.with_index(1)
+      |> Enum.map(fn {step, order} -> %{"step_id" => step.id, "order" => order} end)
+
     Quests.create_quest(%{
       name: "SI: Analyst Sweep",
       description:
-        "Every 4 hours: run static analysis tools, then have the Product Analyst review the findings and file high-value GitHub issues.",
+        "Every 4 hours: static analysis → codebase health scan → feature opportunity scan → PM backlog synthesis → issue filing.",
       trigger: "scheduled",
       schedule: "0 */4 * * *",
-      steps: [
-        %{"step_id" => analysis_step.id, "order" => 1},
-        %{"step_id" => sweep_step.id, "order" => 2}
-      ],
+      steps: step_entries,
       status: "active"
     })
   end
