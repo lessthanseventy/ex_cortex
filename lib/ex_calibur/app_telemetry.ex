@@ -15,6 +15,7 @@ defmodule ExCalibur.AppTelemetry do
   """
 
   use GenServer
+
   require Logger
 
   @max_llm_calls 500
@@ -110,21 +111,19 @@ defmodule ExCalibur.AppTelemetry do
 
   @impl true
   def handle_info({:quest_run_completed, quest_run}, state) do
-    try do
-      quest_name = fetch_quest_name(quest_run.quest_id)
-      failed_step = extract_failed_step(quest_run.step_results)
+    quest_name = fetch_quest_name(quest_run.quest_id)
+    failed_step = extract_failed_step(quest_run.step_results)
 
-      entry = %{
-        quest_name: quest_name,
-        status: quest_run.status,
-        timestamp: now(),
-        failed_step: failed_step
-      }
+    entry = %{
+      quest_name: quest_name,
+      status: quest_run.status,
+      timestamp: now(),
+      failed_step: failed_step
+    }
 
-      {:noreply, %{state | quest_runs: add_to_ring(state.quest_runs, entry, @max_quest_runs)}}
-    rescue
-      _ -> {:noreply, state}
-    end
+    {:noreply, %{state | quest_runs: add_to_ring(state.quest_runs, entry, @max_quest_runs)}}
+  rescue
+    _ -> {:noreply, state}
   end
 
   def handle_info(_, state), do: {:noreply, state}
@@ -144,13 +143,15 @@ defmodule ExCalibur.AppTelemetry do
 
   defp format_recent(%__MODULE__{} = state, cutoff) do
     sections =
-      [
-        format_quest_runs(state.quest_runs, cutoff),
-        format_circuit_breakers(state.circuit_breakers, cutoff),
-        format_llm_errors(state.llm_calls, cutoff),
-        format_log_entries(state.errors, state.warnings, cutoff)
-      ]
-      |> Enum.reject(&(&1 == ""))
+      Enum.reject(
+        [
+          format_quest_runs(state.quest_runs, cutoff),
+          format_circuit_breakers(state.circuit_breakers, cutoff),
+          format_llm_errors(state.llm_calls, cutoff),
+          format_log_entries(state.errors, state.warnings, cutoff)
+        ],
+        &(&1 == "")
+      )
 
     Enum.join(sections, "\n\n")
   end
@@ -169,12 +170,11 @@ defmodule ExCalibur.AppTelemetry do
     failed = Map.get(by_status, "failed", [])
 
     summary = "Quest runs: #{complete} complete"
-    summary = if gated != [], do: summary <> ", #{length(gated)} gated", else: summary
-    summary = if failed != [], do: summary <> ", #{length(failed)} failed", else: summary
+    summary = if gated == [], do: summary, else: summary <> ", #{length(gated)} gated"
+    summary = if failed == [], do: summary, else: summary <> ", #{length(failed)} failed"
 
     problems =
-      (gated ++ failed)
-      |> Enum.map(fn r ->
+      Enum.map(gated ++ failed, fn r ->
         step_note = if r.failed_step, do: " — #{r.failed_step}", else: ""
         "  #{r.quest_name} (#{r.status})#{step_note}"
       end)
@@ -207,9 +207,7 @@ defmodule ExCalibur.AppTelemetry do
   defp format_llm_errors([], _cutoff), do: ""
 
   defp format_llm_errors(calls, cutoff) do
-    errors =
-      calls
-      |> Enum.filter(&(&1.timestamp >= cutoff and &1.outcome != :ok))
+    errors = Enum.filter(calls, &(&1.timestamp >= cutoff and &1.outcome != :ok))
 
     if errors == [], do: "", else: do_format_llm_errors(errors)
   end
@@ -218,8 +216,7 @@ defmodule ExCalibur.AppTelemetry do
     by_model = Enum.group_by(errors, & &1.model)
 
     items =
-      by_model
-      |> Enum.map(fn {model, list} -> "#{model} ×#{length(list)}" end)
+      Enum.map(by_model, fn {model, list} -> "#{model} ×#{length(list)}" end)
 
     "LLM errors: #{Enum.join(items, ", ")}"
   end
@@ -273,6 +270,7 @@ defmodule ExCalibur.AppTelemetry do
 
   defp fetch_quest_name(quest_id) do
     import Ecto.Query
+
     alias ExCalibur.Quests.Quest
 
     case ExCalibur.Repo.one(from q in Quest, where: q.id == ^quest_id, select: q.name) do

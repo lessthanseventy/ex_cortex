@@ -32,7 +32,9 @@ defmodule ExCalibur.ContextProviders.FileReaderTest do
   end
 
   test "does not append truncation marker for small files" do
-    result = FileReader.build(%{"type" => "file_reader", "files" => ["mix.exs"], "max_bytes_per_file" => 100_000}, %{}, "")
+    result =
+      FileReader.build(%{"type" => "file_reader", "files" => ["mix.exs"], "max_bytes_per_file" => 100_000}, %{}, "")
+
     refute result =~ "... (truncated)"
   end
 end

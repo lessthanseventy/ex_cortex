@@ -19,6 +19,7 @@ defmodule ExCalibur.Quests.StepValidationTest do
       Enum.each(invalid_modes, fn mode ->
         changeset = Step.changeset(%Step{}, %{name: "Test Step", trigger: "manual", loop_mode: mode})
         refute changeset.valid?
+
         assert {:loop_mode, {"must be reflect, sequential, parallel, or dynamic", _}} =
                  List.keyfind(changeset.errors, :loop_mode, 0)
       end)

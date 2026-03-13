@@ -267,8 +267,7 @@ defmodule ExCalibur.QuestRunner do
     "## Prior Step: #{step_name}\nMultiple lodge cards posted.\n"
   end
 
-  def result_to_text({:ok, %{output: output}}, step_name, _next_step_name)
-      when is_binary(output) and output != "" do
+  def result_to_text({:ok, %{output: output}}, step_name, _next_step_name) when is_binary(output) and output != "" do
     "## Prior Step: #{step_name}\n#{output}\n"
   end
 

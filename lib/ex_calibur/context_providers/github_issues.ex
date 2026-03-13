@@ -25,8 +25,21 @@ defmodule ExCalibur.ContextProviders.GithubIssues do
     repo = ExCalibur.Settings.get(:default_repo)
 
     args =
-      ["issue", "list", "--label", label, "--state", "open", "--limit", to_string(limit), "--json", "number,title,state,url,body"]
-      |> then(fn base -> if repo, do: base ++ ["--repo", repo], else: base end)
+      then(
+        [
+          "issue",
+          "list",
+          "--label",
+          label,
+          "--state",
+          "open",
+          "--limit",
+          to_string(limit),
+          "--json",
+          "number,title,state,url,body"
+        ],
+        fn base -> if repo, do: base ++ ["--repo", repo], else: base end
+      )
 
     case System.cmd("gh", args, stderr_to_stdout: true) do
       {output, 0} ->

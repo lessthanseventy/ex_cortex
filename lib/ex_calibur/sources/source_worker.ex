@@ -25,7 +25,7 @@ defmodule ExCalibur.Sources.SourceWorker do
     case mod.init(source.config) do
       {:ok, worker_state} ->
         # Restore persisted state (e.g. seen_ids) so workers don't re-fire on restart
-        saved = for {k, v} <- (source.state || %{}), into: %{}, do: {String.to_atom(k), v}
+        saved = for {k, v} <- source.state || %{}, into: %{}, do: {String.to_atom(k), v}
         worker_state = Map.merge(worker_state, saved)
         interval = get_interval(source.config)
         timer = Process.send_after(self(), :fetch, interval)

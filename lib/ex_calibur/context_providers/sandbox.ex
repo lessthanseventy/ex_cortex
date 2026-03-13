@@ -32,7 +32,8 @@ defmodule ExCalibur.ContextProviders.Sandbox do
     working_dir = File.cwd!()
 
     results =
-      Enum.map(commands, fn cmd ->
+      commands
+      |> Enum.map(fn cmd ->
         if Enum.any?(@allowed_prefixes, &String.starts_with?(cmd, &1)) do
           run_command(cmd, working_dir)
         else
@@ -47,12 +48,11 @@ defmodule ExCalibur.ContextProviders.Sandbox do
     else
       body = Enum.join(results, "\n\n")
 
-      """
+      String.trim("""
       #{label}
 
       #{body}
-      """
-      |> String.trim()
+      """)
     end
   end
 

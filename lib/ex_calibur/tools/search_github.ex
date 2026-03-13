@@ -4,7 +4,8 @@ defmodule ExCalibur.Tools.SearchGithub do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "search_github",
-      description: "Search GitHub issues, pull requests, or repositories using the gh CLI. Use `label` to filter issues by label (e.g. 'self-improvement') — this is more reliable than text search for label-based lookups.",
+      description:
+        "Search GitHub issues, pull requests, or repositories using the gh CLI. Use `label` to filter issues by label (e.g. 'self-improvement') — this is more reliable than text search for label-based lookups.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -14,7 +15,10 @@ defmodule ExCalibur.Tools.SearchGithub do
             "description" => "What to search: 'issues', 'prs', or 'repos' (default: 'issues')",
             "enum" => ["issues", "prs", "repos"]
           },
-          "label" => %{"type" => "string", "description" => "Filter issues by label (uses gh issue list, more reliable than text search for labels)"},
+          "label" => %{
+            "type" => "string",
+            "description" => "Filter issues by label (uses gh issue list, more reliable than text search for labels)"
+          },
           "limit" => %{"type" => "integer", "description" => "Maximum results to return (default 20)"}
         },
         "required" => []
@@ -50,7 +54,19 @@ defmodule ExCalibur.Tools.SearchGithub do
 
   # When a label is given, use `gh issue list --label` (searches label index, not full text)
   defp build_args(_issues, _query, limit, repo, label) when is_binary(label) and label != "" do
-    base = ["issue", "list", "--label", label, "--state", "open", "--limit", to_string(limit), "--json", "number,title,state,url"]
+    base = [
+      "issue",
+      "list",
+      "--label",
+      label,
+      "--state",
+      "open",
+      "--limit",
+      to_string(limit),
+      "--json",
+      "number,title,state,url"
+    ]
+
     if repo, do: base ++ ["--repo", repo], else: base
   end
 

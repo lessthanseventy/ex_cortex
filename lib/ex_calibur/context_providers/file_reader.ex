@@ -30,7 +30,8 @@ defmodule ExCalibur.ContextProviders.FileReader do
     root = File.cwd!()
 
     sections =
-      Enum.map(files, fn path ->
+      files
+      |> Enum.map(fn path ->
         full_path = Path.join(root, path)
 
         case File.read(full_path) do
@@ -49,12 +50,11 @@ defmodule ExCalibur.ContextProviders.FileReader do
     if sections == [] do
       ""
     else
-      """
+      String.trim("""
       #{label}
 
       #{Enum.join(sections, "\n\n")}
-      """
-      |> String.trim()
+      """)
     end
   end
 end
