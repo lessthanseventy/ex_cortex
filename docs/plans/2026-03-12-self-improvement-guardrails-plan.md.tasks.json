@@ -1,0 +1,15 @@
+{
+  "planPath": "docs/plans/2026-03-12-self-improvement-guardrails-plan.md",
+  "tasks": [
+    {"id": 0, "subject": "G0: Add guardrail fields to Step schema", "status": "completed"},
+    {"id": 1, "subject": "G1: Circuit breaker in Ollama agent loop", "status": "completed", "blockedBy": [0]},
+    {"id": 2, "subject": "G2: Circuit breaker in Claude agent loop", "status": "completed", "blockedBy": [1]},
+    {"id": 3, "subject": "G3: Dangerous tool interception", "status": "completed", "blockedBy": [1, 2]},
+    {"id": 4, "subject": "G4: Verdict gates in quest runner", "status": "completed"},
+    {"id": 5, "subject": "G5: Rollback on failure in step runner", "status": "completed"},
+    {"id": 6, "subject": "G6: Styler guard in git_commit tool", "status": "completed"},
+    {"id": 7, "subject": "G7: Update quest seed with guardrail config", "status": "completed", "blockedBy": [0, 3, 4, 5, 6]},
+    {"id": 8, "subject": "G8: Integration test", "status": "completed", "blockedBy": [3, 4, 7]}
+  ],
+  "lastUpdated": "2026-03-12T15:50:00Z"
+}

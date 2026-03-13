@@ -1,0 +1,16 @@
+{
+  "planPath": "docs/plans/2026-03-12-nextcloud-integration-plan.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Docker Infrastructure", "status": "completed"},
+    {"id": 1, "subject": "Task 1: Nextcloud Client Module", "status": "completed", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 2: Nextcloud Watcher Source", "status": "completed", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: Nextcloud Books", "status": "completed", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 4: Safe Tools", "status": "completed", "blockedBy": [1]},
+    {"id": 5, "subject": "Task 5: Write Tools", "status": "completed", "blockedBy": [1]},
+    {"id": 6, "subject": "Task 6: Dangerous Tool (Talk)", "status": "completed", "blockedBy": [1]},
+    {"id": 7, "subject": "Task 7: Output Sink", "status": "completed", "blockedBy": [1]},
+    {"id": 8, "subject": "Task 8: Integration Wiring", "status": "completed", "blockedBy": [0]},
+    {"id": 9, "subject": "Task 9: Nextcloud OAuth2 Auth + Role-Based Access", "status": "completed", "blockedBy": [0]}
+  ],
+  "lastUpdated": "2026-03-12T17:42:00Z"
+}
