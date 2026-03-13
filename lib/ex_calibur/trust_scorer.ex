@@ -16,18 +16,15 @@ defmodule ExCalibur.TrustScorer do
 
   @doc "Asynchronously decay scores for members who contradicted their step's verdict."
   def record_run(steps) do
-    Task.start(fn ->
-      Enum.each(steps, fn step ->
-        step_verdict = step.verdict
+    Task.start(fn -> Enum.each(steps, &process_step_results/1) end)
+  end
 
-        Enum.each(step.results || [], fn result ->
-          member_name = result[:member] || result.member
+  defp process_step_results(step) do
+    step_verdict = step.verdict
 
-          if member_name && result.verdict != step_verdict do
-            decay(member_name)
-          end
-        end)
-      end)
+    Enum.each(step.results || [], fn result ->
+      member_name = result[:member] || result.member
+      if member_name && result.verdict != step_verdict, do: decay(member_name)
     end)
   end
 

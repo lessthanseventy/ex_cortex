@@ -60,17 +60,19 @@ defmodule ExCalibur.Lore do
             create_entry(Map.put(attrs, :quest_id, quest.id))
         end
 
-      with {:ok, entry} <- result do
-        Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore", {:lore_updated, entry.title})
-        Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore_triggers", {:lore_entry_created, entry})
-
-        Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-          ExCalibur.Obsidian.Sync.sync_lore_entry(entry)
-        end)
-      end
+      with {:ok, entry} <- result, do: broadcast_and_sync(entry)
 
       result
     end
+  end
+
+  defp broadcast_and_sync(entry) do
+    Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore", {:lore_updated, entry.title})
+    Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore_triggers", {:lore_entry_created, entry})
+
+    Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+      ExCalibur.Obsidian.Sync.sync_lore_entry(entry)
+    end)
   end
 
   defp replace_or_create(quest, attrs) do

@@ -17,31 +17,7 @@ defmodule ExCalibur.Sources.EmailSource do
          {:ok, threads} <- search_threads(config) do
       new_threads = Enum.reject(threads, &MapSet.member?(state.seen_thread_ids, &1["thread"]))
 
-      items =
-        Enum.flat_map(new_threads, fn thread ->
-          thread_id = thread["thread"]
-
-          case fetch_thread(thread_id) do
-            {:ok, body} ->
-              subject = thread["subject"] || ""
-              from = extract_from(thread)
-
-              :ok = tag_thread_seen(thread_id)
-
-              [
-                %SourceItem{
-                  source_id: config["source_id"],
-                  type: "email",
-                  content: body,
-                  metadata: %{subject: subject, from: from}
-                }
-              ]
-
-            {:error, reason} ->
-              Logger.warning("[EmailSource] Failed to fetch thread #{thread_id}: #{inspect(reason)}")
-              []
-          end
-        end)
+      items = Enum.flat_map(new_threads, &process_thread(&1, config))
 
       new_seen =
         Enum.reduce(new_threads, state.seen_thread_ids, fn t, acc ->
@@ -53,6 +29,28 @@ defmodule ExCalibur.Sources.EmailSource do
       {:error, reason} ->
         Logger.warning("[EmailSource] fetch failed: #{inspect(reason)}")
         {:ok, [], state}
+    end
+  end
+
+  defp process_thread(thread, config) do
+    thread_id = thread["thread"]
+
+    case fetch_thread(thread_id) do
+      {:ok, body} ->
+        :ok = tag_thread_seen(thread_id)
+
+        [
+          %SourceItem{
+            source_id: config["source_id"],
+            type: "email",
+            content: body,
+            metadata: %{subject: thread["subject"] || "", from: extract_from(thread)}
+          }
+        ]
+
+      {:error, reason} ->
+        Logger.warning("[EmailSource] Failed to fetch thread #{thread_id}: #{inspect(reason)}")
+        []
     end
   end
 

@@ -30,7 +30,7 @@ defmodule ExCalibur.Tools.CreateGithubIssue do
         {:error, "no default_repo configured in settings — set it before using this tool"}
 
       repo ->
-        labels = Map.get(params, "labels", []) |> ensure_self_improvement_label()
+        labels = params |> Map.get("labels", []) |> ensure_self_improvement_label()
         args = build_args(title, body, repo, labels)
 
         case System.cmd("gh", args, stderr_to_stdout: true) do

@@ -64,102 +64,7 @@ defmodule ExCalibur.QuestRunner do
       try do
         {results, _} =
           Enum.reduce(steps_with_next, {[], input}, fn {step, next_step}, {acc_results, current_input} ->
-            case step["type"] do
-              "branch" ->
-                next_step_name =
-                  if next_step,
-                    do: resolve_step_name(next_step["step_id"] || next_step["synthesizer"])
-
-                result = run_branch_step(step, current_input)
-
-                synth_step_name =
-                  case resolve_step(step["synthesizer"]) do
-                    nil -> "Branch"
-                    s -> s.name
-                  end
-
-                next_input =
-                  case result_to_text(result, "Branch: #{synth_step_name}", next_step_name) do
-                    "" -> current_input
-                    text -> "#{current_input}\n\n#{text}"
-                  end
-
-                {acc_results ++ [result], next_input}
-
-              _ ->
-                step_id = step["step_id"] || step["quest_id"]
-                next_step_name = if next_step, do: resolve_step_name(next_step["step_id"] || next_step["quest_id"])
-
-                case resolve_step(step_id) do
-                  nil ->
-                    if is_nil(step_id),
-                      do: Logger.warning("[QuestRunner] Quest has a step with nil step_id — remove it via the Quests UI"),
-                      else: Logger.warning("[QuestRunner] Step #{step_id} not found, skipping")
-
-                    {acc_results ++ [{:error, :step_not_found}], current_input}
-
-                  resolved_step ->
-                    Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
-                    t0 = System.monotonic_time(:millisecond)
-
-                    result =
-                      Tracer.with_span "quest.step", %{
-                        attributes: %{
-                          "step.id" => resolved_step.id,
-                          "step.name" => resolved_step.name,
-                          "step.output_type" => resolved_step.output_type || "verdict"
-                        }
-                      } do
-                        r = StepRunner.run(resolved_step, current_input)
-                        Tracer.set_attributes(%{"step.status" => inspect_result(r)["status"]})
-                        r
-                      end
-
-                    ms = System.monotonic_time(:millisecond) - t0
-
-                    Logger.info(
-                      "[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}"
-                    )
-
-                    # Async learning loop — runs retrospect without blocking the quest
-                    step_run_data = %{id: quest_run.id, results: inspect_result(result), input: current_input}
-
-                    Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-                      LearningLoop.retrospect(resolved_step, step_run_data)
-                    end)
-
-                    # Check verdict gate — if gated, skip to the last step with BLOCKED context
-                    case check_gate(step, result) do
-                      {:gated, reason} ->
-                        Logger.info("[QuestRunner] GATED at #{resolved_step.name}: #{reason}")
-
-                        blocked_text =
-                          "## BLOCKED\n**Gated step:** #{resolved_step.name}\n**Verdict:** fail\n**Reason:** #{reason}\n\nThe quest was halted because this gate step returned a fail verdict."
-
-                        blocked_input = "#{current_input}\n\n#{blocked_text}"
-
-                        last_entry = List.last(ordered_steps)
-                        last_id = last_entry["step_id"] || last_entry["quest_id"]
-
-                        last_result =
-                          case resolve_step(last_id) do
-                            nil -> {:error, :step_not_found}
-                            ls -> StepRunner.run(ls, blocked_input)
-                          end
-
-                        throw({:gated, acc_results ++ [result, last_result]})
-
-                      :continue ->
-                        next_input =
-                          case result_to_text(result, resolved_step.name, next_step_name) do
-                            "" -> current_input
-                            text -> "#{current_input}\n\n#{text}"
-                          end
-
-                        {acc_results ++ [result], next_input}
-                    end
-                end
-            end
+            run_step_entry(step, next_step, current_input, acc_results, ordered_steps, quest_run)
           end)
 
         {results, false}
@@ -194,6 +99,113 @@ defmodule ExCalibur.QuestRunner do
     case List.last(results) do
       {:ok, _} = ok -> ok
       _ -> {:ok, %{steps: results}}
+    end
+  end
+
+  defp run_step_entry(%{"type" => "branch"} = step, next_step, current_input, acc_results, _ordered_steps, _quest_run) do
+    next_step_name =
+      if next_step,
+        do: resolve_step_name(next_step["step_id"] || next_step["synthesizer"])
+
+    result = run_branch_step(step, current_input)
+
+    synth_step_name =
+      case resolve_step(step["synthesizer"]) do
+        nil -> "Branch"
+        s -> s.name
+      end
+
+    next_input =
+      case result_to_text(result, "Branch: #{synth_step_name}", next_step_name) do
+        "" -> current_input
+        text -> "#{current_input}\n\n#{text}"
+      end
+
+    {acc_results ++ [result], next_input}
+  end
+
+  defp run_step_entry(step, next_step, current_input, acc_results, ordered_steps, quest_run) do
+    run_regular_step(step, next_step, current_input, acc_results, ordered_steps, quest_run)
+  end
+
+  defp run_regular_step(step, next_step, current_input, acc_results, ordered_steps, quest_run) do
+    step_id = step["step_id"] || step["quest_id"]
+    next_step_name = if next_step, do: resolve_step_name(next_step["step_id"] || next_step["quest_id"])
+
+    case resolve_step(step_id) do
+      nil ->
+        log_missing_step(step_id)
+        {acc_results ++ [{:error, :step_not_found}], current_input}
+
+      resolved_step ->
+        Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
+        t0 = System.monotonic_time(:millisecond)
+
+        result =
+          Tracer.with_span "quest.step", %{
+            attributes: %{
+              "step.id" => resolved_step.id,
+              "step.name" => resolved_step.name,
+              "step.output_type" => resolved_step.output_type || "verdict"
+            }
+          } do
+            r = StepRunner.run(resolved_step, current_input)
+            Tracer.set_attributes(%{"step.status" => inspect_result(r)["status"]})
+            r
+          end
+
+        ms = System.monotonic_time(:millisecond) - t0
+
+        Logger.info("[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
+
+        # Async learning loop — runs retrospect without blocking the quest
+        step_run_data = %{id: quest_run.id, results: inspect_result(result), input: current_input}
+
+        Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+          LearningLoop.retrospect(resolved_step, step_run_data)
+        end)
+
+        handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ordered_steps)
+    end
+  end
+
+  defp log_missing_step(nil) do
+    Logger.warning("[QuestRunner] Quest has a step with nil step_id — remove it via the Quests UI")
+  end
+
+  defp log_missing_step(step_id) do
+    Logger.warning("[QuestRunner] Step #{step_id} not found, skipping")
+  end
+
+  defp handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ordered_steps) do
+    case check_gate(step, result) do
+      {:gated, reason} ->
+        Logger.info("[QuestRunner] GATED at #{resolved_step.name}: #{reason}")
+
+        blocked_text =
+          "## BLOCKED\n**Gated step:** #{resolved_step.name}\n**Verdict:** fail\n**Reason:** #{reason}\n\nThe quest was halted because this gate step returned a fail verdict."
+
+        blocked_input = "#{current_input}\n\n#{blocked_text}"
+
+        last_entry = List.last(ordered_steps)
+        last_id = last_entry["step_id"] || last_entry["quest_id"]
+
+        last_result =
+          case resolve_step(last_id) do
+            nil -> {:error, :step_not_found}
+            ls -> StepRunner.run(ls, blocked_input)
+          end
+
+        throw({:gated, acc_results ++ [result, last_result]})
+
+      :continue ->
+        next_input =
+          case result_to_text(result, resolved_step.name, next_step_name) do
+            "" -> current_input
+            text -> "#{current_input}\n\n#{text}"
+          end
+
+        {acc_results ++ [result], next_input}
     end
   end
 

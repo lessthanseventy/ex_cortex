@@ -85,31 +85,7 @@ defmodule ExCalibur.StepRunner do
 
     ["apprentice", "journeyman", "master"]
     |> Enum.reduce_while(nil, fn rank, _acc ->
-      members = resolve_members(rank)
-
-      if members == [] do
-        {:cont, nil}
-      else
-        result = run(quest.roster, augmented, dangerous_tool_opts(quest))
-
-        case result do
-          {:ok, %{verdict: v, steps: steps}} = ok ->
-            avg_confidence =
-              steps
-              |> Enum.flat_map(& &1.results)
-              |> Enum.map(&Map.get(&1, :confidence, 0.5))
-              |> then(fn
-                [] -> 0.5
-                cs -> Enum.sum(cs) / length(cs)
-              end)
-
-            satisfied = avg_confidence >= threshold and v not in escalate_on
-            if satisfied, do: {:halt, ok}, else: {:cont, ok}
-
-          other ->
-            {:cont, other}
-        end
-      end
+      try_escalate_rank(rank, quest, augmented, threshold, escalate_on)
     end)
     |> then(fn
       nil -> {:ok, %{verdict: "abstain", steps: []}}
@@ -177,35 +153,8 @@ defmodule ExCalibur.StepRunner do
     roster = quest.roster || []
 
     case roster do
-      [] ->
-        {:error, :no_roster}
-
-      [step | _] ->
-        case resolve_members(step) do
-          [] ->
-            {:error, :no_roster}
-
-          [member | _] ->
-            should_rollback = has_write_tools?(quest.loop_tools || [])
-            if should_rollback, do: git_snapshot()
-
-            case call_member_raw(member, augmented, dangerous_tool_opts(quest)) do
-              {raw, tool_calls} when is_binary(raw) and raw != "" ->
-                {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
-
-              {raw, tool_calls} when is_binary(raw) ->
-                if should_rollback do
-                  Logger.info("[StepRunner] Empty response after tool iterations — rolling back")
-                  git_rollback()
-                end
-
-                {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
-
-              nil ->
-                if should_rollback, do: git_rollback()
-                {:error, :llm_failed}
-            end
-        end
+      [] -> {:error, :no_roster}
+      [step | _] -> run_freeform_step(step, augmented, quest)
     end
   end
 
@@ -214,57 +163,8 @@ defmodule ExCalibur.StepRunner do
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
     case run_artifact(quest, augmented) do
-      {:ok, attrs} ->
-        cards_spec = quest[:cards] || []
-
-        if cards_spec == [] do
-          card_type = attrs[:card_type] || parse_card_type(quest.description) || "note"
-          pin_slug = quest[:pin_slug]
-          pinned = quest[:pinned] || false
-
-          card_attrs = %{
-            type: card_type,
-            card_type: card_type,
-            title: attrs.title,
-            body: attrs.body,
-            tags: attrs[:tags] || [],
-            source: "quest",
-            quest_id: quest[:id],
-            metadata: attrs[:metadata] || %{},
-            pin_slug: pin_slug,
-            pinned: pinned,
-            pin_order: quest[:pin_order] || 0,
-            guild_name: quest[:guild_name]
-          }
-
-          ExCalibur.Lodge.post_card(card_attrs)
-          {:ok, %{lodge_card: card_attrs}}
-        else
-          posted =
-            Enum.map(cards_spec, fn spec ->
-              card_attrs = %{
-                type: spec["card_type"] || "briefing",
-                card_type: spec["card_type"] || "briefing",
-                title: attrs.title,
-                body: attrs.body,
-                tags: attrs[:tags] || [],
-                source: "quest",
-                quest_id: quest[:id],
-                metadata: attrs[:metadata] || %{},
-                pin_slug: spec["pin_slug"],
-                pinned: spec["pinned"] || false,
-                pin_order: spec["pin_order"] || 0,
-                guild_name: quest[:guild_name]
-              }
-
-              ExCalibur.Lodge.post_card(card_attrs)
-            end)
-
-          {:ok, %{lodge_cards: posted}}
-        end
-
-      error ->
-        error
+      {:ok, attrs} -> post_lodge_cards(quest, attrs)
+      error -> error
     end
   end
 
@@ -593,20 +493,30 @@ defmodule ExCalibur.StepRunner do
     lore_tool = Enum.find(tools, &(&1.name == "query_lore"))
 
     if lore_tool do
-      case ReqLLM.Tool.execute(lore_tool, %{"tags" => [], "limit" => 3}) do
-        {:ok, content} -> "Prior lore context (verdict was #{verdict}):\n#{content}"
-        _ -> ""
-      end
+      gather_lore_context(lore_tool, verdict)
     else
-      tools
-      |> Enum.map(fn tool ->
-        case ReqLLM.Tool.execute(tool, %{}) do
-          {:ok, result} -> to_string(result)
-          _ -> ""
-        end
-      end)
-      |> Enum.reject(&(&1 == ""))
-      |> Enum.join("\n")
+      gather_tool_context(tools)
+    end
+  end
+
+  defp gather_lore_context(lore_tool, verdict) do
+    case ReqLLM.Tool.execute(lore_tool, %{"tags" => [], "limit" => 3}) do
+      {:ok, content} -> "Prior lore context (verdict was #{verdict}):\n#{content}"
+      _ -> ""
+    end
+  end
+
+  defp gather_tool_context(tools) do
+    tools
+    |> Enum.map(&execute_tool_for_context/1)
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join("\n")
+  end
+
+  defp execute_tool_for_context(tool) do
+    case ReqLLM.Tool.execute(tool, %{}) do
+      {:ok, result} -> to_string(result)
+      _ -> ""
     end
   end
 
@@ -619,6 +529,120 @@ defmodule ExCalibur.StepRunner do
       dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",
       quest_id: Map.get(quest, :id)
     ]
+  end
+
+  defp try_escalate_rank(rank, quest, augmented, threshold, escalate_on) do
+    members = resolve_members(rank)
+
+    if members == [] do
+      {:cont, nil}
+    else
+      result = run(quest.roster, augmented, dangerous_tool_opts(quest))
+      evaluate_escalate_result(result, threshold, escalate_on)
+    end
+  end
+
+  defp evaluate_escalate_result({:ok, %{verdict: v, steps: steps}} = ok, threshold, escalate_on) do
+    avg_confidence = average_step_confidence(steps)
+    satisfied = avg_confidence >= threshold and v not in escalate_on
+    if satisfied, do: {:halt, ok}, else: {:cont, ok}
+  end
+
+  defp evaluate_escalate_result(other, _threshold, _escalate_on), do: {:cont, other}
+
+  defp average_step_confidence(steps) do
+    steps
+    |> Enum.flat_map(& &1.results)
+    |> Enum.map(&Map.get(&1, :confidence, 0.5))
+    |> then(fn
+      [] -> 0.5
+      cs -> Enum.sum(cs) / length(cs)
+    end)
+  end
+
+  defp run_freeform_step(step, augmented, quest) do
+    case resolve_members(step) do
+      [] -> {:error, :no_roster}
+      [member | _] -> run_freeform_member(member, augmented, quest)
+    end
+  end
+
+  defp run_freeform_member(member, augmented, quest) do
+    should_rollback = has_write_tools?(quest.loop_tools || [])
+    if should_rollback, do: git_snapshot()
+
+    case call_member_raw(member, augmented, dangerous_tool_opts(quest)) do
+      {raw, tool_calls} when is_binary(raw) and raw != "" ->
+        {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
+
+      {raw, tool_calls} when is_binary(raw) ->
+        if should_rollback do
+          Logger.info("[StepRunner] Empty response after tool iterations — rolling back")
+          git_rollback()
+        end
+
+        {:ok, %{output: raw, member: member.name, tool_calls: tool_calls}}
+
+      nil ->
+        if should_rollback, do: git_rollback()
+        {:error, :llm_failed}
+    end
+  end
+
+  defp post_lodge_cards(quest, attrs) do
+    cards_spec = quest[:cards] || []
+
+    if cards_spec == [] do
+      post_single_lodge_card(quest, attrs)
+    else
+      post_multi_lodge_cards(quest, attrs, cards_spec)
+    end
+  end
+
+  defp post_single_lodge_card(quest, attrs) do
+    card_type = attrs[:card_type] || parse_card_type(quest.description) || "note"
+
+    card_attrs = %{
+      type: card_type,
+      card_type: card_type,
+      title: attrs.title,
+      body: attrs.body,
+      tags: attrs[:tags] || [],
+      source: "quest",
+      quest_id: quest[:id],
+      metadata: attrs[:metadata] || %{},
+      pin_slug: quest[:pin_slug],
+      pinned: quest[:pinned] || false,
+      pin_order: quest[:pin_order] || 0,
+      guild_name: quest[:guild_name]
+    }
+
+    ExCalibur.Lodge.post_card(card_attrs)
+    {:ok, %{lodge_card: card_attrs}}
+  end
+
+  defp post_multi_lodge_cards(quest, attrs, cards_spec) do
+    posted =
+      Enum.map(cards_spec, fn spec ->
+        card_attrs = %{
+          type: spec["card_type"] || "briefing",
+          card_type: spec["card_type"] || "briefing",
+          title: attrs.title,
+          body: attrs.body,
+          tags: attrs[:tags] || [],
+          source: "quest",
+          quest_id: quest[:id],
+          metadata: attrs[:metadata] || %{},
+          pin_slug: spec["pin_slug"],
+          pinned: spec["pinned"] || false,
+          pin_order: spec["pin_order"] || 0,
+          guild_name: quest[:guild_name]
+        }
+
+        ExCalibur.Lodge.post_card(card_attrs)
+      end)
+
+    {:ok, %{lodge_cards: posted}}
   end
 
   defp default_claude_prompt do
@@ -650,28 +674,7 @@ defmodule ExCalibur.StepRunner do
       steps ->
         # Multi-step: run all but last in reasoning mode, thread outputs to final step
         {prelim_steps, [final_step]} = Enum.split(steps, length(steps) - 1)
-
-        reasoning_context =
-          Enum.map_join(prelim_steps, "\n\n", fn step ->
-            members = resolve_members(step)
-            label = step["label"] || step["who"] || "Analyst"
-
-            member_outputs =
-              Enum.map_join(members, "\n\n", fn member ->
-                reasoning_prompt = reasoning_system_prompt(member, step)
-
-                text =
-                  case ExCalibur.LLM.complete(member.provider, member.model, reasoning_prompt, input_text) do
-                    {:ok, t} -> t
-                    _ -> "(no response)"
-                  end
-
-                "**#{member.name}:** #{String.slice(text, 0, 500)}"
-              end)
-
-            "### #{label}\n#{member_outputs}"
-          end)
-
+        reasoning_context = build_reasoning_context(prelim_steps, input_text)
         augmented = "#{input_text}\n\n---\n## Team Analysis\n#{reasoning_context}"
         run_artifact_step(final_step, augmented, quest)
     end
@@ -701,6 +704,30 @@ defmodule ExCalibur.StepRunner do
         {:error, :llm_failed}
       end
     end
+  end
+
+  defp build_reasoning_context(prelim_steps, input_text) do
+    Enum.map_join(prelim_steps, "\n\n", fn step ->
+      label = step["label"] || step["who"] || "Analyst"
+      member_outputs = build_step_member_outputs(step, input_text)
+      "### #{label}\n#{member_outputs}"
+    end)
+  end
+
+  defp build_step_member_outputs(step, input_text) do
+    members = resolve_members(step)
+
+    Enum.map_join(members, "\n\n", fn member ->
+      reasoning_prompt = reasoning_system_prompt(member, step)
+
+      text =
+        case ExCalibur.LLM.complete(member.provider, member.model, reasoning_prompt, input_text) do
+          {:ok, t} -> t
+          _ -> "(no response)"
+        end
+
+      "**#{member.name}:** #{String.slice(text, 0, 500)}"
+    end)
   end
 
   defp reasoning_system_prompt(member, step) do
@@ -735,48 +762,57 @@ defmodule ExCalibur.StepRunner do
   end
 
   defp parse_artifact(text, fallback_title) do
-    title =
-      case Regex.run(~r/^TITLE:\s*(.+)$/m, text) do
-        [_, t] -> String.trim(t)
-        _ -> fallback_title
-      end
+    %{
+      title: parse_artifact_title(text, fallback_title),
+      body: parse_artifact_body(text),
+      tags: parse_artifact_tags(text),
+      importance: parse_artifact_importance(text),
+      card_type: parse_artifact_card_type(text),
+      source: "step"
+    }
+  end
 
-    importance =
-      case Regex.run(~r/^IMPORTANCE:\s*(\d)$/m, text) do
-        [_, n] ->
-          val = String.to_integer(n)
-          if val in 1..5, do: val
+  defp parse_artifact_title(text, fallback_title) do
+    case Regex.run(~r/^TITLE:\s*(.+)$/m, text) do
+      [_, t] -> String.trim(t)
+      _ -> fallback_title
+    end
+  end
 
-        _ ->
-          nil
-      end
+  defp parse_artifact_importance(text) do
+    case Regex.run(~r/^IMPORTANCE:\s*(\d)$/m, text) do
+      [_, n] ->
+        val = String.to_integer(n)
+        if val in 1..5, do: val
 
-    tags =
-      case Regex.run(~r/^TAGS:\s*(.+)$/m, text) do
-        [_, t] ->
-          t |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+      _ ->
+        nil
+    end
+  end
 
-        _ ->
-          []
-      end
+  defp parse_artifact_tags(text) do
+    case Regex.run(~r/^TAGS:\s*(.+)$/m, text) do
+      [_, t] -> t |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+      _ -> []
+    end
+  end
 
-    body =
-      case Regex.run(~r/^BODY:\s*\n(.*)/ms, text) do
-        [_, b] -> String.trim(b)
-        _ -> text
-      end
+  defp parse_artifact_body(text) do
+    case Regex.run(~r/^BODY:\s*\n(.*)/ms, text) do
+      [_, b] -> String.trim(b)
+      _ -> text
+    end
+  end
 
-    card_type =
-      case Regex.run(~r/^CARD_TYPE:\s*(.+)$/m, text) do
-        [_, ct] ->
-          ct = ct |> String.trim() |> String.downcase()
-          if ct in ~w(note checklist meeting alert link briefing action_list table media metric freeform), do: ct
+  defp parse_artifact_card_type(text) do
+    case Regex.run(~r/^CARD_TYPE:\s*(.+)$/m, text) do
+      [_, ct] ->
+        ct = ct |> String.trim() |> String.downcase()
+        if ct in ~w(note checklist meeting alert link briefing action_list table media metric freeform), do: ct
 
-        _ ->
-          nil
-      end
-
-    %{title: title, body: body, tags: tags, importance: importance, card_type: card_type, source: "step"}
+      _ ->
+        nil
+    end
   end
 
   @valid_card_types ~w(note checklist meeting alert link briefing action_list table media metric freeform)

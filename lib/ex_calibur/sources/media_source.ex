@@ -51,16 +51,7 @@ defmodule ExCalibur.Sources.MediaSource do
   defp list_videos(url) do
     case System.cmd("yt-dlp", ["--flat-playlist", "--dump-json", url], stderr_to_stdout: true) do
       {output, 0} ->
-        videos =
-          output
-          |> String.split("\n", trim: true)
-          |> Enum.flat_map(fn line ->
-            case Jason.decode(line) do
-              {:ok, entry} -> [parse_video_entry(entry)]
-              {:error, _} -> []
-            end
-          end)
-
+        videos = output |> String.split("\n", trim: true) |> Enum.flat_map(&decode_video_line/1)
         {:ok, videos}
 
       {output, code} ->
@@ -68,6 +59,13 @@ defmodule ExCalibur.Sources.MediaSource do
     end
   rescue
     e -> {:error, Exception.message(e)}
+  end
+
+  defp decode_video_line(line) do
+    case Jason.decode(line) do
+      {:ok, entry} -> [parse_video_entry(entry)]
+      {:error, _} -> []
+    end
   end
 
   defp parse_video_entry(entry) do

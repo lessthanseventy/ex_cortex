@@ -52,21 +52,19 @@ defmodule ExCaliburWeb.SettingsLive do
     section = String.to_existing_atom(section_str)
     form_data = Map.get(params, "settings", %{})
     keys = Enum.map(@sections[section], fn {k, _, _, _} -> k end)
-
-    Enum.each(keys, fn key ->
-      value = Map.get(form_data, Atom.to_string(key))
-
-      case key do
-        :obsidian_sync_enabled ->
-          Settings.put(key, value == "true" || value == true)
-
-        _ ->
-          if value && value != "", do: Settings.put(key, value)
-      end
-    end)
-
+    Enum.each(keys, fn key -> save_setting(key, Map.get(form_data, Atom.to_string(key))) end)
     {:noreply, assign(socket, settings: load_all_settings(), saved: section)}
   end
+
+  defp save_setting(:obsidian_sync_enabled, value) do
+    Settings.put(:obsidian_sync_enabled, value == "true" || value == true)
+  end
+
+  defp save_setting(key, value) when is_binary(value) and value != "" do
+    Settings.put(key, value)
+  end
+
+  defp save_setting(_key, _value), do: :ok
 
   defp load_all_settings do
     all = Settings.get_all()

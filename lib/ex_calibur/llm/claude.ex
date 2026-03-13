@@ -111,9 +111,7 @@ defmodule ExCalibur.LLM.Claude do
             {next_context, new_entries, new_bs} =
               execute_tools_with_log(response.context, calls, tools, breaker_state, opts)
 
-            Enum.each(new_entries, fn %{tool: name, output: out} ->
-              Logger.debug("[Claude] tool #{name} → #{String.slice(to_string(out), 0, 120)}")
-            end)
+            Enum.each(new_entries, &log_tool_entry/1)
 
             run_agent_loop(model_spec, next_context, tools, iter + 1, tool_log ++ new_entries, new_bs, max_iter, opts)
         end
@@ -136,75 +134,80 @@ defmodule ExCalibur.LLM.Claude do
     Enum.reduce(calls, {context, [], breaker_state}, fn call, {ctx, log, bs} ->
       {name, id} = extract_call_info(call)
       args = extract_call_args(call)
-
-      prior_count = Map.get(bs, name, 0)
-
-      {output, result_content, new_bs} =
-        if prior_count >= 3 do
-          out =
-            "Tool #{name} returned empty results #{prior_count} times. Skipping — proceed with available information."
-
-          Logger.debug("[Claude] circuit breaker: skipping #{name}")
-          {out, out, bs}
-        else
-          if ExCalibur.StepRunner.dangerous?(name) and dangerous_mode != "execute" do
-            case dangerous_mode do
-              "dry_run" ->
-                out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
-                Logger.info("[Claude] dry_run: #{name}")
-                {out, out, bs}
-
-              "intercept" ->
-                ExCalibur.StepRunner.intercept_dangerous_tool(name, args, quest_id)
-
-                out =
-                  "Tool call queued for human approval. Proposal ID: #{quest_id}. Continue without this result."
-
-                Logger.info("[Claude] intercepted: #{name}")
-                {out, out, bs}
-            end
-          else
-            tool = Enum.find(tools, &(&1.name == name))
-
-            {_result, out, content} =
-              Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
-                r =
-                  if tool,
-                    do: ReqLLM.Tool.execute(tool, args),
-                    else: {:error, "Tool #{name} not found"}
-
-                o =
-                  case r do
-                    {:ok, v} -> to_string(v)
-                    {:error, e} -> "Error: #{inspect(e)}"
-                  end
-
-                c =
-                  case r do
-                    {:ok, v} -> to_string(v)
-                    {:error, e} -> Jason.encode!(%{error: to_string(e)})
-                  end
-
-                Tracer.set_attributes(%{
-                  "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
-                  "tool.output_bytes" => byte_size(o)
-                })
-
-                {r, o, c}
-              end
-
-            case ExCalibur.LLM.Ollama.check_circuit_breaker(name, out, bs) do
-              {:tripped, updated_bs} -> {out, content, updated_bs}
-              {:ok, updated_bs} -> {out, content, updated_bs}
-            end
-          end
-        end
-
+      {output, result_content, new_bs} = execute_single_call(name, args, tools, bs, dangerous_mode, quest_id)
       msg = ReqLLM.Context.tool_result(id, name, result_content)
       next_ctx = ReqLLM.Context.append(ctx, msg)
-      entry = %{tool: name, input: args, output: output}
-      {next_ctx, log ++ [entry], new_bs}
+      {next_ctx, log ++ [%{tool: name, input: args, output: output}], new_bs}
     end)
+  end
+
+  defp execute_single_call(name, args, tools, bs, dangerous_mode, quest_id) do
+    prior_count = Map.get(bs, name, 0)
+    do_execute_call(name, args, tools, bs, dangerous_mode, quest_id, prior_count)
+  end
+
+  defp do_execute_call(name, _args, _tools, bs, _mode, _quest_id, prior_count) when prior_count >= 3 do
+    out = "Tool #{name} returned empty results #{prior_count} times. Skipping — proceed with available information."
+    Logger.debug("[Claude] circuit breaker: skipping #{name}")
+    {out, out, bs}
+  end
+
+  defp do_execute_call(name, args, tools, bs, dangerous_mode, quest_id, _prior_count) do
+    if ExCalibur.StepRunner.dangerous?(name) and dangerous_mode != "execute" do
+      execute_dangerous_call(name, args, bs, dangerous_mode, quest_id)
+    else
+      execute_safe_call(name, args, tools, bs)
+    end
+  end
+
+  defp execute_dangerous_call(name, args, bs, "dry_run", _quest_id) do
+    out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
+    Logger.info("[Claude] dry_run: #{name}")
+    {out, out, bs}
+  end
+
+  defp execute_dangerous_call(name, args, bs, "intercept", quest_id) do
+    ExCalibur.StepRunner.intercept_dangerous_tool(name, args, quest_id)
+    out = "Tool call queued for human approval. Proposal ID: #{quest_id}. Continue without this result."
+    Logger.info("[Claude] intercepted: #{name}")
+    {out, out, bs}
+  end
+
+  defp execute_safe_call(name, args, tools, bs) do
+    tool = Enum.find(tools, &(&1.name == name))
+
+    {_result, out, content} =
+      Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
+        r = if tool, do: ReqLLM.Tool.execute(tool, args), else: {:error, "Tool #{name} not found"}
+
+        o =
+          case r do
+            {:ok, v} -> to_string(v)
+            {:error, e} -> "Error: #{inspect(e)}"
+          end
+
+        c =
+          case r do
+            {:ok, v} -> to_string(v)
+            {:error, e} -> Jason.encode!(%{error: to_string(e)})
+          end
+
+        Tracer.set_attributes(%{
+          "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
+          "tool.output_bytes" => byte_size(o)
+        })
+
+        {r, o, c}
+      end
+
+    case ExCalibur.LLM.Ollama.check_circuit_breaker(name, out, bs) do
+      {:tripped, updated_bs} -> {out, content, updated_bs}
+      {:ok, updated_bs} -> {out, content, updated_bs}
+    end
+  end
+
+  defp log_tool_entry(%{tool: name, output: out}) do
+    Logger.debug("[Claude] tool #{name} → #{String.slice(to_string(out), 0, 120)}")
   end
 
   defp extract_call_info(%ReqLLM.ToolCall{id: id, function: %{name: name}}), do: {name, id}

@@ -118,80 +118,83 @@ defmodule ExCalibur.Board do
     not_installed_ids = flat_requirements(templates, :not_installed)
     needs_members = Enum.any?(templates, &(:any_members in (&1.requires || [])))
 
-    present_source_types =
-      if source_types == [] do
-        MapSet.new()
-      else
-        from(s in Source,
-          where: s.source_type in ^source_types and s.status in ["active", "paused"],
-          select: s.source_type
-        )
-        |> Repo.all()
-        |> MapSet.new()
-      end
-
-    present_herald_types =
-      if herald_types == [] do
-        MapSet.new()
-      else
-        from(h in Herald, where: h.type in ^herald_types, select: h.type)
-        |> Repo.all()
-        |> MapSet.new()
-      end
+    present_source_types = fetch_present_source_types(source_types)
+    present_herald_types = fetch_present_herald_types(herald_types)
 
     has_active_members =
-      needs_members &&
-        Repo.exists?(from(m in Member, where: m.type == "role" and m.status == "active"))
+      needs_members && Repo.exists?(from(m in Member, where: m.type == "role" and m.status == "active"))
 
-    installed_prefixes =
-      if not_installed_ids == [] do
-        MapSet.new()
-      else
-        prefixes = Enum.map(not_installed_ids, &template_id_to_quest_prefix/1)
-
-        from(q in Quest,
-          where: q.status in ["active", "paused"],
-          select: q.name
-        )
-        |> Repo.all()
-        |> then(fn names ->
-          Enum.filter(prefixes, fn prefix ->
-            Enum.any?(names, &String.contains?(&1, prefix))
-          end)
-        end)
-        |> MapSet.new()
-      end
+    installed_prefixes = fetch_installed_prefixes(not_installed_ids)
 
     Enum.map(templates, fn template ->
       reqs =
-        Enum.map(template.requires || [], fn
-          {:source_type, type} ->
-            {MapSet.member?(present_source_types, type), "#{humanize(type)} source"}
-
-          {:herald_type, type} ->
-            {MapSet.member?(present_herald_types, type), "#{humanize(type)} herald"}
-
-          :any_members ->
-            {has_active_members, "Active members"}
-
-          {:not_installed, id} ->
-            prefix = template_id_to_quest_prefix(id)
-            {!MapSet.member?(installed_prefixes, prefix), "Not included in #{humanize(id)}"}
-        end)
+        check_requirements_batched(
+          template,
+          present_source_types,
+          present_herald_types,
+          has_active_members,
+          installed_prefixes
+        )
 
       missing = Enum.count(reqs, fn {met, _} -> !met end)
-
-      readiness =
-        cond do
-          reqs == [] -> :ready
-          missing == 0 -> :ready
-          missing == 1 -> :almost
-          true -> :unavailable
-        end
-
+      readiness = compute_readiness(reqs, missing)
       %{template: template, requirements: reqs, readiness: readiness}
     end)
   end
+
+  defp fetch_present_source_types([]), do: MapSet.new()
+
+  defp fetch_present_source_types(source_types) do
+    from(s in Source, where: s.source_type in ^source_types and s.status in ["active", "paused"], select: s.source_type)
+    |> Repo.all()
+    |> MapSet.new()
+  end
+
+  defp fetch_present_herald_types([]), do: MapSet.new()
+
+  defp fetch_present_herald_types(herald_types) do
+    from(h in Herald, where: h.type in ^herald_types, select: h.type)
+    |> Repo.all()
+    |> MapSet.new()
+  end
+
+  defp fetch_installed_prefixes([]), do: MapSet.new()
+
+  defp fetch_installed_prefixes(not_installed_ids) do
+    prefixes = Enum.map(not_installed_ids, &template_id_to_quest_prefix/1)
+    quest_names = Repo.all(from(q in Quest, where: q.status in ["active", "paused"], select: q.name))
+
+    prefixes
+    |> Enum.filter(fn prefix -> Enum.any?(quest_names, &String.contains?(&1, prefix)) end)
+    |> MapSet.new()
+  end
+
+  defp check_requirements_batched(
+         template,
+         present_source_types,
+         present_herald_types,
+         has_active_members,
+         installed_prefixes
+       ) do
+    Enum.map(template.requires || [], fn
+      {:source_type, type} ->
+        {MapSet.member?(present_source_types, type), "#{humanize(type)} source"}
+
+      {:herald_type, type} ->
+        {MapSet.member?(present_herald_types, type), "#{humanize(type)} herald"}
+
+      :any_members ->
+        {has_active_members, "Active members"}
+
+      {:not_installed, id} ->
+        {!MapSet.member?(installed_prefixes, template_id_to_quest_prefix(id)), "Not included in #{humanize(id)}"}
+    end)
+  end
+
+  defp compute_readiness([], _missing), do: :ready
+  defp compute_readiness(_reqs, 0), do: :ready
+  defp compute_readiness(_reqs, 1), do: :almost
+  defp compute_readiness(_reqs, _), do: :unavailable
 
   defp flat_requirements(templates, type) do
     templates
@@ -211,94 +214,101 @@ defmodule ExCalibur.Board do
   def install(%__MODULE__{} = template) do
     require Logger
 
-    Enum.each(template.step_definitions || [], fn attrs ->
-      case ExCalibur.Quests.create_step(attrs) do
-        {:ok, step} ->
-          Logger.debug("[Board] Created step #{step.id} (#{step.name})")
-
-        {:error, changeset} ->
-          errors = ExCalibur.Board.changeset_errors(changeset)
-
-          if Enum.any?(changeset.errors, fn {field, {_, opts}} ->
-               field == :name && opts[:constraint] == :unique
-             end) do
-            Logger.debug("[Board] Step already exists: #{attrs[:name] || attrs["name"]}")
-          else
-            Logger.warning("[Board] Failed to create step #{inspect(attrs[:name] || attrs["name"])}: #{inspect(errors)}")
-          end
-      end
-    end)
+    Enum.each(template.step_definitions || [], &install_step/1)
 
     step_by_name = Map.new(ExCalibur.Quests.list_steps(), &{&1.name, &1.id})
 
+    result = install_main_quest(template, step_by_name)
+
+    Enum.each(template.extra_quests || [], &install_extra_quest(&1, step_by_name))
+    Enum.each(template.source_definitions || [], &install_source/1)
+
+    result
+  end
+
+  defp install_step(attrs) do
+    require Logger
+
+    case ExCalibur.Quests.create_step(attrs) do
+      {:ok, step} ->
+        Logger.debug("[Board] Created step #{step.id} (#{step.name})")
+
+      {:error, changeset} ->
+        if unique_name_conflict?(changeset) do
+          Logger.debug("[Board] Step already exists: #{attrs[:name] || attrs["name"]}")
+        else
+          Logger.warning(
+            "[Board] Failed to create step #{inspect(attrs[:name] || attrs["name"])}: #{inspect(changeset_errors(changeset))}"
+          )
+        end
+    end
+  end
+
+  defp install_main_quest(%{quest_definition: nil}, _step_by_name), do: {:ok, nil}
+
+  defp install_main_quest(%{quest_definition: quest_def, id: template_id} = _template, step_by_name) do
+    require Logger
+
     steps =
-      (template.quest_definition || %{steps: []}).steps
-      |> Kernel.||([])
+      (quest_def.steps || [])
       |> Enum.map(fn step ->
         resolved_id = Map.get(step_by_name, step["step_name"])
 
         if !resolved_id do
           Logger.warning(
-            "[Board] Could not resolve step \"#{step["step_name"]}\" for template #{template.id} — step missing from DB"
+            "[Board] Could not resolve step \"#{step["step_name"]}\" for template #{template_id} — step missing from DB"
           )
         end
 
         %{"step_id" => resolved_id, "flow" => step["flow"]}
       end)
-      |> Enum.reject(fn step -> is_nil(step["step_id"]) end)
+      |> Enum.reject(&is_nil(&1["step_id"]))
 
-    result =
-      if template.quest_definition do
-        ExCalibur.Quests.create_quest(Map.put(template.quest_definition, :steps, steps))
-      else
-        {:ok, nil}
-      end
+    ExCalibur.Quests.create_quest(Map.put(quest_def, :steps, steps))
+  end
 
-    Enum.each(template.extra_quests || [], fn quest_def ->
-      quest_steps =
-        (quest_def.steps || [])
-        |> Enum.map(fn step ->
-          %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
-        end)
-        |> Enum.reject(fn step -> is_nil(step["step_id"]) end)
+  defp install_extra_quest(quest_def, step_by_name) do
+    require Logger
 
-      attrs = Map.put(quest_def, :steps, quest_steps)
+    quest_steps =
+      (quest_def.steps || [])
+      |> Enum.map(fn step ->
+        %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
+      end)
+      |> Enum.reject(&is_nil(&1["step_id"]))
 
-      case ExCalibur.Quests.create_quest(attrs) do
-        {:ok, _} ->
-          :ok
+    case ExCalibur.Quests.create_quest(Map.put(quest_def, :steps, quest_steps)) do
+      {:ok, _} ->
+        :ok
 
-        {:error, changeset} ->
-          if Enum.any?(changeset.errors, fn {field, {_, opts}} ->
-               field == :name && opts[:constraint] == :unique
-             end) do
-            Logger.debug("[Board] Quest already exists: #{quest_def.name}")
-          else
-            Logger.warning("[Board] Failed to create quest #{quest_def.name}: #{inspect(changeset_errors(changeset))}")
-          end
-      end
+      {:error, changeset} ->
+        if unique_name_conflict?(changeset) do
+          Logger.debug("[Board] Quest already exists: #{quest_def.name}")
+        else
+          Logger.warning("[Board] Failed to create quest #{quest_def.name}: #{inspect(changeset_errors(changeset))}")
+        end
+    end
+  end
+
+  defp install_source(source_def) do
+    exists =
+      Repo.exists?(from(s in Source, where: s.name == ^source_def.name and s.source_type == ^source_def.source_type))
+
+    if !exists do
+      Repo.insert(%Source{
+        name: source_def.name,
+        source_type: source_def.source_type,
+        config: source_def.config,
+        status: "active",
+        book_id: source_def[:book_id]
+      })
+    end
+  end
+
+  defp unique_name_conflict?(changeset) do
+    Enum.any?(changeset.errors, fn {field, {_, opts}} ->
+      field == :name && opts[:constraint] == :unique
     end)
-
-    Enum.each(template.source_definitions || [], fn source_def ->
-      existing =
-        Repo.exists?(
-          from(s in Source,
-            where: s.name == ^source_def.name and s.source_type == ^source_def.source_type
-          )
-        )
-
-      if !existing do
-        Repo.insert(%Source{
-          name: source_def.name,
-          source_type: source_def.source_type,
-          config: source_def.config,
-          status: "active",
-          book_id: source_def[:book_id]
-        })
-      end
-    end)
-
-    result
   end
 
   @doc """

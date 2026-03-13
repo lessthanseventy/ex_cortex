@@ -187,14 +187,14 @@ defmodule ExCaliburWeb.TownSquareLive do
       step_by_name = Map.new(Quests.list_steps(), &{&1.name, &1.id})
 
       Enum.each(mod.campaign_definitions(), fn attrs ->
-        steps =
-          Enum.map(attrs.steps, fn step ->
-            %{"step_id" => Map.get(step_by_name, step["quest_name"] || step["step_name"]), "flow" => step["flow"]}
-          end)
-
+        steps = Enum.map(attrs.steps, &resolve_quest_step(&1, step_by_name))
         Quests.create_quest(Map.put(attrs, :steps, steps))
       end)
     end
+  end
+
+  defp resolve_quest_step(step, step_by_name) do
+    %{"step_id" => Map.get(step_by_name, step["quest_name"] || step["step_name"]), "flow" => step["flow"]}
   end
 
   defp post_install("Dev Team") do

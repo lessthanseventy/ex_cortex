@@ -33,48 +33,37 @@ defmodule ExCalibur.Tools.AnalyzeVideo do
       include_audio = Map.get(params, "include_audio", false)
       output_dir = ExCalibur.Media.job_dir()
 
-      with {:ok, _extract_msg} <-
-             ExCalibur.Tools.ExtractFrames.call(%{
-               "input" => path,
-               "mode" => mode,
-               "output_dir" => output_dir
-             }) do
-        frames =
-          output_dir
-          |> File.ls!()
-          |> Enum.filter(&String.ends_with?(&1, ".jpg"))
-          |> Enum.sort()
-
-        frame_descriptions =
-          frames
-          |> Enum.with_index(1)
-          |> Enum.map(fn {frame_name, idx} ->
-            frame_path = Path.join(output_dir, frame_name)
-
-            case ExCalibur.Vision.describe(frame_path, "Briefly describe what is happening in this video frame.") do
-              {:ok, desc} -> "Frame #{idx}: #{desc}"
-              {:error, reason} -> "Frame #{idx}: [error: #{reason}]"
-            end
-          end)
-
-        timeline = Enum.join(frame_descriptions, "\n")
-
-        result =
-          if include_audio do
-            audio_result = try_audio_transcription(path, output_dir)
-
-            case audio_result do
-              {:ok, transcript} -> "#{timeline}\n\nAudio Transcript:\n#{transcript}"
-              _ -> timeline
-            end
-          else
-            timeline
-          end
-
-        {:ok, result}
+      with {:ok, _} <- ExCalibur.Tools.ExtractFrames.call(%{"input" => path, "mode" => mode, "output_dir" => output_dir}) do
+        timeline = build_timeline(output_dir)
+        {:ok, build_result(timeline, path, output_dir, include_audio)}
       end
     else
       {:error, "File not found: #{path}"}
+    end
+  end
+
+  defp build_timeline(output_dir) do
+    output_dir
+    |> File.ls!()
+    |> Enum.filter(&String.ends_with?(&1, ".jpg"))
+    |> Enum.sort()
+    |> Enum.with_index(1)
+    |> Enum.map_join("\n", fn {name, idx} -> describe_frame(Path.join(output_dir, name), idx) end)
+  end
+
+  defp describe_frame(frame_path, idx) do
+    case ExCalibur.Vision.describe(frame_path, "Briefly describe what is happening in this video frame.") do
+      {:ok, desc} -> "Frame #{idx}: #{desc}"
+      {:error, reason} -> "Frame #{idx}: [error: #{reason}]"
+    end
+  end
+
+  defp build_result(timeline, _path, _output_dir, false), do: timeline
+
+  defp build_result(timeline, path, output_dir, true) do
+    case try_audio_transcription(path, output_dir) do
+      {:ok, transcript} -> "#{timeline}\n\nAudio Transcript:\n#{transcript}"
+      _ -> timeline
     end
   end
 

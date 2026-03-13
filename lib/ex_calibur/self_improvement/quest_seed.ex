@@ -3,6 +3,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
   import Ecto.Query
 
+  alias ExCalibur.Lore.LoreEntry
   alias ExCalibur.Quests
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Quests.Step
@@ -16,6 +17,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     "SI: QA",
     "SI: UX Designer",
     "SI: PM Merge Decision",
+    "SI: Static Analysis",
     "SI: Product Analyst Sweep"
   ]
 
@@ -28,8 +30,9 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     with {:ok, source} <- create_source(repo),
          {:ok, steps} <- create_steps(),
          {:ok, quest} <- create_quest(source, steps),
+         {:ok, analysis_step} <- create_static_analysis_step(),
          {:ok, sweep_step} <- create_sweep_step(),
-         {:ok, sweep_quest} <- create_sweep_quest(sweep_step) do
+         {:ok, sweep_quest} <- create_sweep_quest(analysis_step, sweep_step) do
       seed_lore()
       {:ok, %{source: source, steps: steps, quest: quest, sweep_quest: sweep_quest}}
     end
@@ -274,22 +277,57 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     })
   end
 
+  defp create_static_analysis_step do
+    Quests.create_step(%{
+      name: "SI: Static Analysis",
+      description: """
+      Run static analysis tools and output the raw results. Do not interpret or filter them.
+
+      1. Run `mix credo --all` via run_sandbox.
+      2. Run `mix deps.audit` via run_sandbox.
+
+      Format your output exactly like this:
+
+      ## Credo Findings
+      <full credo output>
+
+      ## Dependency Audit
+      <full deps.audit output>
+
+      That is all. Do not file issues, do not draw conclusions, do not make recommendations.
+      The next step will analyze these findings.
+      """,
+      trigger: "manual",
+      output_type: "freeform",
+      dangerous_tool_mode: "intercept",
+      max_tool_iterations: 5,
+      roster: [
+        %{
+          "who" => "apprentice",
+          "how" => "solo",
+          "when" => "sequential"
+        }
+      ]
+    })
+  end
+
   defp create_sweep_step do
     Quests.create_step(%{
       name: "SI: Product Analyst Sweep",
       description: """
-      Product Analyst proactively analyzes the codebase, runs credo, checks lore, and files up to 3 GitHub issues labeled self-improvement.
+      Product Analyst analyzes the static analysis findings from the previous step and
+      files up to 3 high-value GitHub issues labeled self-improvement.
+
+      Your context includes the full credo and deps.audit output from the Static Analysis step.
 
       IMPORTANT — before filing any issue:
-      1. Query lore for "credo baseline" to get the full list of pre-existing credo issues. Do NOT file issues for anything on that list.
+      1. Cross-reference against the credo baseline in your lore. Do NOT file issues for anything on that list.
       2. Search GitHub to confirm the issue does not already exist as an open issue.
-      3. Only file issues for NEW problems not in the baseline, or problems you cannot fix directly in this session.
+      3. Only file issues for NEW problems not in the baseline, or architectural issues worth addressing.
 
-      If you write or modify any files (tests, source code, config), you MUST run `mix test` via run_sandbox afterward.
-      If the sandbox returns a compile error or test failure, fix the issue immediately — read the failing file, diagnose the error, correct it, and re-run.
-      Do NOT file a GitHub issue for a problem you introduced. Only file issues for pre-existing problems you cannot fix in this session.
-
-      Query lore before writing Elixir tests — the grimoire contains important testing patterns for this codebase.
+      You may also browse the codebase (read_file, list_files) to understand context around any finding.
+      File at most 3 issues total. Quality over quantity — a real bug or clear pattern problem is worth more
+      than three vague suggestions.
       """,
       trigger: "manual",
       output_type: "freeform",
@@ -297,14 +335,13 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       max_tool_iterations: 10,
       loop_mode: "reflect",
       max_iterations: 3,
-      loop_tools: ["run_sandbox", "read_file", "write_file", "edit_file", "list_files", "query_lore"],
+      loop_tools: ["read_file", "list_files", "query_lore"],
       context_providers: [
         %{"type" => "lore", "tags" => ["credo", "baseline"], "sort" => "importance", "limit" => 1}
       ],
       roster: [
         %{
           "who" => "journeyman",
-          "preferred_who" => "Product Analyst",
           "how" => "solo",
           "when" => "sequential"
         }
@@ -452,31 +489,33 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       Two overlapping systems handle self-improvement.
 
-      ## SI Quest Pipeline (simpler, seeded by quest_seed.ex)
+      ## SI: Analyst Sweep — scheduled every 4 hours (two steps)
 
-      **SI: Analyst Sweep** — scheduled every 4 hours
-      - Reads codebase, runs credo, checks lore, files up to 5 GitHub issues
-      - Has reflect loop with write/edit tools so it can fix what it breaks
-      - Rule: fix problems you can fix directly; file issues only for what you can't
+      **Step 1: SI: Static Analysis** — runs deterministic tools, outputs raw results
+      - Runs `mix credo --all` and `mix deps.audit`
+      - Uses a fast/cheap model — no reasoning, just tool execution and formatted output
+      - Outputs structured findings for the next step to analyze
 
-      **Self-Improvement Loop** — source-triggered by GitHub issues labeled `self-improvement`
+      **Step 2: SI: Product Analyst Sweep** — analyzes findings, files GitHub issues
+      - Receives the static analysis output from Step 1 as context
+      - Cross-references against the credo baseline lore entry
+      - Files at most 3 high-value issues (quality > quantity)
+      - Uses journeyman model (devstral) for reliable analysis
+
+      ## Self-Improvement Loop — source-triggered by GitHub issues labeled `self-improvement`
+
       1. SI: PM Triage — evaluates issue, writes implementation plan
-      2. SI: Code Writer — implements in a worktree
-      3. SI: Code Reviewer — reviews correctness and patterns
-      4. SI: QA — runs tests, writes missing tests, issues a verdict
+      2. SI: Code Writer — implements in a worktree, opens PR
+      3. SI: Code Reviewer — reviews correctness and patterns (verdict gate)
+      4. SI: QA — runs tests, issues a verdict (verdict gate)
       5. SI: UX Designer — runs `mix excessibility`, checks accessibility
       6. SI: PM Merge Decision — auto-merge or escalate to CTO
 
-      ## Dev Team Charter (advanced, manual)
-
-      Quests: Triage Issues · Implement Issue · Review PR · QA Check · UX Review · Merge Decision
-      Campaign: Self-Improvement Loop chains them together.
-
       ## Key workflow rules
 
-      - Analyst sweep: query lore before writing tests or code
-      - If a sandbox run fails after you wrote code, fix it before finishing
-      - Do not file issues for problems you introduced and couldn't fix
+      - Static Analysis outputs raw results only — no decisions
+      - Product Analyst reads lore before filing any issues
+      - Do NOT file issues for anything in the credo baseline lore entry
       - UX Designer uses `mix excessibility` — not `mix test` or `mix format`
       """
     },
@@ -597,7 +636,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   defp seed_lore do
     existing_titles =
       Repo.all(
-        from(e in ExCalibur.Lore.LoreEntry,
+        from(e in LoreEntry,
           where: e.title in ^Enum.map(@lore_entries, & &1.title),
           select: e.title
         )
@@ -605,9 +644,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
     # Delete stale entries so they are always recreated fresh from the seed.
     if existing_titles != [] do
-      Repo.delete_all(
-        from(e in ExCalibur.Lore.LoreEntry, where: e.title in ^existing_titles)
-      )
+      Repo.delete_all(from(e in LoreEntry, where: e.title in ^existing_titles))
     end
 
     Enum.each(@lore_entries, fn entry ->
@@ -615,14 +652,17 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     end)
   end
 
-  defp create_sweep_quest(sweep_step) do
+  defp create_sweep_quest(analysis_step, sweep_step) do
     Quests.create_quest(%{
       name: "SI: Analyst Sweep",
       description:
-        "Product Analyst proactively analyzes the codebase every 4 hours — reading code, running credo, checking Obsidian/Lore if available, and filing GitHub issues.",
+        "Every 4 hours: run static analysis tools, then have the Product Analyst review the findings and file high-value GitHub issues.",
       trigger: "scheduled",
       schedule: "0 */4 * * *",
-      steps: [%{"step_id" => sweep_step.id, "order" => 1}],
+      steps: [
+        %{"step_id" => analysis_step.id, "order" => 1},
+        %{"step_id" => sweep_step.id, "order" => 2}
+      ],
       status: "active"
     })
   end

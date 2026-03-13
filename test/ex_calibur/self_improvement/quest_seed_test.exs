@@ -37,7 +37,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeedTest do
     assert {:ok, %{sweep_quest: sweep_quest}} = QuestSeed.seed(%{repo: "owner/repo"})
     assert sweep_quest.trigger == "scheduled"
     assert sweep_quest.schedule == "0 */4 * * *"
-    assert length(sweep_quest.steps) == 1
+    assert length(sweep_quest.steps) == 2
   end
 
   test "seed is idempotent — calling twice succeeds" do

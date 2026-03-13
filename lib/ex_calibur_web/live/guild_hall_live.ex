@@ -29,13 +29,7 @@ defmodule ExCaliburWeb.GuildHallLive do
 
     member_quests =
       Map.new(members, fn m ->
-        matching =
-          Enum.filter(quests, fn q ->
-            Enum.any?(q.steps || [], fn step ->
-              Enum.any?(step["roster"] || [], fn r -> r["who"] == m.name end)
-            end)
-          end)
-
+        matching = Enum.filter(quests, &member_in_quest?(m.name, &1))
         {m.name, Enum.map(matching, & &1.name)}
       end)
 
@@ -68,6 +62,12 @@ defmodule ExCaliburWeb.GuildHallLive do
     {:noreply, assign(socket, page_title: "Guild Hall")}
   end
 
+  defp member_in_quest?(member_name, quest) do
+    Enum.any?(quest.steps || [], fn step ->
+      Enum.any?(step["roster"] || [], fn r -> r["who"] == member_name end)
+    end)
+  end
+
   defp filter_by_banner(members, nil), do: members
   defp filter_by_banner(members, banner_atom), do: Enum.filter(members, &(&1.banner == banner_atom))
 
@@ -90,20 +90,16 @@ defmodule ExCaliburWeb.GuildHallLive do
   end
 
   defp to_unified(db) do
-    builtin =
-      case db.config["member_id"] do
-        nil -> nil
-        member_id -> BuiltinMember.get(member_id)
-      end
+    builtin = lookup_builtin(db.config["member_id"])
 
     %{
       id: to_string(db.id),
-      name: if(builtin, do: builtin.name, else: db.name),
+      name: unified_name(builtin, db),
       description: builtin && builtin.description,
       category: builtin && builtin.category,
       builtin: builtin != nil,
       active: db.status == "active",
-      system_prompt: db.config["system_prompt"] || (builtin && builtin.system_prompt) || "",
+      system_prompt: unified_system_prompt(db.config, builtin),
       rank: db.config["rank"] || "journeyman",
       model: db.config["model"] || "",
       provider: db.config["provider"] || "ollama",
@@ -111,6 +107,16 @@ defmodule ExCaliburWeb.GuildHallLive do
       team: db.team,
       db_id: db.id
     }
+  end
+
+  defp lookup_builtin(nil), do: nil
+  defp lookup_builtin(member_id), do: BuiltinMember.get(member_id)
+
+  defp unified_name(nil, db), do: db.name
+  defp unified_name(builtin, _db), do: builtin.name
+
+  defp unified_system_prompt(config, builtin) do
+    config["system_prompt"] || (builtin && builtin.system_prompt) || ""
   end
 
   @impl true
@@ -805,11 +811,7 @@ defmodule ExCaliburWeb.GuildHallLive do
 
   @impl true
   def handle_event("create_member", %{"member" => params}, socket) do
-    team =
-      case params["team"] do
-        "" -> nil
-        t -> t
-      end
+    team = blank_to_nil(params["team"])
 
     attrs = %{
       type: "role",
@@ -854,27 +856,7 @@ defmodule ExCaliburWeb.GuildHallLive do
         {:noreply, put_flash(socket, :error, "Member not found")}
 
       db ->
-        config =
-          Map.merge(db.config || %{}, %{
-            "system_prompt" => params["system_prompt"] || "",
-            "rank" => params["rank"] || "journeyman",
-            "model" => params["model"] || "",
-            "provider" => params["provider"] || "ollama",
-            "strategy" => params["strategy"] || "cot"
-          })
-
-        team =
-          case params["team"] do
-            "" -> nil
-            t -> t
-          end
-
-        attrs =
-          if builtin,
-            do: %{config: config, team: team},
-            else: %{name: params["name"] || db.name, config: config, team: team}
-
-        case db |> Member.changeset(attrs) |> ExCalibur.Repo.update() do
+        case update_member_from_params(db, params, builtin) do
           {:ok, _} -> {:noreply, assign(socket, members: list_members())}
           {:error, _} -> {:noreply, put_flash(socket, :error, "Failed to save member")}
         end
@@ -914,4 +896,27 @@ defmodule ExCaliburWeb.GuildHallLive do
   def handle_event("cancel_charter", _, socket) do
     {:noreply, assign(socket, editing_charter: nil)}
   end
+
+  defp update_member_from_params(db, params, builtin) do
+    config =
+      Map.merge(db.config || %{}, %{
+        "system_prompt" => params["system_prompt"] || "",
+        "rank" => params["rank"] || "journeyman",
+        "model" => params["model"] || "",
+        "provider" => params["provider"] || "ollama",
+        "strategy" => params["strategy"] || "cot"
+      })
+
+    team = blank_to_nil(params["team"])
+
+    attrs =
+      if builtin,
+        do: %{config: config, team: team},
+        else: %{name: params["name"] || db.name, config: config, team: team}
+
+    db |> Member.changeset(attrs) |> ExCalibur.Repo.update()
+  end
+
+  defp blank_to_nil(""), do: nil
+  defp blank_to_nil(value), do: value
 end

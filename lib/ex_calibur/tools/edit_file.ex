@@ -23,27 +23,31 @@ defmodule ExCalibur.Tools.EditFile do
     full_path = working_dir |> Path.join(path) |> Path.expand()
 
     if String.starts_with?(full_path, Path.expand(working_dir)) do
-      case File.read(full_path) do
-        {:ok, content} ->
-          count = length(String.split(content, old)) - 1
-
-          cond do
-            count == 0 ->
-              {:error, "Text not found in #{path}"}
-
-            count > 1 ->
-              {:error, "Text appears #{count} times in #{path} — must be unique"}
-
-            true ->
-              File.write!(full_path, String.replace(content, old, new, global: false))
-              {:ok, "Replaced text in #{path}"}
-          end
-
-        {:error, reason} ->
-          {:error, "Cannot read #{path}: #{reason}"}
-      end
+      do_replace(full_path, path, old, new)
     else
       {:error, "Path #{path} is outside working directory"}
+    end
+  end
+
+  defp do_replace(full_path, path, old, new) do
+    case File.read(full_path) do
+      {:ok, content} ->
+        count = length(String.split(content, old)) - 1
+
+        cond do
+          count == 0 ->
+            {:error, "Text not found in #{path}"}
+
+          count > 1 ->
+            {:error, "Text appears #{count} times in #{path} — must be unique"}
+
+          true ->
+            File.write!(full_path, String.replace(content, old, new, global: false))
+            {:ok, "Replaced text in #{path}"}
+        end
+
+      {:error, reason} ->
+        {:error, "Cannot read #{path}: #{reason}"}
     end
   end
 end

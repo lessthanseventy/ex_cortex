@@ -160,11 +160,7 @@ defmodule ExCaliburWeb.QuestsLive do
       template ->
         case Board.recruit_and_go(template) do
           {:ok, result} ->
-            msg =
-              case result.members_recruited do
-                [] -> "\"#{template.name}\" installed!"
-                names -> "\"#{template.name}\" installed! Recruited: #{Enum.join(names, ", ")}"
-              end
+            msg = recruit_and_go_flash(template.name, result.members_recruited)
 
             {:noreply,
              socket
@@ -276,52 +272,7 @@ defmodule ExCaliburWeb.QuestsLive do
   def handle_event("create_quest", %{"quest" => params}, socket) do
     step_ids = params |> Map.get("step_ids", []) |> List.wrap()
     steps = Enum.map(step_ids, &%{"step_id" => &1, "flow" => "always"})
-    trigger = params["trigger"] || "manual"
-
-    schedule =
-      if trigger == "scheduled" do
-        build_schedule_from_params(params)
-      end
-
-    run_at =
-      if trigger == "once" && params["run_at"] && params["run_at"] != "" do
-        naive = NaiveDateTime.from_iso8601!(params["run_at"] <> ":00")
-        DateTime.from_naive!(naive, "Etc/UTC")
-      end
-
-    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
-
-    lore_trigger_tags =
-      (params["lore_trigger_tags"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    lodge_trigger_types =
-      (params["lodge_trigger_types"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    lodge_trigger_tags_val =
-      (params["lodge_trigger_tags"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    attrs = %{
-      name: params["name"],
-      description: params["description"],
-      trigger: trigger,
-      schedule: schedule,
-      run_at: run_at,
-      source_ids: source_ids,
-      lore_trigger_tags: lore_trigger_tags,
-      lodge_trigger_types: lodge_trigger_types,
-      lodge_trigger_tags: lodge_trigger_tags_val,
-      steps: steps,
-      status: "active"
-    }
+    attrs = params |> build_quest_attrs() |> Map.merge(%{steps: steps, status: "active"})
 
     case Quests.create_quest(attrs) do
       {:ok, _} ->
@@ -346,50 +297,7 @@ defmodule ExCaliburWeb.QuestsLive do
   @impl true
   def handle_event("update_quest", %{"quest" => params, "quest_id" => id}, socket) do
     quest = Quests.get_quest!(String.to_integer(id))
-    trigger = params["trigger"] || "manual"
-
-    schedule =
-      if trigger == "scheduled" do
-        build_schedule_from_params(params)
-      end
-
-    run_at =
-      if trigger == "once" && params["run_at"] && params["run_at"] != "" do
-        naive = NaiveDateTime.from_iso8601!(params["run_at"] <> ":00")
-        DateTime.from_naive!(naive, "Etc/UTC")
-      end
-
-    source_ids = if trigger == "source", do: params |> Map.get("source_ids", []) |> List.wrap(), else: []
-
-    lore_trigger_tags =
-      (params["lore_trigger_tags"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    lodge_trigger_types =
-      (params["lodge_trigger_types"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    lodge_trigger_tags_val =
-      (params["lodge_trigger_tags"] || "")
-      |> String.split(",")
-      |> Enum.map(&String.trim/1)
-      |> Enum.reject(&(&1 == ""))
-
-    attrs = %{
-      name: params["name"],
-      description: params["description"],
-      trigger: trigger,
-      schedule: schedule,
-      run_at: run_at,
-      source_ids: source_ids,
-      lore_trigger_tags: lore_trigger_tags,
-      lodge_trigger_types: lodge_trigger_types,
-      lodge_trigger_tags: lodge_trigger_tags_val
-    }
+    attrs = build_quest_attrs(params)
 
     case Quests.update_quest(quest, attrs) do
       {:ok, _} ->
@@ -1512,25 +1420,71 @@ defmodule ExCaliburWeb.QuestsLive do
     mode
   end
 
-  defp build_schedule_from_params(params) do
-    case params["schedule_mode"] do
-      "daily" ->
-        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} * * *"
-
-      "weekdays" ->
-        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} * * 1-5"
-
-      "weekly" ->
-        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} * * #{params["schedule_day"] || "1"}"
-
-      "monthly" ->
-        "#{params["schedule_minute"] || "0"} #{params["schedule_hour"] || "8"} #{params["schedule_day"] || "1"} * *"
-
-      _ ->
-        interval = String.to_integer(params["schedule_interval"] || "1")
-        build_schedule(interval, params["schedule_unit"] || "hours")
-    end
+  defp build_schedule_from_params(%{"schedule_mode" => "daily"} = params) do
+    "#{schedule_minute(params)} #{schedule_hour(params)} * * *"
   end
+
+  defp build_schedule_from_params(%{"schedule_mode" => "weekdays"} = params) do
+    "#{schedule_minute(params)} #{schedule_hour(params)} * * 1-5"
+  end
+
+  defp build_schedule_from_params(%{"schedule_mode" => "weekly"} = params) do
+    "#{schedule_minute(params)} #{schedule_hour(params)} * * #{schedule_day(params)}"
+  end
+
+  defp build_schedule_from_params(%{"schedule_mode" => "monthly"} = params) do
+    "#{schedule_minute(params)} #{schedule_hour(params)} #{schedule_day(params)} * *"
+  end
+
+  defp build_schedule_from_params(params) do
+    interval = String.to_integer(params["schedule_interval"] || "1")
+    build_schedule(interval, params["schedule_unit"] || "hours")
+  end
+
+  defp schedule_minute(params), do: params["schedule_minute"] || "0"
+  defp schedule_hour(params), do: params["schedule_hour"] || "8"
+  defp schedule_day(params), do: params["schedule_day"] || "1"
+
+  defp build_quest_attrs(params) do
+    trigger = params["trigger"] || "manual"
+
+    %{
+      name: params["name"],
+      description: params["description"],
+      trigger: trigger,
+      schedule: schedule_for_trigger(trigger, params),
+      run_at: run_at_for_trigger(trigger, params),
+      source_ids: source_ids_for_trigger(trigger, params),
+      lore_trigger_tags: parse_csv_param(params["lore_trigger_tags"]),
+      lodge_trigger_types: parse_csv_param(params["lodge_trigger_types"]),
+      lodge_trigger_tags: parse_csv_param(params["lodge_trigger_tags"])
+    }
+  end
+
+  defp schedule_for_trigger("scheduled", params), do: build_schedule_from_params(params)
+  defp schedule_for_trigger(_trigger, _params), do: nil
+
+  defp run_at_for_trigger("once", %{"run_at" => run_at}) when is_binary(run_at) and run_at != "" do
+    naive = NaiveDateTime.from_iso8601!(run_at <> ":00")
+    DateTime.from_naive!(naive, "Etc/UTC")
+  end
+
+  defp run_at_for_trigger(_trigger, _params), do: nil
+
+  defp source_ids_for_trigger("source", params), do: params |> Map.get("source_ids", []) |> List.wrap()
+  defp source_ids_for_trigger(_trigger, _params), do: []
+
+  defp parse_csv_param(nil), do: []
+
+  defp parse_csv_param(value) do
+    value
+    |> String.split(",")
+    |> Enum.map(&String.trim/1)
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp recruit_and_go_flash(name, []), do: "\"#{name}\" installed!"
+  defp recruit_and_go_flash(name, names), do: "\"#{name}\" installed! Recruited: #{Enum.join(names, ", ")}"
 
   defp build_schedule(interval, "minutes"), do: "*/#{interval} * * * *"
   defp build_schedule(interval, "hours"), do: "0 */#{interval} * * *"

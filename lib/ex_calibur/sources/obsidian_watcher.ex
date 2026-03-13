@@ -25,30 +25,24 @@ defmodule ExCalibur.Sources.ObsidianWatcher do
         current_set = MapSet.new(current_notes)
         new_titles = current_set |> MapSet.difference(state.seen_titles) |> MapSet.to_list()
 
-        items =
-          Enum.flat_map(new_titles, fn title ->
-            case fetch_note(title, config) do
-              {:ok, content} ->
-                [
-                  %SourceItem{
-                    source_id: config["source_id"],
-                    type: "obsidian_note",
-                    content: content,
-                    metadata: %{title: title}
-                  }
-                ]
-
-              {:error, reason} ->
-                Logger.warning("[ObsidianWatcher] Failed to fetch note '#{title}': #{inspect(reason)}")
-                []
-            end
-          end)
+        items = Enum.flat_map(new_titles, &fetch_note_item(&1, config))
 
         {:ok, items, %{state | seen_titles: current_set}}
 
       {:error, reason} ->
         Logger.warning("[ObsidianWatcher] fetch failed: #{inspect(reason)}")
         {:ok, [], state}
+    end
+  end
+
+  defp fetch_note_item(title, config) do
+    case fetch_note(title, config) do
+      {:ok, content} ->
+        [%SourceItem{source_id: config["source_id"], type: "obsidian_note", content: content, metadata: %{title: title}}]
+
+      {:error, reason} ->
+        Logger.warning("[ObsidianWatcher] Failed to fetch note '#{title}': #{inspect(reason)}")
+        []
     end
   end
 

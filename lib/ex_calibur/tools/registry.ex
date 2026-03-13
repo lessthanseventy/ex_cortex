@@ -60,10 +60,10 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.SearchEmail
   alias ExCalibur.Tools.SearchGithub
   alias ExCalibur.Tools.SearchNextcloud
-  alias ExCalibur.Tools.SetupWorktree
   alias ExCalibur.Tools.SearchObsidian
   alias ExCalibur.Tools.SearchObsidianContent
   alias ExCalibur.Tools.SendEmail
+  alias ExCalibur.Tools.SetupWorktree
   alias ExCalibur.Tools.TranscribeAudio
   alias ExCalibur.Tools.WebFetch
   alias ExCalibur.Tools.WebSearch

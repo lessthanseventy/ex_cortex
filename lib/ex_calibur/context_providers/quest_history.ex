@@ -31,11 +31,7 @@ defmodule ExCalibur.ContextProviders.QuestHistory do
       if runs == [] do
         ""
       else
-        lines =
-          Enum.map(runs, fn {ts, results} ->
-            verdict = get_in(results, ["verdict"]) || "unknown"
-            "- #{Calendar.strftime(ts, "%Y-%m-%d")}: #{verdict}"
-          end)
+        lines = Enum.map(runs, &format_run/1)
 
         String.trim("""
         ## Recent Step History (last #{length(runs)} runs)
@@ -43,5 +39,10 @@ defmodule ExCalibur.ContextProviders.QuestHistory do
         """)
       end
     end
+  end
+
+  defp format_run({ts, results}) do
+    verdict = get_in(results, ["verdict"]) || "unknown"
+    "- #{Calendar.strftime(ts, "%Y-%m-%d")}: #{verdict}"
   end
 end

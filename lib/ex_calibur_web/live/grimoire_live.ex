@@ -109,23 +109,21 @@ defmodule ExCaliburWeb.GrimoireLive do
 
       runs
       |> Enum.group_by(&elem(&1, 0))
-      |> Map.new(fn {quest_id, quest_runs} ->
-        total = length(quest_runs)
-
-        complete =
-          Enum.count(quest_runs, fn {_, status, _} -> status == "complete" end)
-
-        failed =
-          Enum.count(quest_runs, fn {_, status, _} -> status == "failed" end)
-
-        last_run =
-          quest_runs
-          |> Enum.map(&elem(&1, 2))
-          |> Enum.max(NaiveDateTime, fn -> nil end)
-
-        {quest_id, %{total: total, complete: complete, failed: failed, last_run: last_run}}
-      end)
+      |> Map.new(fn {quest_id, quest_runs} -> {quest_id, build_quest_stats(quest_runs)} end)
     end
+  end
+
+  defp build_quest_stats(quest_runs) do
+    total = length(quest_runs)
+    complete = Enum.count(quest_runs, fn {_, status, _} -> status == "complete" end)
+    failed = Enum.count(quest_runs, fn {_, status, _} -> status == "failed" end)
+
+    last_run =
+      quest_runs
+      |> Enum.map(&elem(&1, 2))
+      |> Enum.max(NaiveDateTime, fn -> nil end)
+
+    %{total: total, complete: complete, failed: failed, last_run: last_run}
   end
 
   defp format_time(nil), do: "Never"

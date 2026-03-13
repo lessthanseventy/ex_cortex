@@ -24,17 +24,18 @@ defmodule ExCalibur.ContextProviders.MemberStats do
     if members == [] do
       ""
     else
-      lines =
-        Enum.map(members, fn {name, team, config} ->
-          rank = (config || %{})["rank"] || "journeyman"
-          team_str = if team, do: " [#{team}]", else: ""
-          "- #{name} (#{rank})#{team_str}"
-        end)
+      lines = Enum.map(members, &format_member/1)
 
       String.trim("""
       ## Active Members (#{length(members)})
       #{Enum.join(lines, "\n")}
       """)
     end
+  end
+
+  defp format_member({name, team, config}) do
+    rank = (config || %{})["rank"] || "journeyman"
+    team_str = if team, do: " [#{team}]", else: ""
+    "- #{name} (#{rank})#{team_str}"
   end
 end

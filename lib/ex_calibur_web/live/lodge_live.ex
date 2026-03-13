@@ -184,20 +184,7 @@ defmodule ExCaliburWeb.LodgeLive do
   @impl true
   def handle_event("approve_proposal", %{"card-id" => id}, socket) do
     card = Lodge.get_card!(id)
-    proposal_id = card.metadata["proposal_id"]
-
-    if proposal_id do
-      proposal = Repo.get(Proposal, proposal_id)
-
-      if proposal do
-        ExCalibur.Quests.approve_proposal(proposal)
-
-        if proposal.type == "tool_action" do
-          ExCalibur.Quests.execute_tool_proposal(proposal)
-        end
-      end
-    end
-
+    maybe_approve_proposal(card.metadata["proposal_id"])
     Lodge.dismiss_card(card)
     {:noreply, load_cards(socket)}
   end
@@ -387,6 +374,20 @@ defmodule ExCaliburWeb.LodgeLive do
     """
   end
 
+  defp maybe_approve_proposal(nil), do: :ok
+
+  defp maybe_approve_proposal(proposal_id) do
+    proposal = Repo.get(Proposal, proposal_id)
+
+    if proposal do
+      ExCalibur.Quests.approve_proposal(proposal)
+
+      if proposal.type == "tool_action" do
+        ExCalibur.Quests.execute_tool_proposal(proposal)
+      end
+    end
+  end
+
   defp update_action_list_item(card_id, item_id, status) do
     card = Lodge.get_card!(card_id)
     items = card.metadata["items"] || []
@@ -420,19 +421,17 @@ defmodule ExCaliburWeb.LodgeLive do
 
     Enum.map(quests, fn q ->
       run = Map.get(last_runs, q.id)
-
-      artifact_count =
-        if run do
-          run.step_results
-          |> Map.values()
-          |> Enum.flat_map(&Map.get(&1, "tool_calls", []))
-          |> Enum.count(fn call -> call["tool"] in ["create_github_issue", "open_pr"] end)
-        else
-          0
-        end
-
-      %{quest: q, last_run: run, artifact_count: artifact_count}
+      %{quest: q, last_run: run, artifact_count: count_run_artifacts(run)}
     end)
+  end
+
+  defp count_run_artifacts(nil), do: 0
+
+  defp count_run_artifacts(run) do
+    run.step_results
+    |> Map.values()
+    |> Enum.flat_map(&Map.get(&1, "tool_calls", []))
+    |> Enum.count(fn call -> call["tool"] in ["create_github_issue", "open_pr"] end)
   end
 
   defp format_lodge_time(nil), do: "never"

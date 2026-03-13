@@ -19,37 +19,12 @@ defmodule ExCalibur.Sources.LodgeWatcher do
     type_filter = config["type_filter"]
     tag_filter = config["tag_filter"]
 
-    query =
-      from(c in Card,
-        where: c.status == "active",
-        order_by: [asc: c.updated_at]
-      )
-
-    query =
-      case type_filter do
-        nil -> query
-        types when is_list(types) and types != [] -> where(query, [c], c.type in ^types)
-        _ -> query
-      end
-
-    query =
-      case tag_filter do
-        nil -> query
-        tags when is_list(tags) and tags != [] -> where(query, [c], fragment("? && ?", c.tags, ^tags))
-        _ -> query
-      end
-
-    query =
-      case state.last_seen_at do
-        nil ->
-          query
-
-        last_seen_at ->
-          ndt = NaiveDateTime.from_iso8601!(last_seen_at)
-          where(query, [c], c.updated_at > ^ndt)
-      end
-
-    cards = Repo.all(query)
+    cards =
+      from(c in Card, where: c.status == "active", order_by: [asc: c.updated_at])
+      |> filter_by_type(type_filter)
+      |> filter_by_tags(tag_filter)
+      |> filter_since(state.last_seen_at)
+      |> Repo.all()
 
     items =
       Enum.map(cards, fn card ->
@@ -74,5 +49,20 @@ defmodule ExCalibur.Sources.LodgeWatcher do
       end
 
     {:ok, items, %{state | last_seen_at: new_last_seen_at}}
+  end
+
+  defp filter_by_type(query, types) when is_list(types) and types != [], do: where(query, [c], c.type in ^types)
+  defp filter_by_type(query, _), do: query
+
+  defp filter_by_tags(query, tags) when is_list(tags) and tags != [],
+    do: where(query, [c], fragment("? && ?", c.tags, ^tags))
+
+  defp filter_by_tags(query, _), do: query
+
+  defp filter_since(query, nil), do: query
+
+  defp filter_since(query, last_seen_at) do
+    ndt = NaiveDateTime.from_iso8601!(last_seen_at)
+    where(query, [c], c.updated_at > ^ndt)
   end
 end
