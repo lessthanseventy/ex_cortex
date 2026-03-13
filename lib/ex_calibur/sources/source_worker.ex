@@ -4,6 +4,7 @@ defmodule ExCalibur.Sources.SourceWorker do
 
   alias ExCalibur.Evaluator
   alias ExCalibur.QuestDebouncer
+  alias ExCalibur.QuestRunner
   alias ExCalibur.Quests
   alias ExCalibur.Sandbox
   alias ExCalibur.Sources.Book
@@ -99,10 +100,18 @@ defmodule ExCalibur.Sources.SourceWorker do
 
   defp enqueue_quests(items, source, quests) do
     label = source.config["label"] || source.source_type
-    Logger.info("[SourceWorker] Enqueuing #{length(items)} items from '#{label}' for #{length(quests)} quest(s)")
+    Logger.info("[SourceWorker] Firing #{length(items)} item(s) from '#{label}' for #{length(quests)} quest(s)")
 
     Enum.each(quests, fn quest ->
-      QuestDebouncer.enqueue_quest(quest, label, items)
+      Enum.each(items, fn item ->
+        Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
+          try do
+            QuestRunner.run(quest, item.content)
+          rescue
+            e -> Logger.error("[SourceWorker] Quest #{quest.name} failed: #{Exception.message(e)}")
+          end
+        end)
+      end)
     end)
   end
 

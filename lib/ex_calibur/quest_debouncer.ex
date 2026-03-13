@@ -13,7 +13,6 @@ defmodule ExCalibur.QuestDebouncer do
 
   alias ExCalibur.QuestRunner
   alias ExCalibur.StepRunner
-  alias Excellence.LLM.Ollama
 
   require Logger
 
@@ -101,38 +100,12 @@ defmodule ExCalibur.QuestDebouncer do
   # ── Per-source summarisation ───────────────────────────────────────────────
 
   defp summarise_batches(batches) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
-    ollama_api_key = Application.get_env(:ex_calibur, :ollama_api_key)
-    ollama = Ollama.new(base_url: ollama_url, api_key: ollama_api_key)
-
-    Enum.map_join(batches, "\n\n", fn {label, items} -> summarise_source(label, items, ollama) end)
+    Enum.map_join(batches, "\n\n", fn {label, items} -> summarise_source(label, items) end)
   end
 
-  defp summarise_source(label, items, ollama) do
-    raw = Enum.map_join(items, "\n", &item_headline/1)
-
-    prompt = """
-    You are a concise news analyst. Summarise the following items from "#{label}" in 2–4 sentences,
-    focusing on the most market-relevant information for a BTC price analysis.
-    Be factual. No fluff.
-
-    Items:
-    #{String.slice(raw, 0, 3_000)}
-    """
-
-    messages = [%{role: :user, content: prompt}]
-
-    case Ollama.chat(ollama, "phi4-mini", messages) do
-      {:ok, %{content: text}} ->
-        "## #{label}\n#{String.slice(text, 0, 400)}"
-
-      {:ok, text} when is_binary(text) ->
-        "## #{label}\n#{String.slice(text, 0, 400)}"
-
-      _ ->
-        Logger.warning("[QuestDebouncer] Summarisation failed for source '#{label}', using headlines")
-        "## #{label}\n#{String.slice(raw, 0, 400)}"
-    end
+  defp summarise_source(label, items) do
+    raw = Enum.map_join(items, "\n\n", &item_headline/1)
+    "## #{label}\n\n#{String.slice(raw, 0, 4_000)}"
   end
 
   defp item_headline(%{metadata: %{title: title}} = item) when is_binary(title) and title != "" do
