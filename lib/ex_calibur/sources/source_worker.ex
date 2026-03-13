@@ -24,6 +24,9 @@ defmodule ExCalibur.Sources.SourceWorker do
 
     case mod.init(source.config) do
       {:ok, worker_state} ->
+        # Restore persisted state (e.g. seen_ids) so workers don't re-fire on restart
+        saved = for {k, v} <- (source.state || %{}), into: %{}, do: {String.to_atom(k), v}
+        worker_state = Map.merge(worker_state, saved)
         interval = get_interval(source.config)
         timer = Process.send_after(self(), :fetch, interval)
         {:ok, %{source: source, mod: mod, worker_state: worker_state, timer: timer, interval: interval}}
@@ -51,9 +54,9 @@ defmodule ExCalibur.Sources.SourceWorker do
   def handle_info(:fetch, state) do
     case state.mod.fetch(state.worker_state, state.source.config) do
       {:ok, [], new_worker_state} ->
-        update_source_state(state.source, new_worker_state)
+        source = update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
-        {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
+        {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer}}
 
       {:ok, items, new_worker_state} ->
         maybe_write_to_lore(items, state.source)
@@ -61,9 +64,9 @@ defmodule ExCalibur.Sources.SourceWorker do
         quests = Quests.list_quests_for_source(to_string(state.source.id))
         evaluate_items(items, state.source, steps)
         enqueue_quests(items, state.source, quests)
-        update_source_state(state.source, new_worker_state)
+        source = update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
-        {:noreply, %{state | worker_state: new_worker_state, timer: timer}}
+        {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer}}
 
       {:error, reason} ->
         mark_source_error(state.source, reason)
@@ -177,9 +180,12 @@ defmodule ExCalibur.Sources.SourceWorker do
   defp get_interval(config), do: config["interval"] || 60_000
 
   defp update_source_state(source, new_state) do
-    source
-    |> Source.changeset(%{state: new_state, last_run_at: DateTime.utc_now(), status: "active", error_message: nil})
-    |> ExCalibur.Repo.update()
+    case source
+         |> Source.changeset(%{state: new_state, last_run_at: DateTime.utc_now(), status: "active", error_message: nil})
+         |> ExCalibur.Repo.update() do
+      {:ok, updated} -> updated
+      {:error, _} -> source
+    end
   end
 
   defp mark_source_error(source, reason) do

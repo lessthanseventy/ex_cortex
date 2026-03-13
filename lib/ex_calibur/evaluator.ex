@@ -100,11 +100,14 @@ defmodule ExCalibur.Evaluator do
           Module.create(mod_name, contents, Macro.Env.location(__ENV__))
         rescue
           error ->
-            Logger.error("Failed to create dynamic role module #{inspect(mod_name)}: #{inspect(error)}",
-              context: %{role_name: role_def.name, error_type: Exception.message(error)}
-            )
-            # Fallback to a basic role module to prevent complete failure
-            fallback_role_module(mod_name, role_def)
+            if Code.ensure_loaded?(mod_name) do
+              :ok
+            else
+              Logger.error("Failed to create dynamic role module #{inspect(mod_name)}: #{inspect(error)}",
+                context: %{role_name: role_def.name, error_type: Exception.message(error)}
+              )
+              fallback_role_module(mod_name, role_def)
+            end
         end
       end
 
@@ -165,11 +168,14 @@ defmodule ExCalibur.Evaluator do
       Module.create(mod_name, contents, Macro.Env.location(__ENV__))
     rescue
       error ->
-        Logger.error("Fallback role module creation also failed for #{inspect(mod_name)}: #{inspect(error)}",
-          context: %{role_name: role_def.name, error_type: Exception.message(error)}
-        )
-        # If fallback also fails, return a known working module
-        Excellence.Roles.Fallback
+        if Code.ensure_loaded?(mod_name) do
+          :ok
+        else
+          Logger.error("Fallback role module creation also failed for #{inspect(mod_name)}: #{inspect(error)}",
+            context: %{role_name: role_def.name, error_type: Exception.message(error)}
+          )
+          Excellence.Roles.Fallback
+        end
     end
   end
 end
