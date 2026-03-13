@@ -17,7 +17,8 @@ defmodule ExCalibur.ContextProviders.Lore do
   alias ExCalibur.Lore
 
   # Total character budget for all lore context sent to a model.
-  @total_cap 1_500
+  # High-importance entries (5) get extra budget via body_cap/1.
+  @total_cap 6_000
 
   @impl true
   def build(config, _quest, _input) do
@@ -59,8 +60,9 @@ defmodule ExCalibur.ContextProviders.Lore do
   end
 
   # Higher-importance entries get more body budget so signal isn't truncated.
-  defp body_cap(%{importance: n}) when is_integer(n) and n >= 4, do: 400
-  defp body_cap(%{importance: n}) when is_integer(n) and n >= 2, do: 250
+  defp body_cap(%{importance: 5}), do: 4_000
+  defp body_cap(%{importance: n}) when is_integer(n) and n >= 4, do: 600
+  defp body_cap(%{importance: n}) when is_integer(n) and n >= 2, do: 300
   defp body_cap(_), do: 150
 
   defp format_entry(entry) do

@@ -189,6 +189,9 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         loop_mode: "reflect",
         max_iterations: 3,
         loop_tools: ["run_sandbox", "read_file"],
+        context_providers: [
+          %{"type" => "lore", "tags" => ["credo", "baseline"], "sort" => "importance", "limit" => 1}
+        ],
         roster: [
           %{
             "who" => "all",
@@ -295,6 +298,9 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       loop_mode: "reflect",
       max_iterations: 3,
       loop_tools: ["run_sandbox", "read_file", "write_file", "edit_file", "list_files", "query_lore"],
+      context_providers: [
+        %{"type" => "lore", "tags" => ["credo", "baseline"], "sort" => "importance", "limit" => 1}
+      ],
       roster: [
         %{
           "who" => "all",
