@@ -39,6 +39,11 @@ defmodule ExCalibur.DataCase do
   """
   def setup_sandbox(tags) do
     pid = Sandbox.start_owner!(ExCalibur.Repo, shared: not tags[:async])
+
+    if at_pid = Process.whereis(ExCalibur.AppTelemetry) do
+      Sandbox.allow(ExCalibur.Repo, self(), at_pid)
+    end
+
     on_exit(fn -> Sandbox.stop_owner(pid) end)
     pid
   end

@@ -35,6 +35,7 @@ defmodule ExCalibur.Application do
         {Registry, keys: :unique, name: ExCalibur.SourceRegistry},
         {Task.Supervisor, name: ExCalibur.SourceTaskSupervisor, max_children: 4},
         {Task.Supervisor, name: ExCalibur.AsyncTaskSupervisor},
+        ExCalibur.AppTelemetry,
         ExCalibur.QuestDebouncer,
         SourceSupervisor,
         {Task, fn -> SourceSupervisor.start_all_active() end},

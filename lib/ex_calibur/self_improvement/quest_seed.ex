@@ -357,7 +357,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "files" => ["lib/ex_calibur/step_runner.ex", "lib/ex_calibur/quest_runner.ex", "lib/ex_calibur/llm/ollama.ex"],
           "label" => "## Key Source Files",
           "max_bytes_per_file" => 3000
-        }
+        },
+        %{"type" => "app_telemetry", "window_hours" => 6}
       ],
       roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })

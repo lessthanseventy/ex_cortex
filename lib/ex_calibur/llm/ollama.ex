@@ -38,11 +38,13 @@ defmodule ExCalibur.LLM.Ollama do
             {:ok, text} when is_binary(text) ->
               ms = System.monotonic_time(:millisecond) - t0
               Logger.info("[Ollama] ✓ #{m} #{ms}ms (#{byte_size(text)}B output)")
+              ExCalibur.AppTelemetry.record_llm_call(m, ms, :ok)
               {:halt, {:ok, text}}
 
             {:error, reason} ->
               ms = System.monotonic_time(:millisecond) - t0
               Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect(reason)}")
+              ExCalibur.AppTelemetry.record_llm_call(m, ms, {:error, reason})
               {:cont, acc}
 
             other ->
@@ -164,14 +166,16 @@ defmodule ExCalibur.LLM.Ollama do
   end
 
   defp handle_chat_response({:ok, %{status: 200, body: %{"message" => msg}}}, m, t0, iter) do
-    Logger.debug("[Ollama] ✓ #{m} #{System.monotonic_time(:millisecond) - t0}ms iter=#{iter}")
+    ms = System.monotonic_time(:millisecond) - t0
+    Logger.debug("[Ollama] ✓ #{m} #{ms}ms iter=#{iter}")
+    ExCalibur.AppTelemetry.record_llm_call(m, ms, :ok)
     {:halt, {:ok, msg}}
   end
 
   defp handle_chat_response({:ok, %{status: status, body: body}}, m, t0, _iter) do
-    Logger.warning(
-      "[Ollama] ✗ #{m} failed after #{System.monotonic_time(:millisecond) - t0}ms: #{inspect({:ollama_error, status, body})}"
-    )
+    ms = System.monotonic_time(:millisecond) - t0
+    Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect({:ollama_error, status, body})}")
+    ExCalibur.AppTelemetry.record_llm_call(m, ms, {:error, {:ollama_error, status}})
 
     if tool_call_incompatible?(body),
       do: Logger.warning("[Ollama] Skipping #{m} for tool-call loop (incompatible message format)")
@@ -180,7 +184,9 @@ defmodule ExCalibur.LLM.Ollama do
   end
 
   defp handle_chat_response({:error, reason}, m, t0, _iter) do
-    Logger.warning("[Ollama] ✗ #{m} failed after #{System.monotonic_time(:millisecond) - t0}ms: #{inspect(reason)}")
+    ms = System.monotonic_time(:millisecond) - t0
+    Logger.warning("[Ollama] ✗ #{m} failed after #{ms}ms: #{inspect(reason)}")
+    ExCalibur.AppTelemetry.record_llm_call(m, ms, {:error, reason})
     {:cont, {:error, :all_models_failed}}
   end
 
@@ -215,6 +221,7 @@ defmodule ExCalibur.LLM.Ollama do
       prior_count >= @empty_threshold ->
         out = unavailable_message(name, tools)
         Logger.debug("[Ollama] circuit breaker: skipping #{name}")
+        ExCalibur.AppTelemetry.record_circuit_breaker(name)
         {out, %{tool: name, input: args, output: out}, bs}
 
       is_nil(Enum.find(tools, &(&1.name == name))) and not ExCalibur.StepRunner.dangerous?(name) ->

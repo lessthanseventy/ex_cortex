@@ -61,5 +61,17 @@ defmodule ExCalibur.ContextProviders.ContextProvider do
 
   defp module_for("github_issues"), do: Module.concat([ExCalibur, ContextProviders, GithubIssues])
 
+  defp module_for("app_telemetry"), do: Module.concat([ExCalibur, ContextProviders, AppTelemetry])
+
+  defp module_for("pr_diff"), do: Module.concat([ExCalibur, ContextProviders, PrDiff])
+
+  defp module_for("git_log"), do: Module.concat([ExCalibur, ContextProviders, GitLog])
+
+  defp module_for("quest_output"), do: Module.concat([ExCalibur, ContextProviders, QuestOutput])
+
+  defp module_for("test_failures"), do: Module.concat([ExCalibur, ContextProviders, TestFailures])
+
+  defp module_for("member_roster"), do: Module.concat([ExCalibur, ContextProviders, MemberRoster])
+
   defp module_for(_), do: nil
 end
