@@ -10,38 +10,44 @@ defmodule ExCalibur.Obsidian.Sync do
 
   def sync_enabled? do
     Settings.get(:obsidian_sync_enabled) == true
+  rescue
+    _ -> false
   end
 
   def vault_path do
     Settings.get(:obsidian_vault_path)
+  rescue
+    _ -> nil
   end
 
+  @doc """
+  Called synchronously from the creating process (which has DB access).
+  Spawns a background task only if sync is enabled; the task does no DB queries.
+  """
   def sync_lore_entry(entry) do
     with true <- sync_enabled?(),
          path when not is_nil(path) <- vault_path() do
-      do_sync_lore(entry, path)
+      Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+        do_sync_lore(entry, path)
+      end)
     else
       _ -> :skipped
     end
-  rescue
-    DBConnection.OwnershipError -> :skipped
-    DBConnection.ConnectionError -> :skipped
-  catch
-    :exit, _ -> :skipped
   end
 
+  @doc """
+  Called synchronously from the creating process (which has DB access).
+  Spawns a background task only if sync is enabled; the task does no DB queries.
+  """
   def sync_lodge_card(card) do
     with true <- sync_enabled?(),
          path when not is_nil(path) <- vault_path() do
-      do_sync_lodge(card, path)
+      Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+        do_sync_lodge(card, path)
+      end)
     else
       _ -> :skipped
     end
-  rescue
-    DBConnection.OwnershipError -> :skipped
-    DBConnection.ConnectionError -> :skipped
-  catch
-    :exit, _ -> :skipped
   end
 
   defp do_sync_lore(entry, vault_path) do

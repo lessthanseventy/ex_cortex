@@ -70,9 +70,7 @@ defmodule ExCalibur.Lore do
     Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore", {:lore_updated, entry.title})
     Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lore_triggers", {:lore_entry_created, entry})
 
-    Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-      ExCalibur.Obsidian.Sync.sync_lore_entry(entry)
-    end)
+    ExCalibur.Obsidian.Sync.sync_lore_entry(entry)
   end
 
   defp replace_or_create(quest, attrs) do

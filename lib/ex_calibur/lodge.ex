@@ -80,9 +80,7 @@ defmodule ExCalibur.Lodge do
       {:ok, card} ->
         Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
 
-        Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-          Sync.sync_lodge_card(card)
-        end)
+        Sync.sync_lodge_card(card)
 
         {:ok, card}
 
@@ -96,9 +94,7 @@ defmodule ExCalibur.Lodge do
       {:ok, card} ->
         Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
 
-        Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-          Sync.sync_lodge_card(card)
-        end)
+        Sync.sync_lodge_card(card)
 
         {:ok, card}
 

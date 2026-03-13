@@ -336,7 +336,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       loop_tools: ["read_file", "list_files", "query_lore", "search_github", "create_github_issue"],
       roster: [
         %{
-          "who" => "all",
+          "who" => "journeyman",
           "preferred_who" => "Product Analyst",
           "how" => "solo",
           "when" => "sequential"
