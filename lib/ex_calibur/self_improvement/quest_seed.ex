@@ -70,7 +70,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Project Manager evaluates a self-improvement GitHub issue, writes an implementation plan, and decides whether to proceed or reject.",
         trigger: "manual",
         output_type: "freeform",
-        dangerous_tool_mode: "intercept",
+        dangerous_tool_mode: "execute",
         max_tool_iterations: 10,
         roster: [
           %{
@@ -89,9 +89,21 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         output_type: "freeform",
         dangerous_tool_mode: "execute",
         max_tool_iterations: 10,
+        loop_mode: "reflect",
+        loop_tools: [
+          "setup_worktree",
+          "read_file",
+          "list_files",
+          "write_file",
+          "edit_file",
+          "git_commit",
+          "git_push",
+          "open_pr",
+          "run_sandbox"
+        ],
         roster: [
           %{
-            "who" => "all",
+            "who" => "journeyman",
             "preferred_who" => "Code Writer",
             "how" => "solo",
             "when" => "sequential"
@@ -164,7 +176,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
           "Project Manager reviews QA and review outcomes and decides: auto-merge low-risk changes or escalate to CTO via lodge proposal.",
         trigger: "manual",
         output_type: "freeform",
-        dangerous_tool_mode: "intercept",
+        dangerous_tool_mode: "execute",
         max_tool_iterations: 10,
         roster: [
           %{
