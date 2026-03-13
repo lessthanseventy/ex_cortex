@@ -110,19 +110,42 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         The previous step (PM Triage) has selected a specific GitHub issue and written an implementation plan.
         Find the DECISION line in your context to identify which issue to work on.
 
-        Follow this workflow exactly:
-        1. Call setup_worktree to create an isolated git branch for this work.
-        2. Use list_files and read_file to understand the relevant code before touching anything.
-        3. Implement the change described in the PM's plan — minimal, focused, no scope creep.
-        4. Run `mix test` via run_sandbox. Fix any failures before proceeding.
-        5. Run `mix credo --all` via run_sandbox. Fix any new warnings you introduced.
-        6. Commit with git_commit (message: "fix: <short description> (closes #N)").
-        7. Push with git_push.
-        8. Open a PR with open_pr. Title: fix title. Body: reference the issue number.
-        9. End your response with: PR: <url>
+        If PM Triage decided REJECT, output exactly: SKIPPED: PM rejected this issue.
+        Do nothing else.
 
-        If PM Triage decided REJECT, output: SKIPPED: PM rejected this issue.
-        Do not open a PR for a rejected issue.
+        ## MANDATORY workflow — do not skip or reorder any step:
+
+        **Step 1 — setup_worktree (REQUIRED FIRST CALL)**
+        Call setup_worktree with the issue number. This creates an isolated branch.
+        You MUST pass the returned worktree path as `working_dir` to ALL subsequent
+        write_file, edit_file, git_commit, git_push, and open_pr calls.
+        NEVER commit or push to main. All work happens in the worktree branch.
+
+        **Step 2 — read before writing**
+        Use read_file to understand the relevant code. Do not guess at file paths.
+
+        **Step 3 — implement**
+        Make the minimal focused change described in the PM's plan. No scope creep.
+
+        **Step 4 — test**
+        run_sandbox("mix test"). Fix any failures. Do not proceed with failing tests.
+
+        **Step 5 — credo**
+        run_sandbox("mix credo --all"). Fix any NEW warnings your change introduced.
+
+        **Step 6 — commit**
+        git_commit with message: "fix: <short description> (closes #N)"
+        Pass the worktree path as `working_dir`.
+
+        **Step 7 — push**
+        git_push. Pass the worktree path as `working_dir`.
+
+        **Step 8 — open PR**
+        open_pr with title and body referencing the issue number.
+        Pass the worktree path as `working_dir`.
+
+        **Step 9 — end with:**
+        PR: <url>
         """,
         trigger: "manual",
         output_type: "freeform",
@@ -227,12 +250,30 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       },
       %{
         name: "SI: PM Merge Decision",
-        description:
-          "Project Manager reviews QA and review outcomes and decides: auto-merge low-risk changes or escalate to CTO via lodge proposal.",
+        description: """
+        You are the Project Manager making the final merge decision.
+
+        Review the QA and UX verdicts in your context.
+
+        ## If Code Writer output "SKIPPED":
+        Output: SKIPPED — no PR to merge.
+
+        ## If QA verdict is "fail":
+        Output: BLOCKED — QA failed. Do not merge.
+
+        ## If QA verdict is "pass" or "warn" (with acceptable warnings):
+        1. Find the PR number in your context (look for "PR: https://..." or "#N").
+        2. Call merge_pr with the PR number and method: "squash".
+        3. Output: MERGED PR #N via squash.
+
+        ## If in doubt:
+        Output: ESCALATE — needs human review. Summarize why in one sentence.
+        """,
         trigger: "manual",
         output_type: "freeform",
         dangerous_tool_mode: "execute",
-        max_tool_iterations: 10,
+        max_tool_iterations: 5,
+        loop_tools: ["merge_pr"],
         roster: [
           %{
             "who" => "all",

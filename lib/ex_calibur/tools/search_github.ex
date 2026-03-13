@@ -17,13 +17,14 @@ defmodule ExCalibur.Tools.SearchGithub do
           "label" => %{"type" => "string", "description" => "Filter issues by label (uses gh issue list, more reliable than text search for labels)"},
           "limit" => %{"type" => "integer", "description" => "Maximum results to return (default 20)"}
         },
-        "required" => ["query"]
+        "required" => []
       },
       callback: &call/1
     )
   end
 
-  def call(%{"query" => query} = params) do
+  def call(params) do
+    query = Map.get(params, "query", "")
     type = Map.get(params, "type", "issues")
     limit = Map.get(params, "limit", 20)
     label = Map.get(params, "label")
