@@ -106,6 +106,20 @@ defmodule ExCalibur.Evaluator do
         try do
           Module.create(mod_name, contents, Macro.Env.location(__ENV__))
         rescue
+          LoadError ->
+            Logger.error("Failed to load dependencies for role module #{inspect(mod_name)}",
+              context: %{role_name: role_def.name, error_type: "LoadError"}
+            )
+
+            fallback_role_module(mod_name, role_def)
+
+          CompileError ->
+            Logger.error("Failed to compile role module #{inspect(mod_name)}",
+              context: %{role_name: role_def.name, error_type: "CompileError"}
+            )
+
+            fallback_role_module(mod_name, role_def)
+
           error ->
             if Code.ensure_loaded?(mod_name) do
               :ok
@@ -144,12 +158,25 @@ defmodule ExCalibur.Evaluator do
       try do
         Module.create(mod_name, contents, Macro.Env.location(__ENV__))
       rescue
+        LoadError ->
+          Logger.error("Failed to load dependencies for actions module #{inspect(mod_name)}",
+            context: %{actions: meta.actions, error_type: "LoadError"}
+          )
+
+          ExCalibur.DynamicActions.Template
+
+        CompileError ->
+          Logger.error("Failed to compile actions module #{inspect(mod_name)}",
+            context: %{actions: meta.actions, error_type: "CompileError"}
+          )
+
+          ExCalibur.DynamicActions.Template
+
         error ->
           Logger.error("Failed to create dynamic actions module #{inspect(mod_name)}: #{inspect(error)}",
             context: %{actions: meta.actions, error_type: Exception.message(error)}
           )
 
-          # Return a module that exists to prevent complete failure
           ExCalibur.DynamicActions.Template
       end
     end
