@@ -10,11 +10,11 @@ defmodule ExCalibur.Agent.Role.DefaultParser do
 
     {action, confidence, reasoning} =
       cond do
-        String.contains?(downcased, "reject") ->
-          {:reject, extract_confidence(downcased), extract_reason(text)}
-
         String.contains?(downcased, "approve") ->
           {:approve, extract_confidence(downcased), extract_reason(text)}
+
+        String.contains?(downcased, "reject") ->
+          {:reject, extract_confidence(downcased), extract_reason(text)}
 
         true ->
           {:abstain, 0.0, "Unparseable response: #{text}"}
@@ -40,7 +40,7 @@ defmodule ExCalibur.Agent.Role.DefaultParser do
   end
 
   defp extract_confidence(text) do
-    case Regex.run(~r/confidence:\s*([\d.]+)/, text) do
+    case Regex.run(~r/confidence:\s*([\d.]+)/i, text) do
       [_, val] ->
         case Float.parse(val) do
           {f, _} when f >= 0 and f <= 1 -> f

@@ -78,11 +78,15 @@ defmodule ExCalibur.Agent.Role do
 
       def system_prompt(_variant), do: unquote(base_prompt)
 
-      def parse_response(text, agent_name, opts \\ []) do
+      def parse_response(text, agent_name) do
+        ExCalibur.Agent.Role.DefaultParser.parse(text, agent_name, __MODULE__, [])
+      end
+
+      def parse_response(text, agent_name, opts) do
         ExCalibur.Agent.Role.DefaultParser.parse(text, agent_name, __MODULE__, opts)
       end
 
-      defoverridable system_prompt: 1, parse_response: 3
+      defoverridable system_prompt: 1, parse_response: 2, parse_response: 3
     end
   end
 end

@@ -6,7 +6,7 @@ defmodule ExCalibur.Roles.Fallback do
     "Emergency fallback evaluator. Respond: ACTION: reject\nCONFIDENCE: 0.1\nREASON: Dynamic role creation failed, defaulting to reject."
   )
 
-  perspective(:default, model: "llama3.2", strategy: :cot, name: "fallback.default")
+  perspective(:default, model: "ministral-3:8b", strategy: :cot, name: "fallback.default")
 
   @impl true
   def build_prompt(input, _context), do: "Evaluate: #{inspect(input)}"
