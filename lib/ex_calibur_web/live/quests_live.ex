@@ -41,7 +41,7 @@ defmodule ExCaliburWeb.QuestsLive do
     schedule_mode_previews = build_schedule_mode_previews(quests)
 
     banner = Settings.get_banner()
-    banner_atom = if banner, do: String.to_existing_atom(banner)
+    banner_atom = if banner, do: String.to_atom(banner)
 
     board_templates =
       then(Board.all_with_status(), fn templates ->
