@@ -65,13 +65,7 @@ defmodule ExCalibur.Charters.CodeReview do
         }
       ],
       actions: [:approve, :"request-changes", :block],
-      strategy: {:role_veto, veto_roles: [:security_analyst]},
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Cache",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog"
-      ]
+      strategy: {:role_veto, veto_roles: [:security_analyst]}
     }
   end
 

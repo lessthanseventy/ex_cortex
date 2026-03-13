@@ -67,13 +67,7 @@ defmodule ExCalibur.Charters.AccessibilityReview do
         }
       ],
       actions: [:pass, :warn, :fail, :escalate],
-      strategy: {:role_veto, veto_roles: [:wcag_auditor]},
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog",
-        "Excellence.Middleware.Notify"
-      ]
+      strategy: {:role_veto, veto_roles: [:wcag_auditor]}
     }
   end
 

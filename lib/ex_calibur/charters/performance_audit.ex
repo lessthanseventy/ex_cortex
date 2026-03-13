@@ -65,12 +65,7 @@ defmodule ExCalibur.Charters.PerformanceAudit do
         }
       ],
       actions: [:pass, :warn, :fail, :escalate],
-      strategy: {:weighted, weights: %{bottleneck_detector: 1.0, memory_analyst: 1.2, resource_enforcer: 1.0}},
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog"
-      ]
+      strategy: {:weighted, weights: %{bottleneck_detector: 1.0, memory_analyst: 1.2, resource_enforcer: 1.0}}
     }
   end
 

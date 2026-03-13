@@ -68,13 +68,7 @@ defmodule ExCalibur.Charters.ContractReview do
         }
       ],
       actions: [:accept, :flag, :reject, :escalate],
-      strategy: :majority,
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog",
-        "Excellence.Middleware.Notify"
-      ]
+      strategy: :majority
     }
   end
 

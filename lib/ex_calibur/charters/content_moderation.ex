@@ -65,14 +65,7 @@ defmodule ExCalibur.Charters.ContentModeration do
         }
       ],
       actions: [:approve, :reject, :flag, :escalate],
-      strategy: :majority,
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Filter",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog",
-        "Excellence.Middleware.Notify"
-      ]
+      strategy: :majority
     }
   end
 

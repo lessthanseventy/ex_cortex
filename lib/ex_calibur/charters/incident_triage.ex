@@ -66,13 +66,7 @@ defmodule ExCalibur.Charters.IncidentTriage do
         }
       ],
       actions: [:monitor, :alert, :page, :escalate],
-      strategy: {:role_veto, veto_roles: [:impact_assessor]},
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog",
-        "Excellence.Middleware.Notify"
-      ]
+      strategy: {:role_veto, veto_roles: [:impact_assessor]}
     }
   end
 

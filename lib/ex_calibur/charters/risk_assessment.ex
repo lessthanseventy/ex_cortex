@@ -65,14 +65,7 @@ defmodule ExCalibur.Charters.RiskAssessment do
         }
       ],
       actions: [:approve, :flag, :reject],
-      strategy: {:weighted, weights: %{risk_scorer: 1.5, compliance_checker: 1.2, fraud_detector: 1.0}},
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.RateLimit",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog",
-        "Excellence.Middleware.Notify"
-      ]
+      strategy: {:weighted, weights: %{risk_scorer: 1.5, compliance_checker: 1.2, fraud_detector: 1.0}}
     }
   end
 

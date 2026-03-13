@@ -66,13 +66,7 @@ defmodule ExCalibur.Charters.DependencyAudit do
         }
       ],
       actions: [:approve, :warn, :block, :escalate],
-      strategy: {:role_veto, veto_roles: [:vulnerability_scanner]},
-      middleware: [
-        "Excellence.Middleware.TelemetryMiddleware",
-        "Excellence.Middleware.Evaluate",
-        "Excellence.Middleware.AuditLog",
-        "Excellence.Middleware.Notify"
-      ]
+      strategy: {:role_veto, veto_roles: [:vulnerability_scanner]}
     }
   end
 
