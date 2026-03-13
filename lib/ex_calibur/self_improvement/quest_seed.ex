@@ -24,6 +24,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     "SI: Backlog Synthesis",
     "SI: Issue Filing"
   ]
+
   # Note: "SI: Static Analysis" stays in the cleanup list so it's removed if present from old seeds
 
   @si_quest_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
@@ -279,13 +280,42 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       create_health_scan_step(),
       create_opportunity_scan_step(),
       create_backlog_synthesis_step(),
-      create_issue_filing_step()
+      create_issue_filing_step(),
+      create_product_analyst_sweep_step()
     ]
 
     case Enum.find(results, &match?({:error, _}, &1)) do
       nil -> {:ok, Enum.map(results, fn {:ok, s} -> s end)}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp create_product_analyst_sweep_step do
+    Quests.create_step(%{
+      name: "SI: Product Analyst Sweep",
+      description: """
+      Product Analyst performs a comprehensive sweep of the codebase and product landscape.
+
+      ## Tools: read_file, query_lore, search_github
+
+      ## Workflow:
+      1. Query lore for project identity and domain
+      2. Read key files to understand current state
+      3. Search GitHub for existing issues
+      4. Identify gaps and opportunities
+
+      ## Output:
+      - Summary of findings
+      - Recommendations for improvements
+      - Prioritized list of action items
+      """,
+      trigger: "manual",
+      output_type: "freeform",
+      dangerous_tool_mode: "execute",
+      max_tool_iterations: 10,
+      loop_tools: ["read_file", "query_lore", "search_github"],
+      roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
+    })
   end
 
   defp create_health_scan_step do
