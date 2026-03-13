@@ -69,14 +69,14 @@ flowchart TD
     Sources --> Input
 
     subgraph Eval [Guild Evaluation]
-        Input --> RoleA[Member A\nalpha perspective]
-        Input --> RoleB[Member B\nbeta perspective]
-        Input --> RoleC[Member C\nstrict perspective]
-        RoleA & RoleB & RoleC --> Consensus[Consensus\nvote → verdict]
+        Input --> RoleA["Member A<br/>alpha perspective"]
+        Input --> RoleB["Member B<br/>beta perspective"]
+        Input --> RoleC["Member C<br/>strict perspective"]
+        RoleA & RoleB & RoleC --> Consensus["Consensus<br/>vote → verdict"]
     end
 
-    Eval --> Lodge[Lodge\ndashboard + proposals]
-    Lodge --> Lore[Lore store\nknowledge across runs]
+    Eval --> Lodge["Lodge<br/>dashboard + proposals"]
+    Lodge --> Lore["Lore store<br/>knowledge across runs"]
     Lore --> Eval
 ```
 
