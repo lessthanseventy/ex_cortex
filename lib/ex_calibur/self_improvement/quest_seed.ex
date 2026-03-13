@@ -113,38 +113,38 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         If PM Triage decided REJECT, output exactly: SKIPPED: PM rejected this issue.
         Do nothing else.
 
-        ## MANDATORY workflow — do not skip or reorder any step:
+        ## MANDATORY workflow — follow in order, every step required:
 
-        **Step 1 — setup_worktree (REQUIRED FIRST CALL)**
-        Call setup_worktree with the issue number. This creates an isolated branch.
-        You MUST pass the returned worktree path as `working_dir` to ALL subsequent
-        write_file, edit_file, git_commit, git_push, and open_pr calls.
-        NEVER commit or push to main. All work happens in the worktree branch.
+        **Step 1 — setup_worktree(issue_id: "<N>")**
+        Do this FIRST. It returns a worktree path like `/home/andrew/projects/ex_calibur/.worktrees/N`.
+        Save this path — you MUST pass it as `working_dir` to EVERY subsequent tool call.
+        NEVER write, commit, or push without working_dir. NEVER use the main repo path.
 
-        **Step 2 — read before writing**
-        Use read_file to understand the relevant code. Do not guess at file paths.
+        **Step 2 — read_file(path: "...", working_dir: "<worktree_path>")**
+        Read the files relevant to the PM's plan. Always pass working_dir.
 
-        **Step 3 — implement**
-        Make the minimal focused change described in the PM's plan. No scope creep.
+        **Step 3 — write_file or edit_file(path: "...", ..., working_dir: "<worktree_path>")**
+        Make the minimal focused change from the PM's plan. No scope creep.
 
-        **Step 4 — test**
-        run_sandbox("mix test"). Fix any failures. Do not proceed with failing tests.
+        **Step 4 — run_sandbox("mix test")**
+        Must pass. Fix any test failures before continuing.
 
-        **Step 5 — credo**
-        run_sandbox("mix credo --all"). Fix any NEW warnings your change introduced.
+        **Step 5 — run_sandbox("mix credo --all")**
+        Fix any NEW credo warnings your change introduced.
 
-        **Step 6 — commit**
-        git_commit with message: "fix: <short description> (closes #N)"
-        Pass the worktree path as `working_dir`.
+        **Step 6 — git_commit(files: [...], message: "fix: ...(closes #N)", working_dir: "<worktree_path>")**
+        Always pass working_dir. Commits go to the branch, never main.
 
-        **Step 7 — push**
-        git_push. Pass the worktree path as `working_dir`.
+        **Step 7 — git_push(branch: "self-improve/N", working_dir: "<worktree_path>")**
 
-        **Step 8 — open PR**
-        open_pr with title and body referencing the issue number.
-        Pass the worktree path as `working_dir`.
+        **Step 8 — open_pr(title: "...", body: "...", working_dir: "<worktree_path>")**
+        The body must be a full GitHub PR description in markdown:
+        - What changed and why
+        - Which files were modified
+        - How to test the change
+        - "Closes #N" to auto-close the issue
 
-        **Step 9 — end with:**
+        **Step 9 — output:**
         PR: <url>
         """,
         trigger: "manual",
@@ -321,8 +321,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       create_health_scan_step(),
       create_opportunity_scan_step(),
       create_backlog_synthesis_step(),
-      create_issue_filing_step(),
-      create_product_analyst_sweep_step()
+      create_issue_filing_step()
     ]
 
     case Enum.find(results, &match?({:error, _}, &1)) do
@@ -331,63 +330,33 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     end
   end
 
-  defp create_product_analyst_sweep_step do
-    Quests.create_step(%{
-      name: "SI: Product Analyst Sweep",
-      description: """
-      Product Analyst performs a comprehensive sweep of the codebase and product landscape.
-
-      ## Tools: read_file, query_lore, search_github
-
-      ## Workflow:
-      1. Query lore for project identity and domain
-      2. Read key files to understand current state
-      3. Search GitHub for existing issues
-      4. Identify gaps and opportunities
-
-      ## Output:
-      - Summary of findings
-      - Recommendations for improvements
-      - Prioritized list of action items
-      """,
-      trigger: "manual",
-      output_type: "freeform",
-      dangerous_tool_mode: "execute",
-      max_tool_iterations: 10,
-      loop_tools: ["read_file", "query_lore", "search_github"],
-      roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
-    })
-  end
-
   defp create_health_scan_step do
     Quests.create_step(%{
       name: "SI: Codebase Health Scan",
       description: """
-      You are the Code Auditor performing a scheduled codebase health scan.
+      You are the Code Auditor performing a codebase health scan.
 
-      ## YOUR TOOLS: run_sandbox and read_file ONLY.
-      There is no list_files tool. Do not attempt to call it.
+      ⚠️ YOUR ONLY TOOLS ARE: run_sandbox, read_file
+      list_files DOES NOT EXIST. Do not call it. If you try to call list_files, it will fail.
 
-      ## Required steps — do them in this order:
+      ## DO THIS RIGHT NOW — in exactly this order:
 
-      **1. Run static analysis (first two calls)**
-      - run_sandbox("mix credo --all")
-      - run_sandbox("mix test")
+      **CALL 1 (mandatory, do it immediately):** run_sandbox with "mix credo --all"
+      **CALL 2 (mandatory):** run_sandbox with "mix test"
 
-      **2. Read at most 3 targeted files (based on credo output)**
-      Read only files that credo flagged or that match these high-value targets:
+      After those two calls, read at most 3 specific files that credo flagged.
+      If credo is clean, read these high-value targets:
       - lib/ex_calibur/step_runner.ex
       - lib/ex_calibur/quest_runner.ex
       - lib/ex_calibur/llm/ollama.ex
-      Do NOT read charter files, Ecto schema files, or watcher files.
 
-      **3. Write your findings report immediately after the reads**
+      **After your reads, STOP calling tools and write your findings.**
 
       Format each finding as:
       - [Category: test gap | error handling | TODO | complexity] File:line — one sentence
 
-      Do NOT file issues. Do NOT make recommendations. 3–8 findings max.
-      If credo and tests are clean and you see nothing notable, say so in one paragraph.
+      3–8 findings max. If credo and tests are clean, say so in one paragraph.
+      Do NOT file issues. Do NOT make recommendations.
       """,
       trigger: "manual",
       output_type: "freeform",

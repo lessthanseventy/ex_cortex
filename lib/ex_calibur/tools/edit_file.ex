@@ -4,22 +4,27 @@ defmodule ExCalibur.Tools.EditFile do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "edit_file",
-      description: "Replace a specific string in a file. The old string must appear exactly once.",
+      description:
+        "Replace a specific string in a file. The old string must appear exactly once. REQUIRED: always pass working_dir as the worktree path returned by setup_worktree.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
           "path" => %{"type" => "string", "description" => "Relative file path"},
           "old" => %{"type" => "string", "description" => "Exact text to find"},
-          "new" => %{"type" => "string", "description" => "Replacement text"}
+          "new" => %{"type" => "string", "description" => "Replacement text"},
+          "working_dir" => %{
+            "type" => "string",
+            "description" => "Absolute path to the worktree directory (from setup_worktree)"
+          }
         },
-        "required" => ["path", "old", "new"]
+        "required" => ["path", "old", "new", "working_dir"]
       },
       callback: &call/1
     )
   end
 
   def call(%{"path" => path, "old" => old, "new" => new} = params) do
-    working_dir = Map.get(params, "working_dir", File.cwd!())
+    working_dir = Map.get(params, "working_dir") || File.cwd!()
     full_path = working_dir |> Path.join(path) |> Path.expand()
 
     if String.starts_with?(full_path, Path.expand(working_dir)) do

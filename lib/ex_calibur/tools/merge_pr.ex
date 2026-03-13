@@ -21,13 +21,35 @@ defmodule ExCalibur.Tools.MergePR do
   end
 
   def call(%{"pr_number" => pr_number} = params) do
-    working_dir = Map.get(params, "working_dir", File.cwd!())
+    repo_path = File.cwd!()
     method = Map.get(params, "method", "squash")
     args = ["pr", "merge", to_string(pr_number), "--#{method}", "--delete-branch"]
 
-    case System.cmd("gh", args, cd: working_dir, stderr_to_stdout: true) do
-      {output, 0} -> {:ok, "PR ##{pr_number} merged: #{String.trim(output)}"}
-      {output, _} -> {:error, "Merge failed: #{output}"}
+    case System.cmd("gh", args, cd: repo_path, stderr_to_stdout: true) do
+      {output, 0} ->
+        cleanup_si_worktrees(repo_path)
+        {:ok, "PR ##{pr_number} merged: #{String.trim(output)}"}
+
+      {output, _} ->
+        {:error, "Merge failed: #{output}"}
+    end
+  end
+
+  defp cleanup_si_worktrees(repo_path) do
+    worktrees_dir = Path.join(repo_path, ".worktrees")
+
+    case File.ls(worktrees_dir) do
+      {:ok, entries} ->
+        Enum.each(entries, fn entry ->
+          path = Path.join(worktrees_dir, entry)
+          ExCalibur.Worktree.remove(repo_path, entry)
+          File.rm_rf(path)
+        end)
+
+        System.cmd("git", ["worktree", "prune"], cd: repo_path, stderr_to_stdout: true)
+
+      _ ->
+        :ok
     end
   end
 end

@@ -4,7 +4,8 @@ defmodule ExCalibur.Tools.GitCommit do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "git_commit",
-      description: "Stage specific files and create a git commit.",
+      description:
+        "Stage specific files and create a git commit. REQUIRED: pass working_dir as the worktree path returned by setup_worktree so commits go to the branch, not main.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -13,16 +14,20 @@ defmodule ExCalibur.Tools.GitCommit do
             "items" => %{"type" => "string"},
             "description" => "Files to stage (relative paths)"
           },
-          "message" => %{"type" => "string", "description" => "Commit message"}
+          "message" => %{"type" => "string", "description" => "Commit message"},
+          "working_dir" => %{
+            "type" => "string",
+            "description" => "Absolute path to the worktree directory (from setup_worktree)"
+          }
         },
-        "required" => ["files", "message"]
+        "required" => ["files", "message", "working_dir"]
       },
       callback: &call/1
     )
   end
 
   def call(%{"files" => files, "message" => message} = params) do
-    working_dir = Map.get(params, "working_dir", File.cwd!())
+    working_dir = Map.get(params, "working_dir") || File.cwd!()
 
     Enum.each(files, fn file ->
       System.cmd("git", ["add", file], cd: working_dir, stderr_to_stdout: true)
