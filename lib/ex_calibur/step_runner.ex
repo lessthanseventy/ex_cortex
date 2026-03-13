@@ -206,6 +206,25 @@ defmodule ExCalibur.StepRunner do
   # Member resolution
   # ---------------------------------------------------------------------------
 
+  @rank_values ["apprentice", "journeyman", "master"]
+
+  # When preferred_who is combined with a rank-based "who", filter by both name AND rank.
+  # This ensures "who: journeyman, preferred_who: Product Analyst" returns only the
+  # journeyman-ranked Product Analyst, not all perspectives of that role.
+  defp resolve_members(%{"preferred_who" => name, "who" => rank} = step)
+       when is_binary(name) and name != "" and rank in @rank_values do
+    case from(m in Member,
+           where:
+             m.type == "role" and m.status == "active" and m.name == ^name and
+               fragment("config->>'rank' = ?", ^rank)
+         )
+         |> Repo.all()
+         |> Enum.map(&member_to_runner_spec/1) do
+      [] -> resolve_members(%{step | "preferred_who" => nil})
+      members -> members
+    end
+  end
+
   defp resolve_members(%{"preferred_who" => name} = step) when is_binary(name) and name != "" do
     case from(m in Member,
            where: m.type == "role" and m.status == "active" and m.name == ^name

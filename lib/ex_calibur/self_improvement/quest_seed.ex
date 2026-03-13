@@ -301,7 +301,8 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       loop_tools: ["run_sandbox"],
       roster: [
         %{
-          "who" => "apprentice",
+          "who" => "journeyman",
+          "preferred_who" => "Code Reviewer",
           "how" => "solo",
           "when" => "sequential"
         }
