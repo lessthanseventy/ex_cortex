@@ -57,5 +57,9 @@ defmodule ExCalibur.ContextProviders.ContextProvider do
 
   defp module_for("sandbox"), do: Module.concat([ExCalibur, ContextProviders, Sandbox])
 
+  defp module_for("file_reader"), do: Module.concat([ExCalibur, ContextProviders, FileReader])
+
+  defp module_for("github_issues"), do: Module.concat([ExCalibur, ContextProviders, GithubIssues])
+
   defp module_for(_), do: nil
 end

@@ -336,29 +336,27 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Code Auditor performing a codebase health scan.
 
-      The credo and test results have been run for you and are provided above as context.
-      You do not need to run any tools to get this data — it is already here.
+      The `mix credo --all` and `mix test` results are provided above.
+      The key source files are also provided above for reference.
+      You do not need to call any tools — all data is already in context.
 
-      ## Your task
+      Write your findings report now. Format each finding as:
+      - [Category: test gap | error handling | TODO | complexity | credo] File:line — one sentence
 
-      Analyze the credo output and test results above.
-
-      If credo flagged specific files, you may use read_file to look at up to 3 of them.
-      Focus on: lib/ex_calibur/step_runner.ex, lib/ex_calibur/quest_runner.ex, lib/ex_calibur/llm/ollama.ex
-
-      Then write your findings report. Format each finding as:
-      - [Category: test gap | error handling | TODO | complexity] File:line — one sentence
-
-      3–8 findings max. If credo and tests are clean, say so in one paragraph.
-      Do NOT file issues. Do NOT make recommendations. Stop after writing your report.
+      3–8 findings max. If credo and tests are clean and files look solid, say so in one paragraph.
+      Do NOT file issues. Do NOT make recommendations. Write the report and stop.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 4,
-      loop_tools: ["read_file"],
       context_providers: [
-        %{"type" => "sandbox", "commands" => ["mix credo --all", "mix test"], "label" => "## Static Analysis Results"}
+        %{"type" => "sandbox", "commands" => ["mix credo --all", "mix test"], "label" => "## Static Analysis Results"},
+        %{
+          "type" => "file_reader",
+          "files" => ["lib/ex_calibur/step_runner.ex", "lib/ex_calibur/quest_runner.ex", "lib/ex_calibur/llm/ollama.ex"],
+          "label" => "## Key Source Files",
+          "max_bytes_per_file" => 3000
+        }
       ],
       roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })
@@ -370,32 +368,24 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Product Analyst performing an opportunity scan.
 
-      Project context and health scan findings are provided above.
+      The project context, health scan findings, and key source files are all provided above.
+      You do not need to call any tools — all data is already in context.
 
       ## What you are looking for
 
       Product value — NOT code quality. What should ExCalibur be able to do that it currently
-      can't, or does poorly? Every suggestion must relate to lib/ or test/ code in THIS app.
+      can't, or does poorly? Every suggestion must relate to the files and modules shown above.
 
       ExCalibur is a Phoenix LiveView app for AI agent orchestration: guilds (agent teams),
       members (roles), quests (pipelines), sources, lore, lodge. Do NOT suggest features for
-      unrelated domains.
+      unrelated domains (no game engines, no audio, no physics).
 
-      ## Use read_file to examine these specific files (in order of value):
+      ## Output format (write this now)
 
-      1. lib/ex_calibur/self_improvement/quest_seed.ex — SI pipeline gaps?
-      2. lib/ex_calibur_web/live/quests_live.ex — Quests page UX gaps?
-      3. lib/ex_calibur_web/live/lodge_live.ex — Lodge page gaps?
-      4. lib/ex_calibur/board/generation.ex — missing quest templates?
-
-      Read at most 4 files, then write your output immediately.
-
-      ## Output format
-
-      For each opportunity:
-      - What's missing or incomplete (cite the file)
+      For each opportunity you identify from the files above:
+      - What's missing or incomplete (cite the exact file/module)
       - Why it matters (user impact)
-      - Where it would live (exact module)
+      - Where the fix would live
       - Effort: small | medium | large
 
       3–6 opportunities. Do NOT repeat health scan findings.
@@ -403,10 +393,19 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 6,
-      loop_tools: ["read_file"],
       context_providers: [
-        %{"type" => "lore", "tags" => ["project", "self-improvement", "pipeline"], "limit" => 4, "sort" => "top"}
+        %{"type" => "lore", "tags" => ["project", "self-improvement", "pipeline"], "limit" => 3, "sort" => "top"},
+        %{
+          "type" => "file_reader",
+          "files" => [
+            "lib/ex_calibur/self_improvement/quest_seed.ex",
+            "lib/ex_calibur_web/live/quests_live.ex",
+            "lib/ex_calibur_web/live/lodge_live.ex",
+            "lib/ex_calibur/board/generation.ex"
+          ],
+          "label" => "## Source Files for Analysis",
+          "max_bytes_per_file" => 2500
+        }
       ],
       roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
     })
@@ -418,18 +417,15 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Project Manager synthesizing the team's findings into an actionable shortlist.
 
-      Your context includes the health scan findings AND the opportunity scan from the previous steps.
+      The health scan findings, opportunity scan, and currently open GitHub issues are all
+      provided above in context. You do not need to call any tools.
 
-      ## Step 1: Check existing open issues (one tool call)
+      ## Your task
 
-      Call search_github with query "existing issues" and label "self-improvement" to see what is already tracked.
-      If it returns empty (`[]`), that is fine — it means no issues are open yet. Continue.
-      Use the results to avoid duplicating anything already open.
+      From the health scan + opportunity scan findings, pick 3–5 high-value items that are NOT
+      already listed in the open GitHub issues above.
 
-      ## Step 2: Synthesize and produce the shortlist
-
-      From the health scan + opportunity scan, pick 3–5 high-value items not already tracked.
-      Exclude: vague suggestions, style improvements, credo baseline noise, anything already open.
+      Exclude: vague suggestions, style improvements, credo baseline noise, duplicates.
 
       For each approved item write EXACTLY this format (the next step parses it literally):
 
@@ -443,12 +439,14 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       ---
 
       Output the shortlist. Nothing else after it.
+      If there is nothing worth filing (all findings already tracked or too vague), say so.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 5,
-      loop_tools: ["search_github"],
+      context_providers: [
+        %{"type" => "github_issues", "label" => "self-improvement", "header" => "## Currently Open Self-Improvement Issues"}
+      ],
       roster: [%{"who" => "journeyman", "preferred_who" => "Backlog Manager", "how" => "solo", "when" => "sequential"}]
     })
   end
@@ -680,51 +678,52 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       ## SI: Analyst Sweep — scheduled every 4 hours (four steps)
 
-      A full team runs every 4 hours to find and file high-quality improvement issues.
+      Uses context providers to pre-inject data — no dice-roll tool calls for data retrieval.
 
       **Step 1: SI: Codebase Health Scan** (Code Auditor)
-      - Runs `mix credo --all` and `mix test` inline to get fresh static analysis data
-      - Then reads up to 6 targeted files guided by the credo output
-      - Looks for: test coverage gaps, error handling gaps, TODO comments, large functions
-      - Outputs a structured findings report with file:line evidence
+      - Context providers run `mix credo --all` and `mix test` BEFORE the model sees anything
+      - Key source files (step_runner, quest_runner, ollama) are also pre-injected
+      - Model has NO tools — just reads context and writes a findings report
+      - Looks for: test gaps, error handling gaps, TODO comments, complexity
+      - Outputs 3–8 findings in [Category] File:line format
       - Does NOT file issues — just reports
 
       **Step 2: SI: Feature & Opportunity Scan** (Product Analyst)
+      - Context providers inject lore (project identity) and 4 key source files
+      - Model has NO tools — analyzes injected content and writes opportunities
       - Different lens: product value, not code quality
-      - Looks for missing features, incomplete functionality, UX gaps, integration opportunities
-      - Queries lore to understand what's been deferred or worked on
-      - Outputs an opportunity list with effort estimates
+      - Outputs 3–6 opportunities with effort estimates and file citations
       - Does NOT file issues — just reports
 
       **Step 3: SI: Backlog Synthesis** (Backlog Manager)
-      - Receives health scan AND opportunity scan findings
-      - Calls search_github once with label "self-improvement" to check existing open issues
-      - Synthesizes into a ranked shortlist of 3–5 items approved for filing
-      - Outputs each item as an APPROVED: block with Type/Source/Why now/Effort/Body hint fields
+      - Context provider pre-fetches open GitHub issues labeled `self-improvement`
+      - Model has NO tools — synthesizes findings and deduplicates against injected issues
+      - Picks 3–5 high-value items not already tracked
+      - Outputs each as an APPROVED: block with Type/Source/Why now/Effort/Body hint
       - This is the gate — nothing gets filed without PM approval
 
       **Step 4: SI: Issue Filing** (Product Analyst)
-      - Receives the PM's APPROVED: shortlist (duplicate check already done by Backlog Synthesis)
-      - Calls create_github_issue once per APPROVED item — no per-item search needed
-      - Issues go to the self-improvement label for the SI Loop to pick up
+      - Only tool is `create_github_issue` — one call per APPROVED block
+      - Issues labeled `self-improvement` get picked up by the SI Loop
+      - Does NOT search or explore — just files what the PM approved
 
       ## Self-Improvement Loop — source-triggered by GitHub issues labeled `self-improvement`
 
       1. SI: PM Triage — evaluates issue, writes implementation plan or rejects
-      2. SI: Code Writer — implements in a worktree, opens PR
+      2. SI: Code Writer — implements in a worktree, opens a real GitHub PR
       3. SI: Code Reviewer — reviews correctness and patterns (verdict gate)
       4. SI: QA — runs tests, issues a verdict (verdict gate)
       5. SI: UX Designer — runs `mix excessibility`, checks accessibility
-      6. SI: PM Merge Decision — auto-merge low-risk changes or escalate
+      6. SI: PM Merge Decision — squash-merges low-risk changes, cleans up worktree
 
       ## Key workflow rules
 
-      - Static Analysis outputs raw results only — no decisions, no interpretation
-      - Health Scan and Opportunity Scan report findings — they do NOT file issues
-      - Only the PM's approved shortlist gets filed (Step 4 → Step 5)
-      - Backlog Synthesis does the duplicate check (one search_github call); Issue Filing trusts it
-      - Issue Filing calls create_github_issue directly — no per-item search, no hesitation
+      - Scan steps have NO tools — all data is pre-injected by context providers
+      - Only Issue Filing calls tools (`create_github_issue`)
+      - Code Writer MUST use setup_worktree and pass working_dir to every tool call
+      - Code Writer opens a REAL GitHub PR with full description and Closes #N
       - UX Designer uses `mix excessibility` — not `mix test` or `mix format`
+      - merge_pr auto-cleans up local worktrees after successful merge
       """
     },
     %{
