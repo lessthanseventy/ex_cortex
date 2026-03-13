@@ -116,24 +116,26 @@ defmodule ExCalibur.Lodge do
       body = proposal_card_body(proposal)
 
       case Map.get(existing_cards, proposal.id) do
-        nil ->
-          create_card(%{
-            type: "proposal",
-            title: title,
-            body: body,
-            source: "quest",
-            quest_id: proposal.quest_id,
-            metadata: %{
-              "proposal_id" => proposal.id,
-              "proposal_type" => proposal.type
-            }
-          })
-
-        existing ->
-          if existing.title != title or existing.body != body do
-            update_card(existing, %{title: title, body: body})
-          end
+        nil -> create_proposal_card(proposal, title, body)
+        existing -> maybe_update_proposal_card(existing, title, body)
       end
+    end
+  end
+
+  defp create_proposal_card(proposal, title, body) do
+    create_card(%{
+      type: "proposal",
+      title: title,
+      body: body,
+      source: "quest",
+      quest_id: proposal.quest_id,
+      metadata: %{"proposal_id" => proposal.id, "proposal_type" => proposal.type}
+    })
+  end
+
+  defp maybe_update_proposal_card(existing, title, body) do
+    if existing.title != title or existing.body != body do
+      update_card(existing, %{title: title, body: body})
     end
   end
 

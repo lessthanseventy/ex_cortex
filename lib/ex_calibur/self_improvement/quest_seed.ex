@@ -482,8 +482,16 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Product Analyst filing GitHub issues from the PM's approved shortlist.
 
-      Your context includes the PM's shortlist from the Backlog Synthesis step.
-      Look for lines starting with "APPROVED:" — those are the items to file.
+      Your context includes findings from the entire sweep: static analysis, health scan,
+      opportunity scan, and the Backlog Manager's synthesis.
+
+      ## Step 1: Find items to file
+
+      Look for lines starting with "APPROVED:" in the Backlog Manager's output — those are pre-approved.
+      If you find APPROVED: items, use those.
+      If the Backlog Manager produced no APPROVED: items (or its output is missing), that is fine —
+      look directly at the health scan and opportunity scan findings and pick the 3 most actionable
+      items yourself. The Backlog Manager is a helper, not a gatekeeper.
 
       ## Sanity check BEFORE filing anything
 

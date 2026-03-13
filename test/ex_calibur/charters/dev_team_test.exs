@@ -12,6 +12,8 @@ defmodule ExCalibur.Charters.DevTeamTest do
     assert "Code Reviewer" in names
     assert "QA / Test Writer" in names
     assert "UX Designer" in names
-    assert length(names) == 6
+    assert "Code Auditor" in names
+    assert "Backlog Manager" in names
+    assert length(names) == 8
   end
 end
