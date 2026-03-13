@@ -41,7 +41,17 @@ defmodule ExCalibur.Tools.GitCommit do
       end)
     end
 
-    case System.cmd("git", ["commit", "-m", message], cd: working_dir, stderr_to_stdout: true) do
+    # Append co-author trailer so the AI agent is credited in the commit log
+    full_message = message <> "\n\nCo-Authored-By: ExCalibur Dev Team <devteam@excalibur.local>"
+
+    args = [
+      "commit",
+      "--author=ExCalibur Dev Team <devteam@excalibur.local>",
+      "-m",
+      full_message
+    ]
+
+    case System.cmd("git", args, cd: working_dir, stderr_to_stdout: true) do
       {output, 0} -> {:ok, "Committed: #{String.trim(output)}"}
       {output, _} -> {:error, "Commit failed: #{output}"}
     end
