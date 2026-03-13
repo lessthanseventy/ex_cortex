@@ -380,38 +380,48 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       Your context includes the health scan findings from the previous step.
 
-      ## Your job — a DIFFERENT lens than the Code Reviewer
+      ## FIRST: Ground yourself in what ExCalibur actually is
+
+      Before doing anything else, call query_lore with tags ["project"] to understand the project.
+      ExCalibur is a Phoenix LiveView web application for AI agent orchestration. It has these pages:
+      Lodge, Town Square, Guild Hall, Quests, Grimoire, Library, Settings, Evaluate.
+      It works with guilds (agent teams), members (roles), quests (pipelines), sources, and lore entries.
+
+      **You are looking for improvements to THIS specific app — ExCalibur.**
+      Do NOT suggest features for game engines, audio systems, physics engines, or any other domain.
+      Every suggestion must relate to something you can find evidence for in lib/ or test/.
+
+      ## Your job — a DIFFERENT lens than the Code Auditor
 
       You are NOT looking for bugs or code quality issues. You are thinking about product value:
-      what should this app be able to do that it currently can't, or does poorly?
+      what should ExCalibur be able to do that it currently can't, or does poorly?
 
-      Work through these angles:
+      Work through these angles — each requires reading actual code first:
 
       **Unfinished or partially-implemented features**
       - query_lore with tags ["self-improvement", "project"] to understand what's been in progress
-      - Look at Board templates (lib/ex_calibur/board/) — are any patterns missing or thin?
-      - Read lib/ex_calibur/self_improvement/ — is the pipeline complete or are there gaps?
+      - Read lib/ex_calibur/self_improvement/ — is the SI pipeline complete or are there gaps?
+      - Look at lib/ex_calibur/board/ — are quest templates missing for common patterns?
 
       **User experience gaps**
-      - Think about the pages: Lodge, Town Square, Guild Hall, Quests, Grimoire, Library, Settings
-      - Is there functionality that would obviously be useful but is absent?
+      - Read lib/ex_calibur_web/live/ to understand what the pages actually do
+      - Is there functionality that would obviously be useful but is absent from these pages?
 
       **Integration opportunities**
-      - What external tools or workflows could this app connect to that it doesn't yet?
-
-      **Recurring friction**
-      - query_lore broadly — are there lore entries describing known pain points or workarounds?
+      - query_lore broadly for entries describing known pain points or workarounds
+      - What integrations does the codebase partially implement but not finish?
 
       ## Output format
 
-      Write a list of opportunities. For each:
-      - What's missing or incomplete
+      Write a list of opportunities grounded in code evidence. For each:
+      - What's missing or incomplete (cite the file you read)
       - Why it would matter (user impact or developer impact)
-      - Where in the codebase it would live (rough file/module area)
+      - Where in the codebase it would live (exact file/module)
       - Rough effort: small (hours) / medium (days) / large (week+)
 
-      Do NOT file GitHub issues. Do NOT repeat health scan findings (those are code quality, not features).
-      Aim for 3–8 genuine opportunities. If you find nothing notable, say so.
+      Do NOT suggest features you can't tie to actual code you read.
+      Do NOT repeat health scan findings (those are code quality, not features).
+      Aim for 3–8 genuine opportunities. If you find nothing notable after reading the code, say so.
       """,
       trigger: "manual",
       output_type: "freeform",
@@ -475,6 +485,16 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       Your context includes the PM's shortlist from the Backlog Synthesis step.
       Look for lines starting with "APPROVED:" — those are the items to file.
 
+      ## Sanity check BEFORE filing anything
+
+      ExCalibur is a Phoenix LiveView web app for AI agent orchestration.
+      It has: guilds, members, quests, sources, lore, lodge, grimoire.
+      It does NOT have: physics engines, audio systems, gamepads, collision detection, or anything else
+      unrelated to AI agent workflows and web UI.
+
+      Before calling create_github_issue for any item, ask: "Does this belong in ExCalibur?"
+      If the answer is no — skip it entirely, it was a hallucination from a previous step.
+
       ## For each APPROVED item — do this in order, one item at a time
 
       1. Call search_github with the issue title as the query to check for duplicates.
@@ -512,6 +532,57 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   end
 
   @lore_entries [
+    %{
+      title: "ExCalibur: What This Project Is",
+      tags: ["project", "identity", "domain", "overview"],
+      importance: 5,
+      body: """
+      # ExCalibur: What This Project Is
+
+      ExCalibur is a **Phoenix LiveView web application** for AI agent orchestration and self-improvement.
+      It is a standalone app that provides a UI and pipeline engine for running teams of AI agents.
+
+      ## What ExCalibur IS
+
+      - A web UI for configuring and running AI agent pipelines
+      - An orchestration layer for calling Ollama (local LLMs) and Claude (Anthropic)
+      - A self-improvement system where AI agents work on ExCalibur itself
+      - A guild/member/quest framework: guilds are agent teams, members are roles, quests are pipelines
+
+      ## Key pages
+
+      - **Lodge** (`/lodge`) — dashboard showing quest outputs, pinned cards, proposal review
+      - **Town Square** (`/town-square`) — charter browser and guild installer
+      - **Guild Hall** (`/guild-hall`) — browse/manage guild members
+      - **Quests** (`/quests`) — quest planner, step configuration
+      - **Grimoire** (`/grimoire`) — lore browser; view/search lore entries
+      - **Library** (`/library`) — source blueprint browser
+      - **Evaluate** (`/evaluate`) — run text against a guild and see verdicts
+      - **Settings** (`/settings`) — Ollama URL, API keys, default repo, feature flags
+
+      ## Key modules
+
+      - `ExCalibur.QuestRunner` — runs quests step by step
+      - `ExCalibur.StepRunner` — runs a single step against members
+      - `ExCalibur.Lodge` — lodge card management
+      - `ExCalibur.Lore` — lore entry storage and retrieval
+      - `ExCalibur.Sources.*` — source workers (GitHub issues, webhooks, feeds, etc.)
+      - `ExCalibur.Tools.*` — tool implementations (run_sandbox, create_github_issue, etc.)
+      - `ExCalibur.Charters.*` — pre-built guild definitions
+      - `ExCalibur.SelfImprovement.*` — SI pipeline seeding
+
+      ## What ExCalibur is NOT
+
+      - Not a game engine
+      - Not an audio or physics system
+      - Not a mobile app
+      - Not a data pipeline or ETL tool
+
+      If you are filing issues or suggesting features, they MUST relate to the modules and pages above.
+      Any suggestion about game engines, audio systems, collision detection, gamepads, etc. is wrong —
+      reject it immediately as a hallucination.
+      """
+    },
     %{
       title: "José Valim's Grimoire: Elixir Testing Patterns",
       tags: ["elixir", "testing", "patterns", "grimoire"],
