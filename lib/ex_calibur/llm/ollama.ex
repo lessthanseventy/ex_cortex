@@ -213,13 +213,13 @@ defmodule ExCalibur.LLM.Ollama do
 
     cond do
       prior_count >= @empty_threshold ->
-        out = "Tool #{name} is not available or returned no results. Skipping — use what you have."
+        out = unavailable_message(name, tools)
         Logger.debug("[Ollama] circuit breaker: skipping #{name}")
         {out, %{tool: name, input: args, output: out}, bs}
 
       is_nil(Enum.find(tools, &(&1.name == name))) and not ExCalibur.StepRunner.dangerous?(name) ->
         # Unknown tool — trip the breaker immediately so it's skipped on all future calls
-        out = "Tool '#{name}' is not available in this step. Stop calling it."
+        out = unavailable_message(name, tools)
         Logger.warning("[Ollama] unknown tool called: #{name}")
         {out, %{tool: name, input: %{}, output: out}, Map.put(bs, name, @empty_threshold)}
 
@@ -271,6 +271,25 @@ defmodule ExCalibur.LLM.Ollama do
         o = "Error: #{inspect(e)}"
         {o, %{tool: name, input: args, output: o}}
     end
+  end
+
+  # Build a directive unavailability message that names the tools the model SHOULD use instead.
+  defp unavailable_message(blocked_name, tools) do
+    available = Enum.map(tools, & &1.name)
+
+    hint =
+      cond do
+        "run_sandbox" in available ->
+          " Call run_sandbox with 'mix credo --all' or 'mix test' to analyze the codebase."
+
+        available != [] ->
+          " Your available tools are: #{Enum.join(available, ", ")}. Use those instead."
+
+        true ->
+          " Stop calling tools and write your findings based on what you already know."
+      end
+
+    "Tool '#{blocked_name}' is not available in this step.#{hint}"
   end
 
   defp tool_call_incompatible?(body) when is_binary(body), do: String.contains?(body, "roles must alternate")
