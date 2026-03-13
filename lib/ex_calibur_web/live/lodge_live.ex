@@ -10,8 +10,8 @@ defmodule ExCaliburWeb.LodgeLive do
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Quests.QuestRun
   alias ExCalibur.Repo
+  alias ExCalibur.Schemas.Member
   alias ExCalibur.Settings
-  alias Excellence.Schemas.Member
 
   @impl true
   def mount(_params, _session, socket) do

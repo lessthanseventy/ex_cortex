@@ -2,7 +2,7 @@ defmodule ExCalibur.LLM.Ollama do
   @moduledoc "Ollama LLM provider."
   @behaviour ExCalibur.LLM
 
-  alias Excellence.LLM.Ollama
+  alias ExCalibur.Agent.LLM.Ollama
 
   require Logger
   require OpenTelemetry.Tracer, as: Tracer

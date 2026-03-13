@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.DevTeam.Install do
+  @shortdoc "Install Dev Team guild + SI pipeline seeds"
+
   @moduledoc """
   Installs (or reinstalls) the Dev Team guild: members, steps, quests, and SI seeds.
 
@@ -10,7 +12,7 @@ defmodule Mix.Tasks.DevTeam.Install do
 
   use Mix.Task
 
-  @shortdoc "Install Dev Team guild + SI pipeline seeds"
+  alias ExCalibur.Schemas.Member
 
   @impl Mix.Task
   def run(_args) do
@@ -34,10 +36,10 @@ defmodule Mix.Tasks.DevTeam.Install do
   end
 
   defp install_members(mod) do
-    mod.resource_definitions()
-    |> Enum.each(fn attrs ->
+    Enum.each(mod.resource_definitions(), fn attrs ->
       result =
-        Excellence.Schemas.Member.changeset(%Excellence.Schemas.Member{}, attrs)
+        %Member{}
+        |> Member.changeset(attrs)
         |> ExCalibur.Repo.insert(on_conflict: :nothing)
 
       case result do
@@ -63,9 +65,10 @@ defmodule Mix.Tasks.DevTeam.Install do
       step_by_name = Map.new(ExCalibur.Quests.list_steps(), &{&1.name, &1.id})
 
       Enum.each(mod.campaign_definitions(), fn attrs ->
-        steps = Enum.map(attrs.steps, fn step ->
-          %{"step_id" => Map.get(step_by_name, step["quest_name"] || step["step_name"]), "flow" => step["flow"]}
-        end)
+        steps =
+          Enum.map(attrs.steps, fn step ->
+            %{"step_id" => Map.get(step_by_name, step["quest_name"] || step["step_name"]), "flow" => step["flow"]}
+          end)
 
         case ExCalibur.Quests.create_quest(Map.put(attrs, :steps, steps)) do
           {:ok, q} -> IO.puts("  + campaign: #{q.name}")

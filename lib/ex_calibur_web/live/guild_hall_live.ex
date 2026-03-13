@@ -7,8 +7,8 @@ defmodule ExCaliburWeb.GuildHallLive do
 
   alias ExCalibur.GuildCharters
   alias ExCalibur.Members.BuiltinMember
+  alias ExCalibur.Schemas.Member
   alias ExCalibur.Settings
-  alias Excellence.Schemas.Member
 
   @impl true
   def mount(_params, _session, socket) do

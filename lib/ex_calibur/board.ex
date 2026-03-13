@@ -12,8 +12,8 @@ defmodule ExCalibur.Board do
   alias ExCalibur.Heralds.Herald
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Repo
+  alias ExCalibur.Schemas.Member
   alias ExCalibur.Sources.Source
-  alias Excellence.Schemas.Member
 
   defstruct [
     :id,

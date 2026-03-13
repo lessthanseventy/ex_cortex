@@ -9,7 +9,7 @@ defmodule ExCalibur.ContextProviders.MemberStats do
   import Ecto.Query
 
   alias ExCalibur.Repo
-  alias Excellence.Schemas.Member
+  alias ExCalibur.Schemas.Member
 
   @impl true
   def build(_config, _quest, _input) do

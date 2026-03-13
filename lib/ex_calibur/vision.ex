@@ -1,8 +1,8 @@
 defmodule ExCalibur.Vision do
   @moduledoc "Routes vision requests to Ollama or Claude based on settings."
 
+  alias ExCalibur.Agent.LLM.Ollama
   alias ExCalibur.Settings
-  alias Excellence.LLM.Ollama
 
   def describe(image_path, prompt \\ "Describe this image in detail.") do
     image_b64 = image_path |> File.read!() |> Base.encode64()

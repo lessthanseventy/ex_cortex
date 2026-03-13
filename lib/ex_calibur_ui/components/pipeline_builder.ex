@@ -9,16 +9,7 @@ defmodule ExCaliburUI.Components.PipelineBuilder do
   import SaladUI.Button
   import SaladUI.Card
 
-  @available_middleware [
-    %{module: "Excellence.Middleware.TelemetryMiddleware", name: "Telemetry", description: "Emit timing events"},
-    %{module: "Excellence.Middleware.Filter", name: "Filter", description: "Learning-based input filtering"},
-    %{module: "Excellence.Middleware.Cache", name: "Cache", description: "ETS-backed response cache"},
-    %{module: "Excellence.Middleware.RateLimit", name: "Rate Limit", description: "Request rate limiting"},
-    %{module: "Excellence.Middleware.Evaluate", name: "Evaluate", description: "Run multi-agent evaluation"},
-    %{module: "Excellence.Middleware.AuditLog", name: "Audit Log", description: "Record decisions to DB"},
-    %{module: "Excellence.Middleware.Notify", name: "Notify", description: "PubSub broadcast"},
-    %{module: "Excellence.Middleware.OpenTelemetry", name: "OpenTelemetry", description: "OTel tracing spans"}
-  ]
+  @available_middleware []
 
   attr :pipeline, :list, default: []
   attr :on_save, :any, required: true

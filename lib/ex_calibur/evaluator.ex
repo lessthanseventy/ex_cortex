@@ -1,20 +1,20 @@
 defmodule ExCalibur.Evaluator do
   @moduledoc false
 
+  alias ExCalibur.Agent.LLM.Ollama
+  alias ExCalibur.Agent.Orchestrator
+
   require Logger
 
-  alias Excellence.LLM.Ollama
-  alias Excellence.Orchestrator
-
   @charters %{
-    "Content Moderation" => Excellence.Charters.ContentModeration,
-    "Code Review" => Excellence.Charters.CodeReview,
-    "Risk Assessment" => Excellence.Charters.RiskAssessment,
-    "Accessibility Review" => Excellence.Charters.AccessibilityReview,
-    "Performance Audit" => Excellence.Charters.PerformanceAudit,
-    "Incident Triage" => Excellence.Charters.IncidentTriage,
-    "Contract Review" => Excellence.Charters.ContractReview,
-    "Dependency Audit" => Excellence.Charters.DependencyAudit,
+    "Content Moderation" => ExCalibur.Charters.ContentModeration,
+    "Code Review" => ExCalibur.Charters.CodeReview,
+    "Risk Assessment" => ExCalibur.Charters.RiskAssessment,
+    "Accessibility Review" => ExCalibur.Charters.AccessibilityReview,
+    "Performance Audit" => ExCalibur.Charters.PerformanceAudit,
+    "Incident Triage" => ExCalibur.Charters.IncidentTriage,
+    "Contract Review" => ExCalibur.Charters.ContractReview,
+    "Dependency Audit" => ExCalibur.Charters.DependencyAudit,
     "Dev Team" => ExCalibur.Charters.DevTeam
   }
 
@@ -23,7 +23,7 @@ defmodule ExCalibur.Evaluator do
   def current_guild do
     import Ecto.Query
 
-    alias Excellence.Schemas.Member
+    alias ExCalibur.Schemas.Member
 
     names =
       ExCalibur.Repo.all(from(r in Member, where: r.type == "role", select: r.name))
@@ -56,26 +56,33 @@ defmodule ExCalibur.Evaluator do
         roles = build_roles_from_charter(meta)
         actions_mod = build_actions_from_charter(meta)
 
-        Orchestrator.evaluate(
-          %{subject: input_text},
-          %{},
-          roles: roles,
-          actions: actions_mod,
-          strategy: meta.strategy,
-          llm_provider: provider,
-          guards: []
-        )
+        case Orchestrator.evaluate(
+               %{subject: input_text},
+               %{},
+               roles: roles,
+               actions: actions_mod,
+               strategy: meta.strategy,
+               llm_provider: provider,
+               guards: []
+             ) do
+          {:approve, details} ->
+            Phoenix.PubSub.broadcast(ExCalibur.PubSub, "evaluation:results", :refresh)
+            {:approve, details}
+
+          other ->
+            other
+        end
     end
   end
 
   defp build_roles_from_charter(meta) do
     Enum.map(meta.roles, fn role_def ->
-      mod_name = Module.concat([Excellence, Roles, Macro.camelize(role_def.name)])
+      mod_name = Module.concat([ExCalibur, Roles, Macro.camelize(role_def.name)])
 
       if !Code.ensure_loaded?(mod_name) do
         contents =
           quote do
-            use Excellence.Role
+            use ExCalibur.Agent.Role
 
             system_prompt(unquote(role_def.system_prompt))
 
@@ -106,6 +113,7 @@ defmodule ExCalibur.Evaluator do
               Logger.error("Failed to create dynamic role module #{inspect(mod_name)}: #{inspect(error)}",
                 context: %{role_name: role_def.name, error_type: Exception.message(error)}
               )
+
               fallback_role_module(mod_name, role_def)
             end
         end
@@ -116,7 +124,7 @@ defmodule ExCalibur.Evaluator do
   end
 
   defp build_actions_from_charter(meta) do
-    mod_name = Module.concat([Excellence, DynamicActions, :Template])
+    mod_name = Module.concat([ExCalibur, DynamicActions, :Template])
 
     if !Code.ensure_loaded?(mod_name) do
       action_defs =
@@ -128,7 +136,7 @@ defmodule ExCalibur.Evaluator do
 
       contents =
         quote do
-          use Excellence.Actions
+          use ExCalibur.Agent.Actions
 
           unquote_splicing(action_defs)
         end
@@ -140,8 +148,9 @@ defmodule ExCalibur.Evaluator do
           Logger.error("Failed to create dynamic actions module #{inspect(mod_name)}: #{inspect(error)}",
             context: %{actions: meta.actions, error_type: Exception.message(error)}
           )
+
           # Return a module that exists to prevent complete failure
-          Excellence.DynamicActions.Template
+          ExCalibur.DynamicActions.Template
       end
     end
 
@@ -152,7 +161,7 @@ defmodule ExCalibur.Evaluator do
     # Create a minimal fallback role module that can be used when the main creation fails
     contents =
       quote do
-        use Excellence.Role
+        use ExCalibur.Agent.Role
 
         system_prompt("Fallback role for #{inspect(role_def.name)} - basic evaluation capabilities")
 
@@ -174,7 +183,8 @@ defmodule ExCalibur.Evaluator do
           Logger.error("Fallback role module creation also failed for #{inspect(mod_name)}: #{inspect(error)}",
             context: %{role_name: role_def.name, error_type: Exception.message(error)}
           )
-          Excellence.Roles.Fallback
+
+          ExCalibur.Roles.Fallback
         end
     end
   end

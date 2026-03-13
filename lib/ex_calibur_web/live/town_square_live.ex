@@ -7,10 +7,10 @@ defmodule ExCaliburWeb.TownSquareLive do
   alias ExCalibur.Quests
   alias ExCalibur.Quests.Quest
   alias ExCalibur.Quests.Step
+  alias ExCalibur.Schemas.Member
   alias ExCalibur.Settings
   alias ExCalibur.Sources.Book
   alias ExCalibur.Sources.Source
-  alias Excellence.Schemas.Member
 
   @charters %{
     "Content Moderation" => ExCalibur.Charters.ContentModeration,

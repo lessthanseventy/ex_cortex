@@ -19,7 +19,7 @@ defmodule ExCalibur.StepRunner do
 
   alias ExCalibur.ContextProviders.ContextProvider
   alias ExCalibur.Repo
-  alias Excellence.Schemas.Member
+  alias ExCalibur.Schemas.Member
 
   require Logger
 
@@ -359,7 +359,11 @@ defmodule ExCalibur.StepRunner do
     end
   end
 
-  defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools}, input_text, opts) do
+  defp call_member(
+         %{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools},
+         input_text,
+         opts
+       ) do
     tools = effective_tools(member_tools, opts)
     base = system_prompt || default_claude_prompt()
     prompt = ensure_verdict_format(base, tools)
@@ -409,7 +413,11 @@ defmodule ExCalibur.StepRunner do
 
   # Like call_member but returns raw text — used for freeform quests.
   # Returns {text, tool_log} tuple or nil on failure.
-  defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools}, input_text, opts) do
+  defp call_member_raw(
+         %{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools},
+         input_text,
+         opts
+       ) do
     tools = effective_tools(member_tools, opts)
     prompt = system_prompt || ""
 
@@ -577,13 +585,15 @@ defmodule ExCalibur.StepRunner do
         true -> nil
       end
 
-    [
-      dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",
-      quest_id: Map.get(quest, :id),
-      override_tools: override,
-      max_tool_iterations: Map.get(quest, :max_tool_iterations)
-    ]
-    |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+    Enum.reject(
+      [
+        dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",
+        quest_id: Map.get(quest, :id),
+        override_tools: override,
+        max_tool_iterations: Map.get(quest, :max_tool_iterations)
+      ],
+      fn {_k, v} -> is_nil(v) end
+    )
   end
 
   defp try_escalate_rank(rank, quest, augmented, threshold, escalate_on) do
