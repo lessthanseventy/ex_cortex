@@ -318,7 +318,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       dangerous_tool_mode: "execute",
       max_tool_iterations: 5,
       loop_tools: ["run_sandbox"],
-      roster: [%{"who" => "journeyman", "preferred_who" => "Code Reviewer", "how" => "solo", "when" => "sequential"}]
+      roster: [%{"who" => "journeyman", "preferred_who" => "QA / Test Writer", "how" => "solo", "when" => "sequential"}]
     })
   end
 
@@ -648,7 +648,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       A full team runs every 4 hours to find and file high-quality improvement issues.
 
-      **Step 1: SI: Static Analysis** (Code Reviewer)
+      **Step 1: SI: Static Analysis** (QA / Test Writer)
       - Runs `mix credo --all`, `mix deps.audit`, `mix test`
       - Outputs raw results only — no interpretation
 
