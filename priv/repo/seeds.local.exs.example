@@ -1,0 +1,38 @@
+# Local settings seed — copy this to seeds.local.exs and fill in your values.
+# seeds.local.exs is gitignored; this example file is checked in.
+#
+# These settings are written to the DB on every `mix run priv/repo/seeds.exs`.
+
+alias ExCalibur.Settings
+
+settings = [
+  # GitHub
+  default_repo: "owner/repo",
+
+  # Obsidian (optional)
+  # obsidian_vault: "notes",
+  # obsidian_vault_path: "/home/you/notes",
+  # obsidian_sync_enabled: true,
+
+  # Nextcloud (optional)
+  # nextcloud_url: "http://localhost:8080",
+  # nextcloud_user: "admin",
+  # nextcloud_password: "secret",
+
+  # Vision
+  # vision_provider: "ollama",
+  # ollama_vision_model: "llava",
+
+  # Media
+  # media_dir: "/tmp/ex_calibur/media",
+
+  # Web search
+  # ddgr_num_results: "10"
+]
+
+for {key, value} <- settings do
+  if value && value != "" && value != true do
+    Settings.put(key, value)
+    IO.puts("Settings: set #{key}")
+  end
+end

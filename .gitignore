@@ -38,3 +38,6 @@ npm-debug.log
 # Self-improvement loop
 .ex_calibur.pid
 .worktrees/
+
+# Local settings seed (personal values, not checked in)
+priv/repo/seeds.local.exs

@@ -19,6 +19,10 @@ descriptions = %{
   "currency_codes" => "ISO 4217 currency codes with names, symbols, and example countries."
 }
 
+# Load local settings overrides if present (gitignored, not checked in)
+local_seeds = Path.join(__DIR__, "seeds.local.exs")
+if File.exists?(local_seeds), do: Code.eval_file(local_seeds)
+
 for path <- Path.wildcard("priv/dictionaries/*.csv") do
   name = Path.basename(path, ".csv")
 
