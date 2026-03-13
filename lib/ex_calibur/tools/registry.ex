@@ -60,6 +60,7 @@ defmodule ExCalibur.Tools.Registry do
   alias ExCalibur.Tools.SearchEmail
   alias ExCalibur.Tools.SearchGithub
   alias ExCalibur.Tools.SearchNextcloud
+  alias ExCalibur.Tools.SetupWorktree
   alias ExCalibur.Tools.SearchObsidian
   alias ExCalibur.Tools.SearchObsidianContent
   alias ExCalibur.Tools.SendEmail
@@ -105,6 +106,7 @@ defmodule ExCalibur.Tools.Registry do
     DownloadMedia,
     ExtractAudio,
     ExtractFrames,
+    SetupWorktree,
     WriteFile,
     EditFile,
     GitCommit,
