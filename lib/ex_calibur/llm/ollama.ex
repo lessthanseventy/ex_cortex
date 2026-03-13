@@ -211,17 +211,25 @@ defmodule ExCalibur.LLM.Ollama do
   defp execute_call(name, args, tools, bs, dangerous_mode, quest_id) do
     prior_count = Map.get(bs, name, 0)
 
-    if prior_count >= @empty_threshold do
-      out = "Tool #{name} returned empty results #{prior_count} times. Skipping — proceed with available information."
-      Logger.debug("[Ollama] circuit breaker: skipping #{name}")
-      {out, %{tool: name, input: args, output: out}, bs}
-    else
-      {out, entry} = execute_or_intercept_tool(name, args, tools, dangerous_mode, quest_id)
+    cond do
+      prior_count >= @empty_threshold ->
+        out = "Tool #{name} is not available or returned no results. Skipping — use what you have."
+        Logger.debug("[Ollama] circuit breaker: skipping #{name}")
+        {out, %{tool: name, input: args, output: out}, bs}
 
-      case check_circuit_breaker(name, out, bs) do
-        {:tripped, updated_bs} -> {out, entry, updated_bs}
-        {:ok, updated_bs} -> {out, entry, updated_bs}
-      end
+      is_nil(Enum.find(tools, &(&1.name == name))) and not ExCalibur.StepRunner.dangerous?(name) ->
+        # Unknown tool — trip the breaker immediately so it's skipped on all future calls
+        out = "Tool '#{name}' is not available in this step. Stop calling it."
+        Logger.warning("[Ollama] unknown tool called: #{name}")
+        {out, %{tool: name, input: %{}, output: out}, Map.put(bs, name, @empty_threshold)}
+
+      true ->
+        {out, entry} = execute_or_intercept_tool(name, args, tools, dangerous_mode, quest_id)
+
+        case check_circuit_breaker(name, out, bs) do
+          {:tripped, updated_bs} -> {out, entry, updated_bs}
+          {:ok, updated_bs} -> {out, entry, updated_bs}
+        end
     end
   end
 
