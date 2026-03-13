@@ -595,21 +595,23 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   ]
 
   defp seed_lore do
-    existing =
+    existing_titles =
       Repo.all(
         from(e in ExCalibur.Lore.LoreEntry,
-          where: e.title in ^Enum.map(@lore_entries, & &1.title)
+          where: e.title in ^Enum.map(@lore_entries, & &1.title),
+          select: e.title
         )
       )
-      |> Map.new(& {&1.title, &1})
+
+    # Delete stale entries so they are always recreated fresh from the seed.
+    if existing_titles != [] do
+      Repo.delete_all(
+        from(e in ExCalibur.Lore.LoreEntry, where: e.title in ^existing_titles)
+      )
+    end
 
     Enum.each(@lore_entries, fn entry ->
-      attrs = Map.put(entry, :source, "manual")
-
-      case Map.get(existing, entry.title) do
-        nil -> ExCalibur.Lore.create_entry(attrs)
-        record -> ExCalibur.Lore.update_entry(record, attrs)
-      end
+      ExCalibur.Lore.create_entry(Map.put(entry, :source, "manual"))
     end)
   end
 
