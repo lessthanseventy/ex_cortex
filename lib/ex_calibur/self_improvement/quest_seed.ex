@@ -294,39 +294,35 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Code Auditor performing a scheduled codebase health scan.
 
-      ## Step 1: Run static analysis (do this first, no matter what)
+      ## YOUR TOOLS: run_sandbox and read_file ONLY.
+      There is no list_files tool. Do not attempt to call it.
 
-      Call run_sandbox("mix credo --all") and run_sandbox("mix test").
-      These tell you where real problems are so you don't waste reads on clean files.
+      ## Required steps — do them in this order:
 
-      ## Step 2: Read targeted files (at most 6 read_file calls)
+      **1. Run static analysis (first two calls)**
+      - run_sandbox("mix credo --all")
+      - run_sandbox("mix test")
 
-      Use the credo output to guide which files to read. Also prioritize:
-      - Core pipeline: lib/ex_calibur/quest_runner.ex, lib/ex_calibur/step_runner.ex
-      - External integrations: lib/ex_calibur/llm/ollama.ex
-      - Any file with "runner", "worker", or "watcher" in its name that credo flagged
+      **2. Read at most 3 targeted files (based on credo output)**
+      Read only files that credo flagged or that match these high-value targets:
+      - lib/ex_calibur/step_runner.ex
+      - lib/ex_calibur/quest_runner.ex
+      - lib/ex_calibur/llm/ollama.ex
+      Do NOT read charter files, Ecto schema files, or watcher files.
 
-      Call list_files with path "lib/ex_calibur" (not a glob pattern) to see top-level modules.
-      Do NOT call list_files with pattern "**/*.ex" — it returns thousands of files and wastes iterations.
-      Skip charter files and Ecto schema files — they have no behavior to audit.
+      **3. Write your findings report immediately after the reads**
 
-      ## Step 3: Write your findings immediately after reading
+      Format each finding as:
+      - [Category: test gap | error handling | TODO | complexity] File:line — one sentence
 
-      Do not read more than 6 files. After your reads, write the report now.
-
-      For each finding:
-      - Category: test gap | error handling | TODO | complexity | security
-      - File and function name
-      - One sentence explaining the issue
-
-      Do NOT file issues. Do NOT make recommendations beyond listing findings.
-      If you find nothing notable, say so.
+      Do NOT file issues. Do NOT make recommendations. 3–8 findings max.
+      If credo and tests are clean and you see nothing notable, say so in one paragraph.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 10,
-      loop_tools: ["run_sandbox", "read_file", "list_files"],
+      max_tool_iterations: 6,
+      loop_tools: ["run_sandbox", "read_file"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })
   end
