@@ -318,7 +318,15 @@ defmodule ExCalibur.StepRunner do
     end)
   end
 
-  defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text, opts) do
+  defp effective_tools(member_tools, opts) do
+    case Keyword.get(opts, :override_tools) do
+      names when is_list(names) and names != [] -> resolve_member_tools(names)
+      _ -> member_tools
+    end
+  end
+
+  defp call_member(%{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools}, input_text, opts) do
+    tools = effective_tools(member_tools, opts)
     base = system_prompt || default_claude_prompt()
     prompt = ensure_verdict_format(base, tools)
 
@@ -367,7 +375,8 @@ defmodule ExCalibur.StepRunner do
 
   # Like call_member but returns raw text — used for freeform quests.
   # Returns {text, tool_log} tuple or nil on failure.
-  defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: tools}, input_text, opts) do
+  defp call_member_raw(%{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools}, input_text, opts) do
+    tools = effective_tools(member_tools, opts)
     prompt = system_prompt || ""
 
     result =
@@ -525,9 +534,13 @@ defmodule ExCalibur.StepRunner do
   # ---------------------------------------------------------------------------
 
   defp dangerous_tool_opts(quest) do
+    loop_tools = Map.get(quest, :loop_tools)
+    override = if is_list(loop_tools) and loop_tools != [], do: loop_tools, else: nil
+
     [
       dangerous_tool_mode: Map.get(quest, :dangerous_tool_mode) || "execute",
-      quest_id: Map.get(quest, :id)
+      quest_id: Map.get(quest, :id),
+      override_tools: override
     ]
   end
 
