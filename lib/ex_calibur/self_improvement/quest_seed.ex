@@ -330,43 +330,43 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
 
       Your context includes the static analysis output from the previous step.
 
-      ## Your job
+      ## IMPORTANT: Read at most 10 files total. Be selective.
 
-      Systematically scan lib/ and test/ to identify concrete health issues. You are looking for things
-      that are actually broken or risky — not style preferences.
+      Do NOT list all files and read everything. That will overflow the context and time out.
+      Focus only on files that are likely to have real issues based on their purpose.
 
-      Work through these categories:
+      ## Step 1: Get the file structure (1-2 list_files calls max)
 
-      **Test coverage gaps**
-      - list_files("lib/**/*.ex") then list_files("test/**/*.exs")
-      - For each significant module in lib/, check whether a corresponding test file exists
-      - Flag modules with substantial logic and no tests
+      Call list_files("lib/ex_calibur") to see top-level modules.
+      Do NOT recurse into every subdirectory.
 
-      **Error handling gaps**
-      - Read files flagged by credo or that look risky (large files, external integrations)
-      - Look for missing rescue clauses on DB calls, HTTP calls, file I/O
-      - Look for bare pattern matches that could crash on unexpected input
+      ## Step 2: Read only high-risk files (at most 8 read_file calls)
 
-      **TODO/FIXME comments**
-      - These are deferred work explicitly flagged by developers — worth tracking
+      Prioritize files that are most likely to have issues:
+      - External integrations: lib/ex_calibur/llm/ollama.ex, lib/ex_calibur/sources/github_issue_watcher.ex
+      - Core pipeline: lib/ex_calibur/quest_runner.ex, lib/ex_calibur/step_runner.ex
+      - Any file flagged by credo in the previous step
+      - Files with "trigger", "runner", "worker", or "watcher" in their name
 
-      **Functions over ~60 lines**
-      - Large functions are hard to test and maintain; note them with file:line
+      Skip charter files (lib/ex_calibur/charters/*) — they are data definitions, not logic.
+      Skip Ecto schema files — they have no behavior to audit.
 
-      ## Output format
+      ## Step 3: Write your findings
 
-      Write a structured findings report. For each finding:
+      After reading your selected files, write the report immediately. Do not read more files after this.
+
+      For each finding:
       - Category (test gap / error handling / TODO / complexity)
       - File path and function name
       - One sentence explaining the specific issue
 
-      Do NOT file any GitHub issues. Do NOT make recommendations. Just report what you found with evidence.
-      If credo was clean and tests all passed and you find nothing notable, say so — that's a valid result.
+      Do NOT file any GitHub issues. Do NOT make recommendations. Just report what you found.
+      If you find nothing notable, say so — that's a valid result.
       """,
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 20,
+      max_tool_iterations: 8,
       loop_tools: ["read_file", "list_files"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Code Auditor", "how" => "solo", "when" => "sequential"}]
     })
@@ -419,6 +419,11 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       - Where in the codebase it would live (exact file/module)
       - Rough effort: small (hours) / medium (days) / large (week+)
 
+      ## IMPORTANT: Read at most 8 files total, then write your output.
+
+      Do not spend all your iterations reading files. After 5-6 file reads, stop and write your findings.
+      You will hit a hard iteration limit — if you haven't written your output by then, it will be lost.
+
       Do NOT suggest features you can't tie to actual code you read.
       Do NOT repeat health scan findings (those are code quality, not features).
       Aim for 3–8 genuine opportunities. If you find nothing notable after reading the code, say so.
@@ -426,7 +431,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       trigger: "manual",
       output_type: "freeform",
       dangerous_tool_mode: "execute",
-      max_tool_iterations: 20,
+      max_tool_iterations: 10,
       loop_tools: ["read_file", "list_files", "query_lore"],
       roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "how" => "solo", "when" => "sequential"}]
     })
@@ -814,7 +819,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       Available via model IDs `claude_haiku`, `claude_sonnet`, `claude_opus`.
       Used for higher-stakes tasks configured to use the Claude provider.
       """
-    },
+    }
   ]
 
   defp seed_lore do
