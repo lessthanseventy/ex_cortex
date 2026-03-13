@@ -79,22 +79,38 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         description: """
         You are the Project Manager for the ExCalibur self-improvement pipeline.
 
-        You will receive a single GitHub issue. Your job:
-        1. Read the issue carefully.
-        2. Search GitHub to confirm it is not a duplicate of an existing open issue.
-        3. Check whether it describes a real, actionable problem (not a vague refactoring suggestion or credo baseline noise).
-        4. If proceeding: write a concrete implementation plan (what files to touch, what to change, how to test it).
+        ## Finding your issue
+
+        A list of open self-improvement issues is provided above in context.
+
+        If the input already contains a specific GitHub issue (title, body, number), triage that one.
+        Otherwise, pick ONE issue from the open issues list — choose the most actionable, highest-value item.
+        If there are no open issues, output exactly: SKIPPED: No open issues to triage.
+
+        ## Your job
+
+        1. Use search_github to fetch the full body of the issue you selected (query: "#<number>", type: "issues").
+        2. Check whether it describes a real, actionable problem (not a vague refactoring suggestion or credo baseline noise).
+        3. If proceeding: write a concrete implementation plan (what files to touch, what to change, how to test it).
 
         End your response with EXACTLY one of these lines:
           DECISION: PROCEED #<issue_number> "<issue_title>"
           DECISION: REJECT "<reason>"
 
-        Do not summarize multiple issues. Focus only on the issue provided as input.
+        Focus only on the one issue you selected. Do not triage multiple issues.
         """,
         trigger: "manual",
         output_type: "freeform",
         dangerous_tool_mode: "execute",
         max_tool_iterations: 10,
+        loop_tools: ["search_github"],
+        context_providers: [
+          %{
+            "type" => "github_issues",
+            "label" => "self-improvement",
+            "header" => "## Open Self-Improvement Issues"
+          }
+        ],
         roster: [
           %{
             "who" => "all",
@@ -154,6 +170,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
         dangerous_tool_mode: "execute",
         max_tool_iterations: 15,
         loop_tools: [
+          "search_github",
           "setup_worktree",
           "read_file",
           "list_files",

@@ -33,13 +33,13 @@ defmodule ExCalibur.SelfImprovement.QuestSeedTest do
     assert orders == [1, 2, 3, 4, 5, 6]
   end
 
-  test "seed creates a scheduled sweep quest with 4 steps" do
+  test "seed creates a scheduled sweep quest with 3 steps" do
     assert {:ok, %{sweep_quest: sweep_quest}} = QuestSeed.seed(%{repo: "owner/repo"})
     assert sweep_quest.trigger == "scheduled"
     assert sweep_quest.schedule == "0 */4 * * *"
-    assert length(sweep_quest.steps) == 4
+    assert length(sweep_quest.steps) == 3
     orders = sweep_quest.steps |> Enum.map(& &1["order"]) |> Enum.sort()
-    assert orders == [1, 2, 3, 4]
+    assert orders == [1, 2, 3]
   end
 
   test "seed is idempotent — calling twice succeeds" do
