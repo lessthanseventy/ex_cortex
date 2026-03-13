@@ -303,7 +303,7 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       ],
       roster: [
         %{
-          "who" => "all",
+          "who" => "journeyman",
           "preferred_who" => "Product Analyst",
           "how" => "solo",
           "when" => "sequential"
@@ -595,17 +595,22 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
   ]
 
   defp seed_lore do
-    existing_titles =
+    existing =
       Repo.all(
         from(e in ExCalibur.Lore.LoreEntry,
-          where: e.title in ^Enum.map(@lore_entries, & &1.title),
-          select: e.title
+          where: e.title in ^Enum.map(@lore_entries, & &1.title)
         )
       )
+      |> Map.new(& {&1.title, &1})
 
-    @lore_entries
-    |> Enum.reject(&(&1.title in existing_titles))
-    |> Enum.each(&ExCalibur.Lore.create_entry(Map.put(&1, :source, "manual")))
+    Enum.each(@lore_entries, fn entry ->
+      attrs = Map.put(entry, :source, "manual")
+
+      case Map.get(existing, entry.title) do
+        nil -> ExCalibur.Lore.create_entry(attrs)
+        record -> ExCalibur.Lore.update_entry(record, attrs)
+      end
+    end)
   end
 
   defp create_sweep_quest(sweep_step) do
