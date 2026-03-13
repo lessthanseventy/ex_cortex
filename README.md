@@ -61,11 +61,14 @@ Charters are just Elixir modules with metadata functions. Define your own roles 
 ## How it works
 
 ```mermaid
-flowchart LR
-    Sources[Sources\ngit · rss · webhook\ngithub · obsidian · email] --> Eval
+flowchart TD
+    Sources["Sources
+    git · rss · webhook
+    github · obsidian · email"]
+
+    Sources --> Input
 
     subgraph Eval [Guild Evaluation]
-        direction TB
         Input --> RoleA[Member A\nalpha perspective]
         Input --> RoleB[Member B\nbeta perspective]
         Input --> RoleC[Member C\nstrict perspective]
@@ -80,7 +83,7 @@ flowchart LR
 Agents in a step have access to tools. Safe tools execute immediately. Write and dangerous tools create Proposals.
 
 ```mermaid
-flowchart LR
+flowchart TD
     Agent[Agent] --> ToolCall{Tool call}
     ToolCall -- read / search / fetch --> Exec[Execute now]
     ToolCall -- write / create / send --> Proposal[Create Proposal]
