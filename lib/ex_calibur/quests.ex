@@ -162,8 +162,8 @@ defmodule ExCalibur.Quests do
       nil ->
         update_proposal(proposal, %{status: "failed", result: "Tool #{tool_name} not found"})
 
-      tool_mod ->
-        case tool_mod.call(tool_args) do
+      tool ->
+        case tool.callback.(tool_args) do
           {:ok, result} ->
             update_proposal(proposal, %{status: "executed", result: to_string(result)})
 
