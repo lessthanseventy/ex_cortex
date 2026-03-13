@@ -278,21 +278,19 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
     Quests.create_step(%{
       name: "SI: Static Analysis",
       description: """
-      Run static analysis tools and output the raw results. Do not interpret or filter them.
+      Call run_sandbox("mix credo --all"). Then call run_sandbox("mix deps.audit").
+      Output the raw results. Nothing else.
 
-      1. Run `mix credo --all` via run_sandbox.
-      2. Run `mix deps.audit` via run_sandbox.
-
-      Format your output exactly like this:
+      Do not greet. Do not explain. Do not make recommendations. Do not ask questions.
+      Your entire response must be the raw tool output in this format:
 
       ## Credo Findings
-      <full credo output>
+      <exact credo output>
 
       ## Dependency Audit
-      <full deps.audit output>
+      <exact deps.audit output>
 
-      That is all. Do not file issues, do not draw conclusions, do not make recommendations.
-      The next step will analyze these findings.
+      If you output anything other than these two sections, you have failed this task.
       """,
       trigger: "manual",
       output_type: "freeform",
@@ -316,8 +314,19 @@ defmodule ExCalibur.SelfImprovement.QuestSeed do
       description: """
       You are the Product Analyst for the ExCalibur self-improvement pipeline.
 
-      Your job: read the static analysis output from the previous step, investigate the codebase,
-      and file up to 3 GitHub issues for real, confirmed problems.
+      ## Check your context first
+
+      Your input is the output from the Static Analysis step. It should contain credo and deps.audit results.
+
+      If the input does not contain actual credo or audit findings — if it's a greeting, empty, or generic text
+      with no tool output — STOP immediately. Output "No static analysis findings to process." and nothing else.
+      Do NOT explore the codebase to invent your own issues. Your job is to analyze real findings, not to hunt.
+
+      Only proceed if you have real credo warnings, audit vulnerabilities, or similar concrete findings.
+
+      ## Your job (when you have real findings)
+
+      Analyze the static analysis output and file up to 3 GitHub issues for confirmed, real problems.
 
       ## Mandatory verification before filing any issue
 
