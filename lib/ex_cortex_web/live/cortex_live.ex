@@ -31,7 +31,10 @@ defmodule ExCortexWeb.CortexLive do
          muse_answer: nil,
          muse_loading: false,
          expanded_signals: MapSet.new(),
-         collapsed_panels: MapSet.new()
+         collapsed_panels: MapSet.new(),
+         expanded_ruminations: MapSet.new(),
+         expanded_clusters: MapSet.new(),
+         expanded_engrams: MapSet.new()
        )
      )}
   end
@@ -76,6 +79,18 @@ defmodule ExCortexWeb.CortexLive do
         else: MapSet.put(collapsed, panel)
 
     {:noreply, assign(socket, collapsed_panels: collapsed)}
+  end
+
+  def handle_event("toggle_item", %{"panel" => panel, "id" => id}, socket) do
+    key = String.to_existing_atom("expanded_#{panel}")
+    current = Map.get(socket.assigns, key)
+
+    updated =
+      if MapSet.member?(current, id),
+        do: MapSet.delete(current, id),
+        else: MapSet.put(current, id)
+
+    {:noreply, assign(socket, [{key, updated}])}
   end
 
   def handle_event("toggle_signal", %{"id" => id}, socket) do
@@ -149,7 +164,7 @@ defmodule ExCortexWeb.CortexLive do
           collapsed={MapSet.member?(@collapsed_panels, "ruminations")}
           summary={"#{length(@ruminations)} active"}
         >
-          <.ruminations_panel ruminations={@ruminations} />
+          <.ruminations_panel ruminations={@ruminations} expanded={@expanded_ruminations} />
         </.panel>
 
         <%!-- Panel 2: Signals --%>
@@ -171,7 +186,7 @@ defmodule ExCortexWeb.CortexLive do
           collapsed={MapSet.member?(@collapsed_panels, "clusters")}
           summary={"#{length(@clusters)} clusters, #{Enum.sum(Map.values(@neuron_counts))} neurons"}
         >
-          <.clusters_panel clusters={@clusters} neuron_counts={@neuron_counts} />
+          <.clusters_panel clusters={@clusters} neuron_counts={@neuron_counts} expanded={@expanded_clusters} neurons={@neurons} />
         </.panel>
 
         <%!-- Panel 4: Recent Memory --%>
@@ -182,7 +197,7 @@ defmodule ExCortexWeb.CortexLive do
           collapsed={MapSet.member?(@collapsed_panels, "memory")}
           summary={"#{length(@engrams)} recent engram#{if length(@engrams) != 1, do: "s"}"}
         >
-          <.memory_panel engrams={@engrams} />
+          <.memory_panel engrams={@engrams} expanded={@expanded_engrams} />
         </.panel>
       </div>
 
@@ -193,169 +208,207 @@ defmodule ExCortexWeb.CortexLive do
     """
   end
 
-  # --- Panel content components (pattern-matched) ---
+  # --- Panel content components (pattern-matched, expandable items) ---
 
+  # -- Ruminations --
   attr :ruminations, :list, required: true
-
-  defp ruminations_panel(%{ruminations: []} = assigns) do
-    ~H"""
-    <p class="t-dim text-xs">No active ruminations.</p>
-    """
-  end
-
+  attr :expanded, :any, required: true
+  defp ruminations_panel(%{ruminations: []} = assigns), do: ~H"<p class='t-dim text-xs'>No active ruminations.</p>"
   defp ruminations_panel(assigns) do
-    ~H"""
-    <div class="space-y-1">
-      <.rumination_row :for={rumination <- @ruminations} rumination={rumination} />
-    </div>
-    """
+    ~H"<div class='space-y-0.5'><.rumination_row :for={r <- @ruminations} rumination={r} expanded={MapSet.member?(@expanded, to_string(r.id))} /></div>"
   end
 
   attr :rumination, :map, required: true
-
-  defp rumination_row(%{rumination: %{last_run: %{inserted_at: _, status: _}}} = assigns) do
+  attr :expanded, :boolean, required: true
+  defp rumination_row(%{expanded: true} = assigns) do
     ~H"""
-    <div>
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1" phx-click="toggle_item" phx-value-panel="ruminations" phx-value-id={@rumination.id}>
+      <div class="flex items-center gap-2 text-sm">
+        <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
+        <span class="ml-auto text-xs t-dim">▾</span>
+      </div>
+      <div class="pl-4 mt-1 space-y-1 text-xs t-dim">
+        <p>{@rumination.description}</p>
+        <div class="flex gap-3 flex-wrap">
+          <span>trigger: {@rumination.trigger}</span>
+          <span :if={@rumination.schedule}>schedule: {@rumination.schedule}</span>
+          <span>{@rumination.step_count} step{if @rumination.step_count != 1, do: "s"}</span>
+        </div>
+        <.rumination_last_run last_run={@rumination.last_run} />
+        <.link navigate={~p"/ruminations"} class="t-cyan hover:underline">open in ruminations →</.link>
+      </div>
+    </div>
+    """
+  end
+  defp rumination_row(assigns) do
+    ~H"""
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5" phx-click="toggle_item" phx-value-panel="ruminations" phx-value-id={@rumination.id}>
       <div class="flex items-center gap-2 text-sm">
         <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
         <span class="t-dim text-xs">{@rumination.trigger}</span>
+        <span class="ml-auto text-xs t-dim">▸</span>
       </div>
-      <div class="pl-4 text-xs t-dim">
-        last: {format_relative(@rumination.last_run.inserted_at)} · {@rumination.last_run.status}
-      </div>
+      <.rumination_last_run last_run={@rumination.last_run} />
     </div>
     """
   end
 
-  defp rumination_row(assigns) do
-    ~H"""
-    <div class="flex items-center gap-2 text-sm">
-      <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
-      <span class="t-dim text-xs">{@rumination.trigger}</span>
-    </div>
-    """
+  attr :last_run, :any, required: true
+  defp rumination_last_run(%{last_run: %{inserted_at: _, status: _}} = assigns) do
+    ~H"<div class='pl-4 text-xs t-dim'>last: {format_relative(@last_run.inserted_at)} · {@last_run.status}</div>"
   end
+  defp rumination_last_run(assigns), do: ~H""
 
+  # -- Signals --
   attr :signals, :list, required: true
   attr :expanded, :any, required: true
-
-  defp signals_panel(%{signals: []} = assigns) do
-    ~H"""
-    <p class="t-dim text-xs">No active signals.</p>
-    """
-  end
-
+  defp signals_panel(%{signals: []} = assigns), do: ~H"<p class='t-dim text-xs'>No active signals.</p>"
   defp signals_panel(assigns) do
-    ~H"""
-    <div class="space-y-1">
-      <.signal_row :for={signal <- @signals} signal={signal} expanded={@expanded} />
-    </div>
-    """
-  end
-
-  attr :signal, :map, required: true
-  attr :expanded, :any, required: true
-
-  defp signal_row(assigns) do
-    expanded = MapSet.member?(assigns.expanded, assigns.signal.id)
-    assigns = assign(assigns, :is_expanded, expanded)
-
-    ~H"""
-    <div
-      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
-      phx-click="toggle_signal"
-      phx-value-id={@signal.id}
-    >
-      <div class="flex items-start gap-2 text-sm">
-        <.status color={signal_color(@signal)} label={@signal.title} />
-        <span class="ml-auto text-xs t-dim">{if @is_expanded, do: "▾", else: "▸"}</span>
-      </div>
-      <.signal_row_body signal={@signal} expanded={@is_expanded} />
-    </div>
-    """
+    ~H"<div class='space-y-0.5'><.signal_row :for={signal <- @signals} signal={signal} expanded={MapSet.member?(@expanded, signal.id)} /></div>"
   end
 
   attr :signal, :map, required: true
   attr :expanded, :boolean, required: true
-
-  defp signal_row_body(%{expanded: true} = assigns) do
+  defp signal_row(%{expanded: true} = assigns) do
     ~H"""
-    <div class="pl-4 mt-1 mb-2">
-      <.signal_card card={@signal} />
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1" phx-click="toggle_signal" phx-value-id={@signal.id}>
+      <div class="flex items-start gap-2 text-sm">
+        <.status color={signal_color(@signal)} label={@signal.title} />
+        <span class="ml-auto text-xs t-dim">▾</span>
+      </div>
+      <div class="pl-4 mt-1 mb-2"><.signal_card card={@signal} /></div>
+    </div>
+    """
+  end
+  defp signal_row(assigns) do
+    ~H"""
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1" phx-click="toggle_signal" phx-value-id={@signal.id}>
+      <div class="flex items-start gap-2 text-sm">
+        <.status color={signal_color(@signal)} label={@signal.title} />
+        <span class="ml-auto text-xs t-dim">▸</span>
+      </div>
+      <.signal_preview signal={@signal} />
     </div>
     """
   end
 
-  defp signal_row_body(%{signal: %{body: body}} = assigns) when is_binary(body) and body != "" do
-    ~H"""
-    <div class="pl-4 text-xs t-dim truncate">{String.slice(@signal.body, 0, 60)}</div>
-    """
+  attr :signal, :map, required: true
+  defp signal_preview(%{signal: %{body: body}} = assigns) when is_binary(body) and body != "" do
+    ~H"<div class='pl-4 text-xs t-dim truncate'>{String.slice(@signal.body, 0, 60)}</div>"
   end
+  defp signal_preview(assigns), do: ~H""
 
-  defp signal_row_body(assigns), do: ~H""
-
+  # -- Clusters --
   attr :clusters, :list, required: true
   attr :neuron_counts, :map, required: true
-
-  defp clusters_panel(%{clusters: []} = assigns) do
-    ~H"""
-    <p class="t-dim text-xs">No clusters installed.</p>
-    """
-  end
-
+  attr :expanded, :any, required: true
+  attr :neurons, :list, required: true
+  defp clusters_panel(%{clusters: []} = assigns), do: ~H"<p class='t-dim text-xs'>No clusters installed.</p>"
   defp clusters_panel(assigns) do
     ~H"""
-    <div class="space-y-1">
-      <%= for cluster <- @clusters do %>
-        <div class="flex items-center gap-2 text-sm">
-          <.status color="green" label={cluster.cluster_name} />
-          <span class="t-dim text-xs">
-            {neuron_count(@neuron_counts, cluster.cluster_name)} neurons
-          </span>
+    <div class="space-y-0.5">
+      <.cluster_row
+        :for={cluster <- @clusters}
+        cluster={cluster}
+        count={neuron_count(@neuron_counts, cluster.cluster_name)}
+        expanded={MapSet.member?(@expanded, cluster.cluster_name)}
+        neurons={Enum.filter(@neurons, &(&1.team == cluster.cluster_name))}
+      />
+    </div>
+    """
+  end
+
+  attr :cluster, :map, required: true
+  attr :count, :integer, required: true
+  attr :expanded, :boolean, required: true
+  attr :neurons, :list, required: true
+  defp cluster_row(%{expanded: true} = assigns) do
+    ~H"""
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1" phx-click="toggle_item" phx-value-panel="clusters" phx-value-id={@cluster.cluster_name}>
+      <div class="flex items-center gap-2 text-sm">
+        <.status color="green" label={@cluster.cluster_name} />
+        <span class="t-dim text-xs">{@count} neurons</span>
+        <span class="ml-auto text-xs t-dim">▾</span>
+      </div>
+      <div class="pl-4 mt-1 text-xs t-dim">
+        <p :if={@cluster.pathway_text != ""} class="mb-1">{String.slice(@cluster.pathway_text, 0, 150)}</p>
+        <div class="space-y-0.5">
+          <div :for={neuron <- @neurons} class="flex items-center gap-2">
+            <span class="t-cyan">·</span>
+            <span>{neuron.name}</span>
+            <span class="t-dim">({get_in(neuron.config, ["rank"]) || "—"})</span>
+          </div>
         </div>
-      <% end %>
+        <.link navigate={~p"/neurons"} class="t-cyan hover:underline mt-1 inline-block">manage neurons →</.link>
+      </div>
+    </div>
+    """
+  end
+  defp cluster_row(assigns) do
+    ~H"""
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5" phx-click="toggle_item" phx-value-panel="clusters" phx-value-id={@cluster.cluster_name}>
+      <div class="flex items-center gap-2 text-sm">
+        <.status color="green" label={@cluster.cluster_name} />
+        <span class="t-dim text-xs">{@count} neurons</span>
+        <span class="ml-auto text-xs t-dim">▸</span>
+      </div>
     </div>
     """
   end
 
+  # -- Memory --
   attr :engrams, :list, required: true
-
-  defp memory_panel(%{engrams: []} = assigns) do
-    ~H"""
-    <p class="t-dim text-xs">No engrams stored.</p>
-    """
-  end
-
+  attr :expanded, :any, required: true
+  defp memory_panel(%{engrams: []} = assigns), do: ~H"<p class='t-dim text-xs'>No engrams stored.</p>"
   defp memory_panel(assigns) do
-    ~H"""
-    <div class="space-y-1">
-      <.engram_row :for={engram <- @engrams} engram={engram} />
-    </div>
-    """
+    ~H"<div class='space-y-0.5'><.engram_row :for={engram <- @engrams} engram={engram} expanded={MapSet.member?(@expanded, to_string(engram.id))} /></div>"
   end
 
   attr :engram, :map, required: true
-
-  defp engram_row(%{engram: %{impression: impression}} = assigns) when is_binary(impression) do
+  attr :expanded, :boolean, required: true
+  defp engram_row(%{expanded: true} = assigns) do
     ~H"""
-    <div>
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1" phx-click="toggle_item" phx-value-panel="engrams" phx-value-id={@engram.id}>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="t-cyan">▾</span>
+        <span class="truncate">{@engram.title}</span>
+      </div>
+      <div class="pl-4 mt-1 space-y-1 text-xs">
+        <p class="t-dim">{@engram.category} · source: {@engram.source}</p>
+        <.engram_tier label="L0" content={@engram.impression} />
+        <.engram_tier label="L1" content={@engram.recall} />
+        <div :if={@engram.tags != []} class="flex gap-1 flex-wrap">
+          <span :for={tag <- @engram.tags} class="px-1.5 py-0.5 rounded bg-muted text-xs t-dim">{tag}</span>
+        </div>
+        <.link navigate={~p"/memory"} class="t-cyan hover:underline inline-block">open in memory →</.link>
+      </div>
+    </div>
+    """
+  end
+  defp engram_row(assigns) do
+    ~H"""
+    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5" phx-click="toggle_item" phx-value-panel="engrams" phx-value-id={@engram.id}>
       <div class="flex items-center gap-2 text-sm">
         <span class="t-cyan">▸</span>
         <span class="truncate">{@engram.title}</span>
       </div>
-      <div class="pl-4 text-xs t-dim truncate">{String.slice(@engram.impression, 0, 60)}</div>
+      <.engram_preview impression={@engram.impression} />
     </div>
     """
   end
 
-  defp engram_row(assigns) do
-    ~H"""
-    <div class="flex items-center gap-2 text-sm">
-      <span class="t-cyan">▸</span>
-      <span class="truncate">{@engram.title}</span>
-    </div>
-    """
+  attr :impression, :string, default: nil
+  defp engram_preview(%{impression: impression} = assigns) when is_binary(impression) and impression != "" do
+    ~H"<div class='pl-4 text-xs t-dim truncate'>{String.slice(@impression, 0, 60)}</div>"
   end
+  defp engram_preview(assigns), do: ~H""
+
+  attr :label, :string, required: true
+  attr :content, :string, default: nil
+  defp engram_tier(%{content: content} = assigns) when is_binary(content) and content != "" do
+    ~H"<div><span class='t-amber font-medium'>{@label}:</span> <span class='t-dim'>{@content}</span></div>"
+  end
+  defp engram_tier(assigns), do: ~H""
 
   # --- Data loading ---
 
@@ -373,7 +426,17 @@ defmodule ExCortexWeb.CortexLive do
       |> Enum.filter(&(&1.status == "active"))
       |> Enum.map(fn rumination ->
         last_run = rumination |> Ruminations.list_daydreams() |> List.first()
-        %{id: rumination.id, name: rumination.name, trigger: rumination.trigger, last_run: last_run}
+
+        %{
+          id: rumination.id,
+          name: rumination.name,
+          trigger: rumination.trigger,
+          schedule: rumination.schedule,
+          status: rumination.status,
+          step_count: length(rumination.steps || []),
+          description: rumination.description,
+          last_run: last_run
+        }
       end)
 
     assign(socket, ruminations: ruminations)
@@ -391,16 +454,16 @@ defmodule ExCortexWeb.CortexLive do
   defp load_clusters(socket) do
     clusters = Clusters.list_pathways()
 
-    neuron_counts =
-      from(n in Neuron,
-        where: n.type == "role",
-        select: {n.team, count(n.id)},
-        group_by: n.team
-      )
+    neurons =
+      from(n in Neuron, where: n.type == "role", order_by: [asc: n.name])
       |> Repo.all()
-      |> Map.new()
 
-    assign(socket, clusters: clusters, neuron_counts: neuron_counts)
+    neuron_counts =
+      neurons
+      |> Enum.group_by(& &1.team)
+      |> Map.new(fn {team, members} -> {team, length(members)} end)
+
+    assign(socket, clusters: clusters, neuron_counts: neuron_counts, neurons: neurons)
   end
 
   defp load_engrams(socket) do
