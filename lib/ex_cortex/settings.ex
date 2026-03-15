@@ -62,4 +62,50 @@ defmodule ExCortex.Settings do
     |> changeset(%{config: config})
     |> ExCortex.Repo.insert_or_update()
   end
+
+  @doc """
+  Get a setting from DB first, then fall back to Application env, then env var.
+  This is the primary way LLM modules should read config — it makes Instinct
+  settings take effect without a restart.
+  """
+  def resolve(key, opts \\ []) do
+    app_key = Keyword.get(opts, :app_key, key)
+    env_var = Keyword.get(opts, :env_var)
+    default = Keyword.get(opts, :default)
+
+    db_value =
+      try do
+        get(key)
+      rescue
+        _ -> nil
+      end
+
+    db_value
+    |> fallback(fn -> Application.get_env(:ex_cortex, app_key) end)
+    |> fallback(fn -> if env_var, do: System.get_env(env_var) end)
+    |> fallback(fn -> default end)
+  end
+
+  @doc """
+  Sync DB settings into Application env so libraries like ReqLLM pick them up.
+  Called at boot and after Instinct saves.
+  """
+  def apply_to_runtime do
+    config = get_all()
+
+    if url = config["ollama_url"], do: Application.put_env(:ex_cortex, :ollama_url, url)
+    if key = config["ollama_api_key"], do: Application.put_env(:ex_cortex, :ollama_api_key, key)
+
+    if key = config["anthropic_api_key"] do
+      Application.put_env(:ex_cortex, :anthropic_api_key, key)
+      Application.put_env(:req_llm, :anthropic_api_key, key)
+    end
+  rescue
+    # DB might not be up yet during boot
+    _ -> :ok
+  end
+
+  defp fallback(nil, fun), do: fun.()
+  defp fallback("", fun), do: fun.()
+  defp fallback(value, _fun), do: value
 end

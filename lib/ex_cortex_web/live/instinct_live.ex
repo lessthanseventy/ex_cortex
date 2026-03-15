@@ -28,7 +28,9 @@ defmodule ExCortexWeb.InstinctLive do
   @impl true
   def handle_event("save_llm", %{"llm" => params}, socket) do
     maybe_put(:ollama_url, params["ollama_url"])
+    maybe_put(:ollama_api_key, params["ollama_api_key"])
     maybe_put(:anthropic_api_key, params["anthropic_api_key"])
+    Settings.apply_to_runtime()
     {:noreply, assign(socket, settings: load_settings(), saved: :llm)}
   end
 
@@ -36,6 +38,7 @@ defmodule ExCortexWeb.InstinctLive do
   def handle_event("save_integrations", %{"integrations" => params}, socket) do
     maybe_put(:github_token, params["github_token"])
     maybe_put(:obsidian_vault, params["obsidian_vault"])
+    Settings.apply_to_runtime()
     {:noreply, assign(socket, settings: load_settings(), saved: :integrations)}
   end
 
@@ -44,6 +47,7 @@ defmodule ExCortexWeb.InstinctLive do
     maybe_put(:model_fallback_enabled, params["model_fallback_enabled"] == "true")
     maybe_put(:ollama_vision_model, params["ollama_vision_model"])
     maybe_put(:default_repo, params["default_repo"])
+    Settings.apply_to_runtime()
     {:noreply, assign(socket, settings: load_settings(), saved: :config)}
   end
 
@@ -68,6 +72,7 @@ defmodule ExCortexWeb.InstinctLive do
 
     %{
       ollama_url: all["ollama_url"],
+      ollama_api_key: all["ollama_api_key"],
       anthropic_api_key: all["anthropic_api_key"],
       github_token: all["github_token"],
       obsidian_vault: all["obsidian_vault"],
@@ -115,7 +120,28 @@ defmodule ExCortexWeb.InstinctLive do
               placeholder="http://localhost:11434"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
-            <p class="text-xs text-muted-foreground">Base URL for the local Ollama instance</p>
+            <p class="text-xs text-muted-foreground">Base URL for the Ollama instance (local or remote)</p>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-medium">Ollama API Key</label>
+              <%= if configured?(@settings.ollama_api_key) do %>
+                <.status color="green" label="configured" />
+              <% else %>
+                <.status color="amber" label="not set" />
+              <% end %>
+            </div>
+            <input
+              type="password"
+              name="llm[ollama_api_key]"
+              value={@settings.ollama_api_key || ""}
+              placeholder="optional — for remote Ollama instances"
+              class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
+            />
+            <p class="text-xs text-muted-foreground">
+              API key for authenticated Ollama endpoints (leave blank for local)
+            </p>
           </div>
 
           <div class="space-y-1">

@@ -318,7 +318,7 @@ defmodule ExCortex.LLM.Ollama do
 
   @impl true
   def configured? do
-    url = Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
+    url = ExCortex.Settings.resolve(:ollama_url, env_var: "OLLAMA_URL", default: "http://127.0.0.1:11434")
     url != nil and url != ""
   end
 
@@ -356,8 +356,8 @@ defmodule ExCortex.LLM.Ollama do
   end
 
   defp client(opts) do
-    url = Keyword.get(opts, :url, Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434"))
-    api_key = Keyword.get(opts, :api_key, Application.get_env(:ex_cortex, :ollama_api_key))
+    url = Keyword.get(opts, :url, ExCortex.Settings.resolve(:ollama_url, env_var: "OLLAMA_URL", default: "http://127.0.0.1:11434"))
+    api_key = Keyword.get(opts, :api_key, ExCortex.Settings.resolve(:ollama_api_key, env_var: "OLLAMA_API_KEY"))
     Ollama.new(base_url: url, api_key: api_key)
   end
 end

@@ -57,6 +57,7 @@ defmodule ExCortex.Application do
     result = Supervisor.start_link(children, opts)
     OpentelemetryPhoenix.setup(adapter: :bandit)
     OpentelemetryEcto.setup([:ex_cortex, :repo])
+    ExCortex.Settings.apply_to_runtime()
     check_cli_tools()
     write_pid_file()
     check_restart_status()

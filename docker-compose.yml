@@ -110,32 +110,6 @@ services:
       retries: 30
       start_period: 60s
 
-  app:
-    build:
-      context: ..
-      dockerfile: ex_cortex/Dockerfile.dev
-    depends_on:
-      db:
-        condition: service_healthy
-      ollama:
-        condition: service_healthy
-    ports:
-      - "${PORT:-4001}:4001"
-    volumes:
-      - ..:/app:Z
-    environment:
-      DATABASE_URL: ecto://excellence:excellence@db/ex_cortex
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
-      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
-      NEXTCLOUD_URL: ${NEXTCLOUD_URL:-http://nextcloud:80}
-      NEXTCLOUD_USER: ${NEXTCLOUD_USER:-admin}
-      NEXTCLOUD_PASSWORD: ${NEXTCLOUD_PASSWORD:-admin}
-      PHX_SERVER: "true"
-      PORT: "4001"
-      PHX_HOST: localhost
-      SECRET_KEY_BASE: "dev-only-secret-key-base-that-is-at-least-64-bytes-long-for-development-use"
-
 volumes:
   pgdata:
   ollama_data:

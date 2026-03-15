@@ -78,7 +78,7 @@ defmodule ExCortex.LLM.Claude do
 
   @impl true
   def configured? do
-    key = ReqLLM.get_key(:anthropic_api_key) || System.get_env("ANTHROPIC_API_KEY")
+    key = ExCortex.Settings.resolve(:anthropic_api_key, env_var: "ANTHROPIC_API_KEY")
     key != nil and key != ""
   end
 
