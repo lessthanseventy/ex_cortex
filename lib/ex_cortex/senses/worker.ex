@@ -62,7 +62,12 @@ defmodule ExCortex.Senses.Worker do
         maybe_write_to_memory(items, state.source)
         steps = Ruminations.list_synapses_for_source(to_string(state.source.id))
         ruminations = Ruminations.list_ruminations_for_source(to_string(state.source.id))
-        evaluate_items(items, state.source, steps)
+        # Only run per-item evaluation if no ruminations are wired
+        # (ruminations ARE the evaluation — don't double-process)
+        if ruminations == [] do
+          evaluate_items(items, state.source, steps)
+        end
+
         enqueue_ruminations(items, state.source, ruminations)
         source = update_source_state(state.source, new_worker_state)
 
