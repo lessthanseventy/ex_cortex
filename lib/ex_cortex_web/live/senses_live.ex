@@ -57,7 +57,7 @@ defmodule ExCortexWeb.SensesLive do
     assign(socket,
       senses: senses,
       reflexes: reflexes,
-      streams: streams,
+      feed_streams: streams,
       expressions: expressions
     )
   end
@@ -429,11 +429,11 @@ defmodule ExCortexWeb.SensesLive do
           <p class="t-muted text-sm mb-4">
             Pre-configured RSS and data feeds. Install a stream to start receiving updates.
           </p>
-          <%= if @streams == [] do %>
+          <%= if @feed_streams == [] do %>
             <p class="t-dim text-xs">All streams are installed.</p>
           <% else %>
             <div class="space-y-2">
-              <.reflex_row :for={stream <- @streams} reflex={stream} />
+              <.reflex_row :for={feed <- @feed_streams} reflex={feed} />
             </div>
           <% end %>
         </.panel>
