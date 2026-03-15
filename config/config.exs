@@ -7,6 +7,9 @@
 # General application configuration
 import Config
 
+# OpenTelemetry — exports only when OTEL_EXPORTER_OTLP_ENDPOINT is set
+otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
@@ -55,9 +58,6 @@ config :ex_cortex,
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
-
-# OpenTelemetry — exports only when OTEL_EXPORTER_OTLP_ENDPOINT is set
-otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
 
 config :opentelemetry,
   resource: [service: [name: "ex_cortex", version: "0.1.0"]],

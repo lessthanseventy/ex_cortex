@@ -45,19 +45,19 @@ if config_env() == :prod do
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||
       (fn ->
-        secret_path = Path.join([System.get_env("HOME") || "/tmp", ".config", "ex_cortex", "secret"])
+         secret_path = Path.join([System.get_env("HOME") || "/tmp", ".config", "ex_cortex", "secret"])
 
-        case File.read(secret_path) do
-          {:ok, secret} ->
-            String.trim(secret)
+         case File.read(secret_path) do
+           {:ok, secret} ->
+             String.trim(secret)
 
-          _ ->
-            secret = :crypto.strong_rand_bytes(64) |> Base.encode64() |> binary_part(0, 64)
-            secret_path |> Path.dirname() |> File.mkdir_p!()
-            File.write!(secret_path, secret)
-            secret
-        end
-      end).()
+           _ ->
+             secret = 64 |> :crypto.strong_rand_bytes() |> Base.encode64() |> binary_part(0, 64)
+             secret_path |> Path.dirname() |> File.mkdir_p!()
+             File.write!(secret_path, secret)
+             secret
+         end
+       end).()
 
   host = System.get_env("PHX_HOST") || "localhost"
 

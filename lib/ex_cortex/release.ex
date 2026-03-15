@@ -1,8 +1,8 @@
 defmodule ExCortex.Release do
   @moduledoc false
-  @app :ex_cortex
-
   require Logger
+
+  @app :ex_cortex
 
   def migrate do
     load_app()

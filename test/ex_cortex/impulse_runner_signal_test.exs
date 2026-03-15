@@ -2,6 +2,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner.SignalTest do
   use ExCortex.DataCase
 
   alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.ImpulseRunner
   alias ExCortex.Signals
 
   describe "signal output type" do
@@ -20,7 +21,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner.SignalTest do
       }
 
       # With empty roster, should get :no_roster error
-      assert {:error, :no_roster} = ExCortex.Ruminations.ImpulseRunner.run(step, "test input")
+      assert {:error, :no_roster} = ImpulseRunner.run(step, "test input")
     end
 
     test "signal output with a real Synapse struct returns :no_roster when roster is empty" do
@@ -36,7 +37,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner.SignalTest do
 
       # Exercises the signal path with a real Synapse struct (not a bare map).
       # This caught a bug where bracket access on the struct raised UndefinedFunctionError.
-      assert {:error, :no_roster} = ExCortex.Ruminations.ImpulseRunner.run(synapse, "test input")
+      assert {:error, :no_roster} = ImpulseRunner.run(synapse, "test input")
     end
 
     test "signal output with a real Synapse struct and roster returns :no_members without LLM" do
@@ -51,7 +52,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner.SignalTest do
         })
 
       # With a roster but no matching neurons, should get :no_members
-      assert {:error, :no_members} = ExCortex.Ruminations.ImpulseRunner.run(synapse, "test input")
+      assert {:error, :no_members} = ImpulseRunner.run(synapse, "test input")
     end
   end
 end
