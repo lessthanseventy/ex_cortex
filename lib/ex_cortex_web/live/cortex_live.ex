@@ -30,7 +30,8 @@ defmodule ExCortexWeb.CortexLive do
          muse_input: "",
          muse_answer: nil,
          muse_loading: false,
-         expanded_signals: MapSet.new()
+         expanded_signals: MapSet.new(),
+         collapsed_panels: MapSet.new()
        )
      )}
   end
@@ -64,6 +65,17 @@ defmodule ExCortexWeb.CortexLive do
 
   def handle_event("navigate", _params, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("toggle_panel", %{"panel" => panel}, socket) do
+    collapsed = socket.assigns.collapsed_panels
+
+    collapsed =
+      if MapSet.member?(collapsed, panel),
+        do: MapSet.delete(collapsed, panel),
+        else: MapSet.put(collapsed, panel)
+
+    {:noreply, assign(socket, collapsed_panels: collapsed)}
   end
 
   def handle_event("toggle_signal", %{"id" => id}, socket) do
@@ -130,104 +142,217 @@ defmodule ExCortexWeb.CortexLive do
 
       <div class="tui-grid-2x2">
         <%!-- Panel 1: Active Ruminations --%>
-        <.panel title="Active Ruminations">
-          <%= if @ruminations == [] do %>
-            <p class="t-dim text-xs">No active ruminations.</p>
-          <% else %>
-            <div class="space-y-1">
-              <%= for rumination <- @ruminations do %>
-                <div class="flex items-center gap-2 text-sm">
-                  <.status color={rumination_status_color(rumination)} label={rumination.name} />
-                  <span class="t-dim text-xs">{rumination.trigger}</span>
-                </div>
-                <%= if rumination[:last_run] do %>
-                  <div class="pl-4 text-xs t-dim">
-                    last: {format_relative(rumination.last_run.inserted_at)} · {rumination.last_run.status}
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% end %>
+        <.panel
+          title="Active Ruminations"
+          on_toggle="toggle_panel"
+          toggle_value="ruminations"
+          collapsed={MapSet.member?(@collapsed_panels, "ruminations")}
+          summary={"#{length(@ruminations)} active"}
+        >
+          <.ruminations_panel ruminations={@ruminations} />
         </.panel>
 
         <%!-- Panel 2: Signals --%>
-        <.panel title="Signals">
-          <%= if @signals == [] do %>
-            <p class="t-dim text-xs">No active signals.</p>
-          <% else %>
-            <div class="space-y-1">
-              <%= for signal <- @signals do %>
-                <div
-                  class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
-                  phx-click="toggle_signal"
-                  phx-value-id={signal.id}
-                >
-                  <div class="flex items-start gap-2 text-sm">
-                    <.status color={signal_color(signal)} label={signal.title} />
-                    <span class="ml-auto text-xs t-dim">
-                      {if MapSet.member?(@expanded_signals, signal.id), do: "▾", else: "▸"}
-                    </span>
-                  </div>
-                  <%= if MapSet.member?(@expanded_signals, signal.id) do %>
-                    <div class="pl-4 mt-1 mb-2">
-                      <.signal_card card={signal} />
-                    </div>
-                  <% else %>
-                    <%= if signal.body && signal.body != "" do %>
-                      <div class="pl-4 text-xs t-dim truncate">
-                        {String.slice(signal.body, 0, 60)}
-                      </div>
-                    <% end %>
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
+        <.panel
+          title="Signals"
+          on_toggle="toggle_panel"
+          toggle_value="signals"
+          collapsed={MapSet.member?(@collapsed_panels, "signals")}
+          summary={"#{length(@signals)} signal#{if length(@signals) != 1, do: "s"}"}
+        >
+          <.signals_panel signals={@signals} expanded={@expanded_signals} />
         </.panel>
 
         <%!-- Panel 3: Cluster Health --%>
-        <.panel title="Cluster Health">
-          <%= if @clusters == [] do %>
-            <p class="t-dim text-xs">No clusters installed.</p>
-          <% else %>
-            <div class="space-y-1">
-              <%= for cluster <- @clusters do %>
-                <div class="flex items-center gap-2 text-sm">
-                  <.status color="green" label={cluster.cluster_name} />
-                  <span class="t-dim text-xs">
-                    {neuron_count(@neuron_counts, cluster.cluster_name)} neurons
-                  </span>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
+        <.panel
+          title="Cluster Health"
+          on_toggle="toggle_panel"
+          toggle_value="clusters"
+          collapsed={MapSet.member?(@collapsed_panels, "clusters")}
+          summary={"#{length(@clusters)} clusters, #{Enum.sum(Map.values(@neuron_counts))} neurons"}
+        >
+          <.clusters_panel clusters={@clusters} neuron_counts={@neuron_counts} />
         </.panel>
 
         <%!-- Panel 4: Recent Memory --%>
-        <.panel title="Recent Memory">
-          <%= if @engrams == [] do %>
-            <p class="t-dim text-xs">No engrams stored.</p>
-          <% else %>
-            <div class="space-y-1">
-              <%= for engram <- @engrams do %>
-                <div class="flex items-center gap-2 text-sm">
-                  <span class="t-cyan">▸</span>
-                  <span class="truncate">{engram.title}</span>
-                </div>
-                <%= if engram.impression do %>
-                  <div class="pl-4 text-xs t-dim truncate">
-                    {String.slice(engram.impression, 0, 60)}
-                  </div>
-                <% end %>
-              <% end %>
-            </div>
-          <% end %>
+        <.panel
+          title="Recent Memory"
+          on_toggle="toggle_panel"
+          toggle_value="memory"
+          collapsed={MapSet.member?(@collapsed_panels, "memory")}
+          summary={"#{length(@engrams)} recent engram#{if length(@engrams) != 1, do: "s"}"}
+        >
+          <.memory_panel engrams={@engrams} />
         </.panel>
       </div>
 
       <div class="mt-4">
         <.key_hints hints={[{"r", "refresh"}, {"↑↓", "stream"}, {"q", "quit"}]} />
       </div>
+    </div>
+    """
+  end
+
+  # --- Panel content components (pattern-matched) ---
+
+  attr :ruminations, :list, required: true
+
+  defp ruminations_panel(%{ruminations: []} = assigns) do
+    ~H"""
+    <p class="t-dim text-xs">No active ruminations.</p>
+    """
+  end
+
+  defp ruminations_panel(assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <.rumination_row :for={rumination <- @ruminations} rumination={rumination} />
+    </div>
+    """
+  end
+
+  attr :rumination, :map, required: true
+
+  defp rumination_row(%{rumination: %{last_run: %{inserted_at: _, status: _}}} = assigns) do
+    ~H"""
+    <div>
+      <div class="flex items-center gap-2 text-sm">
+        <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
+        <span class="t-dim text-xs">{@rumination.trigger}</span>
+      </div>
+      <div class="pl-4 text-xs t-dim">
+        last: {format_relative(@rumination.last_run.inserted_at)} · {@rumination.last_run.status}
+      </div>
+    </div>
+    """
+  end
+
+  defp rumination_row(assigns) do
+    ~H"""
+    <div class="flex items-center gap-2 text-sm">
+      <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
+      <span class="t-dim text-xs">{@rumination.trigger}</span>
+    </div>
+    """
+  end
+
+  attr :signals, :list, required: true
+  attr :expanded, :any, required: true
+
+  defp signals_panel(%{signals: []} = assigns) do
+    ~H"""
+    <p class="t-dim text-xs">No active signals.</p>
+    """
+  end
+
+  defp signals_panel(assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <.signal_row :for={signal <- @signals} signal={signal} expanded={@expanded} />
+    </div>
+    """
+  end
+
+  attr :signal, :map, required: true
+  attr :expanded, :any, required: true
+
+  defp signal_row(assigns) do
+    expanded = MapSet.member?(assigns.expanded, assigns.signal.id)
+    assigns = assign(assigns, :is_expanded, expanded)
+
+    ~H"""
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+      phx-click="toggle_signal"
+      phx-value-id={@signal.id}
+    >
+      <div class="flex items-start gap-2 text-sm">
+        <.status color={signal_color(@signal)} label={@signal.title} />
+        <span class="ml-auto text-xs t-dim">{if @is_expanded, do: "▾", else: "▸"}</span>
+      </div>
+      <.signal_row_body signal={@signal} expanded={@is_expanded} />
+    </div>
+    """
+  end
+
+  attr :signal, :map, required: true
+  attr :expanded, :boolean, required: true
+
+  defp signal_row_body(%{expanded: true} = assigns) do
+    ~H"""
+    <div class="pl-4 mt-1 mb-2">
+      <.signal_card card={@signal} />
+    </div>
+    """
+  end
+
+  defp signal_row_body(%{signal: %{body: body}} = assigns) when is_binary(body) and body != "" do
+    ~H"""
+    <div class="pl-4 text-xs t-dim truncate">{String.slice(@signal.body, 0, 60)}</div>
+    """
+  end
+
+  defp signal_row_body(assigns), do: ~H""
+
+  attr :clusters, :list, required: true
+  attr :neuron_counts, :map, required: true
+
+  defp clusters_panel(%{clusters: []} = assigns) do
+    ~H"""
+    <p class="t-dim text-xs">No clusters installed.</p>
+    """
+  end
+
+  defp clusters_panel(assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <%= for cluster <- @clusters do %>
+        <div class="flex items-center gap-2 text-sm">
+          <.status color="green" label={cluster.cluster_name} />
+          <span class="t-dim text-xs">
+            {neuron_count(@neuron_counts, cluster.cluster_name)} neurons
+          </span>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :engrams, :list, required: true
+
+  defp memory_panel(%{engrams: []} = assigns) do
+    ~H"""
+    <p class="t-dim text-xs">No engrams stored.</p>
+    """
+  end
+
+  defp memory_panel(assigns) do
+    ~H"""
+    <div class="space-y-1">
+      <.engram_row :for={engram <- @engrams} engram={engram} />
+    </div>
+    """
+  end
+
+  attr :engram, :map, required: true
+
+  defp engram_row(%{engram: %{impression: impression}} = assigns) when is_binary(impression) do
+    ~H"""
+    <div>
+      <div class="flex items-center gap-2 text-sm">
+        <span class="t-cyan">▸</span>
+        <span class="truncate">{@engram.title}</span>
+      </div>
+      <div class="pl-4 text-xs t-dim truncate">{String.slice(@engram.impression, 0, 60)}</div>
+    </div>
+    """
+  end
+
+  defp engram_row(assigns) do
+    ~H"""
+    <div class="flex items-center gap-2 text-sm">
+      <span class="t-cyan">▸</span>
+      <span class="truncate">{@engram.title}</span>
     </div>
     """
   end

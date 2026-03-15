@@ -4,7 +4,45 @@ defmodule ExCortexWeb.Components.TUI do
 
   attr :title, :string, required: true
   attr :class, :string, default: ""
+  attr :collapsed, :boolean, default: false
+  attr :summary, :string, default: nil
+  attr :on_toggle, :string, default: nil
+  attr :toggle_value, :string, default: nil
   slot :inner_block, required: true
+
+  def panel(%{on_toggle: toggle, collapsed: true} = assigns) when is_binary(toggle) do
+    ~H"""
+    <div class={"tui-panel #{@class}"}>
+      <div
+        class="tui-panel-header cursor-pointer select-none flex items-center justify-between"
+        phx-click={@on_toggle}
+        phx-value-panel={@toggle_value}
+      >
+        <span>┌─ {@title} ─</span>
+        <span class="text-xs t-dim mr-1">▸</span>
+      </div>
+      <.panel_summary summary={@summary} />
+    </div>
+    """
+  end
+
+  def panel(%{on_toggle: toggle} = assigns) when is_binary(toggle) do
+    ~H"""
+    <div class={"tui-panel #{@class}"}>
+      <div
+        class="tui-panel-header cursor-pointer select-none flex items-center justify-between"
+        phx-click={@on_toggle}
+        phx-value-panel={@toggle_value}
+      >
+        <span>┌─ {@title} ─</span>
+        <span class="text-xs t-dim mr-1">▾</span>
+      </div>
+      <div class="tui-panel-body">
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
 
   def panel(assigns) do
     ~H"""
@@ -15,6 +53,17 @@ defmodule ExCortexWeb.Components.TUI do
       <div class="tui-panel-body">
         {render_slot(@inner_block)}
       </div>
+    </div>
+    """
+  end
+
+  attr :summary, :string, default: nil
+
+  defp panel_summary(%{summary: nil} = assigns), do: ~H""
+  defp panel_summary(assigns) do
+    ~H"""
+    <div class="tui-panel-body py-1">
+      <p class="text-xs t-dim">{@summary}</p>
     </div>
     """
   end
