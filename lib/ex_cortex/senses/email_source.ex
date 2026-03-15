@@ -1,5 +1,5 @@
 defmodule ExCortex.Senses.EmailSense do
-  @moduledoc false
+  @moduledoc "Polls a local notmuch instance for new email threads."
   @behaviour ExCortex.Senses.Behaviour
 
   alias ExCortex.Senses.Item
@@ -8,101 +8,173 @@ defmodule ExCortex.Senses.EmailSense do
 
   @impl true
   def init(_config) do
-    {:ok, %{seen_thread_ids: MapSet.new()}}
+    case System.cmd("notmuch", ["--version"], stderr_to_stdout: true) do
+      {_output, 0} ->
+        {:ok, %{last_timestamp: 0}}
+
+      {_output, _code} ->
+        {:error, "notmuch binary not found or not working"}
+    end
+  rescue
+    ErlangError -> {:error, "notmuch binary not found — install notmuch to use the email sense"}
   end
 
   @impl true
   def fetch(state, config) do
-    with :ok <- sync_notmuch(),
-         {:ok, threads} <- search_threads(config) do
-      new_threads = Enum.reject(threads, &MapSet.member?(state.seen_thread_ids, &1["thread"]))
+    query = config["query"] || "tag:inbox AND tag:unread"
+    max_results = config["max_results"] || 50
+    last_timestamp = state[:last_timestamp] || state["last_timestamp"] || 0
 
-      items = Enum.flat_map(new_threads, &process_thread(&1, config))
+    case search_threads(query, max_results) do
+      {:ok, threads} ->
+        new_threads =
+          threads
+          |> Enum.filter(&((&1["timestamp"] || 0) > last_timestamp))
+          |> Enum.sort_by(& &1["timestamp"])
 
-      new_seen =
-        Enum.reduce(new_threads, state.seen_thread_ids, fn t, acc ->
-          MapSet.put(acc, t["thread"])
-        end)
+        if new_threads == [] do
+          Logger.debug("[EmailSense] No new threads for query: #{query}")
+          {:ok, [], state}
+        else
+          items = Enum.flat_map(new_threads, &process_thread(&1, config))
 
-      {:ok, items, %{state | seen_thread_ids: new_seen}}
-    else
+          new_last_timestamp =
+            new_threads
+            |> Enum.map(& &1["timestamp"])
+            |> Enum.max(fn -> last_timestamp end)
+
+          {:ok, items, %{state | last_timestamp: new_last_timestamp}}
+        end
+
       {:error, reason} ->
-        Logger.warning("[EmailSource] fetch failed: #{inspect(reason)}")
-        {:ok, [], state}
+        Logger.warning("[EmailSense] Search failed: #{inspect(reason)}")
+        {:error, reason}
     end
+  end
+
+  defp search_threads(query, max_results) do
+    args = [
+      "search",
+      "--format=json",
+      "--output=summary",
+      "--limit=#{max_results}",
+      query
+    ]
+
+    case System.cmd("notmuch", args, stderr_to_stdout: true) do
+      {output, 0} ->
+        case Jason.decode(output) do
+          {:ok, threads} when is_list(threads) -> {:ok, threads}
+          {:ok, _} -> {:error, "unexpected notmuch search output format"}
+          {:error, reason} -> {:error, "JSON parse failed: #{inspect(reason)}"}
+        end
+
+      {output, code} ->
+        {:error, "notmuch search exited #{code}: #{String.trim(output)}"}
+    end
+  rescue
+    e -> {:error, Exception.message(e)}
   end
 
   defp process_thread(thread, config) do
     thread_id = thread["thread"]
+    subject = thread["subject"] || "(no subject)"
+    authors = thread["authors"] || ""
+    date_relative = thread["date_relative"] || ""
+    tags = thread["tags"] || []
+    total = thread["total"] || 0
 
-    case fetch_thread(thread_id) do
+    case fetch_thread_body(thread_id) do
       {:ok, body} ->
-        :ok = tag_thread_seen(thread_id)
+        content =
+          format_email(
+            subject: subject,
+            authors: authors,
+            date_relative: date_relative,
+            tags: tags,
+            total: total,
+            body: body
+          )
 
         [
           %Item{
             source_id: config["source_id"],
             type: "email",
-            content: body,
-            metadata: %{subject: thread["subject"] || "", from: extract_from(thread)}
+            content: content,
+            metadata: %{
+              thread_id: thread_id,
+              subject: subject,
+              from: authors,
+              tags: tags,
+              timestamp: thread["timestamp"]
+            }
           }
         ]
 
       {:error, reason} ->
-        Logger.warning("[EmailSource] Failed to fetch thread #{thread_id}: #{inspect(reason)}")
+        Logger.warning("[EmailSense] Failed to fetch thread #{thread_id}: #{inspect(reason)}")
         []
     end
   end
 
-  defp sync_notmuch do
-    case System.cmd("notmuch", ["new"], stderr_to_stdout: true) do
-      {_output, 0} -> :ok
-      {output, code} -> {:error, "notmuch new exited #{code}: #{output}"}
-    end
-  rescue
-    e -> {:error, Exception.message(e)}
-  end
-
-  defp search_threads(config) do
-    query = config["query"] || "tag:new"
-    limit = config["limit"] || 50
-
-    case System.cmd("notmuch", ["search", "--format=json", "--limit=#{limit}", query], stderr_to_stdout: true) do
+  defp fetch_thread_body(thread_id) do
+    case System.cmd("notmuch", ["show", "--format=json", thread_id], stderr_to_stdout: true) do
       {output, 0} ->
         case Jason.decode(output) do
-          {:ok, threads} -> {:ok, threads}
-          {:error, reason} -> {:error, "JSON decode failed: #{inspect(reason)}"}
+          {:ok, data} -> {:ok, extract_latest_body(data)}
+          {:error, reason} -> {:error, "JSON parse failed: #{inspect(reason)}"}
         end
 
       {output, code} ->
-        {:error, "notmuch search exited #{code}: #{output}"}
+        {:error, "notmuch show exited #{code}: #{String.trim(output)}"}
     end
   rescue
     e -> {:error, Exception.message(e)}
   end
 
-  defp fetch_thread(thread_id) do
-    case System.cmd("notmuch", ["show", "--format=text", "--body=true", thread_id], stderr_to_stdout: true) do
-      {output, 0} -> {:ok, output}
-      {output, code} -> {:error, "notmuch show exited #{code}: #{output}"}
-    end
-  rescue
-    e -> {:error, Exception.message(e)}
+  # notmuch show --format=json returns a nested list structure:
+  # [[[ {message}, [replies] ], ...]]
+  # We want the body of the latest (last) message in the thread.
+  defp extract_latest_body(data) when is_list(data) do
+    data
+    |> List.flatten()
+    |> Enum.filter(&is_map/1)
+    |> Enum.map(&extract_body_from_message/1)
+    |> List.last() || ""
   end
 
-  defp tag_thread_seen(thread_id) do
-    case System.cmd("notmuch", ["tag", "-new", thread_id], stderr_to_stdout: true) do
-      {_output, 0} -> :ok
-      {output, code} -> Logger.warning("[EmailSource] tag -new failed for #{thread_id} (#{code}): #{output}")
-    end
+  defp extract_latest_body(_), do: ""
 
-    :ok
-  rescue
-    e ->
-      Logger.warning("[EmailSource] tag -new raised: #{Exception.message(e)}")
-      :ok
+  defp extract_body_from_message(%{"body" => body}) when is_list(body) do
+    body
+    |> Enum.flat_map(&extract_content_parts/1)
+    |> Enum.join("\n")
   end
 
-  defp extract_from(%{"authors" => authors}) when is_binary(authors), do: authors
-  defp extract_from(_), do: ""
+  defp extract_body_from_message(_), do: ""
+
+  defp extract_content_parts(%{"content-type" => "text/plain", "content" => content}) when is_binary(content) do
+    [content]
+  end
+
+  defp extract_content_parts(%{"content" => parts}) when is_list(parts) do
+    Enum.flat_map(parts, &extract_content_parts/1)
+  end
+
+  defp extract_content_parts(_), do: []
+
+  defp format_email(opts) do
+    tags_str = Enum.join(opts[:tags], ", ")
+
+    String.trim("""
+    Subject: #{opts[:subject]}
+    From: #{opts[:authors]}
+    Date: #{opts[:date_relative]}
+    Tags: #{tags_str}
+    Thread: #{opts[:total]} messages
+
+    ---
+    #{String.trim(opts[:body])}
+    """)
+  end
 end
