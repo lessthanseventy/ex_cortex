@@ -36,35 +36,45 @@ defmodule ExCortex.Ruminations.Runner do
     {:ok, %{steps: []}}
   end
 
-  def run(thought, input) do
+  def run(thought, input, opts \\ []) do
     Tracer.with_span "thought.run", %{
       attributes: %{
         "thought.id" => thought.id,
         "thought.name" => thought.name,
-        "thought.trigger" => thought.trigger || "manual"
+        "thought.trigger" => thought.trigger || "manual",
+        "thought.dry_run" => Keyword.get(opts, :dry_run, false)
       }
     } do
-      do_run(thought, input)
+      do_run(thought, input, opts)
     end
   end
 
-  defp do_run(thought, input) do
+  defp do_run(thought, input, opts) do
+    dry_run? = Keyword.get(opts, :dry_run, false)
     ordered_steps = Enum.sort_by(thought.steps, &Map.get(&1, "order", 0))
 
-    Logger.info("[RuminationRunner] Running thought #{thought.id} (#{thought.name}), #{length(ordered_steps)} step(s)")
+    label = if dry_run?, do: "DRY RUN", else: "Running"
+    Logger.info("[RuminationRunner] #{label} thought #{thought.id} (#{thought.name}), #{length(ordered_steps)} step(s)")
 
     # Create a daydream record
-    {:ok, daydream} = Ruminations.create_daydream(%{rumination_id: thought.id, status: "running"})
+    initial_status = if dry_run?, do: "dry_run", else: "running"
+    {:ok, daydream} = Ruminations.create_daydream(%{rumination_id: thought.id, status: initial_status})
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_started, daydream})
 
     # Zip each step with the next step for look-ahead (next step name for handoff)
     steps_with_next = Enum.zip(ordered_steps, tl(ordered_steps) ++ [nil])
 
+    run_ctx = %{
+      ordered_steps: ordered_steps,
+      daydream: daydream,
+      dry_run: dry_run?
+    }
+
     {results, gated?} =
       try do
         {results, _} =
           Enum.reduce(steps_with_next, {[], input}, fn {step, next_step}, {acc_results, current_input} ->
-            run_step_entry(step, next_step, current_input, acc_results, ordered_steps, daydream)
+            run_step_entry(step, next_step, current_input, acc_results, run_ctx)
           end)
 
         {results, false}
@@ -75,6 +85,7 @@ defmodule ExCortex.Ruminations.Runner do
     # Determine final status and record step results
     final_status =
       cond do
+        dry_run? -> "dry_run"
         gated? -> "gated"
         match?({:ok, _}, List.last(results)) -> "complete"
         true -> "failed"
@@ -90,7 +101,7 @@ defmodule ExCortex.Ruminations.Runner do
     {:ok, daydream} = Ruminations.update_daydream(daydream, %{status: final_status, synapse_results: synapse_results})
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_completed, daydream})
 
-    if !Application.get_env(:ex_cortex, :sql_sandbox, false) do
+    if !dry_run? && !Application.get_env(:ex_cortex, :sql_sandbox, false) do
       Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
         post_artifacts(synapse_results, thought, daydream)
 
@@ -113,7 +124,7 @@ defmodule ExCortex.Ruminations.Runner do
     end
   end
 
-  defp run_step_entry(%{"type" => "branch"} = step, next_step, current_input, acc_results, _ordered_steps, _daydream) do
+  defp run_step_entry(%{"type" => "branch"} = step, next_step, current_input, acc_results, _ctx) do
     next_step_name =
       if next_step,
         do: resolve_step_name(next_step["step_id"] || next_step["synthesizer"])
@@ -135,11 +146,11 @@ defmodule ExCortex.Ruminations.Runner do
     {acc_results ++ [result], next_input}
   end
 
-  defp run_step_entry(step, next_step, current_input, acc_results, ordered_steps, daydream) do
-    run_regular_step(step, next_step, current_input, acc_results, ordered_steps, daydream)
+  defp run_step_entry(step, next_step, current_input, acc_results, ctx) do
+    run_regular_step(step, next_step, current_input, acc_results, ctx)
   end
 
-  defp run_regular_step(step, next_step, current_input, acc_results, ordered_steps, daydream) do
+  defp run_regular_step(step, next_step, current_input, acc_results, ctx) do
     step_id = step["step_id"] || step["thought_id"]
     next_step_name = if next_step, do: resolve_step_name(next_step["step_id"] || next_step["thought_id"])
 
@@ -149,7 +160,14 @@ defmodule ExCortex.Ruminations.Runner do
         {acc_results ++ [{:error, :step_not_found}], current_input}
 
       resolved_step ->
-        Logger.info("[RuminationRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
+        # In dry run mode, force all steps to dry_run dangerous_tool_mode
+        resolved_step =
+          if ctx.dry_run,
+            do: Map.put(resolved_step, :dangerous_tool_mode, "dry_run"),
+            else: resolved_step
+
+        label = if ctx.dry_run, do: "[DRY RUN] ", else: ""
+        Logger.info("[RuminationRunner] #{label}Running step #{resolved_step.id} (#{resolved_step.name})")
         t0 = System.monotonic_time(:millisecond)
 
         result =
@@ -157,7 +175,8 @@ defmodule ExCortex.Ruminations.Runner do
             attributes: %{
               "step.id" => resolved_step.id,
               "step.name" => resolved_step.name,
-              "step.output_type" => resolved_step.output_type || "verdict"
+              "step.output_type" => resolved_step.output_type || "verdict",
+              "step.dry_run" => ctx.dry_run
             }
           } do
             r = ImpulseRunner.run(resolved_step, current_input)
@@ -169,14 +188,16 @@ defmodule ExCortex.Ruminations.Runner do
 
         Logger.info("[RuminationRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
 
-        # Async learning loop — runs retrospect without blocking the thought
-        step_run_data = %{id: daydream.id, results: inspect_result(result), input: current_input}
+        # Async learning loop — runs retrospect without blocking the thought (skip in dry run)
+        if !ctx.dry_run do
+          step_run_data = %{id: ctx.daydream.id, results: inspect_result(result), input: current_input}
 
-        Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-          Loop.retrospect(resolved_step, step_run_data)
-        end)
+          Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
+            Loop.retrospect(resolved_step, step_run_data)
+          end)
+        end
 
-        handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ordered_steps)
+        handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ctx.ordered_steps)
     end
   end
 

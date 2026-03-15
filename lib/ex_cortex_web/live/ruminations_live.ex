@@ -113,17 +113,11 @@ defmodule ExCortexWeb.RuminationsLive do
   end
 
   def handle_event("run_rumination", %{"id" => id}, socket) do
-    rumination = Ruminations.get_rumination!(String.to_integer(id))
-    input = socket.assigns.adhoc_input
-    parent = self()
+    run_rumination(socket, String.to_integer(id), dry_run: false)
+  end
 
-    Task.start(fn ->
-      result = ExCortex.Ruminations.Runner.run(rumination, input)
-      send(parent, {:run_complete, rumination.id, result})
-    end)
-
-    running = Map.put(socket.assigns.running, rumination.id, :running)
-    {:noreply, assign(socket, running: running)}
+  def handle_event("dry_run_rumination", %{"id" => id}, socket) do
+    run_rumination(socket, String.to_integer(id), dry_run: true)
   end
 
   def handle_event("toggle_status", %{"id" => id}, socket) do
@@ -559,6 +553,22 @@ defmodule ExCortexWeb.RuminationsLive do
     end
   end
 
+  defp run_rumination(socket, rumination_id, opts) do
+    rumination = Ruminations.get_rumination!(rumination_id)
+    input = socket.assigns.adhoc_input
+    parent = self()
+    dry_run? = Keyword.get(opts, :dry_run, false)
+
+    Task.start(fn ->
+      result = ExCortex.Ruminations.Runner.run(rumination, input, opts)
+      send(parent, {:run_complete, rumination.id, result})
+    end)
+
+    status = if dry_run?, do: :dry_running, else: :running
+    running = Map.put(socket.assigns.running, rumination.id, status)
+    {:noreply, assign(socket, running: running)}
+  end
+
   defp handle_edit_keydown("ArrowDown", socket) do
     max = max(length(socket.assigns.pipeline_steps) - 1, 0)
     focused = min((socket.assigns.focused_step || 0) + 1, max)
@@ -660,6 +670,14 @@ defmodule ExCortexWeb.RuminationsLive do
     end
   end
 
+  defp run_button_label(:running), do: "Running…"
+  defp run_button_label(:dry_running), do: "Dry running…"
+  defp run_button_label(_), do: "▶ Run"
+
+  defp dry_run_button_label(:running), do: "…"
+  defp dry_run_button_label(:dry_running), do: "…"
+  defp dry_run_button_label(_), do: "⚗ Dry Run"
+
   defp toggle_status_label("active"), do: "⏸ Pause"
   defp toggle_status_label("paused"), do: "▶ Activate"
   defp toggle_status_label("done"), do: "▶ Reactivate"
@@ -673,6 +691,7 @@ defmodule ExCortexWeb.RuminationsLive do
   defp run_color("complete"), do: "green"
   defp run_color("failed"), do: "red"
   defp run_color("running"), do: "amber"
+  defp run_color("dry_run"), do: "cyan"
   defp run_color(_), do: "dim"
 
   defp format_time(nil), do: "never"
@@ -919,11 +938,18 @@ defmodule ExCortexWeb.RuminationsLive do
                         size="sm"
                         phx-click="run_rumination"
                         phx-value-id={@selected_rumination.id}
-                        disabled={Map.get(@running, @selected_rumination.id) == :running}
+                        disabled={Map.get(@running, @selected_rumination.id) != nil}
                       >
-                        {if Map.get(@running, @selected_rumination.id) == :running,
-                          do: "Running…",
-                          else: "▶ Run"}
+                        {run_button_label(Map.get(@running, @selected_rumination.id))}
+                      </.button>
+                      <.button
+                        size="sm"
+                        variant="outline"
+                        phx-click="dry_run_rumination"
+                        phx-value-id={@selected_rumination.id}
+                        disabled={Map.get(@running, @selected_rumination.id) != nil}
+                      >
+                        {dry_run_button_label(Map.get(@running, @selected_rumination.id))}
                       </.button>
                     </div>
                   </div>
