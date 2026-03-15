@@ -115,16 +115,54 @@ Only these commands work in `run_sandbox`:
 - `mix dialyzer`
 - `mix deps.audit`
 
-## Docker
+## Dev Workflow
 ```bash
-docker-compose up  # starts TimescaleDB + Ollama + Phoenix app
-PORT=4001 docker-compose up  # custom port
+mise setup              # first-time: deps, db, assets
+mise dev                # start services + app with live reload
+mise services           # just start background services (db, ollama, observability)
+mise stop               # stop background services
+```
+
+## Mix Aliases
+```bash
+mix dev                 # start Phoenix server
+mix lint                # compile warnings + format check + credo
+mix precommit           # lint + test
+mix ci                  # full quality gate
+mix release.build       # compile + assets + Burrito release
+```
+
+**MIX_ENV notes:** Never set MIX_ENV for dev commands — `mix dev`, `mix test`, `mix format`, `mix credo` all default correctly. Only set `MIX_ENV=prod` for release builds, and the `mix release.build` alias handles that via `mise release`. If running `mix test` in a script, the test alias auto-creates/migrates the test DB.
+
+## Release (Burrito)
+The app ships as a standalone binary via Burrito. No Erlang/Elixir needed on the target machine.
+
+```bash
+mise release            # builds binary to burrito_out/
+
+# Run it (needs Postgres + Ollama running separately)
+DATABASE_URL="ecto://user:pass@host/ex_cortex" \
+SECRET_KEY_BASE="$(mix phx.gen.secret)" \
+PHX_SERVER=true \
+./burrito_out/ex_cortex_linux_x86 start
+```
+
+Binaries built for: `linux_x86`, `linux_arm`, `macos_arm`.
+
+API keys can be set via env vars at launch or configured live in `/instinct` (persisted to DB, takes effect without restart).
+
+## Docker (services only)
+Docker Compose runs the supporting services, not the app itself:
+```bash
+docker compose up -d db ollama   # just db + ollama
+docker compose up -d             # full stack: db, ollama, jaeger, prometheus, grafana
 ```
 
 ## Key Patterns
 - LiveViews import function components from dashboard/UI packages
 - TUI components (`panel`, `status`, `key_hints`, `nav_link`) in `ExCortexWeb.Components.TUI`
-- Ollama URL configurable via OLLAMA_URL env var
+- Config priority: Settings DB (Instinct UI) → Application env → env vars → defaults
+- `Settings.resolve/2` is the single way to read config — LLM modules use it
 - Pathways dynamically create role/action modules for evaluation
 - PubSub broadcasts evaluation results for live updates
 - SaladUI.Button is imported globally via html_helpers

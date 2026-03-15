@@ -130,7 +130,7 @@ defmodule ExCortex.MixProject do
       ],
 
       # Release
-      "release.build": ["assets.deploy", "release"],
+      "release.build": ["compile", "assets.deploy", "release"],
 
       # Quality
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],

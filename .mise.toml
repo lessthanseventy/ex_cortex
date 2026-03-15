@@ -26,9 +26,20 @@ description = "Stop and destroy all data (volumes)"
 run = "docker compose down -v"
 
 [tasks.release]
-description = "Build a Burrito release binary"
-run = "MIX_ENV=prod mix release.build"
+description = "Clean build a Burrito release binary"
+run = """
+rm -rf _build/prod burrito_out
+rm -rf ~/.local/share/.burrito/ex_cortex*
+MIX_ENV=prod mix deps.get
+MIX_ENV=prod mix release.build
+echo ""
+echo "✓ Binaries ready in burrito_out/"
+ls -lh burrito_out/
+"""
 
 [tasks.setup]
 description = "First-time setup: deps, db, assets"
 run = "mix setup"
+
+[tools]
+zig = "0.15.2"
