@@ -78,9 +78,10 @@ defmodule ExCortex.Evaluator do
 
   defp build_roles_from_pathway(meta) do
     Enum.map(meta.roles, fn role_def ->
-      mod_name = Module.concat([ExCortex, Roles, Macro.camelize(role_def.name)])
+      safe_name = role_def.name |> String.replace(~r/[^a-zA-Z0-9]/, "") |> Macro.camelize()
+      mod_name = Module.concat([ExCortex, Roles, safe_name])
 
-      if !Code.ensure_loaded?(mod_name) do
+      unless Code.ensure_loaded?(mod_name) do
         contents =
           quote do
             use ExCortex.Core.Role
