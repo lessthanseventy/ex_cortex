@@ -655,9 +655,9 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   end
 
   defp post_signal_cards(thought, attrs) do
-    cards_spec = thought[:cards] || []
+    cards_spec = Map.get(thought, :cards) || %{}
 
-    if cards_spec == [] do
+    if cards_spec == %{} do
       post_single_signal_card(thought, attrs)
     else
       post_multi_signal_cards(thought, attrs, cards_spec)
@@ -674,12 +674,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
       body: attrs.body,
       tags: attrs[:tags] || [],
       source: "rumination",
-      rumination_id: thought[:id],
+      rumination_id: thought.id,
       metadata: attrs[:metadata] || %{},
-      pin_slug: thought[:pin_slug],
-      pinned: thought[:pinned] || false,
-      pin_order: thought[:pin_order] || 0,
-      cluster_name: thought[:cluster_name]
+      pin_slug: Map.get(thought, :pin_slug),
+      pinned: Map.get(thought, :pinned, false),
+      pin_order: Map.get(thought, :pin_order, 0),
+      cluster_name: Map.get(thought, :cluster_name)
     }
 
     ExCortex.Signals.post_signal(card_attrs)
@@ -696,12 +696,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
           body: attrs.body,
           tags: attrs[:tags] || [],
           source: "rumination",
-          rumination_id: thought[:id],
+          rumination_id: thought.id,
           metadata: attrs[:metadata] || %{},
           pin_slug: spec["pin_slug"],
           pinned: spec["pinned"] || false,
           pin_order: spec["pin_order"] || 0,
-          cluster_name: thought[:cluster_name]
+          cluster_name: Map.get(thought, :cluster_name)
         }
 
         ExCortex.Signals.post_signal(card_attrs)
