@@ -20,6 +20,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   alias ExCortex.ContextProviders.ContextProvider
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
+  alias ExCortex.Ruminations.RosterResolver
 
   require Logger
 
@@ -217,120 +218,10 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   end
 
   # ---------------------------------------------------------------------------
-  # Neuron resolution
+  # Neuron resolution — delegated to RosterResolver
   # ---------------------------------------------------------------------------
 
-  @rank_values ["apprentice", "journeyman", "master"]
-
-  # When preferred_who is combined with a rank-based "who", filter by both name AND rank.
-  # This ensures "who: journeyman, preferred_who: Product Analyst" returns only the
-  # journeyman-ranked Product Analyst, not all perspectives of that role.
-  defp resolve_neurons(%{"preferred_who" => name, "who" => rank} = step)
-       when is_binary(name) and name != "" and rank in @rank_values do
-    case from(m in Neuron,
-           where:
-             m.type == "role" and m.status == "active" and m.name == ^name and
-               fragment("config->>'rank' = ?", ^rank)
-         )
-         |> Repo.all()
-         |> Enum.map(&neuron_to_runner_spec/1) do
-      [] -> resolve_neurons(%{step | "preferred_who" => nil})
-      neurons -> neurons
-    end
-  end
-
-  defp resolve_neurons(%{"preferred_who" => name} = step) when is_binary(name) and name != "" do
-    case from(m in Neuron,
-           where: m.type == "role" and m.status == "active" and m.name == ^name
-         )
-         |> Repo.all()
-         |> Enum.map(&neuron_to_runner_spec/1) do
-      [] -> resolve_neurons(%{step | "preferred_who" => nil})
-      neurons -> neurons
-    end
-  end
-
-  defp resolve_neurons(%{"who" => who}), do: resolve_neurons(who)
-  defp resolve_neurons(step) when is_map(step), do: resolve_neurons(Map.get(step, "who", "all"))
-
-  defp resolve_neurons("all") do
-    from(m in Neuron, where: m.type == "role" and m.status == "active")
-    |> Repo.all()
-    |> Enum.map(&neuron_to_runner_spec/1)
-  end
-
-  defp resolve_neurons("apprentice"), do: resolve_by_rank("apprentice")
-
-  defp resolve_neurons("journeyman"), do: resolve_by_rank("journeyman")
-
-  defp resolve_neurons("master"), do: resolve_by_rank("master")
-
-  defp resolve_neurons("challenger") do
-    case ExCortex.Neurons.Builtin.get("challenger") do
-      nil ->
-        []
-
-      neuron ->
-        rank_config = neuron.ranks[:journeyman]
-
-        [
-          %{
-            provider: "ollama",
-            model: rank_config.model,
-            system_prompt: neuron.system_prompt,
-            name: neuron.name,
-            tools: []
-          }
-        ]
-    end
-  end
-
-  defp resolve_neurons("team:" <> team) do
-    from(m in Neuron,
-      where: m.type == "role" and m.status == "active" and m.team == ^team
-    )
-    |> Repo.all()
-    |> Enum.map(&neuron_to_runner_spec/1)
-  end
-
-  defp resolve_neurons(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
-    [%{provider: "claude", model: claude_tier, name: claude_tier, system_prompt: nil, tools: []}]
-  end
-
-  defp resolve_neurons(neuron_id) when is_binary(neuron_id) do
-    case Repo.get(Neuron, neuron_id) do
-      nil -> []
-      m -> [neuron_to_runner_spec(m)]
-    end
-  end
-
-  defp resolve_by_rank(rank) do
-    from(m in Neuron,
-      where:
-        m.type == "role" and m.status == "active" and
-          fragment("config->>'rank' = ?", ^rank)
-    )
-    |> Repo.all()
-    |> Enum.map(&neuron_to_runner_spec/1)
-  end
-
-  defp neuron_to_runner_spec(db) do
-    %{
-      provider: db.config["provider"] || "ollama",
-      model: db.config["model"] || "phi4-mini",
-      system_prompt: db.config["system_prompt"] || "",
-      name: db.name,
-      tools: resolve_member_tools(db.config["tools"])
-    }
-  end
-
-  defp resolve_member_tools(nil), do: []
-  defp resolve_member_tools("all_safe"), do: ExCortex.Tools.Registry.resolve_tools(:all_safe)
-  defp resolve_member_tools("write"), do: ExCortex.Tools.Registry.resolve_tools(:write)
-  defp resolve_member_tools("dangerous"), do: ExCortex.Tools.Registry.resolve_tools(:dangerous)
-  defp resolve_member_tools("yolo"), do: ExCortex.Tools.Registry.resolve_tools(:dangerous)
-  defp resolve_member_tools(names) when is_list(names), do: ExCortex.Tools.Registry.resolve_tools(names)
-  defp resolve_member_tools(_), do: []
+  defp resolve_neurons(step_or_who), do: RosterResolver.resolve(step_or_who)
 
   # ---------------------------------------------------------------------------
   # Running a step
@@ -354,7 +245,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   defp effective_tools(member_tools, opts) do
     case Keyword.get(opts, :override_tools) do
       :none -> []
-      names when is_list(names) and names != [] -> resolve_member_tools(names)
+      names when is_list(names) and names != [] -> ExCortex.Tools.Registry.resolve_tools(names)
       _ -> member_tools
     end
   end

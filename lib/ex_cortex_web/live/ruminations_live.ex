@@ -216,6 +216,67 @@ defmodule ExCortexWeb.RuminationsLive do
      )}
   end
 
+  def handle_event("save_rumination", _params, socket) do
+    form = socket.assigns.rumination_form
+    steps = socket.assigns.pipeline_steps
+
+    # Build steps array for storage
+    step_data =
+      steps
+      |> Enum.with_index()
+      |> Enum.map(fn {step, idx} ->
+        base = %{"step_id" => step["step_id"], "order" => idx + 1}
+        base = if step["gate"], do: Map.put(base, "gate", true), else: base
+        base = if step["type"] == "branch", do: Map.put(base, "type", "branch"), else: base
+        base = if step["synthesizer"], do: Map.put(base, "synthesizer", step["synthesizer"]), else: base
+        base
+      end)
+
+    attrs = %{
+      name: form["name"],
+      description: form["description"],
+      trigger: form["trigger"],
+      schedule: form["schedule"],
+      steps: step_data
+    }
+
+    # Save synapse roster changes
+    Enum.each(steps, fn step ->
+      if step["synapse"] do
+        Ruminations.update_synapse(step["synapse"], %{roster: step["synapse"].roster})
+      end
+    end)
+
+    result =
+      if socket.assigns.editing_rumination do
+        Ruminations.update_rumination(socket.assigns.editing_rumination, attrs)
+      else
+        Ruminations.create_rumination(attrs)
+      end
+
+    case result do
+      {:ok, rumination} ->
+        ruminations = Ruminations.list_ruminations()
+        synapses = Ruminations.list_synapses()
+
+        {:noreply,
+         socket
+         |> assign(
+           editing: false,
+           editing_rumination: nil,
+           pipeline_steps: [],
+           expanded_step: nil,
+           ruminations: ruminations,
+           synapses: synapses
+         )
+         |> load_rumination(rumination.id)
+         |> put_flash(:info, "Rumination saved.")}
+
+      {:error, changeset} ->
+        {:noreply, put_flash(socket, :error, "Save failed: #{inspect(changeset.errors)}")}
+    end
+  end
+
   def handle_event("update_rumination_form", %{"field" => field, "value" => value}, socket) do
     form = Map.put(socket.assigns.rumination_form, field, value)
     {:noreply, assign(socket, rumination_form: form)}
@@ -440,6 +501,75 @@ defmodule ExCortexWeb.RuminationsLive do
     end
   end
 
+  # Keyboard navigation
+
+  def handle_event("keydown", %{"key" => key}, socket) do
+    if socket.assigns.editing do
+      handle_edit_keydown(key, socket)
+    else
+      handle_view_keydown(key, socket)
+    end
+  end
+
+  defp handle_edit_keydown("ArrowDown", socket) do
+    max = max(length(socket.assigns.pipeline_steps) - 1, 0)
+    focused = min((socket.assigns.focused_step || 0) + 1, max)
+    {:noreply, assign(socket, focused_step: focused)}
+  end
+
+  defp handle_edit_keydown("ArrowUp", socket) do
+    focused = max((socket.assigns.focused_step || 0) - 1, 0)
+    {:noreply, assign(socket, focused_step: focused)}
+  end
+
+  defp handle_edit_keydown("Enter", socket) do
+    focused = socket.assigns.focused_step || 0
+
+    if focused < length(socket.assigns.pipeline_steps) do
+      expanded = if socket.assigns.expanded_step == focused, do: nil, else: focused
+      {:noreply, assign(socket, expanded_step: expanded)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  defp handle_edit_keydown("Escape", socket) do
+    cond do
+      socket.assigns.synapse_picker != nil ->
+        {:noreply, assign(socket, synapse_picker: nil)}
+
+      socket.assigns.expanded_step != nil ->
+        {:noreply, assign(socket, expanded_step: nil)}
+
+      true ->
+        {:noreply,
+         assign(socket,
+           editing: false,
+           editing_rumination: nil,
+           pipeline_steps: [],
+           expanded_step: nil,
+           synapse_picker: nil,
+           rumination_form: %{}
+         )}
+    end
+  end
+
+  defp handle_edit_keydown(_key, socket), do: {:noreply, socket}
+
+  defp handle_view_keydown("n", socket) do
+    handle_event("new_rumination", %{}, socket)
+  end
+
+  defp handle_view_keydown("e", %{assigns: %{selected_rumination: rum}} = socket) when not is_nil(rum) do
+    handle_event("edit_rumination", %{}, socket)
+  end
+
+  defp handle_view_keydown("Escape", %{assigns: %{selected_rumination: rum}} = socket) when not is_nil(rum) do
+    {:noreply, assign(socket, selected_id: nil, selected_rumination: nil, daydreams: [])}
+  end
+
+  defp handle_view_keydown(_key, socket), do: {:noreply, socket}
+
   # Helpers
 
   defp load_rumination(socket, rumination_id) do
@@ -509,7 +639,7 @@ defmodule ExCortexWeb.RuminationsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-4">
+    <div class="space-y-4" phx-window-keydown="keydown">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold tracking-tight">Thoughts</h1>
@@ -517,7 +647,13 @@ defmodule ExCortexWeb.RuminationsLive do
             Pipelines — define synapse chains, run on demand or by trigger.
           </p>
         </div>
-        <.key_hints hints={[{"n", "new"}, {"r", "run"}, {"d", "delete"}, {"esc", "back"}]} />
+        <.key_hints hints={
+          if @editing do
+            [{"↑↓", "navigate"}, {"enter", "expand"}, {"esc", "close"}]
+          else
+            [{"n", "new"}, {"e", "edit"}, {"r", "run"}, {"d", "delete"}, {"esc", "back"}]
+          end
+        } />
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
