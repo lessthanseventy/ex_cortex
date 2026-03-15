@@ -126,6 +126,18 @@ defmodule ExCortexWeb.RuminationsLive do
     {:noreply, assign(socket, running: running)}
   end
 
+  def handle_event("toggle_status", %{"id" => id}, socket) do
+    rumination = Ruminations.get_rumination!(String.to_integer(id))
+    new_status = if rumination.status == "active", do: "paused", else: "active"
+    {:ok, updated} = Ruminations.update_rumination(rumination, %{status: new_status})
+    ruminations = Ruminations.list_ruminations()
+
+    {:noreply,
+     socket
+     |> assign(ruminations: ruminations, selected_rumination: updated)
+     |> put_flash(:info, "#{updated.name} is now #{new_status}")}
+  end
+
   def handle_event("delete_rumination", %{"id" => id}, socket) do
     rumination = Ruminations.get_rumination!(String.to_integer(id))
     Ruminations.delete_rumination(rumination)
@@ -640,6 +652,11 @@ defmodule ExCortexWeb.RuminationsLive do
     end
   end
 
+  defp toggle_status_label("active"), do: "⏸ Pause"
+  defp toggle_status_label("paused"), do: "▶ Activate"
+  defp toggle_status_label("done"), do: "▶ Reactivate"
+  defp toggle_status_label(_), do: "▶ Activate"
+
   defp status_color("active"), do: "green"
   defp status_color("paused"), do: "amber"
   defp status_color("done"), do: "cyan"
@@ -678,7 +695,7 @@ defmodule ExCortexWeb.RuminationsLive do
     <div class="space-y-4" phx-window-keydown="keydown">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-3xl font-bold tracking-tight">Thoughts</h1>
+          <h1 class="text-3xl font-bold tracking-tight">Ruminations</h1>
           <p class="text-muted-foreground mt-1">
             Pipelines — define synapse chains, run on demand or by trigger.
           </p>
@@ -905,6 +922,14 @@ defmodule ExCortexWeb.RuminationsLive do
 
                   <%!-- Actions --%>
                   <div class="flex gap-2 border-t pt-3">
+                    <.button
+                      size="sm"
+                      variant="ghost"
+                      phx-click="toggle_status"
+                      phx-value-id={@selected_rumination.id}
+                    >
+                      {toggle_status_label(@selected_rumination.status)}
+                    </.button>
                     <.button size="sm" variant="ghost" phx-click="edit_rumination">
                       Edit
                     </.button>
