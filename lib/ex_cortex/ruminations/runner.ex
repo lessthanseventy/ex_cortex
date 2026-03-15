@@ -96,7 +96,7 @@ defmodule ExCortex.Ruminations.Runner do
 
         ExCortex.Memory.Extractor.extract(%{
           id: daydream.id,
-          thought_name: thought.name,
+          rumination_name: thought.name,
           cluster_name: Map.get(thought, :cluster_name),
           status: final_status,
           results: synapse_results,

@@ -19,7 +19,7 @@ defmodule ExCortex.Memory.Extractor do
       body: summary,
       category: "episodic",
       source: "extraction",
-      cluster_name: rumination_run[:cluster_name],
+      cluster_name: Map.get(rumination_run, :cluster_name),
       daydream_id: rumination_run.id,
       importance: 2,
       tags: ["rumination-run", tag]
