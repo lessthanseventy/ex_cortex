@@ -109,12 +109,18 @@ defmodule ExCortex.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
+      # First-time setup
       setup: ["deps.get", "ecto.setup", "assets.setup", "assets.build"],
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      # Full reset + Dev Team guild install in one command
       "ecto.fresh": ["ecto.reset", "dev_team.install"],
+
+      # Dev
+      dev: ["phx.server"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
+      lint: ["compile --warnings-as-errors", "format --check-formatted", "credo"],
+
+      # Assets
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind ex_cortex", "esbuild ex_cortex"],
       "assets.deploy": [
@@ -122,7 +128,13 @@ defmodule ExCortex.MixProject do
         "esbuild ex_cortex --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+
+      # Release
+      "release.build": ["assets.deploy", "release"],
+
+      # Quality
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"],
+      ci: ["compile --warnings-as-errors", "format --check-formatted", "credo --all", "test"]
     ]
   end
 end

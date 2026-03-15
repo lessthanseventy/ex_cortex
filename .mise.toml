@@ -4,47 +4,31 @@ OLLAMA_URL = "https://api.ollama.com"
 OLLAMA_API_KEY = "ee5a0aa7b39e41fa96c8110d89e36a48.bIMTVyGfSaYXWn2EfGkyZXjz"
 
 [tasks.dev]
-description = "Start db + observability stack in docker, run app locally with live reload"
+description = "Start services in docker, run app locally with live reload"
 run = """
-docker compose up -d db otel-collector jaeger prometheus grafana
+docker compose up -d db ollama otel-collector jaeger prometheus grafana
 until pg_isready -h localhost -p 5433 -U excellence -q; do sleep 1; done
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
 PORT=${PORT:-4001} \
 mix phx.server
 """
 
-[tasks.up]
-description = "Start the full stack in docker (no live reload)"
-run = "PORT=${PORT:-4001} docker compose up"
-
-[tasks.start]
-description = "Start the full stack in docker background (no live reload)"
-run = "PORT=${PORT:-4001} docker compose up -d"
+[tasks.services]
+description = "Start just the background services (db, ollama, observability)"
+run = "docker compose up -d db ollama otel-collector jaeger prometheus grafana"
 
 [tasks.stop]
-description = "Stop the background stack"
+description = "Stop background services"
 run = "docker compose down --remove-orphans"
-
-[tasks.down]
-description = "Stop the stack and remove containers"
-run = "docker compose down"
-
-[tasks.rebuild]
-description = "Rebuild app and restart"
-run = "docker compose down && docker compose build app && PORT=${PORT:-4001} docker compose up"
 
 [tasks.nuke]
 description = "Stop and destroy all data (volumes)"
 run = "docker compose down -v"
 
-[tasks.restart]
-description = "Restart app container only (picks up code changes; db and ollama stay up)"
-run = "docker compose restart app"
+[tasks.release]
+description = "Build a Burrito release binary"
+run = "MIX_ENV=prod mix release.build"
 
-[tasks.logs]
-description = "Tail app logs"
-run = "docker compose logs -f app"
-
-[tasks.build]
-description = "Build app image only"
-run = "docker compose build app"
+[tasks.setup]
+description = "First-time setup: deps, db, assets"
+run = "mix setup"
