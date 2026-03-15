@@ -1,0 +1,31 @@
+{
+  "planPath": "docs/plans/2026-03-14-ex-cortex-implementation.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: Rename Mix Project (ExCalibur → ExCortex)", "status": "pending"},
+    {"id": 1, "subject": "Task 1: Database Migration — Rename Tables + New Tables", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 2: Rename Schemas & Contexts", "status": "pending", "blockedBy": [0, 1]},
+    {"id": 3, "subject": "Task 3: Update Router & Application", "status": "pending", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 4: Memory Context Module", "status": "pending", "blockedBy": [2]},
+    {"id": 5, "subject": "Task 5: Memory Extractor", "status": "pending", "blockedBy": [4]},
+    {"id": 6, "subject": "Task 6: Tier Generator", "status": "pending", "blockedBy": [4]},
+    {"id": 7, "subject": "Task 7: Wire Memory Extraction into Thought Runner", "status": "pending", "blockedBy": [5, 6]},
+    {"id": 8, "subject": "Task 8: CSS & Layout Foundation (WebTUI + Tokyo Night)", "status": "pending", "blockedBy": [3]},
+    {"id": 9, "subject": "Task 9: Base Web Components (panel, status, key_hints)", "status": "pending", "blockedBy": [8]},
+    {"id": 10, "subject": "Task 10: Cortex Screen (Dashboard)", "status": "pending", "blockedBy": [9]},
+    {"id": 11, "subject": "Task 11: Neurons Screen", "status": "pending", "blockedBy": [9]},
+    {"id": 12, "subject": "Task 12: Thoughts Screen", "status": "pending", "blockedBy": [9]},
+    {"id": 13, "subject": "Task 13: Memory Screen", "status": "pending", "blockedBy": [9]},
+    {"id": 14, "subject": "Task 14: Senses Screen", "status": "pending", "blockedBy": [9]},
+    {"id": 15, "subject": "Task 15: Instinct + Guide Screens", "status": "pending", "blockedBy": [9]},
+    {"id": 16, "subject": "Task 16: Delete Old LiveViews + SaladUI Cleanup", "status": "pending", "blockedBy": [10, 11, 12, 13, 14, 15]},
+    {"id": 17, "subject": "Task 17: Owl Setup + App Shell + mix cortex", "status": "pending", "blockedBy": [3]},
+    {"id": 18, "subject": "Task 18: TUI Components (panel, status, key_hints)", "status": "pending", "blockedBy": [17]},
+    {"id": 19, "subject": "Task 19: TUI Screens (all six)", "status": "pending", "blockedBy": [18]},
+    {"id": 20, "subject": "Task 20: Burrito Setup", "status": "pending", "blockedBy": [19]},
+    {"id": 21, "subject": "Task 21: Port Tests", "status": "pending", "blockedBy": [16]},
+    {"id": 22, "subject": "Task 22: Update CLAUDE.md + Docs", "status": "pending", "blockedBy": [21]},
+    {"id": 23, "subject": "Task 23: Regenerate Excessibility Snapshots", "status": "pending", "blockedBy": [16]},
+    {"id": 24, "subject": "Task 24: Final Verification", "status": "pending", "blockedBy": [20, 21, 22, 23]}
+  ],
+  "lastUpdated": "2026-03-14T00:00:00Z"
+}
