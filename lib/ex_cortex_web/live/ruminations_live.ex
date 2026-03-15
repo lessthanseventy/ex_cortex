@@ -3,6 +3,7 @@ defmodule ExCortexWeb.RuminationsLive do
   use ExCortexWeb, :live_view
 
   alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.RosterResolver
 
   @impl true
   def mount(_params, _session, socket) do
@@ -546,6 +547,9 @@ defmodule ExCortexWeb.RuminationsLive do
                     expanded={@expanded_step}
                     focused={@focused_step}
                     synapses={@synapses}
+                    picker={@synapse_picker}
+                    search={@synapse_search}
+                    picker_tab={@picker_tab}
                   />
                 </div>
 
@@ -859,6 +863,8 @@ defmodule ExCortexWeb.RuminationsLive do
               + add roster entry
             </button>
           </div>
+          <%!-- Neuron preview --%>
+          <.neuron_preview synapse={@synapse} />
           <%!-- Step options --%>
           <div class="flex gap-4 text-xs">
             <label class="flex items-center gap-1">
@@ -880,6 +886,35 @@ defmodule ExCortexWeb.RuminationsLive do
               /> branch
             </label>
           </div>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :synapse, :any, default: nil
+
+  defp neuron_preview(assigns) do
+    resolved =
+      if assigns.synapse && is_list(assigns.synapse.roster) do
+        RosterResolver.resolve_roster(assigns.synapse.roster)
+      else
+        []
+      end
+
+    all_neurons = resolved |> Enum.flat_map(& &1.neurons) |> Enum.uniq_by(& &1.name)
+    assigns = assign(assigns, neurons: all_neurons)
+
+    ~H"""
+    <div>
+      <p class="text-xs t-dim uppercase tracking-wide mb-1">resolved neurons</p>
+      <%= if @neurons == [] do %>
+        <p class="text-xs t-dim italic">no neurons match roster</p>
+      <% else %>
+        <div class="flex flex-wrap gap-2">
+          <%= for n <- @neurons do %>
+            <span class="text-xs px-2 py-0.5 rounded bg-muted t-bright">{n.name}</span>
+          <% end %>
         </div>
       <% end %>
     </div>
