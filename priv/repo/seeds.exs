@@ -40,3 +40,6 @@ for path <- Path.wildcard("priv/dictionaries/*.csv") do
     IO.puts("Seeded axiom: #{name}")
   end
 end
+
+# Seed starter content (clusters, neurons, ruminations, etc.)
+ExCortex.Seeds.seed()
