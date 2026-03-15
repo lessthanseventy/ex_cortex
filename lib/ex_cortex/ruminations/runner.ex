@@ -190,6 +190,17 @@ defmodule ExCortex.Ruminations.Runner do
 
         Logger.info("[RuminationRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
 
+        # Broadcast step completion for live UI updates
+        Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:step_completed, %{
+          daydream_id: ctx.daydream.id,
+          step_index: length(acc_results),
+          step_name: resolved_step.name,
+          status: inspect_result(result)["status"],
+          output_preview: inspect_result(result)["data"] |> to_string() |> String.slice(0, 200),
+          duration_ms: ms,
+          dry_run: ctx.dry_run
+        }})
+
         # Async learning loop — runs retrospect without blocking the thought (skip in dry run)
         if !ctx.dry_run do
           step_run_data = %{id: ctx.daydream.id, results: inspect_result(result), input: current_input}

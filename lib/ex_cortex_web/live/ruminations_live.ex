@@ -26,6 +26,7 @@ defmodule ExCortexWeb.RuminationsLive do
        adhoc_input: "",
        output_dest: nil,
        expanded_daydream: nil,
+       live_steps: [],
        editing: false,
        editing_rumination: nil,
        pipeline_steps: [],
@@ -59,7 +60,12 @@ defmodule ExCortexWeb.RuminationsLive do
         socket.assigns.daydreams
       end
 
-    {:noreply, assign(socket, running: running, daydreams: daydreams)}
+    {:noreply, assign(socket, running: running, daydreams: daydreams, live_steps: [])}
+  end
+
+  def handle_info({:step_completed, step_info}, socket) do
+    live_steps = socket.assigns.live_steps ++ [step_info]
+    {:noreply, assign(socket, live_steps: live_steps)}
   end
 
   def handle_info({:daydream_completed, run}, socket) do
@@ -560,6 +566,62 @@ defmodule ExCortexWeb.RuminationsLive do
     end
   end
 
+  # -- Live progress component --
+
+  attr :running, :any, required: true
+  attr :live_steps, :list, required: true
+  attr :step_count, :integer, required: true
+
+  defp live_progress(%{running: nil} = assigns), do: ~H""
+
+  defp live_progress(assigns) do
+    ~H"""
+    <div class="border-t pt-3 space-y-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs t-amber uppercase tracking-wide animate-pulse">
+          {if @running == :dry_running, do: "⚗ Dry Running", else: "▶ Running"}
+        </span>
+        <span class="text-xs t-dim">{length(@live_steps)}/{@step_count} steps</span>
+      </div>
+      <div class="space-y-1.5">
+        <.live_step_row :for={step <- @live_steps} step={step} />
+        <.pending_step_indicator completed={length(@live_steps)} total={@step_count} />
+      </div>
+    </div>
+    """
+  end
+
+  attr :step, :map, required: true
+
+  defp live_step_row(assigns) do
+    ~H"""
+    <div class="border border-border rounded p-2 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="t-green">✓</span>
+        <span class="font-medium">{@step.step_name}</span>
+        <span class={"font-medium " <> if(@step.status == "ok", do: "t-green", else: "t-red")}>{@step.status}</span>
+        <span class="t-dim ml-auto">{@step.duration_ms}ms</span>
+        <span :if={@step.dry_run} class="t-cyan text-xs">DRY RUN</span>
+      </div>
+      <p :if={@step.output_preview != ""} class="t-dim mt-1 truncate">{@step.output_preview}</p>
+    </div>
+    """
+  end
+
+  attr :completed, :integer, required: true
+  attr :total, :integer, required: true
+
+  defp pending_step_indicator(%{completed: c, total: t} = assigns) when c < t do
+    ~H"""
+    <div class="border border-border/50 border-dashed rounded p-2 text-xs flex items-center gap-2 t-dim">
+      <span class="animate-pulse">●</span>
+      <span>Step {@completed + 1} running...</span>
+    </div>
+    """
+  end
+
+  defp pending_step_indicator(assigns), do: ~H""
+
   defp run_rumination(socket, rumination_id, opts) do
     rumination = Ruminations.get_rumination!(rumination_id)
     input = socket.assigns.adhoc_input
@@ -960,6 +1022,13 @@ defmodule ExCortexWeb.RuminationsLive do
                       </.button>
                     </div>
                   </div>
+
+                  <%!-- Live progress --%>
+                  <.live_progress
+                    running={Map.get(@running, @selected_rumination.id)}
+                    live_steps={@live_steps}
+                    step_count={step_count(@selected_rumination)}
+                  />
 
                   <%!-- Actions --%>
                   <div class="flex gap-2 border-t pt-3">
