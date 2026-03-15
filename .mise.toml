@@ -1,29 +1,14 @@
 [env]
-DATABASE_URL = "ecto://excellence:excellence@localhost:5433/ex_cortex"
 OLLAMA_URL = "https://api.ollama.com"
 OLLAMA_API_KEY = "ee5a0aa7b39e41fa96c8110d89e36a48.bIMTVyGfSaYXWn2EfGkyZXjz"
 
 [tasks.dev]
-description = "Start services in docker, run app locally with live reload"
-run = """
-docker compose up -d db ollama otel-collector jaeger prometheus grafana
-until pg_isready -h localhost -p 5433 -U excellence -q; do sleep 1; done
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 \
-PORT=${PORT:-4001} \
-mix phx.server
-"""
+description = "Start the app with live reload"
+run = "mix phx.server"
 
-[tasks.services]
-description = "Start just the background services (db, ollama, observability)"
-run = "docker compose up -d db ollama otel-collector jaeger prometheus grafana"
-
-[tasks.stop]
-description = "Stop background services"
-run = "docker compose down --remove-orphans"
-
-[tasks.nuke]
-description = "Stop and destroy all data (volumes)"
-run = "docker compose down -v"
+[tasks.setup]
+description = "First-time setup: deps, db, assets"
+run = "mix setup"
 
 [tasks.release]
 description = "Clean build a Burrito release binary"
@@ -36,10 +21,6 @@ echo ""
 echo "✓ Binaries ready in burrito_out/"
 ls -lh burrito_out/
 """
-
-[tasks.setup]
-description = "First-time setup: deps, db, assets"
-run = "mix setup"
 
 [tools]
 zig = "0.15.2"

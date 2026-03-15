@@ -26,14 +26,20 @@ if config_env() != :test do
 end
 
 if config_env() == :prod do
-  # Database — default to local postgres if DATABASE_URL not set
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      "ecto://excellence:excellence@localhost:5433/ex_cortex"
+  # Database — use DATABASE_URL if set, otherwise default to local postgres
+  pool_size = String.to_integer(System.get_env("POOL_SIZE") || "10")
 
-  config :ex_cortex, ExCortex.Repo,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+  if database_url = System.get_env("DATABASE_URL") do
+    config :ex_cortex, ExCortex.Repo,
+      url: database_url,
+      pool_size: pool_size
+  else
+    config :ex_cortex, ExCortex.Repo,
+      username: System.get_env("USER") || "postgres",
+      hostname: "localhost",
+      database: "ex_cortex",
+      pool_size: pool_size
+  end
 
   # Secret key — auto-generate and persist to ~/.config/ex_cortex/secret
   secret_key_base =
