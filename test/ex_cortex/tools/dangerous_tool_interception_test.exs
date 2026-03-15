@@ -6,7 +6,8 @@ defmodule ExCortex.DangerousToolInterceptionTest do
 
   describe "ImpulseRunner.dangerous?/1" do
     test "returns true for dangerous tools" do
-      for tool <- ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue) do
+      for tool <-
+            ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue) do
         assert ImpulseRunner.dangerous?(tool), "expected #{tool} to be dangerous"
       end
     end

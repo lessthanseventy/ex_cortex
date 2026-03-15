@@ -12,8 +12,8 @@ defmodule ExCortex.Board do
   alias ExCortex.Expressions.Expression
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
-  alias ExCortex.Senses.Sense
   alias ExCortex.Ruminations.Rumination
+  alias ExCortex.Senses.Sense
 
   defstruct [
     :id,
@@ -285,7 +285,9 @@ defmodule ExCortex.Board do
         if unique_name_conflict?(changeset) do
           Logger.debug("[Board] Rumination already exists: #{rumination_def.name}")
         else
-          Logger.warning("[Board] Failed to create rumination #{rumination_def.name}: #{inspect(changeset_errors(changeset))}")
+          Logger.warning(
+            "[Board] Failed to create rumination #{rumination_def.name}: #{inspect(changeset_errors(changeset))}"
+          )
         end
     end
   end

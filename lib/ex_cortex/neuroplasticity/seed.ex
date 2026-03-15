@@ -5,10 +5,10 @@ defmodule ExCortex.Neuroplasticity.Seed do
 
   alias ExCortex.Memory.Engram
   alias ExCortex.Repo
-  alias ExCortex.Senses.Sense
   alias ExCortex.Ruminations
-  alias ExCortex.Ruminations.Synapse
   alias ExCortex.Ruminations.Rumination
+  alias ExCortex.Ruminations.Synapse
+  alias ExCortex.Senses.Sense
 
   # Old names kept here so cleanup deletes them on re-seed
   @si_step_names [

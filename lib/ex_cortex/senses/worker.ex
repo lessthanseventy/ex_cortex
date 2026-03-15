@@ -3,12 +3,12 @@ defmodule ExCortex.Senses.Worker do
   use GenServer, restart: :transient
 
   alias ExCortex.Evaluator
-  alias ExCortex.Sandbox
-  alias ExCortex.Senses.Reflex
-  alias ExCortex.Senses.Sense
   alias ExCortex.Ruminations
   alias ExCortex.Ruminations.Debouncer
   alias ExCortex.Ruminations.Runner
+  alias ExCortex.Sandbox
+  alias ExCortex.Senses.Reflex
+  alias ExCortex.Senses.Sense
 
   require Logger
 

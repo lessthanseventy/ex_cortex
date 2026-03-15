@@ -232,8 +232,9 @@ defmodule ExCortexWeb.RuminationsLive do
                     <span class="t-dim">schedule: {@selected_rumination.schedule}</span>
                   <% end %>
                   <span class="t-dim">
-                    {step_count(@selected_rumination)} synapse{if step_count(@selected_rumination) != 1,
-                      do: "s"}
+                    {step_count(@selected_rumination)} synapse{if step_count(@selected_rumination) !=
+                                                                    1,
+                                                                  do: "s"}
                   </span>
                 </div>
 

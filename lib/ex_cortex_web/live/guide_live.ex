@@ -34,7 +34,8 @@ defmodule ExCortexWeb.GuideLive do
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Muse — Data-grounded Q&amp;A</h2>
         <p class="text-base text-muted-foreground">
-          <.link navigate={~p"/muse"} class="underline text-foreground">Muse</.link> works
+          <.link navigate={~p"/muse"} class="underline text-foreground">Muse</.link>
+          works
           like Wonder but smarter — before answering, it searches your
           <.link navigate={~p"/memory"} class="underline text-foreground">Memory</.link>
           for relevant engrams and uses them as context. This means answers are grounded in
@@ -55,8 +56,7 @@ defmodule ExCortexWeb.GuideLive do
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Thoughts — Your question history</h2>
         <p class="text-base text-muted-foreground">
-          Every question you ask through Wonder or Muse is saved as a
-          <strong>Thought</strong>. The
+          Every question you ask through Wonder or Muse is saved as a <strong>Thought</strong>. The
           <.link navigate={~p"/thoughts"} class="underline text-foreground">Thoughts</.link>
           screen lets you browse, search, and revisit past questions and answers.
         </p>
@@ -69,7 +69,8 @@ defmodule ExCortexWeb.GuideLive do
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Ruminations — Asking your team a question</h2>
         <p class="text-base text-muted-foreground">
-          A <strong>Rumination</strong> is a job you give to your AI helpers. You describe what you want
+          A <strong>Rumination</strong>
+          is a job you give to your AI helpers. You describe what you want
           checked or written, choose which helpers should work on it, and ExCortex sends it to them
           and collects their answers.
         </p>
@@ -110,7 +111,8 @@ defmodule ExCortexWeb.GuideLive do
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Branch Steps — Running jobs side-by-side</h2>
         <p class="text-base text-muted-foreground">
-          Inside a Rumination, you can have one step that runs several checks <em>at the same time</em>
+          Inside a Rumination, you can have one step that runs several checks
+          <em>at the same time</em>
           rather than one after another. The app calls this a <strong>Branch</strong>
           step.
         </p>
@@ -277,7 +279,8 @@ defmodule ExCortexWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">Ruminations &amp; RuminationRunner</h3>
           <p class="text-sm text-muted-foreground">
-            Ruminations are Ecto-backed records with a <code class="bg-muted px-1 rounded">steps</code>
+            Ruminations are Ecto-backed records with a
+            <code class="bg-muted px-1 rounded">steps</code>
             jsonb array. <code class="bg-muted px-1 rounded">RuminationRunner.run/2</code>
             resolves each <code class="bg-muted px-1 rounded">step_id</code>, and threads output as a structured
             handoff block into the next step's input. The final step's result is returned.
@@ -394,7 +397,8 @@ defmodule ExCortexWeb.GuideLive do
           <p class="text-sm text-muted-foreground">
             Resolved by <code class="bg-muted px-1 rounded">resolve_neurons("challenger")</code>
             in
-            RuminationRunner. Backed by <code class="bg-muted px-1 rounded">Builtin.validators/0</code>
+            RuminationRunner. Backed by
+            <code class="bg-muted px-1 rounded">Builtin.validators/0</code>
             — category <code class="bg-muted px-1 rounded">:validator</code>, uses the journeyman
             model from <code class="bg-muted px-1 rounded">@default_ranks</code>. Prompt is hardcoded
             to demand specific evidence and default to fail.

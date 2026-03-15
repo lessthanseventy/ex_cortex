@@ -72,10 +72,10 @@ defmodule ExCortex.Muse do
     opts = [tier: :L1, limit: 10]
 
     opts =
-      if filters != [] do
-        Keyword.put(opts, :tags, filters)
-      else
+      if filters == [] do
         opts
+      else
+        Keyword.put(opts, :tags, filters)
       end
 
     engrams = Memory.query(question, opts)

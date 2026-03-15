@@ -27,9 +27,10 @@ tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix phx.server' --pane=main
 
 ## Project Overview
 Standalone Phoenix app — an AI agent orchestration platform with brain/consciousness vocabulary.
-Clusters (agent teams), neurons (agents), thoughts (pipelines), daydreams (runs),
-synapses (steps), impulses (step runs), engrams (memories), signals (dashboard cards),
-senses (data sources), expressions (notification channels), axioms (reference data).
+Wonder/Muse/Thought (cognitive interactions), Ruminations (multi-step pipelines),
+Daydreams (runs), Synapses (steps), Impulses (step runs), Clusters (agent teams),
+Neurons (agents), Engrams (memories), Signals (dashboard cards), Senses (data sources),
+Expressions (notification channels), Axioms (reference data in the Lexicon).
 Turnkey via docker-compose. Has a built-in neuroplasticity loop — the app works on itself.
 
 ## Dependencies
@@ -46,10 +47,13 @@ Turnkey via docker-compose. Has a built-in neuroplasticity loop — the app work
 - `credo` — static analysis (dev/test only)
 
 ## Pages
-- `/` → `/cortex` — main dashboard
-- `/cortex` — Active thoughts, signals, cluster health, recent memory
+- `/` → `/cortex` — main dashboard with quick-muse input
+- `/cortex` — Active ruminations, signals, cluster health, recent memory
+- `/wonder` — Pure LLM chat, no data grounding
+- `/muse` — Data-grounded chat (RAG over engrams and axioms)
+- `/thoughts` — Saved thought templates — browse, re-run, save to memory
 - `/neurons` — Cluster and agent management
-- `/thoughts` — Pipeline builder and run history
+- `/ruminations` — Multi-step pipeline builder and run history
 - `/memory` — Engram browser with tiered drill-down (L0/L1/L2)
 - `/senses` — Source management, reflexes (templates), streams (feeds), expressions
 - `/instinct` — Configuration and settings (LLM providers, API keys, feature flags)
@@ -58,20 +62,24 @@ Turnkey via docker-compose. Has a built-in neuroplasticity loop — the app work
 - `/settings` — Settings
 
 ## Brain Vocabulary Map
-- Clusters → agent teams
-- Neurons → agents/roles
-- Thoughts → pipelines
-- Daydreams → pipeline runs
-- Synapses → pipeline steps
-- Impulses → step runs
-- Engrams → memories/artifacts — tiered: L0 impression, L1 recall, L2 full body
-- Signals → dashboard cards
-- Senses → data sources
-- Reflexes → source templates
-- Streams → pre-configured feeds
-- Expressions → notification channels
-- Pathways → agent team definitions
-- Axioms → reference datasets (in the Lexicon)
+- Wondering → ephemeral LLM chat, no data grounding
+- Musing → ephemeral data-grounded chat (RAG)
+- Thought → saved single-step query template
+- Rumination → multi-step pipeline
+- Daydream → a single run of a Rumination
+- Synapse → pipeline step
+- Impulse → step run
+- Cluster → agent team
+- Neuron → agent/role
+- Pathway → agent team definition
+- Engram → memory/artifact — tiered: L0 impression, L1 recall, L2 full body
+- Signal → dashboard card
+- Sense → data source
+- Reflex → source template
+- Expression → notification channel
+- Axiom → reference dataset (in the Lexicon)
+- Cortex → main dashboard
+- Instinct → settings/configuration
 - Neuroplasticity → self-improvement loop
 
 ## LLM Providers
@@ -126,7 +134,8 @@ PORT=4001 docker-compose up  # custom port
 - Webhook endpoint: `POST /api/webhooks/:sense_id` with optional Bearer auth
 - Reflexes: source blueprints in `ExCortex.Senses.Reflex`
 - Core library uses `Excellence.Charters.*`
-- Engrams (`ExCortex.Memory`) store artifacts, notes, and thought outputs — browsed in Memory screen
+- `ExCortex.Muse` is the RAG engine — gathers context from engrams/axioms, calls LLM, persists as Thought
+- Engrams (`ExCortex.Memory`) store artifacts, notes, and rumination outputs — browsed in Memory screen
 - Axioms (`ExCortex.Lexicon`) store reference datasets — queried via `query_axiom` tool
 - `query_memory` tool searches engrams by tags — agents should query it before writing code/tests
 

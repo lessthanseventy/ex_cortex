@@ -5,8 +5,8 @@ defmodule ExCortex.Application do
 
   use Application
 
-  alias ExCortex.Senses.Supervisor, as: SensesSupervisor
   alias ExCortex.Ruminations.Daydream
+  alias ExCortex.Senses.Supervisor, as: SensesSupervisor
 
   require Logger
 

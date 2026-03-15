@@ -41,7 +41,11 @@ defmodule ExCortex.ContextProviders.RuminationOutputTest do
 
   test "filters to specified step indices" do
     {:ok, rumination} =
-      Ruminations.create_rumination(%{name: "Multi-Step Rumination #{System.unique_integer()}", trigger: "manual", steps: []})
+      Ruminations.create_rumination(%{
+        name: "Multi-Step Rumination #{System.unique_integer()}",
+        trigger: "manual",
+        steps: []
+      })
 
     {:ok, _run} =
       Ruminations.create_daydream(%{
@@ -53,7 +57,9 @@ defmodule ExCortex.ContextProviders.RuminationOutputTest do
         }
       })
 
-    result = RuminationOutput.build(%{"type" => "rumination_output", "rumination" => rumination.name, "steps" => [1]}, %{}, "")
+    result =
+      RuminationOutput.build(%{"type" => "rumination_output", "rumination" => rumination.name, "steps" => [1]}, %{}, "")
+
     refute result =~ "Step zero output"
     assert result =~ "Step one output"
   end
@@ -72,7 +78,11 @@ defmodule ExCortex.ContextProviders.RuminationOutputTest do
       })
 
     result =
-      RuminationOutput.build(%{"type" => "rumination_output", "rumination" => rumination.name, "max_bytes_per_step" => 100}, %{}, "")
+      RuminationOutput.build(
+        %{"type" => "rumination_output", "rumination" => rumination.name, "max_bytes_per_step" => 100},
+        %{},
+        ""
+      )
 
     assert result =~ "(truncated)"
   end

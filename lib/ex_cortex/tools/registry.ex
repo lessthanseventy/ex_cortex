@@ -55,8 +55,8 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.ReadObsidianFrontmatter
   alias ExCortex.Tools.ReadPdf
   alias ExCortex.Tools.RestartApp
-  alias ExCortex.Tools.RunSandbox
   alias ExCortex.Tools.RunRumination
+  alias ExCortex.Tools.RunSandbox
   alias ExCortex.Tools.SearchEmail
   alias ExCortex.Tools.SearchGithub
   alias ExCortex.Tools.SearchNextcloud

@@ -2,8 +2,8 @@ defmodule ExCortex.RuminationsTest do
   use ExCortex.DataCase, async: true
 
   alias ExCortex.Ruminations
-  alias ExCortex.Ruminations.Synapse
   alias ExCortex.Ruminations.Rumination
+  alias ExCortex.Ruminations.Synapse
 
   describe "steps" do
     setup do

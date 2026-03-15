@@ -10,9 +10,9 @@ defmodule ExCortex.Ruminations.Runner do
   """
 
   alias ExCortex.Neuroplasticity.Loop
-  alias ExCortex.Signals
   alias ExCortex.Ruminations
   alias ExCortex.Ruminations.ImpulseRunner
+  alias ExCortex.Signals
 
   require Logger
   require OpenTelemetry.Tracer, as: Tracer

@@ -3,8 +3,8 @@ defmodule ExCortex.Thoughts do
 
   import Ecto.Query
 
-  alias ExCortex.Thoughts.Thought
   alias ExCortex.Repo
+  alias ExCortex.Thoughts.Thought
 
   def list_thoughts(opts \\ []) do
     query = from(t in Thought, order_by: [desc: t.inserted_at])

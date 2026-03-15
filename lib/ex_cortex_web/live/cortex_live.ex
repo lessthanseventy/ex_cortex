@@ -8,8 +8,8 @@ defmodule ExCortexWeb.CortexLive do
   alias ExCortex.Memory
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
-  alias ExCortex.Signals
   alias ExCortex.Ruminations
+  alias ExCortex.Signals
 
   @signal_limit 10
   @engram_limit 8
@@ -98,7 +98,7 @@ defmodule ExCortexWeb.CortexLive do
             class="px-4 py-2 text-sm font-medium rounded bg-foreground text-background hover:opacity-90 disabled:opacity-50"
             disabled={@muse_loading}
           >
-            <%= if @muse_loading, do: "Thinking...", else: "Muse" %>
+            {if @muse_loading, do: "Thinking...", else: "Muse"}
           </button>
         </form>
         <%= if @muse_answer do %>

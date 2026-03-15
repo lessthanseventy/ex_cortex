@@ -28,7 +28,10 @@ defmodule ExCortex.Signals.TriggerRunner do
           tags_match?(q.signal_trigger_tags, card.tags || [])
       end)
       |> Enum.each(fn rumination ->
-        Logger.info("[SignalTriggerRunner] Firing rumination #{rumination.id} (#{rumination.name}) on signal card #{card.id}")
+        Logger.info(
+          "[SignalTriggerRunner] Firing rumination #{rumination.id} (#{rumination.name}) on signal card #{card.id}"
+        )
+
         input = build_input(card)
         Task.start(fn -> Runner.run(rumination, input) end)
       end)
