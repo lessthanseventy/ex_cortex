@@ -72,9 +72,9 @@
 @layer base {
   :root {
     --background: 24 33% 5%;
-    --foreground: 36 50% 75%;
+    --foreground: 36 50% 78%;
     --card: 25 28% 11%;
-    --card-foreground: 36 50% 75%;
+    --card-foreground: 36 50% 78%;
     --popover: 25 28% 11%;
     --popover-foreground: 36 50% 75%;
     --primary: 40 100% 50%;
@@ -100,6 +100,11 @@
 
   * {
     border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 
