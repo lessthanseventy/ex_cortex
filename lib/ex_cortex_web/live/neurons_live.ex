@@ -20,7 +20,9 @@ defmodule ExCortexWeb.NeuronsLive do
        neurons: neurons,
        expanded_clusters: MapSet.new(),
        selected_cluster: nil,
-       selected_neuron: nil
+       selected_neuron: nil,
+       editing: false,
+       form: nil
      )}
   end
 
@@ -47,7 +49,75 @@ defmodule ExCortexWeb.NeuronsLive do
   @impl true
   def handle_event("select_neuron", %{"id" => id}, socket) do
     neuron = Repo.get(Neuron, id)
-    {:noreply, assign(socket, selected_neuron: neuron)}
+    {:noreply, assign(socket, selected_neuron: neuron, editing: false, form: nil)}
+  end
+
+  def handle_event("edit_neuron", _params, socket) do
+    neuron = socket.assigns.selected_neuron
+
+    form_data = %{
+      "name" => neuron.name,
+      "team" => neuron.team || "",
+      "status" => neuron.status,
+      "system_prompt" => get_in(neuron.config, ["system_prompt"]) || "",
+      "rank" => get_in(neuron.config, ["rank"]) || "",
+      "model" => get_in(neuron.config, ["model"]) || ""
+    }
+
+    {:noreply, assign(socket, editing: true, form: to_form(form_data, as: "neuron"))}
+  end
+
+  def handle_event("cancel_edit", _params, socket) do
+    {:noreply, assign(socket, editing: false, form: nil)}
+  end
+
+  def handle_event("save_neuron", %{"neuron" => params}, socket) do
+    neuron = socket.assigns.selected_neuron
+
+    config =
+      neuron.config
+      |> Map.put("system_prompt", params["system_prompt"])
+      |> Map.put("rank", params["rank"])
+      |> Map.put("model", params["model"])
+
+    attrs = %{
+      name: params["name"],
+      team: params["team"],
+      status: params["status"],
+      config: config
+    }
+
+    case Repo.update(Neuron.changeset(neuron, attrs)) do
+      {:ok, updated} ->
+        neurons = load_neurons()
+
+        {:noreply,
+         socket
+         |> assign(selected_neuron: updated, neurons: neurons, editing: false, form: nil)
+         |> put_flash(:info, "#{updated.name} updated")}
+
+      {:error, changeset} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Save failed: #{inspect(changeset.errors)}")}
+    end
+  end
+
+  def handle_event("delete_neuron", _params, socket) do
+    neuron = socket.assigns.selected_neuron
+
+    case Repo.delete(neuron) do
+      {:ok, _} ->
+        neurons = load_neurons()
+
+        {:noreply,
+         socket
+         |> assign(neurons: neurons, selected_neuron: nil, editing: false, form: nil)
+         |> put_flash(:info, "#{neuron.name} deleted")}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Delete failed")}
+    end
   end
 
   @impl true
@@ -151,42 +221,159 @@ defmodule ExCortexWeb.NeuronsLive do
         </.panel>
 
         <.panel title="DETAIL" class="lg:col-span-2">
-          <%= if @selected_neuron do %>
-            <.neuron_detail neuron={@selected_neuron} />
-          <% else %>
-            <p class="t-dim text-sm py-4 text-center">Select a neuron to view details.</p>
-          <% end %>
+          <.detail_panel
+            selected_neuron={@selected_neuron}
+            editing={@editing}
+            form={@form}
+            clusters={@clusters}
+          />
         </.panel>
       </div>
     </div>
     """
   end
 
-  attr :neuron, Neuron, required: true
+  # -- Detail panel: empty state, read-only, edit form --
 
-  defp neuron_detail(assigns) do
+  attr :selected_neuron, :any, required: true
+  attr :editing, :boolean, required: true
+  attr :form, :any, required: true
+  attr :clusters, :list, required: true
+
+  defp detail_panel(%{selected_neuron: nil} = assigns) do
+    ~H"""
+    <p class="t-dim text-sm py-4 text-center">Select a neuron to view details.</p>
+    """
+  end
+
+  defp detail_panel(%{editing: true} = assigns) do
+    ~H"""
+    <form phx-submit="save_neuron" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold t-bright">Editing: {@selected_neuron.name}</h2>
+        <button type="button" phx-click="cancel_edit" class="text-xs t-dim hover:t-bright">
+          cancel
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 text-sm">
+        <div>
+          <label class="text-xs t-dim block mb-1">Name</label>
+          <input
+            type="text"
+            name="neuron[name]"
+            value={@form[:name].value}
+            class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
+          />
+        </div>
+        <div>
+          <label class="text-xs t-dim block mb-1">Team</label>
+          <select
+            name="neuron[team]"
+            class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
+          >
+            <option value="">— none —</option>
+            <%= for c <- @clusters do %>
+              <option value={c.cluster_name} selected={@form[:team].value == c.cluster_name}>
+                {c.cluster_name}
+              </option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs t-dim block mb-1">Status</label>
+          <select
+            name="neuron[status]"
+            class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
+          >
+            <%= for s <- ~w(draft shadow active paused archived) do %>
+              <option value={s} selected={@form[:status].value == s}>{s}</option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs t-dim block mb-1">Rank</label>
+          <select
+            name="neuron[rank]"
+            class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
+          >
+            <%= for r <- ~w(apprentice journeyman master) do %>
+              <option value={r} selected={@form[:rank].value == r}>{r}</option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs t-dim block mb-1">Model</label>
+          <input
+            type="text"
+            name="neuron[model]"
+            value={@form[:model].value}
+            class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs t-dim block mb-1">SYSTEM PROMPT</label>
+        <textarea
+          name="neuron[system_prompt]"
+          rows="12"
+          class="w-full bg-muted border border-border rounded px-3 py-2 text-xs text-foreground font-mono whitespace-pre-wrap"
+        >{@form[:system_prompt].value}</textarea>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button
+          type="submit"
+          class="px-4 py-1.5 text-sm font-medium rounded bg-foreground text-background hover:opacity-90"
+        >
+          Save
+        </button>
+        <button
+          type="button"
+          phx-click="delete_neuron"
+          data-confirm="Delete this neuron?"
+          class="px-4 py-1.5 text-sm font-medium rounded border border-red-500/50 text-red-400 hover:bg-red-500/10"
+        >
+          Delete
+        </button>
+      </div>
+    </form>
+    """
+  end
+
+  defp detail_panel(assigns) do
     ~H"""
     <div class="space-y-4">
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold t-bright">{@neuron.name}</h2>
+          <h2 class="text-lg font-semibold t-bright">{@selected_neuron.name}</h2>
           <p class="text-xs t-dim mt-0.5">
-            ID #{@neuron.id} · v{@neuron.version} · source: {@neuron.source}
+            ID #{@selected_neuron.id} · v{@selected_neuron.version} · source: {@selected_neuron.source}
           </p>
         </div>
-        <.status color={status_color(@neuron.status)} label={@neuron.status} />
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            phx-click="edit_neuron"
+            class="text-xs t-cyan hover:underline"
+          >
+            edit
+          </button>
+          <.status color={status_color(@selected_neuron.status)} label={@selected_neuron.status} />
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 text-sm">
-        <.detail_field label="Type" value={@neuron.type} />
-        <.detail_field label="Team" value={@neuron.team || "—"} />
-        <.detail_field label="Rank" value={get_in(@neuron.config, ["rank"]) || "—"} />
-        <.detail_field label="Model" value={get_in(@neuron.config, ["model"]) || "—"} />
-        <.detail_field label="Provider" value={get_in(@neuron.config, ["provider"]) || "—"} />
-        <.detail_field label="Strategy" value={get_in(@neuron.config, ["strategy"]) || "—"} />
+        <.detail_field label="Type" value={@selected_neuron.type} />
+        <.detail_field label="Team" value={@selected_neuron.team || "—"} />
+        <.detail_field label="Rank" value={get_in(@selected_neuron.config, ["rank"]) || "—"} />
+        <.detail_field label="Model" value={get_in(@selected_neuron.config, ["model"]) || "—"} />
+        <.detail_field label="Provider" value={get_in(@selected_neuron.config, ["provider"]) || "—"} />
+        <.detail_field label="Strategy" value={get_in(@selected_neuron.config, ["strategy"]) || "—"} />
       </div>
 
-      <%= if system_prompt = get_in(@neuron.config, ["system_prompt"]) do %>
+      <%= if system_prompt = get_in(@selected_neuron.config, ["system_prompt"]) do %>
         <%= if system_prompt != "" do %>
           <div>
             <p class="text-xs t-dim mb-1 font-medium">SYSTEM PROMPT</p>
