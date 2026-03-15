@@ -103,13 +103,14 @@ defmodule ExCortexWeb.CortexLive do
             name="question"
             value={@muse_input}
             placeholder="Ask your knowledge base..."
+            aria-label="Ask your knowledge base"
             class="flex-1 bg-muted border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
             autocomplete="off"
             disabled={@muse_loading}
           />
           <button
             type="submit"
-            class="px-4 py-2 text-sm font-medium rounded bg-foreground text-background hover:opacity-90 disabled:opacity-50"
+            class="px-4 py-2 text-sm font-medium rounded bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50"
             disabled={@muse_loading}
           >
             {if @muse_loading, do: "Thinking...", else: "Muse"}

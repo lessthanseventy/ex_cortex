@@ -313,6 +313,7 @@ defmodule ExCortexWeb.RuminationsLive do
                       type="text"
                       value={@adhoc_input}
                       placeholder="Optional input text…"
+                      aria-label="Ad-hoc run input"
                       phx-blur="set_adhoc_input"
                       phx-value-value={@adhoc_input}
                       class="flex-1 h-8 text-sm border border-input rounded-md px-3 bg-background"

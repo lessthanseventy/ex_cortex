@@ -118,9 +118,12 @@ defmodule ExCortexWeb.InstinctLive do
               name="llm[ollama_url]"
               value={@settings.ollama_url || ""}
               placeholder="http://localhost:11434"
+              aria-label="Ollama URL"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
-            <p class="text-xs text-muted-foreground">Base URL for the Ollama instance (local or remote)</p>
+            <p class="text-xs text-muted-foreground">
+              Base URL for the Ollama instance (local or remote)
+            </p>
           </div>
 
           <div class="space-y-1">
@@ -137,6 +140,7 @@ defmodule ExCortexWeb.InstinctLive do
               name="llm[ollama_api_key]"
               value={@settings.ollama_api_key || ""}
               placeholder="optional — for remote Ollama instances"
+              aria-label="Ollama API Key"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
             <p class="text-xs text-muted-foreground">
@@ -158,6 +162,7 @@ defmodule ExCortexWeb.InstinctLive do
               name="llm[anthropic_api_key]"
               value={@settings.anthropic_api_key || ""}
               placeholder="sk-ant-..."
+              aria-label="Anthropic API Key"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
             <p class="text-xs text-muted-foreground">
@@ -191,6 +196,7 @@ defmodule ExCortexWeb.InstinctLive do
               name="integrations[github_token]"
               value={@settings.github_token || ""}
               placeholder="ghp_..."
+              aria-label="GitHub Token"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
             <p class="text-xs text-muted-foreground">
@@ -212,6 +218,7 @@ defmodule ExCortexWeb.InstinctLive do
               name="integrations[obsidian_vault]"
               value={@settings.obsidian_vault || ""}
               placeholder="e.g. notes"
+              aria-label="Obsidian Vault"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
             <p class="text-xs text-muted-foreground">
@@ -257,6 +264,7 @@ defmodule ExCortexWeb.InstinctLive do
               name="config[ollama_vision_model]"
               value={@settings.ollama_vision_model || ""}
               placeholder="llava"
+              aria-label="Ollama Vision Model"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
             <p class="text-xs text-muted-foreground">
@@ -271,6 +279,7 @@ defmodule ExCortexWeb.InstinctLive do
               name="config[default_repo]"
               value={@settings.default_repo || ""}
               placeholder="owner/repo"
+              aria-label="Default GitHub Repo"
               class="w-full border border-input rounded px-3 py-2 text-sm bg-background font-mono"
             />
             <p class="text-xs text-muted-foreground">

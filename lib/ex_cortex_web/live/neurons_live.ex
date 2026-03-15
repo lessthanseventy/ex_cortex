@@ -97,9 +97,7 @@ defmodule ExCortexWeb.NeuronsLive do
          |> put_flash(:info, "#{updated.name} updated")}
 
       {:error, changeset} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Save failed: #{inspect(changeset.errors)}")}
+        {:noreply, put_flash(socket, :error, "Save failed: #{inspect(changeset.errors)}")}
     end
   end
 
@@ -263,6 +261,7 @@ defmodule ExCortexWeb.NeuronsLive do
             type="text"
             name="neuron[name]"
             value={@form[:name].value}
+            aria-label="Name"
             class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
           />
         </div>
@@ -270,6 +269,7 @@ defmodule ExCortexWeb.NeuronsLive do
           <label class="text-xs t-dim block mb-1">Team</label>
           <select
             name="neuron[team]"
+            aria-label="Team"
             class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
           >
             <option value="">— none —</option>
@@ -284,6 +284,7 @@ defmodule ExCortexWeb.NeuronsLive do
           <label class="text-xs t-dim block mb-1">Status</label>
           <select
             name="neuron[status]"
+            aria-label="Status"
             class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
           >
             <%= for s <- ~w(draft shadow active paused archived) do %>
@@ -295,6 +296,7 @@ defmodule ExCortexWeb.NeuronsLive do
           <label class="text-xs t-dim block mb-1">Rank</label>
           <select
             name="neuron[rank]"
+            aria-label="Rank"
             class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
           >
             <%= for r <- ~w(apprentice journeyman master) do %>
@@ -308,6 +310,7 @@ defmodule ExCortexWeb.NeuronsLive do
             type="text"
             name="neuron[model]"
             value={@form[:model].value}
+            aria-label="Model"
             class="w-full bg-muted border border-border rounded px-2 py-1.5 text-sm text-foreground"
           />
         </div>
@@ -318,6 +321,7 @@ defmodule ExCortexWeb.NeuronsLive do
         <textarea
           name="neuron[system_prompt]"
           rows="12"
+          aria-label="System Prompt"
           class="w-full bg-muted border border-border rounded px-3 py-2 text-xs text-foreground font-mono whitespace-pre-wrap"
         >{@form[:system_prompt].value}</textarea>
       </div>
@@ -325,7 +329,7 @@ defmodule ExCortexWeb.NeuronsLive do
       <div class="flex items-center gap-2 pt-2">
         <button
           type="submit"
-          class="px-4 py-1.5 text-sm font-medium rounded bg-foreground text-background hover:opacity-90"
+          class="px-4 py-1.5 text-sm font-medium rounded bg-primary text-primary-foreground hover:opacity-90"
         >
           Save
         </button>

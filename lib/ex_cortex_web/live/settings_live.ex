@@ -109,6 +109,7 @@ defmodule ExCortexWeb.SettingsLive do
                     name={"settings[#{key}]"}
                     value="true"
                     checked={@settings[key] == true}
+                    aria-label={label}
                     class="h-4 w-4"
                   />
                 <% else %>
@@ -117,6 +118,7 @@ defmodule ExCortexWeb.SettingsLive do
                     name={"settings[#{key}]"}
                     value={@settings[key] || ""}
                     placeholder={hint}
+                    aria-label={label}
                     class="w-full border rounded px-3 py-2 text-sm"
                   />
                 <% end %>

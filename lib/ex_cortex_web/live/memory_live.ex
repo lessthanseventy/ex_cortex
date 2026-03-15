@@ -266,6 +266,7 @@ defmodule ExCortexWeb.MemoryLive do
             name="q"
             value={@search_query}
             placeholder="search engrams..."
+            aria-label="Search engrams"
             class="tui-input flex-1"
             phx-debounce="300"
           />

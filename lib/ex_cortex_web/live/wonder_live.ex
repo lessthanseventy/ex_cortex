@@ -105,6 +105,7 @@ defmodule ExCortexWeb.WonderLive do
             value={@input}
             phx-change="update_input"
             placeholder="What are you wondering about?"
+            aria-label="What are you wondering about"
             class="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
             autocomplete="off"
             autofocus

@@ -80,7 +80,7 @@
     --primary: 40 100% 50%;
     --primary-foreground: 0 0% 0%;
     --secondary: 270 50% 25%;
-    --secondary-foreground: 270 60% 85%;
+    --secondary-foreground: 270 60% 90%;
     --muted: 27 26% 16%;
     --muted-foreground: 36 30% 60%;
     --accent: 27 30% 20%;
@@ -164,8 +164,8 @@
   --term-border: #3a2e22;
   --term-border-subtle: #2a2016;
   --term-text: #FFB000;
-  --term-text-dim: #b87a00;
-  --term-text-muted: #7a5a30;
+  --term-text-dim: #d4972a;
+  --term-text-muted: #a8884c;
 }
 
 /* CRT glow on headings and branding */
