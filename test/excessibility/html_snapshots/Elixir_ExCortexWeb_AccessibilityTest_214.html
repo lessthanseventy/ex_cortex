@@ -1,0 +1,689 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="csrf-token" content="NT4LGmkPQxt9FzISHj0-DEdUZ0oXHRhkYslN1P5ZEGPEDyic0b09Dw5U"/>
+    <title data-suffix=" · ExCortex">
+      Neurons
+     · ExCortex
+    </title>
+    <link phx-track-static="phx-track-static" rel="stylesheet" href="file:///home/andrew/projects/ex_cortex/_build/test/lib/ex_cortex/priv/static/assets/css/app.css"/>
+  </head>
+  <body>
+    <div id="phx-GJ0bARFQZ1I-uRbI" data-phx-main="" data-phx-session="SFMyNTY.g2gDaAJhBnQAAAAIdwJpZG0AAAAUcGh4LUdKMGJBUkZRWjFJLXVSYkl3B3Nlc3Npb250AAAAAHcGcm91dGVydxlFbGl4aXIuRXhDb3J0ZXhXZWIuUm91dGVydwpwYXJlbnRfcGlkdwNuaWx3BHZpZXd3HEVsaXhpci5FeENvcnRleFdlYi5HdWlkZUxpdmV3CHJvb3RfcGlkdwNuaWx3CXJvb3Rfdmlld3ccRWxpeGlyLkV4Q29ydGV4V2ViLkd1aWRlTGl2ZXcRbGl2ZV9zZXNzaW9uX25hbWV3B2RlZmF1bHRuBgCl_AHznAFiAAFRgA.5hJYRsur35ZDtPE6yf7EXq66OFOnd2pH-7xWY0KuoTo" data-phx-static="SFMyNTY.g2gDaAJhBnQAAAADdwJpZG0AAAAUcGh4LUdKMGJBUkZRWjFJLXVSYkl3BWZsYXNodAAAAAB3CmFzc2lnbl9uZXdsAAAAAXcUcGhvZW5peF9lY3RvX3NhbmRib3hqbgYApfwB85wBYgABUYA.eHnCfdTJJA9ZBoOe0zYyXbTDQ9qBrVRV6_xHgP4HlbU">
+      <div id="flash-group" aria-live="polite">
+        <div id="client-error" phx-click="[[&quot;push&quot;,{&quot;value&quot;:{&quot;key&quot;:&quot;error&quot;},&quot;event&quot;:&quot;lv:clear-flash&quot;}],[&quot;hide&quot;,{&quot;time&quot;:200,&quot;to&quot;:&quot;#client-error&quot;,&quot;transition&quot;:[[&quot;transition-all&quot;,&quot;ease-in&quot;,&quot;duration-200&quot;],[&quot;opacity-100&quot;,&quot;translate-y-0&quot;,&quot;sm:scale-100&quot;],[&quot;opacity-0&quot;,&quot;translate-y-4&quot;,&quot;sm:translate-y-0&quot;,&quot;sm:scale-95&quot;]]}]]" phx-hook="AutoDismissFlash" role="alert" class="toast toast-top toast-end z-50" hidden="" phx-connected="[[&quot;hide&quot;,{&quot;time&quot;:200,&quot;to&quot;:&quot;#client-error&quot;,&quot;transition&quot;:[[&quot;transition-all&quot;,&quot;ease-in&quot;,&quot;duration-200&quot;],[&quot;opacity-100&quot;,&quot;translate-y-0&quot;,&quot;sm:scale-100&quot;],[&quot;opacity-0&quot;,&quot;translate-y-4&quot;,&quot;sm:translate-y-0&quot;,&quot;sm:scale-95&quot;]]}],[&quot;set_attr&quot;,{&quot;attr&quot;:[&quot;hidden&quot;,&quot;&quot;]}]]" phx-disconnected="[[&quot;show&quot;,{&quot;time&quot;:300,&quot;to&quot;:&quot;.phx-client-error #client-error&quot;,&quot;transition&quot;:[[&quot;transition-all&quot;,&quot;ease-out&quot;,&quot;duration-300&quot;],[&quot;opacity-0&quot;,&quot;translate-y-4&quot;,&quot;sm:translate-y-0&quot;,&quot;sm:scale-95&quot;],[&quot;opacity-100&quot;,&quot;translate-y-0&quot;,&quot;sm:scale-100&quot;]]}],[&quot;remove_attr&quot;,{&quot;attr&quot;:&quot;hidden&quot;}]]">
+          <div class="alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap alert-error">
+            <span class="hero-exclamation-circle size-5 shrink-0">
+            </span>
+            <div>
+              <p class="font-semibold">
+                We can&#39;t find the internet
+              </p>
+              <p>
+                Attempting to reconnect
+                <span class="hero-arrow-path ml-1 size-3 motion-safe:animate-spin">
+                </span>
+              </p>
+            </div>
+            <div class="flex-1">
+            </div>
+            <button type="button" class="group self-start cursor-pointer" aria-label="close">
+              <span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70">
+              </span>
+            </button>
+          </div>
+        </div>
+        <div id="server-error" phx-click="[[&quot;push&quot;,{&quot;value&quot;:{&quot;key&quot;:&quot;error&quot;},&quot;event&quot;:&quot;lv:clear-flash&quot;}],[&quot;hide&quot;,{&quot;time&quot;:200,&quot;to&quot;:&quot;#server-error&quot;,&quot;transition&quot;:[[&quot;transition-all&quot;,&quot;ease-in&quot;,&quot;duration-200&quot;],[&quot;opacity-100&quot;,&quot;translate-y-0&quot;,&quot;sm:scale-100&quot;],[&quot;opacity-0&quot;,&quot;translate-y-4&quot;,&quot;sm:translate-y-0&quot;,&quot;sm:scale-95&quot;]]}]]" phx-hook="AutoDismissFlash" role="alert" class="toast toast-top toast-end z-50" hidden="" phx-connected="[[&quot;hide&quot;,{&quot;time&quot;:200,&quot;to&quot;:&quot;#server-error&quot;,&quot;transition&quot;:[[&quot;transition-all&quot;,&quot;ease-in&quot;,&quot;duration-200&quot;],[&quot;opacity-100&quot;,&quot;translate-y-0&quot;,&quot;sm:scale-100&quot;],[&quot;opacity-0&quot;,&quot;translate-y-4&quot;,&quot;sm:translate-y-0&quot;,&quot;sm:scale-95&quot;]]}],[&quot;set_attr&quot;,{&quot;attr&quot;:[&quot;hidden&quot;,&quot;&quot;]}]]" phx-disconnected="[[&quot;show&quot;,{&quot;time&quot;:300,&quot;to&quot;:&quot;.phx-server-error #server-error&quot;,&quot;transition&quot;:[[&quot;transition-all&quot;,&quot;ease-out&quot;,&quot;duration-300&quot;],[&quot;opacity-0&quot;,&quot;translate-y-4&quot;,&quot;sm:translate-y-0&quot;,&quot;sm:scale-95&quot;],[&quot;opacity-100&quot;,&quot;translate-y-0&quot;,&quot;sm:scale-100&quot;]]}],[&quot;remove_attr&quot;,{&quot;attr&quot;:&quot;hidden&quot;}]]">
+          <div class="alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap alert-error">
+            <span class="hero-exclamation-circle size-5 shrink-0">
+            </span>
+            <div>
+              <p class="font-semibold">
+                Something went wrong!
+              </p>
+              <p>
+                Attempting to reconnect
+                <span class="hero-arrow-path ml-1 size-3 motion-safe:animate-spin">
+                </span>
+              </p>
+            </div>
+            <div class="flex-1">
+            </div>
+            <button type="button" class="group self-start cursor-pointer" aria-label="close">
+              <span class="hero-x-mark size-5 opacity-40 group-hover:opacity-70">
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="max-w-2xl mx-auto py-8 px-4 space-y-12">
+        <div>
+          <h1 class="text-3xl font-bold mb-2">
+            How ExCortex Works
+          </h1>
+          <p class="text-muted-foreground text-base">
+            A plain-English guide to what everything does and why it&#39;s useful.
+      No technical knowledge required.
+          </p>
+        </div>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Wonder — Quick questions, no context
+          </h2>
+          <p class="text-base text-muted-foreground">
+            <a href="/wonder" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Wonder
+            </a>
+            is
+      the simplest way to ask a question. Type something, get an answer — no data lookup,
+      no knowledge-base search. It&#39;s a direct conversation with the underlying AI model.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Use Wonder when you want a quick opinion, a definition, help drafting text, or
+      anything where your stored knowledge isn&#39;t relevant. Every question and answer is
+      saved as a Thought so you can find it later.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Muse — Data-grounded Q&amp;A
+          </h2>
+          <p class="text-base text-muted-foreground">
+            <a href="/muse" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Muse
+            </a>
+            works
+      like Wonder but smarter — before answering, it searches your
+            <a href="/memory" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Memory
+            </a>
+            for relevant engrams and uses them as context. This means answers are grounded in
+      what your system actually knows, not just general AI knowledge.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Ask Muse when you want answers that reference your own data — project notes,
+      past analyses, reports your team has produced. The more engrams you have stored,
+      the more useful Muse becomes.
+          </p>
+          <p class="text-base text-muted-foreground">
+            There&#39;s also a quick-muse bar on the
+            <a href="/cortex" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Cortex
+            </a>
+            dashboard so you can ask a grounded question without leaving home base.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Thoughts — Your question history
+          </h2>
+          <p class="text-base text-muted-foreground">
+            Every question you ask through Wonder or Muse is saved as a
+            <strong>
+              Thought
+            </strong>
+            . The
+            <a href="/thoughts" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Thoughts
+            </a>
+            screen lets you browse, search, and revisit past questions and answers.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Think of it as a search history that actually keeps the answers. Useful when you
+      remember asking something last week but can&#39;t recall the details.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Ruminations — Asking your team a question
+          </h2>
+          <p class="text-base text-muted-foreground">
+            A
+            <strong>
+              Rumination
+            </strong>
+            is a job you give to your AI helpers. You describe what you want
+      checked or written, choose which helpers should work on it, and ExCortex sends it to them
+      and collects their answers.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Think of it like sending a memo to your team and waiting for their responses — except it
+      all happens in seconds.
+          </p>
+          <p class="text-base text-muted-foreground">
+            You can run a rumination manually any time, set it to run on a schedule (like every morning at
+      9am), or have it trigger automatically when new information arrives.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Some ruminations produce a verdict (pass / warn / fail). Others produce a written output — a
+      summary, a report, an analysis — which gets saved automatically to the
+            <a href="/memory" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Memory
+            </a>
+            for your whole team to see and build on later.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Ruminations — Chaining steps together
+          </h2>
+          <p class="text-base text-muted-foreground">
+            Sometimes one step isn&#39;t enough — you want the result of the first step to feed into the next.
+      That&#39;s what a
+            <strong>
+              Rumination
+            </strong>
+            is for.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Imagine asking one helper to summarise today&#39;s news, then passing that summary to a second
+      helper who decides whether it affects your business. Each step gets a full briefing on what
+      the previous step found, so nothing gets lost in the handoff.
+          </p>
+          <p class="text-base text-muted-foreground">
+            You create a Rumination in the
+            <a href="/ruminations" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Ruminations
+            </a>
+            page, add the steps in order, and ExCortex runs them one after another automatically.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Branch Steps — Running jobs side-by-side
+          </h2>
+          <p class="text-base text-muted-foreground">
+            Inside a Rumination, you can have one step that runs several checks
+            <em>
+              at the same time
+            </em>
+            rather than one after another. The app calls this a
+            <strong>
+              Branch
+            </strong>
+            step.
+          </p>
+          <p class="text-base text-muted-foreground">
+            For example: one helper checks the tone of a document, another checks the facts, and a
+      third checks for legal issues — all simultaneously. When they&#39;re all done, a fourth helper
+      reads all three reports and gives you a final verdict.
+          </p>
+          <p class="text-base text-muted-foreground">
+            This saves time when the checks are independent of each other.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Neurons — Your AI helpers
+          </h2>
+          <p class="text-base text-muted-foreground">
+            <strong>
+              Neurons
+            </strong>
+            are the individual AI helpers that do the actual work. Each neuron
+      has a name, a specialty, and a skill level —
+            <em>
+              Apprentice
+            </em>
+            ,
+            <em>
+              Journeyman
+            </em>
+            ,
+      or
+            <em>
+              Master
+            </em>
+            .
+          </p>
+          <p class="text-base text-muted-foreground">
+            Higher-ranked neurons use more capable AI models, which generally means better quality
+      answers but also more time and resources. You wouldn&#39;t send a Master to check your grocery
+      list, just as you wouldn&#39;t send an Apprentice to review a legal contract.
+          </p>
+          <p class="text-base text-muted-foreground">
+            You manage your neurons in the
+            <a href="/neurons" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Neurons
+            </a>
+            page.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            The Challenger — Your built-in sceptic
+          </h2>
+          <p class="text-base text-muted-foreground">
+            The
+            <strong>
+              Challenger
+            </strong>
+            is a special helper whose entire job is to push back.
+      If another helper says &quot;looks good&quot;, the Challenger asks &quot;but what&#39;s your proof?&quot;
+          </p>
+          <p class="text-base text-muted-foreground">
+            It&#39;s useful as a final check in a Rumination — after everyone else has weighed in, the
+      Challenger reviews all the findings and will only agree if it sees real, specific evidence.
+      Vague reassurances don&#39;t satisfy it.
+          </p>
+          <p class="text-base text-muted-foreground">
+            You add the Challenger to a rumination&#39;s team just like any other neuron.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Skill requirements — Sending the right helper
+          </h2>
+          <p class="text-base text-muted-foreground">
+            You can mark a Rumination as requiring a minimum skill level. If none of your active helpers
+      meet that standard, the rumination simply won&#39;t run — rather than giving you a poor-quality answer.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Think of it like a job posting that says &quot;Senior experience required.&quot; ExCortex checks
+      before starting and lets you know if your team isn&#39;t qualified yet.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Pathways — Your house rules
+          </h2>
+          <p class="text-base text-muted-foreground">
+            A
+            <strong>
+              Pathway
+            </strong>
+            is a set of standing instructions that every helper reads
+      before they start any job. Think of it as pinning a note to the break room wall: &quot;In this
+      cluster, we always respond formally&quot; or &quot;Never recommend a product we don&#39;t carry.&quot;
+          </p>
+          <p class="text-base text-muted-foreground">
+            You write the pathway once, and every helper automatically sees it on every job — no need
+      to repeat yourself. Edit or add pathways at the bottom of the
+            <a href="/neurons" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Neurons
+            </a>
+            page.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Backup AI models — Always a plan B
+          </h2>
+          <p class="text-base text-muted-foreground">
+            Each helper uses a specific AI model under the hood. Sometimes that model isn&#39;t available
+      or doesn&#39;t respond. ExCortex can automatically try a list of backup models instead of
+      giving up — like calling your second-choice supplier when the first one is out of stock.
+          </p>
+          <p class="text-base text-muted-foreground">
+            This is configured by whoever set up the system, so you don&#39;t need to worry about it day
+      to day — it just works quietly in the background.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Trust Scores — Tracking who gives good advice
+          </h2>
+          <p class="text-base text-muted-foreground">
+            Over time, ExCortex keeps a quiet tally: when a helper&#39;s opinion goes against the group&#39;s
+      final decision repeatedly, their
+            <strong>
+              Trust Score
+            </strong>
+            edges down. When they agree
+      with the group, it stays put.
+          </p>
+          <p class="text-base text-muted-foreground">
+            It&#39;s not a punishment — it&#39;s information. A low score might mean a helper is too
+      conservative, too lenient, or just misconfigured. You can see the scores in the
+            <a href="/cortex" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Cortex
+            </a>
+            under
+      &quot;Neuron Trust&quot; and use them to decide whether to retrain or replace a helper.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Green means the helper is consistently in line with the team.
+      Yellow means occasional disagreements worth watching.
+      Red means this helper frequently goes its own way — worth investigating.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            Memory — Your cluster&#39;s shared notebook
+          </h2>
+          <p class="text-base text-muted-foreground">
+            The
+            <a href="/memory" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Memory
+            </a>
+            is
+      where your cluster&#39;s knowledge accumulates. Every time a rumination produces a written output, it
+      lands here as an engram. Over time it becomes a living record of everything your helpers
+      have figured out — reports, summaries, analyses, decisions.
+          </p>
+          <p class="text-base text-muted-foreground">
+            You can also write engrams yourself, the same way you&#39;d jot a note in a shared notebook.
+      Each engram can have tags (like sticky-note labels) and an importance rating from 1 to 5,
+      so the most critical findings don&#39;t get buried under routine updates.
+          </p>
+          <p class="text-base text-muted-foreground">
+            <strong>
+              The Augury
+            </strong>
+            sits pinned at the top — your cluster&#39;s current &quot;big picture&quot;
+      read on the world. Think of it as the one-page briefing you&#39;d hand someone walking in the
+      door. Ruminations set to &quot;replace&quot; mode keep it current automatically, so it always reflects
+      your latest thinking without needing you to update it by hand.
+          </p>
+          <p class="text-base text-muted-foreground">
+            The really useful part: your helpers can
+            <em>
+              read
+            </em>
+            from Memory before they start
+      working. You can configure any rumination to pull in recent engrams first, so your helpers
+      arrive already briefed on what the cluster has learned. It&#39;s the difference between asking
+      a new temp and asking someone who&#39;s been on the team for months.
+          </p>
+        </section>
+        <section class="space-y-3">
+          <h2 class="text-xl font-semibold">
+            The Cortex — Your dashboard
+          </h2>
+          <p class="text-base text-muted-foreground">
+            The
+            <a href="/cortex" data-phx-link="redirect" data-phx-link-state="push" class="underline text-foreground">
+              Cortex
+            </a>
+            is your
+      home base. It shows recent activity, outcomes, trust scores, and any suggestions the system
+      has made for improving how things are set up.
+          </p>
+          <p class="text-base text-muted-foreground">
+            If you&#39;re not sure where to start, the Cortex is a good first stop each day.
+          </p>
+        </section>
+        <hr class="border-border"/>
+        <section class="space-y-6">
+          <div>
+            <h2 class="text-xl font-semibold mb-1">
+              Technical Reference
+            </h2>
+            <p class="text-sm text-muted-foreground">
+              For the developer in the room. Accurate details on how each feature is wired together.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Ruminations &amp; RuminationRunner
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Ruminations are Ecto-backed records with a
+              <code class="bg-muted px-1 rounded">
+                steps
+              </code>
+              jsonb array.
+              <code class="bg-muted px-1 rounded">
+                RuminationRunner.run/2
+              </code>
+              resolves each
+              <code class="bg-muted px-1 rounded">
+                step_id
+              </code>
+              , and threads output as a structured
+        handoff block into the next step&#39;s input. The final step&#39;s result is returned.
+        Source-triggered ruminations go through
+              <code class="bg-muted px-1 rounded">
+                RuminationDebouncer.enqueue_rumination/3
+              </code>
+              ;
+        scheduled ones are picked up each minute by
+              <code class="bg-muted px-1 rounded">
+                ScheduledRuminationRunner
+              </code>
+              .
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Branch Steps
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              A step with
+              <code class="bg-muted px-1 rounded">
+                &quot;type&quot; =&gt; &quot;branch&quot;
+              </code>
+              runs its
+              <code class="bg-muted px-1 rounded">
+                steps
+              </code>
+              list concurrently via
+              <code class="bg-muted px-1 rounded">
+                Task.async_stream/3
+              </code>
+              (120s timeout), then
+        passes all results through
+              <code class="bg-muted px-1 rounded">
+                combine_branch_results/2
+              </code>
+              into the
+              <code class="bg-muted px-1 rounded">
+                synthesizer
+              </code>
+              step.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Model Fallback Chains
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Configured via
+              <code class="bg-muted px-1 rounded">
+                config :ex_cortex, :model_fallback_chain, [...]
+              </code>
+              .
+              <code class="bg-muted px-1 rounded">
+                RuminationRunner.fallback_models_for/2
+              </code>
+              prepends the
+        neuron&#39;s assigned model and deduplicates.
+              <code class="bg-muted px-1 rounded">
+                call_neuron/3
+              </code>
+              uses
+              <code class="bg-muted px-1 rounded">
+                Enum.reduce_while/3
+              </code>
+              to halt on the first
+        successful Ollama response.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Rank-Gated Eligibility
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Steps with a non-nil
+              <code class="bg-muted px-1 rounded">
+                min_rank
+              </code>
+              field hit a
+        guard clause in
+              <code class="bg-muted px-1 rounded">
+                StepRunner.run/2
+              </code>
+              that queries
+              <code class="bg-muted px-1 rounded">
+                excellence_members
+              </code>
+              for any active role whose
+              <code class="bg-muted px-1 rounded">
+                config-&gt;&gt;&#39;rank&#39;
+              </code>
+              is in the eligible set.
+        Returns
+              <code class="bg-muted px-1 rounded">
+                {:error, {:rank_insufficient, reason}}
+              </code>
+              if none found.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Pathway Context Provider
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Pathways are stored in the
+              <code class="bg-muted px-1 rounded">
+                pathways
+              </code>
+              table (unique on
+              <code class="bg-muted px-1 rounded">
+                cluster_name
+              </code>
+              ).
+        Add
+              <code class="bg-muted px-1 rounded">
+                %{&quot;type&quot; =&gt; &quot;pathway&quot;, &quot;cluster_name&quot; =&gt; &quot;...&quot;}
+              </code>
+              to a rumination&#39;s
+              <code class="bg-muted px-1 rounded">
+                context_providers
+              </code>
+              array and it
+        will be prepended to every neuron&#39;s input via
+              <code class="bg-muted px-1 rounded">
+                ContextProvider.assemble/3
+              </code>
+              .
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Neuron Trust Scoring
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              <code class="bg-muted px-1 rounded">
+                TrustScorer.record_run/1
+              </code>
+              is called after
+        every verdict daydream. It fires a
+              <code class="bg-muted px-1 rounded">
+                Task.start/1
+              </code>
+              that iterates each step&#39;s results, comparing individual neuron verdicts against the
+        aggregated step verdict. Contradicting neurons get
+              <code class="bg-muted px-1 rounded">
+                decay/1
+              </code>
+              called, which upserts into
+              <code class="bg-muted px-1 rounded">
+                member_trust_scores
+              </code>
+              with score × 0.97 and
+        increments
+              <code class="bg-muted px-1 rounded">
+                decay_count
+              </code>
+              .
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              Memory Context Provider
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Artifact ruminations write to
+              <code class="bg-muted px-1 rounded">
+                engrams
+              </code>
+              via
+              <code class="bg-muted px-1 rounded">
+                Memory.write_artifact/2
+              </code>
+              . Write mode controls
+        behaviour:
+              <code class="bg-muted px-1 rounded">
+                append
+              </code>
+              always inserts,
+              <code class="bg-muted px-1 rounded">
+                replace
+              </code>
+              upserts the rumination-owned entry
+        (never overwrites
+              <code class="bg-muted px-1 rounded">
+                source: &quot;manual&quot;
+              </code>
+              ),
+              <code class="bg-muted px-1 rounded">
+                both
+              </code>
+              does a replace on the pinned entry
+        and also appends a dated log entry. Repetitive/garbled LLM output is rejected before
+        insert via a word-repetition regex.
+        The Augury is the first entry tagged
+              <code class="bg-muted px-1 rounded">
+                augury
+              </code>
+              ,
+        sorted by newest. PubSub broadcasts
+              <code class="bg-muted px-1 rounded">
+                {:engram_updated, title}
+              </code>
+              on write so MemoryLive updates live.
+        The
+              <code class="bg-muted px-1 rounded">
+                memory
+              </code>
+              context provider pulls entries by
+        tag + sort into the prompt preamble (1 500-char total cap). Sort
+              <code class="bg-muted px-1 rounded">
+                top
+              </code>
+              blends
+              <code class="bg-muted px-1 rounded">
+                importance
+              </code>
+              and
+              <code class="bg-muted px-1 rounded">
+                newest
+              </code>
+              halves, deduped, to prevent
+        high-signal historical entries from being crowded out by recent noise.
+            </p>
+          </div>
+          <div class="space-y-2">
+            <h3 class="font-semibold text-sm">
+              The Challenger Builtin Neuron
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Resolved by
+              <code class="bg-muted px-1 rounded">
+                resolve_neurons(&quot;challenger&quot;)
+              </code>
+              in
+        RuminationRunner. Backed by
+              <code class="bg-muted px-1 rounded">
+                Builtin.validators/0
+              </code>
+              — category
+              <code class="bg-muted px-1 rounded">
+                :validator
+              </code>
+              , uses the journeyman
+        model from
+              <code class="bg-muted px-1 rounded">
+                @default_ranks
+              </code>
+              . Prompt is hardcoded
+        to demand specific evidence and default to fail.
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
