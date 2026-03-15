@@ -23,7 +23,17 @@ defmodule ExCortexWeb.RuminationsLive do
        daydreams: [],
        running: %{},
        adhoc_input: "",
-       output_dest: nil
+       output_dest: nil,
+       editing: false,
+       editing_rumination: nil,
+       pipeline_steps: [],
+       expanded_step: nil,
+       synapse_picker: nil,
+       synapse_search: "",
+       picker_tab: "existing",
+       new_synapse_name: "",
+       focused_step: 0,
+       rumination_form: %{}
      )}
   end
 
@@ -140,6 +150,74 @@ defmodule ExCortexWeb.RuminationsLive do
 
   def handle_event("clear_selection", _params, socket) do
     {:noreply, assign(socket, selected_id: nil, selected_rumination: nil, daydreams: [])}
+  end
+
+  def handle_event("new_rumination", _params, socket) do
+    {:noreply,
+     assign(socket,
+       editing: true,
+       editing_rumination: nil,
+       pipeline_steps: [],
+       expanded_step: nil,
+       synapse_picker: nil,
+       rumination_form: %{
+         "name" => "",
+         "description" => "",
+         "trigger" => "manual",
+         "schedule" => ""
+       }
+     )}
+  end
+
+  def handle_event("edit_rumination", _params, %{assigns: %{selected_rumination: rum}} = socket) when not is_nil(rum) do
+    steps =
+      rum.steps
+      |> Enum.sort_by(&(&1["order"] || 0))
+      |> Enum.with_index()
+      |> Enum.map(fn {step, idx} ->
+        synapse = Enum.find(socket.assigns.synapses, &(&1.id == step["step_id"]))
+
+        %{
+          "idx" => idx,
+          "step_id" => step["step_id"],
+          "synapse" => synapse,
+          "gate" => Map.get(step, "gate", false),
+          "type" => Map.get(step, "type", "linear"),
+          "synthesizer" => Map.get(step, "synthesizer")
+        }
+      end)
+
+    {:noreply,
+     assign(socket,
+       editing: true,
+       editing_rumination: rum,
+       pipeline_steps: steps,
+       expanded_step: nil,
+       synapse_picker: nil,
+       rumination_form: %{
+         "name" => rum.name,
+         "description" => rum.description || "",
+         "trigger" => rum.trigger,
+         "schedule" => rum.schedule || ""
+       }
+     )}
+  end
+
+  def handle_event("cancel_edit", _params, socket) do
+    {:noreply,
+     assign(socket,
+       editing: false,
+       editing_rumination: nil,
+       pipeline_steps: [],
+       expanded_step: nil,
+       synapse_picker: nil,
+       rumination_form: %{}
+     )}
+  end
+
+  def handle_event("update_rumination_form", %{"field" => field, "value" => value}, socket) do
+    form = Map.put(socket.assigns.rumination_form, field, value)
+    {:noreply, assign(socket, rumination_form: form)}
   end
 
   # Helpers
@@ -333,12 +411,7 @@ defmodule ExCortexWeb.RuminationsLive do
 
                 <%!-- Actions --%>
                 <div class="flex gap-2 border-t pt-3">
-                  <.button
-                    size="sm"
-                    variant="ghost"
-                    phx-click="navigate"
-                    phx-value-to="/ruminations"
-                  >
+                  <.button size="sm" variant="ghost" phx-click="edit_rumination">
                     Edit
                   </.button>
                   <.button
