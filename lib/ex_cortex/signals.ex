@@ -127,7 +127,7 @@ defmodule ExCortex.Signals do
       type: "proposal",
       title: title,
       body: body,
-      source: "thought",
+      source: "rumination",
       rumination_id: proposal.synapse_id,
       metadata: %{"proposal_id" => proposal.id, "proposal_type" => proposal.type}
     })

@@ -40,7 +40,7 @@ defmodule ExCortex.Memory.Engram do
     entry
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
-    |> validate_inclusion(:source, ["thought", "manual", "step", "extraction"])
+    |> validate_inclusion(:source, ~w(rumination manual step extraction muse wonder))
     |> validate_inclusion(:category, ~w(semantic episodic procedural))
     |> validate_number(:importance, greater_than_or_equal_to: 1, less_than_or_equal_to: 5)
   end

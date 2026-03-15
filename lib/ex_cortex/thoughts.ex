@@ -1,0 +1,52 @@
+defmodule ExCortex.Thoughts do
+  @moduledoc "Context for single-step thoughts — wonderings, musings, and saved queries."
+
+  import Ecto.Query
+
+  alias ExCortex.Thoughts.Thought
+  alias ExCortex.Repo
+
+  def list_thoughts(opts \\ []) do
+    query = from(t in Thought, order_by: [desc: t.inserted_at])
+
+    query =
+      case Keyword.get(opts, :scope) do
+        nil -> query
+        scope -> where(query, [t], t.scope == ^scope)
+      end
+
+    query =
+      case Keyword.get(opts, :status) do
+        nil -> query
+        status -> where(query, [t], t.status == ^status)
+      end
+
+    Repo.all(query)
+  end
+
+  def get_thought!(id), do: Repo.get!(Thought, id)
+
+  def create_thought(attrs) do
+    %Thought{}
+    |> Thought.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_thought(%Thought{} = t, attrs) do
+    t
+    |> Thought.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_thought(%Thought{} = t), do: Repo.delete(t)
+
+  def save_to_memory(%Thought{question: q, answer: a, tags: tags}) do
+    ExCortex.Memory.create_engram(%{
+      title: q,
+      body: a,
+      tags: tags || [],
+      source: "muse",
+      category: "episodic"
+    })
+  end
+end
