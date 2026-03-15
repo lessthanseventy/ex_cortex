@@ -29,7 +29,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
 
   @expression_types ~w(slack webhook github_issue github_pr email pagerduty)
 
-  @dangerous_tools ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue nextcloud_talk)
+  @dangerous_tools ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue nextcloud_talk email_tag email_move)
   @write_tool_names ~w(write_file edit_file git_commit create_obsidian_note daily_obsidian)
 
   def dangerous?(tool_name), do: tool_name in @dangerous_tools

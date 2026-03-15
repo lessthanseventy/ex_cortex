@@ -953,22 +953,27 @@ defmodule ExCortex.Seeds do
       {:ok, s2} =
         Ruminations.create_synapse(%{
           name: "Email: Classify & Tag",
-          description: "Classify each email by type and apply notmuch tags using the email_tag tool. Tag newsletters with +newsletter, spam with +spam -inbox, transactional with +transactional, personal with +personal.",
+          description:
+            "Classify each email by type. Use email_move to move emails to matching Maildir folders " <>
+              "(Newsletter, Spam, Personal, Transactional, Jobs). This creates folders, moves files, " <>
+              "applies notmuch tags, and removes the inbox tag. mbsync will sync changes back to the server.",
           trigger: "manual",
           output_type: "freeform",
           cluster_name: "Triage",
-          loop_tools: ["search_email", "email_tag"],
+          loop_tools: ["search_email", "email_tag", "email_move"],
           roster: [%{"who" => "all", "preferred_who" => "Classifier", "how" => "solo", "when" => "sequential"}]
         })
 
       {:ok, s3} =
         Ruminations.create_synapse(%{
           name: "Email: Filter Junk",
-          description: "Review the classified emails. For anything tagged spam or clearly junk, use email_tag to add +deleted -inbox. Be conservative — only tag obvious junk.",
+          description:
+            "Review the classified emails. For obvious spam/junk, use email_move to move to the Spam folder. " <>
+              "Be conservative — only move obvious junk. When in doubt, leave it.",
           trigger: "manual",
           output_type: "freeform",
           cluster_name: "Triage",
-          loop_tools: ["email_tag"],
+          loop_tools: ["email_tag", "email_move"],
           roster: [%{"who" => "all", "preferred_who" => "Router", "how" => "solo", "when" => "sequential"}]
         })
 
