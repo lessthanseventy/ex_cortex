@@ -1130,6 +1130,12 @@ defmodule ExCortexWeb.RuminationsLive do
     """
   end
 
+  defp synapse_usage_count(synapse_id, ruminations) do
+    Enum.count(ruminations, fn r ->
+      Enum.any?(r.steps || [], fn s -> s["step_id"] == synapse_id end)
+    end)
+  end
+
   defp filtered_synapses(synapses, ""), do: synapses
 
   defp filtered_synapses(synapses, search) do
@@ -1205,6 +1211,22 @@ defmodule ExCortexWeb.RuminationsLive do
       <%!-- Expanded detail --%>
       <%= if @expanded do %>
         <div class="mt-3 pt-3 border-t border-dashed space-y-3">
+          <%= if @synapse do %>
+            <% usage = synapse_usage_count(@synapse.id, @ruminations) %>
+            <%= if usage > 1 do %>
+              <div class="text-xs t-amber py-1">
+                ⚠ shared — used in {usage} rumination{if usage != 1, do: "s"}.
+                edits here affect all of them.
+                <button
+                  phx-click="duplicate_synapse"
+                  phx-value-step-idx={@idx}
+                  class="t-cyan hover:underline ml-1"
+                >
+                  duplicate as new
+                </button>
+              </div>
+            <% end %>
+          <% end %>
           <%!-- Roster display --%>
           <div>
             <p class="text-xs t-dim uppercase tracking-wide mb-1">roster</p>
