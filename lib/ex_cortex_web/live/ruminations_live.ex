@@ -304,6 +304,12 @@ defmodule ExCortexWeb.RuminationsLive do
         <%!-- Left panel: rumination list --%>
         <div class="md:col-span-1">
           <.panel title="ruminations">
+            <button
+              phx-click="new_rumination"
+              class="w-full text-left px-2 py-1.5 rounded text-sm t-cyan hover:bg-muted/40 transition-colors mb-2"
+            >
+              [+] new rumination
+            </button>
             <%= if @ruminations == [] do %>
               <p class="text-xs t-dim py-2">
                 No ruminations yet. Create one from the
@@ -332,124 +338,225 @@ defmodule ExCortexWeb.RuminationsLive do
           </.panel>
         </div>
 
-        <%!-- Right panel: detail or empty state --%>
+        <%!-- Right panel: builder or detail/empty state --%>
         <div class="md:col-span-2 space-y-4">
-          <%= if @selected_rumination do %>
-            <.panel title={@selected_rumination.name}>
+          <%= if @editing do %>
+            <.panel title={
+              if @editing_rumination, do: "edit: #{@rumination_form["name"]}", else: "new rumination"
+            }>
               <div class="space-y-4">
-                <%!-- Meta row --%>
-                <div class="flex items-center gap-3 text-sm flex-wrap">
-                  <.status
-                    color={status_color(@selected_rumination.status)}
-                    label={@selected_rumination.status}
-                  />
-                  <span class="t-dim">trigger: {@selected_rumination.trigger}</span>
-                  <%= if @selected_rumination.schedule do %>
-                    <span class="t-dim">schedule: {@selected_rumination.schedule}</span>
-                  <% end %>
-                  <span class="t-dim">
-                    {step_count(@selected_rumination)} synapse{if step_count(@selected_rumination) !=
-                                                                    1,
-                                                                  do: "s"}
-                  </span>
+                <%!-- Meta form --%>
+                <div class="space-y-2">
+                  <div>
+                    <label class="text-xs t-dim uppercase tracking-wide">name</label>
+                    <input
+                      type="text"
+                      value={@rumination_form["name"]}
+                      phx-blur="update_rumination_form"
+                      phx-value-field="name"
+                      class="w-full h-8 text-sm border border-input rounded-md px-3 bg-background"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-xs t-dim uppercase tracking-wide">description</label>
+                    <input
+                      type="text"
+                      value={@rumination_form["description"]}
+                      phx-blur="update_rumination_form"
+                      phx-value-field="description"
+                      class="w-full h-8 text-sm border border-input rounded-md px-3 bg-background"
+                    />
+                  </div>
+                  <div class="flex gap-4">
+                    <div class="flex-1">
+                      <label class="text-xs t-dim uppercase tracking-wide">trigger</label>
+                      <select
+                        phx-change="update_rumination_form"
+                        name="value"
+                        phx-value-field="trigger"
+                        class="w-full h-8 text-sm border border-input rounded-md px-2 bg-background"
+                      >
+                        <%= for t <- ~w(manual source scheduled once memory cortex) do %>
+                          <option value={t} selected={@rumination_form["trigger"] == t}>{t}</option>
+                        <% end %>
+                      </select>
+                    </div>
+                    <%= if @rumination_form["trigger"] in ~w(scheduled once) do %>
+                      <div class="flex-1">
+                        <label class="text-xs t-dim uppercase tracking-wide">schedule</label>
+                        <input
+                          type="text"
+                          value={@rumination_form["schedule"]}
+                          phx-blur="update_rumination_form"
+                          phx-value-field="schedule"
+                          placeholder="*/30 * * * *"
+                          class="w-full h-8 text-sm border border-input rounded-md px-3 bg-background"
+                        />
+                      </div>
+                    <% end %>
+                  </div>
                 </div>
 
-                <%= if @selected_rumination.description do %>
-                  <p class="text-sm text-muted-foreground">{@selected_rumination.description}</p>
-                <% end %>
-
-                <%!-- Synapse chain --%>
-                <%= if step_count(@selected_rumination) > 0 do %>
-                  <div>
-                    <p class="text-xs t-dim uppercase tracking-wide mb-2">Synapse Chain</p>
+                <%!-- Step chain placeholder --%>
+                <div class="border-t pt-3">
+                  <p class="text-xs t-dim uppercase tracking-wide mb-2">synapse chain</p>
+                  <%= if @pipeline_steps == [] do %>
+                    <p class="text-xs t-dim italic py-2 pl-4">no steps yet</p>
+                  <% else %>
                     <div class="space-y-1">
-                      <%= for {step, idx} <- Enum.with_index(@selected_rumination.steps) do %>
-                        <div class="flex items-center gap-2 text-sm">
+                      <%= for {step, idx} <- Enum.with_index(@pipeline_steps) do %>
+                        <div class="flex items-center gap-2 text-sm border border-input rounded px-3 py-2">
                           <span class="t-dim font-mono text-xs w-4 shrink-0">{idx + 1}.</span>
                           <span class="flex-1 truncate">
-                            {synapse_name(@synapses, Map.get(step, "step_id") || Map.get(step, "id"))}
+                            {if step["synapse"], do: step["synapse"].name, else: "unknown"}
                           </span>
-                          <%= if Map.get(step, "type") == "branch" do %>
-                            <span class="text-xs t-amber">branch</span>
-                          <% end %>
-                          <%= if Map.get(step, "gate") do %>
-                            <span class="text-xs t-red">gate</span>
-                          <% end %>
                         </div>
                       <% end %>
                     </div>
-                  </div>
-                <% else %>
-                  <p class="text-xs t-dim italic">No synapses configured.</p>
-                <% end %>
-
-                <%!-- Ad-hoc runner --%>
-                <div class="border-t pt-3 space-y-2">
-                  <p class="text-xs t-dim uppercase tracking-wide">Ad-hoc Run</p>
-                  <div class="flex gap-2">
-                    <input
-                      type="text"
-                      value={@adhoc_input}
-                      placeholder="Optional input text…"
-                      aria-label="Ad-hoc run input"
-                      phx-blur="set_adhoc_input"
-                      phx-value-value={@adhoc_input}
-                      class="flex-1 h-8 text-sm border border-input rounded-md px-3 bg-background"
-                    />
-                    <.button
-                      size="sm"
-                      phx-click="run_rumination"
-                      phx-value-id={@selected_rumination.id}
-                      disabled={Map.get(@running, @selected_rumination.id) == :running}
-                    >
-                      {if Map.get(@running, @selected_rumination.id) == :running,
-                        do: "Running…",
-                        else: "▶ Run"}
-                    </.button>
-                  </div>
+                  <% end %>
                 </div>
 
-                <%!-- Actions --%>
+                <%!-- Action bar --%>
                 <div class="flex gap-2 border-t pt-3">
-                  <.button size="sm" variant="ghost" phx-click="edit_rumination">
-                    Edit
-                  </.button>
-                  <.button
-                    size="sm"
-                    variant="ghost"
-                    class="text-destructive hover:text-destructive"
-                    phx-click="delete_rumination"
-                    phx-value-id={@selected_rumination.id}
-                    data-confirm={"Delete rumination \"#{@selected_rumination.name}\"?"}
-                  >
-                    Delete
-                  </.button>
-                  <div class="flex-1" />
-                  <.button size="sm" variant="ghost" phx-click="clear_selection">
-                    ← Back
-                  </.button>
+                  <.button size="sm" phx-click="save_rumination">save</.button>
+                  <.button size="sm" variant="ghost" phx-click="cancel_edit">cancel</.button>
+                  <%= if @editing_rumination do %>
+                    <div class="flex-1" />
+                    <.button
+                      size="sm"
+                      variant="ghost"
+                      class="text-destructive"
+                      phx-click="delete_rumination"
+                      phx-value-id={@editing_rumination.id}
+                      data-confirm={"Delete \"#{@editing_rumination.name}\"?"}
+                    >
+                      delete
+                    </.button>
+                  <% end %>
                 </div>
               </div>
             </.panel>
-
-            <%!-- Run history --%>
-            <.panel title="run history">
-              <%= if @daydreams == [] do %>
-                <p class="text-xs t-dim py-2">No runs yet.</p>
-              <% else %>
-                <div class="space-y-2">
-                  <%= for run <- @daydreams do %>
-                    <.daydream_row run={run} output_dest={@output_dest} />
-                  <% end %>
-                </div>
-              <% end %>
-            </.panel>
           <% else %>
-            <.panel title="select a rumination">
-              <p class="text-sm t-dim py-4 text-center">
-                Choose a rumination from the list to view its synapse chain and run history.
-              </p>
-            </.panel>
+            <%= if @selected_rumination do %>
+              <.panel title={@selected_rumination.name}>
+                <div class="space-y-4">
+                  <%!-- Meta row --%>
+                  <div class="flex items-center gap-3 text-sm flex-wrap">
+                    <.status
+                      color={status_color(@selected_rumination.status)}
+                      label={@selected_rumination.status}
+                    />
+                    <span class="t-dim">trigger: {@selected_rumination.trigger}</span>
+                    <%= if @selected_rumination.schedule do %>
+                      <span class="t-dim">schedule: {@selected_rumination.schedule}</span>
+                    <% end %>
+                    <span class="t-dim">
+                      {step_count(@selected_rumination)} synapse{if step_count(@selected_rumination) !=
+                                                                      1,
+                                                                    do: "s"}
+                    </span>
+                  </div>
+
+                  <%= if @selected_rumination.description do %>
+                    <p class="text-sm text-muted-foreground">{@selected_rumination.description}</p>
+                  <% end %>
+
+                  <%!-- Synapse chain --%>
+                  <%= if step_count(@selected_rumination) > 0 do %>
+                    <div>
+                      <p class="text-xs t-dim uppercase tracking-wide mb-2">Synapse Chain</p>
+                      <div class="space-y-1">
+                        <%= for {step, idx} <- Enum.with_index(@selected_rumination.steps) do %>
+                          <div class="flex items-center gap-2 text-sm">
+                            <span class="t-dim font-mono text-xs w-4 shrink-0">{idx + 1}.</span>
+                            <span class="flex-1 truncate">
+                              {synapse_name(
+                                @synapses,
+                                Map.get(step, "step_id") || Map.get(step, "id")
+                              )}
+                            </span>
+                            <%= if Map.get(step, "type") == "branch" do %>
+                              <span class="text-xs t-amber">branch</span>
+                            <% end %>
+                            <%= if Map.get(step, "gate") do %>
+                              <span class="text-xs t-red">gate</span>
+                            <% end %>
+                          </div>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% else %>
+                    <p class="text-xs t-dim italic">No synapses configured.</p>
+                  <% end %>
+
+                  <%!-- Ad-hoc runner --%>
+                  <div class="border-t pt-3 space-y-2">
+                    <p class="text-xs t-dim uppercase tracking-wide">Ad-hoc Run</p>
+                    <div class="flex gap-2">
+                      <input
+                        type="text"
+                        value={@adhoc_input}
+                        placeholder="Optional input text…"
+                        aria-label="Ad-hoc run input"
+                        phx-blur="set_adhoc_input"
+                        phx-value-value={@adhoc_input}
+                        class="flex-1 h-8 text-sm border border-input rounded-md px-3 bg-background"
+                      />
+                      <.button
+                        size="sm"
+                        phx-click="run_rumination"
+                        phx-value-id={@selected_rumination.id}
+                        disabled={Map.get(@running, @selected_rumination.id) == :running}
+                      >
+                        {if Map.get(@running, @selected_rumination.id) == :running,
+                          do: "Running…",
+                          else: "▶ Run"}
+                      </.button>
+                    </div>
+                  </div>
+
+                  <%!-- Actions --%>
+                  <div class="flex gap-2 border-t pt-3">
+                    <.button size="sm" variant="ghost" phx-click="edit_rumination">
+                      Edit
+                    </.button>
+                    <.button
+                      size="sm"
+                      variant="ghost"
+                      class="text-destructive hover:text-destructive"
+                      phx-click="delete_rumination"
+                      phx-value-id={@selected_rumination.id}
+                      data-confirm={"Delete rumination \"#{@selected_rumination.name}\"?"}
+                    >
+                      Delete
+                    </.button>
+                    <div class="flex-1" />
+                    <.button size="sm" variant="ghost" phx-click="clear_selection">
+                      ← Back
+                    </.button>
+                  </div>
+                </div>
+              </.panel>
+
+              <%!-- Run history --%>
+              <.panel title="run history">
+                <%= if @daydreams == [] do %>
+                  <p class="text-xs t-dim py-2">No runs yet.</p>
+                <% else %>
+                  <div class="space-y-2">
+                    <%= for run <- @daydreams do %>
+                      <.daydream_row run={run} output_dest={@output_dest} />
+                    <% end %>
+                  </div>
+                <% end %>
+              </.panel>
+            <% else %>
+              <.panel title="select a rumination">
+                <p class="text-sm t-dim py-4 text-center">
+                  Choose a rumination from the list to view its synapse chain and run history.
+                </p>
+              </.panel>
+            <% end %>
           <% end %>
         </div>
       </div>
