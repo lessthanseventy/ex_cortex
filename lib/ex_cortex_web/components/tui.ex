@@ -60,6 +60,7 @@ defmodule ExCortexWeb.Components.TUI do
   attr :summary, :string, default: nil
 
   defp panel_summary(%{summary: nil} = assigns), do: ~H""
+
   defp panel_summary(assigns) do
     ~H"""
     <div class="tui-panel-body py-1">
