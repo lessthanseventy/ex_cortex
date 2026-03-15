@@ -42,8 +42,8 @@ defmodule ExCortex.Integration.EverydayCouncilFlowTest do
     assert briefing.output_type == "artifact"
   end
 
-  test "thought_definitions includes Intake Loop" do
-    campaigns = EverydayCouncil.thought_definitions()
+  test "rumination_definitions includes Intake Loop" do
+    campaigns = EverydayCouncil.rumination_definitions()
     intake_loop = Enum.find(campaigns, &(&1.name == "Intake Loop"))
     assert intake_loop
     assert intake_loop.trigger == "source"

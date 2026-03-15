@@ -1,4 +1,4 @@
-defmodule ExCortex.Thoughts.ImpulseRunner do
+defmodule ExCortex.Ruminations.ImpulseRunner do
   @moduledoc """
   Runs a Step's roster against input text, returning a trace of verdicts.
 
@@ -28,7 +28,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
 
   @expression_types ~w(slack webhook github_issue github_pr email pagerduty)
 
-  @dangerous_tools ~w(send_email create_github_issue comment_github run_thought merge_pr git_pull restart_app close_issue nextcloud_talk)
+  @dangerous_tools ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue nextcloud_talk)
   @write_tool_names ~w(write_file edit_file git_commit create_obsidian_note daily_obsidian)
 
   def dangerous?(tool_name), do: tool_name in @dangerous_tools
@@ -40,11 +40,11 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
 
   def has_write_tools?(_), do: false
 
-  def intercept_dangerous_tool(tool_name, tool_args, thought_id, context \\ nil) do
+  def intercept_dangerous_tool(tool_name, tool_args, rumination_id, context \\ nil) do
     {description, suggestion} = proposal_content(tool_name, tool_args, context)
 
-    ExCortex.Thoughts.create_proposal(%{
-      synapse_id: thought_id,
+    ExCortex.Ruminations.create_proposal(%{
+      synapse_id: rumination_id,
       type: "tool_action",
       description: description,
       details: %{"suggestion" => suggestion},
@@ -588,7 +588,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
     Enum.reject(
       [
         dangerous_tool_mode: Map.get(thought, :dangerous_tool_mode) || "execute",
-        thought_id: Map.get(thought, :id),
+        rumination_id: Map.get(thought, :id),
         override_tools: override,
         max_tool_iterations: Map.get(thought, :max_tool_iterations)
       ],
@@ -674,7 +674,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
       body: attrs.body,
       tags: attrs[:tags] || [],
       source: "thought",
-      thought_id: thought[:id],
+      rumination_id: thought[:id],
       metadata: attrs[:metadata] || %{},
       pin_slug: thought[:pin_slug],
       pinned: thought[:pinned] || false,
@@ -696,7 +696,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
           body: attrs.body,
           tags: attrs[:tags] || [],
           source: "thought",
-          thought_id: thought[:id],
+          rumination_id: thought[:id],
           metadata: attrs[:metadata] || %{},
           pin_slug: spec["pin_slug"],
           pinned: spec["pinned"] || false,

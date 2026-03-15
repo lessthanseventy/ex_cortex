@@ -104,7 +104,7 @@ defmodule ExCortex.Signals do
   end
 
   def sync_proposals do
-    pending = ExCortex.Thoughts.list_proposals(status: "pending")
+    pending = ExCortex.Ruminations.list_proposals(status: "pending")
 
     existing_cards =
       [type: "proposal"]
@@ -128,7 +128,7 @@ defmodule ExCortex.Signals do
       title: title,
       body: body,
       source: "thought",
-      thought_id: proposal.synapse_id,
+      rumination_id: proposal.synapse_id,
       metadata: %{"proposal_id" => proposal.id, "proposal_type" => proposal.type}
     })
   end

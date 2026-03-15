@@ -1,8 +1,8 @@
-defmodule ExCortex.Thoughts.ImpulseRunnerExpressionTest do
+defmodule ExCortex.Ruminations.ImpulseRunnerExpressionTest do
   use ExCortex.DataCase, async: true
 
   alias ExCortex.Expressions
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations.ImpulseRunner
 
   setup do
     # Insert a slack expression

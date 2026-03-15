@@ -9,7 +9,7 @@ defmodule ExCortex.Tools.RegistryTest do
     names = Enum.map(tools, & &1.name)
     assert "query_memory" in names
     assert "query_axiom" in names
-    refute "run_thought" in names
+    refute "run_rumination" in names
   end
 
   test "resolve_tools(:write) includes safe + write tools" do
@@ -23,7 +23,7 @@ defmodule ExCortex.Tools.RegistryTest do
     dangerous = Registry.resolve_tools(:dangerous)
     assert length(dangerous) >= length(write)
     names = Enum.map(dangerous, & &1.name)
-    assert "run_thought" in names
+    assert "run_rumination" in names
   end
 
   test "resolve_tools(:yolo) is alias for :dangerous" do

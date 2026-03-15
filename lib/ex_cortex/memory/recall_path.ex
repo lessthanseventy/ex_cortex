@@ -5,7 +5,7 @@ defmodule ExCortex.Memory.RecallPath do
   import Ecto.Changeset
 
   schema "recall_paths" do
-    belongs_to :daydream, ExCortex.Thoughts.Daydream
+    belongs_to :daydream, ExCortex.Ruminations.Daydream
     belongs_to :engram, ExCortex.Memory.Engram
 
     field :reason, :string

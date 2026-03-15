@@ -1,4 +1,4 @@
-defmodule ExCortex.Thoughts.Synapse do
+defmodule ExCortex.Ruminations.Synapse do
   @moduledoc false
   use Ecto.Schema
 

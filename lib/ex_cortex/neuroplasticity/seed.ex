@@ -6,9 +6,9 @@ defmodule ExCortex.Neuroplasticity.Seed do
   alias ExCortex.Memory.Engram
   alias ExCortex.Repo
   alias ExCortex.Senses.Sense
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.Synapse
-  alias ExCortex.Thoughts.Thought
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Synapse
+  alias ExCortex.Ruminations.Rumination
 
   # Old names kept here so cleanup deletes them on re-seed
   @si_step_names [
@@ -29,7 +29,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
 
   # Note: "SI: Static Analysis" stays in the cleanup list so it's removed if present from old seeds
 
-  @si_thought_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
+  @si_rumination_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
 
   def seed(opts \\ %{}) do
     repo = Map.get(opts, :repo, "")
@@ -37,16 +37,16 @@ defmodule ExCortex.Neuroplasticity.Seed do
 
     with {:ok, source} <- create_source(repo),
          {:ok, steps} <- create_steps(),
-         {:ok, thought} <- create_thought(source, steps),
+         {:ok, rumination} <- create_rumination(source, steps),
          {:ok, sweep_steps} <- create_sweep_steps(),
-         {:ok, sweep_thought} <- create_sweep_thought(sweep_steps) do
+         {:ok, sweep_rumination} <- create_sweep_rumination(sweep_steps) do
       seed_engrams()
-      {:ok, %{source: source, steps: steps, thought: thought, sweep_thought: sweep_thought}}
+      {:ok, %{source: source, steps: steps, rumination: rumination, sweep_rumination: sweep_rumination}}
     end
   end
 
   defp cleanup do
-    Repo.delete_all(from q in Thought, where: q.name in @si_thought_names)
+    Repo.delete_all(from q in Rumination, where: q.name in @si_rumination_names)
     Repo.delete_all(from s in Synapse, where: s.name in @si_step_names)
 
     Repo.delete_all(
@@ -304,7 +304,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
       }
     ]
 
-    results = Enum.map(step_attrs, &Thoughts.create_synapse/1)
+    results = Enum.map(step_attrs, &Ruminations.create_synapse/1)
 
     case Enum.find(results, fn r -> match?({:error, _}, r) end) do
       nil -> {:ok, Enum.map(results, fn {:ok, step} -> step end)}
@@ -312,7 +312,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
     end
   end
 
-  defp create_thought(source, steps) do
+  defp create_rumination(source, steps) do
     # Gate flags: Code Reviewer (index 2) and QA (index 3) are verdict gates
     gate_indices = MapSet.new([2, 3])
 
@@ -324,7 +324,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
         if order in gate_indices, do: Map.put(entry, "gate", true), else: entry
       end)
 
-    Thoughts.create_thought(%{
+    Ruminations.create_rumination(%{
       name: "Self-Improvement Loop",
       description:
         "Full self-improvement pipeline: PM triage, code writing, code review, QA, UX check, then merge decision.",
@@ -349,7 +349,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
   end
 
   defp create_health_scan_step do
-    Thoughts.create_synapse(%{
+    Ruminations.create_synapse(%{
       name: "SI: Codebase Health Scan",
       description: """
       You are the Code Auditor performing a codebase health scan.
@@ -373,8 +373,8 @@ defmodule ExCortex.Neuroplasticity.Seed do
         %{
           "type" => "file_reader",
           "files" => [
-            "lib/ex_cortex/thoughts/impulse_runner.ex",
-            "lib/ex_cortex/thoughts/runner.ex",
+            "lib/ex_cortex/ruminations/impulse_runner.ex",
+            "lib/ex_cortex/ruminations/runner.ex",
             "lib/ex_cortex/llm/ollama.ex"
           ],
           "label" => "## Key Source Files",
@@ -387,7 +387,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
   end
 
   defp create_opportunity_scan_step do
-    Thoughts.create_synapse(%{
+    Ruminations.create_synapse(%{
       name: "SI: Feature & Opportunity Scan",
       description: """
       You are the Product Analyst performing an opportunity scan.
@@ -401,7 +401,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
       can't, or does poorly? Every suggestion must relate to the files and modules shown above.
 
       ExCortex is a Phoenix LiveView app for AI agent orchestration: clusters (agent teams),
-      neurons (roles), thoughts (pipelines), senses, memory, signals. Do NOT suggest features for
+      neurons (roles), ruminations (pipelines), senses, memory, signals. Do NOT suggest features for
       unrelated domains (no game engines, no audio, no physics).
 
       ## Output format (write this now)
@@ -424,7 +424,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
           "type" => "file_reader",
           "files" => [
             "lib/ex_cortex/neuroplasticity/seed.ex",
-            "lib/ex_cortex_web/live/thoughts_live.ex",
+            "lib/ex_cortex_web/live/ruminations_live.ex",
             "lib/ex_cortex_web/live/cortex_live.ex",
             "lib/ex_cortex/board/generation.ex"
           ],
@@ -437,7 +437,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
   end
 
   defp create_backlog_and_file_step do
-    Thoughts.create_synapse(%{
+    Ruminations.create_synapse(%{
       name: "SI: Backlog & Issue Filing",
       description: """
       You are the Project Manager. Your job is to synthesize findings from this sweep and
@@ -509,14 +509,14 @@ defmodule ExCortex.Neuroplasticity.Seed do
       - A web UI for configuring and running AI agent pipelines
       - An orchestration layer for calling Ollama (local LLMs) and Claude (Anthropic)
       - A self-improvement system where AI agents work on ExCortex itself
-      - A cluster/neuron/thought framework: clusters are agent teams, neurons are roles, thoughts are pipelines
+      - A cluster/neuron/rumination framework: clusters are agent teams, neurons are roles, ruminations are pipelines
 
       ## Key pages
 
       - **Cortex** (`/cortex`) — dashboard showing daydream outputs, pinned signal cards, proposal review
       - **Instinct** (`/instinct`) — pathway browser and cluster installer
       - **Neurons** (`/neurons`) — browse/manage cluster neurons
-      - **Thoughts** (`/thoughts`) — thought planner, synapse configuration
+      - **Ruminations** (`/ruminations`) — rumination planner, synapse configuration
       - **Memory** (`/memory`) — engram browser; view/search memory engrams
       - **Senses** (`/senses`) — source blueprint browser
       - **Evaluate** (`/evaluate`) — run text against a cluster and see verdicts
@@ -524,8 +524,8 @@ defmodule ExCortex.Neuroplasticity.Seed do
 
       ## Key modules
 
-      - `ExCortex.Thoughts.Runner` — runs thoughts synapse by synapse
-      - `ExCortex.Thoughts.ImpulseRunner` — runs a single synapse against neurons
+      - `ExCortex.Ruminations.Runner` — runs ruminations synapse by synapse
+      - `ExCortex.Ruminations.ImpulseRunner` — runs a single synapse against neurons
       - `ExCortex.Signals` — cortex signal card management
       - `ExCortex.Memory` — engram storage and retrieval
       - `ExCortex.Senses.*` — source workers (GitHub issues, webhooks, feeds, etc.)
@@ -677,7 +677,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
     },
     %{
       title: "ExCortex: Self-Improvement Pipeline",
-      tags: ["pipeline", "self-improvement", "workflow", "agents", "thoughts"],
+      tags: ["pipeline", "self-improvement", "workflow", "agents", "ruminations"],
       importance: 5,
       body: """
       # ExCortex: Self-Improvement Pipeline
@@ -785,13 +785,13 @@ defmodule ExCortex.Neuroplasticity.Seed do
     end)
   end
 
-  defp create_sweep_thought(sweep_steps) do
+  defp create_sweep_rumination(sweep_steps) do
     step_entries =
       sweep_steps
       |> Enum.with_index(1)
       |> Enum.map(fn {step, order} -> %{"step_id" => step.id, "order" => order} end)
 
-    Thoughts.create_thought(%{
+    Ruminations.create_rumination(%{
       name: "SI: Analyst Sweep",
       description:
         "Every 4 hours: codebase health scan → feature opportunity scan → backlog synthesis + issue filing in one step.",

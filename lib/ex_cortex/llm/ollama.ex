@@ -3,7 +3,7 @@ defmodule ExCortex.LLM.Ollama do
   @behaviour ExCortex.LLM
 
   alias ExCortex.Core.LLM.Ollama
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations.ImpulseRunner
 
   require Logger
   require OpenTelemetry.Tracer, as: Tracer
@@ -81,7 +81,7 @@ defmodule ExCortex.LLM.Ollama do
     max_iter = Keyword.get(opts, :max_tool_iterations, @max_tool_iterations)
 
     dangerous_tool_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
-    thought_id = Keyword.get(opts, :thought_id)
+    rumination_id = Keyword.get(opts, :rumination_id)
 
     Tracer.with_span "llm.complete_with_tools", %{
       attributes: %{
@@ -96,7 +96,7 @@ defmodule ExCortex.LLM.Ollama do
         models: models,
         tools: tools,
         ollama_tools: ollama_tools,
-        opts: [dangerous_tool_mode: dangerous_tool_mode, thought_id: thought_id, max_iter: max_iter]
+        opts: [dangerous_tool_mode: dangerous_tool_mode, rumination_id: rumination_id, max_iter: max_iter]
       }
 
       run_tool_loop(conn, %{messages: messages, iter: 0, tool_log: [], breaker_state: %{}})
@@ -193,11 +193,11 @@ defmodule ExCortex.LLM.Ollama do
 
   defp execute_tool_calls(calls, tools, breaker_state, opts) do
     dangerous_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
-    thought_id = Keyword.get(opts, :thought_id)
+    rumination_id = Keyword.get(opts, :rumination_id)
 
     Enum.reduce(calls, {[], [], breaker_state}, fn call, {msgs, log, bs} ->
       {name, args} = extract_call(call)
-      {output, log_entry, new_bs} = execute_call(name, args, tools, bs, dangerous_mode, thought_id)
+      {output, log_entry, new_bs} = execute_call(name, args, tools, bs, dangerous_mode, rumination_id)
       {msgs ++ [%{role: "tool", content: output}], log ++ [log_entry], new_bs}
     end)
   end
@@ -215,7 +215,7 @@ defmodule ExCortex.LLM.Ollama do
     {name, args}
   end
 
-  defp execute_call(name, args, tools, bs, dangerous_mode, thought_id) do
+  defp execute_call(name, args, tools, bs, dangerous_mode, rumination_id) do
     prior_count = Map.get(bs, name, 0)
 
     cond do
@@ -232,7 +232,7 @@ defmodule ExCortex.LLM.Ollama do
         {out, %{tool: name, input: %{}, output: out}, Map.put(bs, name, @empty_threshold)}
 
       true ->
-        {out, entry} = execute_or_intercept_tool(name, args, tools, dangerous_mode, thought_id)
+        {out, entry} = execute_or_intercept_tool(name, args, tools, dangerous_mode, rumination_id)
 
         case check_circuit_breaker(name, out, bs) do
           {:tripped, updated_bs} -> {out, entry, updated_bs}
@@ -241,23 +241,23 @@ defmodule ExCortex.LLM.Ollama do
     end
   end
 
-  defp execute_or_intercept_tool(name, args, tools, dangerous_mode, thought_id) do
+  defp execute_or_intercept_tool(name, args, tools, dangerous_mode, rumination_id) do
     if ImpulseRunner.dangerous?(name) and dangerous_mode != "execute" do
-      intercept_dangerous_call(name, args, dangerous_mode, thought_id)
+      intercept_dangerous_call(name, args, dangerous_mode, rumination_id)
     else
       run_tool(name, args, Enum.find(tools, &(&1.name == name)))
     end
   end
 
-  defp intercept_dangerous_call(name, args, "dry_run", _thought_id) do
+  defp intercept_dangerous_call(name, args, "dry_run", _rumination_id) do
     out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
     Logger.info("[Ollama] dry_run: #{name}")
     {out, %{tool: name, input: args, output: out}}
   end
 
-  defp intercept_dangerous_call(name, args, "intercept", thought_id) do
-    ImpulseRunner.intercept_dangerous_tool(name, args, thought_id)
-    out = "Tool call queued for human approval. Proposal ID: #{thought_id}. Continue without this result."
+  defp intercept_dangerous_call(name, args, "intercept", rumination_id) do
+    ImpulseRunner.intercept_dangerous_tool(name, args, rumination_id)
+    out = "Tool call queued for human approval. Proposal ID: #{rumination_id}. Continue without this result."
     Logger.info("[Ollama] intercepted: #{name}")
     {out, %{tool: name, input: args, output: out}}
   end

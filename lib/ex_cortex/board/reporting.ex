@@ -46,7 +46,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Security Digest — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "thought_history", "limit" => 10},
+            %{"type" => "rumination_history", "limit" => 10},
             %{
               "type" => "memory",
               "tags" => ["security", "deps", "risk"],
@@ -67,7 +67,7 @@ defmodule ExCortex.Board.Reporting do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Weekly Security Digest",
         description: "Weekly security synthesis posted to Slack every Monday.",
         status: "active",
@@ -116,7 +116,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Standup — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "thought_history", "limit" => 20}
+            %{"type" => "rumination_history", "limit" => 20}
           ]
         },
         %{
@@ -131,7 +131,7 @@ defmodule ExCortex.Board.Reporting do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Daily AI Standup",
         description: "Daily 8am standup synthesis from daydream history, posted to Slack.",
         status: "active",
@@ -180,7 +180,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Sprint Quality Report — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "thought_history", "limit" => 30},
+            %{"type" => "rumination_history", "limit" => 30},
             %{
               "type" => "memory",
               "tags" => ["code-quality", "performance"],
@@ -201,7 +201,7 @@ defmodule ExCortex.Board.Reporting do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Sprint Code Quality",
         description: "Weekly sprint quality synthesis posted to Slack.",
         status: "active",
@@ -250,7 +250,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Monthly Risk Summary — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "thought_history", "limit" => 50},
+            %{"type" => "rumination_history", "limit" => 50},
             %{
               "type" => "memory",
               "tags" => ["risk", "compliance", "deps"],
@@ -271,7 +271,7 @@ defmodule ExCortex.Board.Reporting do
           expression_name: "email:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Monthly Risk Summary",
         description: "First-of-month executive risk summary emailed to stakeholders.",
         status: "active",

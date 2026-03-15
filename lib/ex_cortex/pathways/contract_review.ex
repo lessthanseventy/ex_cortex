@@ -136,7 +136,7 @@ defmodule ExCortex.Pathways.ContractReview do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Contract Review Campaign",

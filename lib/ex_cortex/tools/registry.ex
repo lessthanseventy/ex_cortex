@@ -8,7 +8,7 @@ defmodule ExCortex.Tools.Registry do
   Tiers:
   - safe      — read-only, low risk (query_memory, query_axiom, fetch_url, obsidian read, email read, github read, jq, pdf, document conversion)
   - write     — write or mutate data (create_obsidian_note, daily_obsidian)
-  - dangerous — execute code/pipelines or send data externally (run_thought, send_email, create_github_issue, comment_github)
+  - dangerous — execute code/pipelines or send data externally (run_rumination, send_email, create_github_issue, comment_github)
 
   Usage:
     Registry.list_safe()              # safe tools only
@@ -56,7 +56,7 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.ReadPdf
   alias ExCortex.Tools.RestartApp
   alias ExCortex.Tools.RunSandbox
-  alias ExCortex.Tools.RunThought
+  alias ExCortex.Tools.RunRumination
   alias ExCortex.Tools.SearchEmail
   alias ExCortex.Tools.SearchGithub
   alias ExCortex.Tools.SearchNextcloud
@@ -117,7 +117,7 @@ defmodule ExCortex.Tools.Registry do
     NextcloudCalendar
   ]
   @dangerous [
-    RunThought,
+    RunRumination,
     SendEmail,
     CreateGithubIssue,
     CommentGithub,

@@ -2,23 +2,23 @@ defmodule ExCortex.Memory.ExtractorTest do
   use ExCortex.DataCase, async: true
 
   alias ExCortex.Memory.Extractor
-  alias ExCortex.Thoughts
+  alias ExCortex.Ruminations
 
   setup do
-    {:ok, thought} =
-      Thoughts.create_thought(%{name: "SI Analyst Sweep", trigger: "manual", steps: []})
+    {:ok, rumination} =
+      Ruminations.create_rumination(%{name: "SI Analyst Sweep", trigger: "manual", steps: []})
 
     {:ok, daydream} =
-      Thoughts.create_daydream(%{thought_id: thought.id, status: "complete"})
+      Ruminations.create_daydream(%{rumination_id: rumination.id, status: "complete"})
 
-    %{thought: thought, daydream: daydream}
+    %{rumination: rumination, daydream: daydream}
   end
 
   describe "extract/1" do
-    test "creates episodic engram from thought run", %{daydream: daydream} do
-      thought_run = %{
+    test "creates episodic engram from rumination run", %{daydream: daydream} do
+      rumination_run = %{
         id: daydream.id,
-        thought_name: "SI Analyst Sweep",
+        rumination_name: "SI Analyst Sweep",
         cluster_name: "Dev Team",
         status: "complete",
         results: %{"summary" => "Found 2 credo issues"},
@@ -28,7 +28,7 @@ defmodule ExCortex.Memory.ExtractorTest do
         ]
       }
 
-      {:ok, engrams} = Extractor.extract(thought_run)
+      {:ok, engrams} = Extractor.extract(rumination_run)
 
       episodic = Enum.find(engrams, &(&1.category == "episodic"))
       assert episodic
@@ -38,9 +38,9 @@ defmodule ExCortex.Memory.ExtractorTest do
     end
 
     test "includes impulse summaries in body", %{daydream: daydream} do
-      thought_run = %{
+      rumination_run = %{
         id: daydream.id,
-        thought_name: "Code Review",
+        rumination_name: "Code Review",
         status: "complete",
         results: %{},
         impulses: [
@@ -48,22 +48,22 @@ defmodule ExCortex.Memory.ExtractorTest do
         ]
       }
 
-      {:ok, [engram]} = Extractor.extract(thought_run)
+      {:ok, [engram]} = Extractor.extract(rumination_run)
       assert engram.body =~ "Code Review"
       assert engram.body =~ "looks good"
     end
 
-    test "tags include thought name slug", %{daydream: daydream} do
-      thought_run = %{
+    test "tags include rumination name slug", %{daydream: daydream} do
+      rumination_run = %{
         id: daydream.id,
-        thought_name: "Market Signals",
+        rumination_name: "Market Signals",
         status: "complete",
         results: %{},
         impulses: []
       }
 
-      {:ok, [engram]} = Extractor.extract(thought_run)
-      assert "thought-run" in engram.tags
+      {:ok, [engram]} = Extractor.extract(rumination_run)
+      assert "rumination-run" in engram.tags
       assert "market-signals" in engram.tags
     end
   end

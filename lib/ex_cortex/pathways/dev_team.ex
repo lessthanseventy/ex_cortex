@@ -271,7 +271,7 @@ defmodule ExCortex.Pathways.DevTeam do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Daily Dev Triage",

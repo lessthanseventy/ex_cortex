@@ -138,7 +138,7 @@ defmodule ExCortex.Pathways.TechDispatch do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Tech Digest Loop",

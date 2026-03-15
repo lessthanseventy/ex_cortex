@@ -1,7 +1,7 @@
-defmodule ExCortex.Thoughts.ImpulseRunnerDangerousToolsTest do
+defmodule ExCortex.Ruminations.ImpulseRunnerDangerousToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations.ImpulseRunner
 
   test "new tools are marked dangerous" do
     assert ImpulseRunner.dangerous?("merge_pr")

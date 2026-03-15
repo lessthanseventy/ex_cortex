@@ -2,7 +2,7 @@ defmodule ExCortex.ClaudeClient do
   @moduledoc """
   Thin wrapper around ReqLLM for Anthropic Claude calls.
 
-  Supports the three tiers used in thought escalation:
+  Supports the three tiers used in rumination escalation:
     - "claude_haiku"  → claude-haiku-4-5
     - "claude_sonnet" → claude-sonnet-4-6
     - "claude_opus"   → claude-opus-4-6

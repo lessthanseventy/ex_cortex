@@ -1,4 +1,4 @@
-defmodule ExCortex.Thoughts.ImpulseRunner.SignalTest do
+defmodule ExCortex.Ruminations.ImpulseRunner.SignalTest do
   use ExCortex.DataCase
 
   alias ExCortex.Signals
@@ -19,7 +19,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner.SignalTest do
       }
 
       # With empty roster, should get :no_roster error
-      assert {:error, :no_roster} = ExCortex.Thoughts.ImpulseRunner.run(step, "test input")
+      assert {:error, :no_roster} = ExCortex.Ruminations.ImpulseRunner.run(step, "test input")
     end
   end
 end

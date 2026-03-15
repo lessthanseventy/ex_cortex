@@ -4,7 +4,7 @@ defmodule ExCortex.Neuroplasticity.LoopTest do
   alias ExCortex.Neuroplasticity.Loop
 
   test "retrospect returns empty list when Claude not configured" do
-    step = %ExCortex.Thoughts.Synapse{
+    step = %ExCortex.Ruminations.Synapse{
       id: 1,
       name: "test step",
       trigger: "manual",

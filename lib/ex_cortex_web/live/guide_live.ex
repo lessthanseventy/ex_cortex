@@ -18,9 +18,9 @@ defmodule ExCortexWeb.GuideLive do
       </div>
 
       <section class="space-y-3">
-        <h2 class="text-xl font-semibold">Thoughts — Asking your team a question</h2>
+        <h2 class="text-xl font-semibold">Ruminations — Asking your team a question</h2>
         <p class="text-base text-muted-foreground">
-          A <strong>Thought</strong> is a job you give to your AI helpers. You describe what you want
+          A <strong>Rumination</strong> is a job you give to your AI helpers. You describe what you want
           checked or written, choose which helpers should work on it, and ExCortex sends it to them
           and collects their answers.
         </p>
@@ -29,11 +29,11 @@ defmodule ExCortexWeb.GuideLive do
           all happens in seconds.
         </p>
         <p class="text-base text-muted-foreground">
-          You can run a thought manually any time, set it to run on a schedule (like every morning at
+          You can run a rumination manually any time, set it to run on a schedule (like every morning at
           9am), or have it trigger automatically when new information arrives.
         </p>
         <p class="text-base text-muted-foreground">
-          Some thoughts produce a verdict (pass / warn / fail). Others produce a written output — a
+          Some ruminations produce a verdict (pass / warn / fail). Others produce a written output — a
           summary, a report, an analysis — which gets saved automatically to the
           <.link navigate={~p"/memory"} class="underline text-foreground">Memory</.link>
           for your whole team to see and build on later.
@@ -41,10 +41,10 @@ defmodule ExCortexWeb.GuideLive do
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-xl font-semibold">Thoughts — Chaining steps together</h2>
+        <h2 class="text-xl font-semibold">Ruminations — Chaining steps together</h2>
         <p class="text-base text-muted-foreground">
           Sometimes one step isn't enough — you want the result of the first step to feed into the next.
-          That's what a <strong>Thought</strong> is for.
+          That's what a <strong>Rumination</strong> is for.
         </p>
         <p class="text-base text-muted-foreground">
           Imagine asking one helper to summarise today's news, then passing that summary to a second
@@ -52,8 +52,8 @@ defmodule ExCortexWeb.GuideLive do
           the previous step found, so nothing gets lost in the handoff.
         </p>
         <p class="text-base text-muted-foreground">
-          You create a Thought in the
-          <.link navigate={~p"/thoughts"} class="underline text-foreground">Thoughts</.link>
+          You create a Rumination in the
+          <.link navigate={~p"/ruminations"} class="underline text-foreground">Ruminations</.link>
           page, add the steps in order, and ExCortex runs them one after another automatically.
         </p>
       </section>
@@ -61,7 +61,7 @@ defmodule ExCortexWeb.GuideLive do
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Branch Steps — Running jobs side-by-side</h2>
         <p class="text-base text-muted-foreground">
-          Inside a Thought, you can have one step that runs several checks <em>at the same time</em>
+          Inside a Rumination, you can have one step that runs several checks <em>at the same time</em>
           rather than one after another. The app calls this a <strong>Branch</strong>
           step.
         </p>
@@ -106,20 +106,20 @@ defmodule ExCortexWeb.GuideLive do
           If another helper says "looks good", the Challenger asks "but what's your proof?"
         </p>
         <p class="text-base text-muted-foreground">
-          It's useful as a final check in a Thought — after everyone else has weighed in, the
+          It's useful as a final check in a Rumination — after everyone else has weighed in, the
           Challenger reviews all the findings and will only agree if it sees real, specific evidence.
           Vague reassurances don't satisfy it.
         </p>
         <p class="text-base text-muted-foreground">
-          You add the Challenger to a thought's team just like any other neuron.
+          You add the Challenger to a rumination's team just like any other neuron.
         </p>
       </section>
 
       <section class="space-y-3">
         <h2 class="text-xl font-semibold">Skill requirements — Sending the right helper</h2>
         <p class="text-base text-muted-foreground">
-          You can mark a Thought as requiring a minimum skill level. If none of your active helpers
-          meet that standard, the thought simply won't run — rather than giving you a poor-quality answer.
+          You can mark a Rumination as requiring a minimum skill level. If none of your active helpers
+          meet that standard, the rumination simply won't run — rather than giving you a poor-quality answer.
         </p>
         <p class="text-base text-muted-foreground">
           Think of it like a job posting that says "Senior experience required." ExCortex checks
@@ -180,7 +180,7 @@ defmodule ExCortexWeb.GuideLive do
         <h2 class="text-xl font-semibold">Memory — Your cluster's shared notebook</h2>
         <p class="text-base text-muted-foreground">
           The <.link navigate={~p"/memory"} class="underline text-foreground">Memory</.link> is
-          where your cluster's knowledge accumulates. Every time a thought produces a written output, it
+          where your cluster's knowledge accumulates. Every time a rumination produces a written output, it
           lands here as an engram. Over time it becomes a living record of everything your helpers
           have figured out — reports, summaries, analyses, decisions.
         </p>
@@ -192,12 +192,12 @@ defmodule ExCortexWeb.GuideLive do
         <p class="text-base text-muted-foreground">
           <strong>The Augury</strong> sits pinned at the top — your cluster's current "big picture"
           read on the world. Think of it as the one-page briefing you'd hand someone walking in the
-          door. Thoughts set to "replace" mode keep it current automatically, so it always reflects
+          door. Ruminations set to "replace" mode keep it current automatically, so it always reflects
           your latest thinking without needing you to update it by hand.
         </p>
         <p class="text-base text-muted-foreground">
           The really useful part: your helpers can <em>read</em> from Memory before they start
-          working. You can configure any thought to pull in recent engrams first, so your helpers
+          working. You can configure any rumination to pull in recent engrams first, so your helpers
           arrive already briefed on what the cluster has learned. It's the difference between asking
           a new temp and asking someone who's been on the team for months.
         </p>
@@ -226,14 +226,14 @@ defmodule ExCortexWeb.GuideLive do
         </div>
 
         <div class="space-y-2">
-          <h3 class="font-semibold text-sm">Thoughts &amp; ThoughtRunner</h3>
+          <h3 class="font-semibold text-sm">Ruminations &amp; RuminationRunner</h3>
           <p class="text-sm text-muted-foreground">
-            Thoughts are Ecto-backed records with a <code class="bg-muted px-1 rounded">steps</code>
-            jsonb array. <code class="bg-muted px-1 rounded">ThoughtRunner.run/2</code>
+            Ruminations are Ecto-backed records with a <code class="bg-muted px-1 rounded">steps</code>
+            jsonb array. <code class="bg-muted px-1 rounded">RuminationRunner.run/2</code>
             resolves each <code class="bg-muted px-1 rounded">step_id</code>, and threads output as a structured
             handoff block into the next step's input. The final step's result is returned.
-            Source-triggered thoughts go through <code class="bg-muted px-1 rounded">ThoughtDebouncer.enqueue_thought/3</code>;
-            scheduled ones are picked up each minute by <code class="bg-muted px-1 rounded">ScheduledThoughtRunner</code>.
+            Source-triggered ruminations go through <code class="bg-muted px-1 rounded">RuminationDebouncer.enqueue_rumination/3</code>;
+            scheduled ones are picked up each minute by <code class="bg-muted px-1 rounded">ScheduledRuminationRunner</code>.
           </p>
         </div>
 
@@ -255,7 +255,7 @@ defmodule ExCortexWeb.GuideLive do
           <h3 class="font-semibold text-sm">Model Fallback Chains</h3>
           <p class="text-sm text-muted-foreground">
             Configured via <code class="bg-muted px-1 rounded">config :ex_cortex, :model_fallback_chain, [...]</code>.
-            <code class="bg-muted px-1 rounded">ThoughtRunner.fallback_models_for/2</code>
+            <code class="bg-muted px-1 rounded">RuminationRunner.fallback_models_for/2</code>
             prepends the
             neuron's assigned model and deduplicates.
             <code class="bg-muted px-1 rounded">call_neuron/3</code>
@@ -291,7 +291,7 @@ defmodule ExCortexWeb.GuideLive do
             <code class="bg-muted px-1 rounded">
               %&lbrace;"type" =&gt; "pathway", "cluster_name" =&gt; "..."&rbrace;
             </code>
-            to a thought's <code class="bg-muted px-1 rounded">context_providers</code>
+            to a rumination's <code class="bg-muted px-1 rounded">context_providers</code>
             array and it
             will be prepended to every neuron's input via <code class="bg-muted px-1 rounded">ContextProvider.assemble/3</code>.
           </p>
@@ -315,11 +315,11 @@ defmodule ExCortexWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">Memory Context Provider</h3>
           <p class="text-sm text-muted-foreground">
-            Artifact thoughts write to <code class="bg-muted px-1 rounded">engrams</code>
+            Artifact ruminations write to <code class="bg-muted px-1 rounded">engrams</code>
             via <code class="bg-muted px-1 rounded">Memory.write_artifact/2</code>. Write mode controls
             behaviour: <code class="bg-muted px-1 rounded">append</code>
             always inserts, <code class="bg-muted px-1 rounded">replace</code>
-            upserts the thought-owned entry
+            upserts the rumination-owned entry
             (never overwrites <code class="bg-muted px-1 rounded">source: "manual"</code>),
             <code class="bg-muted px-1 rounded">both</code>
             does a replace on the pinned entry
@@ -345,7 +345,7 @@ defmodule ExCortexWeb.GuideLive do
           <p class="text-sm text-muted-foreground">
             Resolved by <code class="bg-muted px-1 rounded">resolve_neurons("challenger")</code>
             in
-            ThoughtRunner. Backed by <code class="bg-muted px-1 rounded">Builtin.validators/0</code>
+            RuminationRunner. Backed by <code class="bg-muted px-1 rounded">Builtin.validators/0</code>
             — category <code class="bg-muted px-1 rounded">:validator</code>, uses the journeyman
             model from <code class="bg-muted px-1 rounded">@default_ranks</code>. Prompt is hardcoded
             to demand specific evidence and default to fail.

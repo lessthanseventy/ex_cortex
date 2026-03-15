@@ -130,7 +130,7 @@ defmodule ExCortex.Pathways.DependencyAudit do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Weekly Dependency Audit Campaign",

@@ -1,7 +1,7 @@
-defmodule ExCortex.Thoughts.StepValidationTest do
+defmodule ExCortex.Ruminations.StepValidationTest do
   use ExCortex.DataCase, async: true
 
-  alias ExCortex.Thoughts.Synapse
+  alias ExCortex.Ruminations.Synapse
 
   describe "loop_mode validation" do
     test "changeset accepts valid loop_mode values" do

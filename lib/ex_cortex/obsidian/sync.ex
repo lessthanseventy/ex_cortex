@@ -61,7 +61,7 @@ defmodule ExCortex.Obsidian.Sync do
     content = """
     ---
     type: engram
-    thought_id: #{entry.thought_id}
+    rumination_id: #{entry.rumination_id}
     tags: [#{tags}]
     importance: #{entry.importance || 0}
     created: #{to_iso8601(entry.inserted_at)}

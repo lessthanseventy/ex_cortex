@@ -18,7 +18,7 @@ defmodule ExCortex.Tools.QueryAxiomTest do
     {:ok, _} =
       Lexicon.create_axiom(%{
         name: "test_glossary_#{suffix}",
-        content: "Engram: a stored memory\nThought: a pipeline run\nNeuron: an agent role",
+        content: "Engram: a stored memory\nRumination: a pipeline run\nNeuron: an agent role",
         content_type: "text"
       })
 
@@ -38,8 +38,8 @@ defmodule ExCortex.Tools.QueryAxiomTest do
   end
 
   test "returns matching text lines", %{suffix: s} do
-    {:ok, result} = QueryAxiom.call(%{"axiom" => "test_glossary_#{s}", "query" => "thought"})
-    assert result =~ "Thought: a pipeline run"
+    {:ok, result} = QueryAxiom.call(%{"axiom" => "test_glossary_#{s}", "query" => "rumination"})
+    assert result =~ "Rumination: a pipeline run"
     refute result =~ "Engram:"
   end
 

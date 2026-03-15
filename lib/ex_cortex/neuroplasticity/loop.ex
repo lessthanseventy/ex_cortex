@@ -13,8 +13,8 @@ defmodule ExCortex.Neuroplasticity.Loop do
   """
 
   alias ExCortex.ClaudeClient
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.Synapse
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Synapse
 
   @system_prompt """
   You are a learning system that reviews AI evaluation step results and suggests
@@ -129,7 +129,7 @@ defmodule ExCortex.Neuroplasticity.Loop do
   end
 
   defp maybe_create(attrs) do
-    case Thoughts.create_proposal(attrs) do
+    case Ruminations.create_proposal(attrs) do
       {:ok, proposal} -> [proposal]
       {:error, _} -> []
     end

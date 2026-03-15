@@ -1,4 +1,4 @@
-defmodule ExCortex.Thoughts.Proposal do
+defmodule ExCortex.Ruminations.Proposal do
   @moduledoc false
   use Ecto.Schema
 
@@ -15,8 +15,8 @@ defmodule ExCortex.Thoughts.Proposal do
     field :context, :string
     field :result, :string
 
-    belongs_to :synapse, ExCortex.Thoughts.Synapse
-    belongs_to :impulse, ExCortex.Thoughts.Impulse, foreign_key: :daydream_id
+    belongs_to :synapse, ExCortex.Ruminations.Synapse
+    belongs_to :impulse, ExCortex.Ruminations.Impulse, foreign_key: :daydream_id
 
     timestamps()
   end

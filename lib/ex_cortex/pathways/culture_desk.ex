@@ -135,7 +135,7 @@ defmodule ExCortex.Pathways.CultureDesk do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Culture Digest Loop",

@@ -141,7 +141,7 @@ defmodule ExCortex.Pathways.RiskAssessment do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Risk Assessment Campaign",

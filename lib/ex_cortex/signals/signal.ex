@@ -14,7 +14,7 @@ defmodule ExCortex.Signals.Signal do
     field :metadata, :map, default: %{}
     field :pinned, :boolean, default: false
     field :source, :string
-    field :thought_id, :integer
+    field :rumination_id, :integer
     field :tags, {:array, :string}, default: []
     field :status, :string, default: "active"
     field :card_type, :string, default: "briefing"
@@ -34,7 +34,7 @@ defmodule ExCortex.Signals.Signal do
       :metadata,
       :pinned,
       :source,
-      :thought_id,
+      :rumination_id,
       :status,
       :tags,
       :card_type,

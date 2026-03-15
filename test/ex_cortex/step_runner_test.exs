@@ -1,9 +1,9 @@
-defmodule ExCortex.Thoughts.ImpulseRunnerTest do
+defmodule ExCortex.Ruminations.ImpulseRunnerTest do
   use ExCortex.DataCase, async: true
 
   alias ExCortex.Neurons.Builtin
-  alias ExCortex.Thoughts.ImpulseRunner
-  alias ExCortex.Thoughts.Synapse
+  alias ExCortex.Ruminations.ImpulseRunner
+  alias ExCortex.Ruminations.Synapse
 
   describe "model fallback chains" do
     test "fallback_models_for/2 returns assigned model first, then chain" do

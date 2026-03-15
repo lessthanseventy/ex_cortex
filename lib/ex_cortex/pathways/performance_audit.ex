@@ -141,7 +141,7 @@ defmodule ExCortex.Pathways.PerformanceAudit do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Performance Audit Campaign",

@@ -1,12 +1,12 @@
 defmodule ExCortex.Memory.EngramTriggerRunner do
   @moduledoc """
-  Listens for new memory engrams and fires any thoughts with trigger: "memory"
+  Listens for new memory engrams and fires any ruminations with trigger: "memory"
   whose engram_trigger_tags overlap the entry's tags.
   """
   use GenServer
 
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Runner
 
   require Logger
 
@@ -21,13 +21,13 @@ defmodule ExCortex.Memory.EngramTriggerRunner do
   @impl true
   def handle_info({:engram_created, entry}, state) do
     try do
-      Thoughts.list_thoughts()
+      Ruminations.list_ruminations()
       |> Enum.filter(fn q ->
         q.trigger == "memory" && q.status == "active" && tags_match?(q.engram_trigger_tags, entry.tags)
       end)
-      |> Enum.each(fn thought ->
-        Logger.info("[EngramTriggerRunner] Firing thought #{thought.id} (#{thought.name}) on engram #{entry.id}")
-        Task.start(fn -> Runner.run(thought, entry.body || "") end)
+      |> Enum.each(fn rumination ->
+        Logger.info("[EngramTriggerRunner] Firing rumination #{rumination.id} (#{rumination.name}) on engram #{entry.id}")
+        Task.start(fn -> Runner.run(rumination, entry.body || "") end)
       end)
     rescue
       e in DBConnection.OwnershipError ->

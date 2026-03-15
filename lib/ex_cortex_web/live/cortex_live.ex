@@ -9,7 +9,7 @@ defmodule ExCortexWeb.CortexLive do
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
   alias ExCortex.Signals
-  alias ExCortex.Thoughts
+  alias ExCortex.Ruminations
 
   @signal_limit 10
   @engram_limit 8
@@ -26,8 +26,8 @@ defmodule ExCortexWeb.CortexLive do
   end
 
   @impl true
-  def handle_info({:daydream_updated, _}, socket), do: {:noreply, load_thoughts(socket)}
-  def handle_info({:daydream_started, _}, socket), do: {:noreply, load_thoughts(socket)}
+  def handle_info({:daydream_updated, _}, socket), do: {:noreply, load_ruminations(socket)}
+  def handle_info({:daydream_started, _}, socket), do: {:noreply, load_ruminations(socket)}
   def handle_info({:signal_posted, _}, socket), do: {:noreply, load_signals(socket)}
   def handle_info({:engram_updated, _}, socket), do: {:noreply, load_engrams(socket)}
   def handle_info(_msg, socket), do: {:noreply, socket}
@@ -50,20 +50,20 @@ defmodule ExCortexWeb.CortexLive do
       phx-value-key=""
     >
       <div class="tui-grid-2x2">
-        <%!-- Panel 1: Active Thoughts --%>
-        <.panel title="Active Thoughts">
-          <%= if @thoughts == [] do %>
-            <p class="t-dim text-xs">No active thoughts.</p>
+        <%!-- Panel 1: Active Ruminations --%>
+        <.panel title="Active Ruminations">
+          <%= if @ruminations == [] do %>
+            <p class="t-dim text-xs">No active ruminations.</p>
           <% else %>
             <div class="space-y-1">
-              <%= for thought <- @thoughts do %>
+              <%= for rumination <- @ruminations do %>
                 <div class="flex items-center gap-2 text-sm">
-                  <.status color={thought_status_color(thought)} label={thought.name} />
-                  <span class="t-dim text-xs">{thought.trigger}</span>
+                  <.status color={rumination_status_color(rumination)} label={rumination.name} />
+                  <span class="t-dim text-xs">{rumination.trigger}</span>
                 </div>
-                <%= if thought[:last_run] do %>
+                <%= if rumination[:last_run] do %>
                   <div class="pl-4 text-xs t-dim">
-                    last: {format_relative(thought.last_run.inserted_at)} · {thought.last_run.status}
+                    last: {format_relative(rumination.last_run.inserted_at)} · {rumination.last_run.status}
                   </div>
                 <% end %>
               <% end %>
@@ -140,22 +140,22 @@ defmodule ExCortexWeb.CortexLive do
 
   defp load_data(socket) do
     socket
-    |> load_thoughts()
+    |> load_ruminations()
     |> load_signals()
     |> load_clusters()
     |> load_engrams()
   end
 
-  defp load_thoughts(socket) do
-    thoughts =
-      Thoughts.list_thoughts()
+  defp load_ruminations(socket) do
+    ruminations =
+      Ruminations.list_ruminations()
       |> Enum.filter(&(&1.status == "active"))
-      |> Enum.map(fn thought ->
-        last_run = thought |> Thoughts.list_daydreams() |> List.first()
-        %{id: thought.id, name: thought.name, trigger: thought.trigger, last_run: last_run}
+      |> Enum.map(fn rumination ->
+        last_run = rumination |> Ruminations.list_daydreams() |> List.first()
+        %{id: rumination.id, name: rumination.name, trigger: rumination.trigger, last_run: last_run}
       end)
 
-    assign(socket, thoughts: thoughts)
+    assign(socket, ruminations: ruminations)
   end
 
   defp load_signals(socket) do
@@ -193,15 +193,15 @@ defmodule ExCortexWeb.CortexLive do
 
   # --- Helpers ---
 
-  defp thought_status_color(%{last_run: nil}), do: "dim"
+  defp rumination_status_color(%{last_run: nil}), do: "dim"
 
-  defp thought_status_color(%{last_run: %{status: "running"}}), do: "amber"
+  defp rumination_status_color(%{last_run: %{status: "running"}}), do: "amber"
 
-  defp thought_status_color(%{last_run: %{status: "complete"}}), do: "green"
+  defp rumination_status_color(%{last_run: %{status: "complete"}}), do: "green"
 
-  defp thought_status_color(%{last_run: %{status: "failed"}}), do: "red"
+  defp rumination_status_color(%{last_run: %{status: "failed"}}), do: "red"
 
-  defp thought_status_color(_), do: "dim"
+  defp rumination_status_color(_), do: "dim"
 
   defp signal_color(%{type: "alert"}), do: "red"
   defp signal_color(%{type: "augury"}), do: "pink"

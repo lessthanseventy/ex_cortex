@@ -5,7 +5,7 @@ defmodule ExCortex.Memory.Engram do
   import Ecto.Changeset
 
   schema "engrams" do
-    field :thought_id, :integer
+    field :rumination_id, :integer
     field :title, :string
     field :body, :string, default: ""
     field :tags, {:array, :string}, default: []
@@ -24,7 +24,7 @@ defmodule ExCortex.Memory.Engram do
 
   @required [:title]
   @optional [
-    :thought_id,
+    :rumination_id,
     :body,
     :tags,
     :importance,

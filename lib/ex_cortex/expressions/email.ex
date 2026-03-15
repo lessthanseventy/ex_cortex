@@ -1,5 +1,5 @@
 defmodule ExCortex.Expressions.Email do
-  @moduledoc "Sends thought output via email using the Resend API."
+  @moduledoc "Sends rumination output via email using the Resend API."
 
   def deliver(%{config: config}, _thought, body) do
     api_key = config["api_key"] || raise "Email expression missing api_key"

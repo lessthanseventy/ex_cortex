@@ -1,7 +1,7 @@
-defmodule ExCortex.Thoughts.ImpulseRunner.RollbackTest do
+defmodule ExCortex.Ruminations.ImpulseRunner.RollbackTest do
   use ExUnit.Case, async: true
 
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations.ImpulseRunner
 
   describe "has_write_tools?/1" do
     test "detects write_file" do

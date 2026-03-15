@@ -1,7 +1,7 @@
-defmodule ExCortex.ContextProviders.ThoughtHistory do
+defmodule ExCortex.ContextProviders.RuminationHistory do
   @moduledoc """
   Injects recent step run results for the same step into the preamble.
-  Config: %{"type" => "thought_history", "limit" => 5}
+  Config: %{"type" => "rumination_history", "limit" => 5}
   """
 
   @behaviour ExCortex.ContextProviders.ContextProvider
@@ -9,7 +9,7 @@ defmodule ExCortex.ContextProviders.ThoughtHistory do
   import Ecto.Query
 
   alias ExCortex.Repo
-  alias ExCortex.Thoughts.Impulse
+  alias ExCortex.Ruminations.Impulse
 
   @impl true
   def build(config, step, _input) do

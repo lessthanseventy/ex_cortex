@@ -55,7 +55,7 @@ defmodule ExCortex.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Team Health Check",
         description: "On-demand team capability assessment and gap analysis.",
         status: "active",
@@ -115,7 +115,7 @@ defmodule ExCortex.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Codebase First Look",
         description: "On-demand initial codebase audit and architectural summary.",
         status: "active",
@@ -190,7 +190,7 @@ defmodule ExCortex.Board.Onboarding do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Security Baseline",
         description: "On-demand security baseline with Slack alert for critical findings.",
         status: "active",
@@ -254,7 +254,7 @@ defmodule ExCortex.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Knowledge Base Bootstrap",
         description: "On-demand knowledge base seeding from codebase — architecture + domain glossary.",
         status: "active",

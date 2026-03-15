@@ -1,6 +1,6 @@
-defmodule ExCortex.Thoughts.Runner do
+defmodule ExCortex.Ruminations.Runner do
   @moduledoc """
-  Runs a Thought's ordered step definitions in sequence.
+  Runs a Rumination's ordered step definitions in sequence.
 
   Each step's output is formatted as a structured handoff block and prepended
   to the next step's input. The final step's result is returned.
@@ -11,8 +11,8 @@ defmodule ExCortex.Thoughts.Runner do
 
   alias ExCortex.Neuroplasticity.Loop
   alias ExCortex.Signals
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.ImpulseRunner
 
   require Logger
   require OpenTelemetry.Tracer, as: Tracer
@@ -32,7 +32,7 @@ defmodule ExCortex.Thoughts.Runner do
 
   @doc "Run all steps of a thought, returning the final step result."
   def run(%{steps: steps} = thought, _input) when steps == [] do
-    Logger.info("[ThoughtRunner] Thought #{thought.id} (#{thought.name}) has no steps")
+    Logger.info("[RuminationRunner] Thought #{thought.id} (#{thought.name}) has no steps")
     {:ok, %{steps: []}}
   end
 
@@ -51,10 +51,10 @@ defmodule ExCortex.Thoughts.Runner do
   defp do_run(thought, input) do
     ordered_steps = Enum.sort_by(thought.steps, &Map.get(&1, "order", 0))
 
-    Logger.info("[ThoughtRunner] Running thought #{thought.id} (#{thought.name}), #{length(ordered_steps)} step(s)")
+    Logger.info("[RuminationRunner] Running thought #{thought.id} (#{thought.name}), #{length(ordered_steps)} step(s)")
 
     # Create a daydream record
-    {:ok, daydream} = Thoughts.create_daydream(%{thought_id: thought.id, status: "running"})
+    {:ok, daydream} = Ruminations.create_daydream(%{rumination_id: thought.id, status: "running"})
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_started, daydream})
 
     # Zip each step with the next step for look-ahead (next step name for handoff)
@@ -87,7 +87,7 @@ defmodule ExCortex.Thoughts.Runner do
         {to_string(idx), inspect_result(result)}
       end)
 
-    {:ok, daydream} = Thoughts.update_daydream(daydream, %{status: final_status, synapse_results: synapse_results})
+    {:ok, daydream} = Ruminations.update_daydream(daydream, %{status: final_status, synapse_results: synapse_results})
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_completed, daydream})
 
     if !Application.get_env(:ex_cortex, :sql_sandbox, false) do
@@ -149,7 +149,7 @@ defmodule ExCortex.Thoughts.Runner do
         {acc_results ++ [{:error, :step_not_found}], current_input}
 
       resolved_step ->
-        Logger.info("[ThoughtRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
+        Logger.info("[RuminationRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
         t0 = System.monotonic_time(:millisecond)
 
         result =
@@ -167,7 +167,7 @@ defmodule ExCortex.Thoughts.Runner do
 
         ms = System.monotonic_time(:millisecond) - t0
 
-        Logger.info("[ThoughtRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
+        Logger.info("[RuminationRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
 
         # Async learning loop — runs retrospect without blocking the thought
         step_run_data = %{id: daydream.id, results: inspect_result(result), input: current_input}
@@ -181,17 +181,17 @@ defmodule ExCortex.Thoughts.Runner do
   end
 
   defp log_missing_step(nil) do
-    Logger.warning("[ThoughtRunner] Thought has a step with nil step_id — remove it via the Thoughts UI")
+    Logger.warning("[RuminationRunner] Rumination has a step with nil step_id — remove it via the Ruminations UI")
   end
 
   defp log_missing_step(step_id) do
-    Logger.warning("[ThoughtRunner] Step #{step_id} not found, skipping")
+    Logger.warning("[RuminationRunner] Step #{step_id} not found, skipping")
   end
 
   defp handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ordered_steps) do
     case check_gate(step, result) do
       {:gated, reason} ->
-        Logger.info("[ThoughtRunner] GATED at #{resolved_step.name}: #{reason}")
+        Logger.info("[RuminationRunner] GATED at #{resolved_step.name}: #{reason}")
 
         blocked_text =
           "## BLOCKED\n**Gated step:** #{resolved_step.name}\n**Verdict:** fail\n**Reason:** #{reason}\n\nThe thought was halted because this gate step returned a fail verdict."
@@ -311,7 +311,7 @@ defmodule ExCortex.Thoughts.Runner do
     step_ids = step["steps"] || step["thoughts"] || []
     synthesizer_id = step["synthesizer"]
 
-    Logger.info("[ThoughtRunner] Running branch step: #{length(step_ids)} parallel step(s) + synthesizer")
+    Logger.info("[RuminationRunner] Running branch step: #{length(step_ids)} parallel step(s) + synthesizer")
 
     branch_results =
       step_ids
@@ -322,7 +322,7 @@ defmodule ExCortex.Thoughts.Runner do
               {step_id, {:error, :step_not_found}}
 
             resolved_step ->
-              Logger.info("[ThoughtRunner] Branch: running #{resolved_step.name}")
+              Logger.info("[RuminationRunner] Branch: running #{resolved_step.name}")
               {resolved_step.name, ImpulseRunner.run(resolved_step, input)}
           end
         end,
@@ -338,11 +338,11 @@ defmodule ExCortex.Thoughts.Runner do
 
     case resolve_step(synthesizer_id) do
       nil ->
-        Logger.warning("[ThoughtRunner] Branch synthesizer #{synthesizer_id} not found")
+        Logger.warning("[RuminationRunner] Branch synthesizer #{synthesizer_id} not found")
         {:error, :synthesizer_not_found}
 
       synth ->
-        Logger.info("[ThoughtRunner] Branch: running synthesizer #{synth.name}")
+        Logger.info("[RuminationRunner] Branch: running synthesizer #{synth.name}")
         ImpulseRunner.run(synth, combined_input)
     end
   end
@@ -358,7 +358,7 @@ defmodule ExCortex.Thoughts.Runner do
 
   defp resolve_step(step_id) when is_binary(step_id) do
     case Integer.parse(step_id) do
-      {id, ""} -> Thoughts.get_synapse!(id)
+      {id, ""} -> Ruminations.get_synapse!(id)
       _ -> nil
     end
   rescue
@@ -366,7 +366,7 @@ defmodule ExCortex.Thoughts.Runner do
   end
 
   defp resolve_step(step_id) when is_integer(step_id) do
-    Thoughts.get_synapse!(step_id)
+    Ruminations.get_synapse!(step_id)
   rescue
     _ -> nil
   end
@@ -401,8 +401,8 @@ defmodule ExCortex.Thoughts.Runner do
              metadata: %{"url" => url, "daydream_id" => daydream.id},
              status: "active"
            }) do
-        {:ok, _} -> Logger.info("[ThoughtRunner] Posted artifact card: #{title}")
-        {:error, e} -> Logger.warning("[ThoughtRunner] Failed to post artifact card: #{inspect(e)}")
+        {:ok, _} -> Logger.info("[RuminationRunner] Posted artifact card: #{title}")
+        {:error, e} -> Logger.warning("[RuminationRunner] Failed to post artifact card: #{inspect(e)}")
       end
     end)
   end

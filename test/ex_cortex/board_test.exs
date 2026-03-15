@@ -18,7 +18,7 @@ defmodule ExCortex.BoardTest do
 
         assert is_list(t.step_definitions), "#{t.id} missing step_definitions"
         assert t.step_definitions != [], "#{t.id} has no step_definitions"
-        assert is_map(t.thought_definition), "#{t.id} missing thought_definition"
+        assert is_map(t.rumination_definition), "#{t.id} missing rumination_definition"
       end
     end
 

@@ -32,7 +32,7 @@ defmodule ExCortex.Obsidian.SyncTest do
       title: "Test",
       body: "Body",
       tags: [],
-      thought_id: 1,
+      rumination_id: 1,
       importance: 3,
       inserted_at: DateTime.utc_now()
     }

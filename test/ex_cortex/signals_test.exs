@@ -101,10 +101,10 @@ defmodule ExCortex.SignalsTest do
   describe "sync_proposals/0" do
     test "creates cards for pending proposals that don't have cards yet" do
       {:ok, step} =
-        ExCortex.Thoughts.create_synapse(%{name: "Sync Step", trigger: "manual", roster: []})
+        ExCortex.Ruminations.create_synapse(%{name: "Sync Step", trigger: "manual", roster: []})
 
       {:ok, proposal} =
-        ExCortex.Thoughts.create_proposal(%{
+        ExCortex.Ruminations.create_proposal(%{
           synapse_id: step.id,
           type: "roster_change",
           description: "Narrow roster",
@@ -119,10 +119,10 @@ defmodule ExCortex.SignalsTest do
 
     test "does not duplicate cards for already-synced proposals" do
       {:ok, step} =
-        ExCortex.Thoughts.create_synapse(%{name: "Sync Step 2", trigger: "manual", roster: []})
+        ExCortex.Ruminations.create_synapse(%{name: "Sync Step 2", trigger: "manual", roster: []})
 
       {:ok, _} =
-        ExCortex.Thoughts.create_proposal(%{
+        ExCortex.Ruminations.create_proposal(%{
           synapse_id: step.id,
           type: "other",
           description: "Already here",

@@ -131,7 +131,7 @@ defmodule ExCortex.Pathways.AccessibilityReview do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Monthly Accessibility Review",

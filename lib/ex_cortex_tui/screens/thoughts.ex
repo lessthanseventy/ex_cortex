@@ -1,12 +1,12 @@
 defmodule ExCortexTUI.Screens.Thoughts do
-  @moduledoc "Thoughts screen: lists thoughts with status, trigger, and synapse count."
+  @moduledoc "Thoughts screen: lists ruminations with status, trigger, and synapse count."
 
   alias ExCortexTUI.Components.KeyHints
   alias ExCortexTUI.Components.Panel
   alias ExCortexTUI.Components.Status
 
   def render(_state) do
-    content = fetch_thoughts()
+    content = fetch_ruminations()
 
     hints =
       KeyHints.render([
@@ -17,20 +17,20 @@ defmodule ExCortexTUI.Screens.Thoughts do
         {"q", "Quit"}
       ])
 
-    Enum.join([Panel.render("Thoughts", content), "", hints], "\n")
+    Enum.join([Panel.render("Ruminations", content), "", hints], "\n")
   end
 
-  defp fetch_thoughts do
-    thoughts = ExCortex.Thoughts.list_thoughts()
+  defp fetch_ruminations do
+    ruminations = ExCortex.Ruminations.list_ruminations()
 
-    if Enum.empty?(thoughts) do
-      Status.render(:amber, "No thoughts defined")
+    if Enum.empty?(ruminations) do
+      Status.render(:amber, "No ruminations defined")
     else
       header = pad_row("NAME", "STATUS", "TRIGGER", "SYNAPSES")
       divider = String.duplicate("─", 56)
 
       rows =
-        Enum.map_join(thoughts, "\n", fn t ->
+        Enum.map_join(ruminations, "\n", fn t ->
           synapses =
             try do
               (t.steps || []) |> length() |> Integer.to_string()

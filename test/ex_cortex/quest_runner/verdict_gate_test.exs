@@ -1,7 +1,7 @@
-defmodule ExCortex.Thoughts.Runner.VerdictGateTest do
+defmodule ExCortex.Ruminations.Runner.VerdictGateTest do
   use ExUnit.Case, async: true
 
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations.Runner
 
   describe "check_gate/2" do
     test "no gate field passes through" do

@@ -1,14 +1,14 @@
-defmodule ExCortex.Thoughts.ImpulseRunnerDangerousTest do
+defmodule ExCortex.Ruminations.ImpulseRunnerDangerousTest do
   use ExCortex.DataCase
 
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations.ImpulseRunner
 
   describe "dangerous?/1" do
     test "returns true for dangerous tools" do
       assert ImpulseRunner.dangerous?("send_email")
       assert ImpulseRunner.dangerous?("create_github_issue")
       assert ImpulseRunner.dangerous?("comment_github")
-      assert ImpulseRunner.dangerous?("run_thought")
+      assert ImpulseRunner.dangerous?("run_rumination")
     end
 
     test "returns false for safe tools" do

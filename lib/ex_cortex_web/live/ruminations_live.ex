@@ -1,8 +1,8 @@
-defmodule ExCortexWeb.ThoughtsLive do
+defmodule ExCortexWeb.RuminationsLive do
   @moduledoc "Pipeline builder and run history screen."
   use ExCortexWeb, :live_view
 
-  alias ExCortex.Thoughts
+  alias ExCortex.Ruminations
 
   @impl true
   def mount(_params, _session, socket) do
@@ -10,16 +10,16 @@ defmodule ExCortexWeb.ThoughtsLive do
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "daydreams")
     end
 
-    thoughts = Thoughts.list_thoughts()
-    synapses = Thoughts.list_synapses()
+    ruminations = Ruminations.list_ruminations()
+    synapses = Ruminations.list_synapses()
 
     {:ok,
      assign(socket,
-       page_title: "Thoughts",
-       thoughts: thoughts,
+       page_title: "Ruminations",
+       ruminations: ruminations,
        synapses: synapses,
        selected_id: nil,
-       selected_thought: nil,
+       selected_rumination: nil,
        daydreams: [],
        running: %{},
        adhoc_input: ""
@@ -28,8 +28,8 @@ defmodule ExCortexWeb.ThoughtsLive do
 
   @impl true
   def handle_params(%{"id" => id}, _url, socket) do
-    thought_id = String.to_integer(id)
-    {:noreply, load_thought(socket, thought_id)}
+    rumination_id = String.to_integer(id)
+    {:noreply, load_rumination(socket, rumination_id)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
@@ -37,10 +37,10 @@ defmodule ExCortexWeb.ThoughtsLive do
   # PubSub — live run updates
   @impl true
   def handle_info({:daydream_started, run}, socket) do
-    running = Map.put(socket.assigns.running, run.thought_id, :running)
+    running = Map.put(socket.assigns.running, run.rumination_id, :running)
 
     daydreams =
-      if socket.assigns.selected_id == run.thought_id do
+      if socket.assigns.selected_id == run.rumination_id do
         [run | socket.assigns.daydreams]
       else
         socket.assigns.daydreams
@@ -50,10 +50,10 @@ defmodule ExCortexWeb.ThoughtsLive do
   end
 
   def handle_info({:daydream_completed, run}, socket) do
-    running = Map.delete(socket.assigns.running, run.thought_id)
+    running = Map.delete(socket.assigns.running, run.rumination_id)
 
     daydreams =
-      if socket.assigns.selected_id == run.thought_id do
+      if socket.assigns.selected_id == run.rumination_id do
         Enum.map(socket.assigns.daydreams, fn d ->
           if d.id == run.id, do: run, else: d
         end)
@@ -65,13 +65,13 @@ defmodule ExCortexWeb.ThoughtsLive do
   end
 
   # Internal task result (fallback for when PubSub doesn't fire)
-  def handle_info({:run_complete, thought_id, _result}, socket) do
-    running = Map.delete(socket.assigns.running, thought_id)
+  def handle_info({:run_complete, rumination_id, _result}, socket) do
+    running = Map.delete(socket.assigns.running, rumination_id)
 
     daydreams =
-      if socket.assigns.selected_id == thought_id do
-        thought = Thoughts.get_thought!(thought_id)
-        Thoughts.list_daydreams(thought)
+      if socket.assigns.selected_id == rumination_id do
+        rumination = Ruminations.get_rumination!(rumination_id)
+        Ruminations.list_daydreams(rumination)
       else
         socket.assigns.daydreams
       end
@@ -84,38 +84,38 @@ defmodule ExCortexWeb.ThoughtsLive do
   # Events
 
   @impl true
-  def handle_event("select_thought", %{"id" => id}, socket) do
-    thought_id = String.to_integer(id)
-    {:noreply, load_thought(socket, thought_id)}
+  def handle_event("select_rumination", %{"id" => id}, socket) do
+    rumination_id = String.to_integer(id)
+    {:noreply, load_rumination(socket, rumination_id)}
   end
 
-  def handle_event("run_thought", %{"id" => id}, socket) do
-    thought = Thoughts.get_thought!(String.to_integer(id))
+  def handle_event("run_rumination", %{"id" => id}, socket) do
+    rumination = Ruminations.get_rumination!(String.to_integer(id))
     input = socket.assigns.adhoc_input
     parent = self()
 
     Task.start(fn ->
-      result = ExCortex.Thoughts.Runner.run(thought, input)
-      send(parent, {:run_complete, thought.id, result})
+      result = ExCortex.Ruminations.Runner.run(rumination, input)
+      send(parent, {:run_complete, rumination.id, result})
     end)
 
-    running = Map.put(socket.assigns.running, thought.id, :running)
+    running = Map.put(socket.assigns.running, rumination.id, :running)
     {:noreply, assign(socket, running: running)}
   end
 
-  def handle_event("delete_thought", %{"id" => id}, socket) do
-    thought = Thoughts.get_thought!(String.to_integer(id))
-    Thoughts.delete_thought(thought)
-    thoughts = Thoughts.list_thoughts()
+  def handle_event("delete_rumination", %{"id" => id}, socket) do
+    rumination = Ruminations.get_rumination!(String.to_integer(id))
+    Ruminations.delete_rumination(rumination)
+    ruminations = Ruminations.list_ruminations()
 
     socket =
-      if socket.assigns.selected_id == thought.id do
-        assign(socket, selected_id: nil, selected_thought: nil, daydreams: [])
+      if socket.assigns.selected_id == rumination.id do
+        assign(socket, selected_id: nil, selected_rumination: nil, daydreams: [])
       else
         socket
       end
 
-    {:noreply, assign(socket, thoughts: thoughts)}
+    {:noreply, assign(socket, ruminations: ruminations)}
   end
 
   def handle_event("navigate", %{"to" => path}, socket) do
@@ -127,15 +127,15 @@ defmodule ExCortexWeb.ThoughtsLive do
   end
 
   def handle_event("clear_selection", _params, socket) do
-    {:noreply, assign(socket, selected_id: nil, selected_thought: nil, daydreams: [])}
+    {:noreply, assign(socket, selected_id: nil, selected_rumination: nil, daydreams: [])}
   end
 
   # Helpers
 
-  defp load_thought(socket, thought_id) do
-    thought = Thoughts.get_thought!(thought_id)
-    daydreams = Thoughts.list_daydreams(thought)
-    assign(socket, selected_id: thought_id, selected_thought: thought, daydreams: daydreams)
+  defp load_rumination(socket, rumination_id) do
+    rumination = Ruminations.get_rumination!(rumination_id)
+    daydreams = Ruminations.list_daydreams(rumination)
+    assign(socket, selected_id: rumination_id, selected_rumination: rumination, daydreams: daydreams)
   end
 
   defp status_color("active"), do: "green"
@@ -185,29 +185,29 @@ defmodule ExCortexWeb.ThoughtsLive do
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        <%!-- Left panel: thought list --%>
+        <%!-- Left panel: rumination list --%>
         <div class="md:col-span-1">
-          <.panel title="thoughts">
-            <%= if @thoughts == [] do %>
+          <.panel title="ruminations">
+            <%= if @ruminations == [] do %>
               <p class="text-xs t-dim py-2">
-                No thoughts yet. Create one from the
-                <a href="/thoughts" class="underline">Thoughts</a>
+                No ruminations yet. Create one from the
+                <a href="/ruminations" class="underline">Ruminations</a>
                 page.
               </p>
             <% else %>
               <div class="space-y-1">
-                <%= for thought <- @thoughts do %>
+                <%= for rumination <- @ruminations do %>
                   <button
-                    class={"w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 hover:bg-muted/40 transition-colors " <> if(@selected_id == thought.id, do: "bg-muted/60 font-medium", else: "")}
-                    phx-click="select_thought"
-                    phx-value-id={thought.id}
+                    class={"w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 hover:bg-muted/40 transition-colors " <> if(@selected_id == rumination.id, do: "bg-muted/60 font-medium", else: "")}
+                    phx-click="select_rumination"
+                    phx-value-id={rumination.id}
                   >
-                    <.status color={status_color(thought.status)} label="" />
-                    <span class="flex-1 truncate">{thought.name}</span>
-                    <%= if Map.get(@running, thought.id) == :running do %>
+                    <.status color={status_color(rumination.status)} label="" />
+                    <span class="flex-1 truncate">{rumination.name}</span>
+                    <%= if Map.get(@running, rumination.id) == :running do %>
                       <span class="text-xs t-amber animate-pulse">running</span>
                     <% else %>
-                      <span class="text-xs t-dim">{step_count(thought)}s</span>
+                      <span class="text-xs t-dim">{step_count(rumination)}s</span>
                     <% end %>
                   </button>
                 <% end %>
@@ -218,35 +218,35 @@ defmodule ExCortexWeb.ThoughtsLive do
 
         <%!-- Right panel: detail or empty state --%>
         <div class="md:col-span-2 space-y-4">
-          <%= if @selected_thought do %>
-            <.panel title={@selected_thought.name}>
+          <%= if @selected_rumination do %>
+            <.panel title={@selected_rumination.name}>
               <div class="space-y-4">
                 <%!-- Meta row --%>
                 <div class="flex items-center gap-3 text-sm flex-wrap">
                   <.status
-                    color={status_color(@selected_thought.status)}
-                    label={@selected_thought.status}
+                    color={status_color(@selected_rumination.status)}
+                    label={@selected_rumination.status}
                   />
-                  <span class="t-dim">trigger: {@selected_thought.trigger}</span>
-                  <%= if @selected_thought.schedule do %>
-                    <span class="t-dim">schedule: {@selected_thought.schedule}</span>
+                  <span class="t-dim">trigger: {@selected_rumination.trigger}</span>
+                  <%= if @selected_rumination.schedule do %>
+                    <span class="t-dim">schedule: {@selected_rumination.schedule}</span>
                   <% end %>
                   <span class="t-dim">
-                    {step_count(@selected_thought)} synapse{if step_count(@selected_thought) != 1,
+                    {step_count(@selected_rumination)} synapse{if step_count(@selected_rumination) != 1,
                       do: "s"}
                   </span>
                 </div>
 
-                <%= if @selected_thought.description do %>
-                  <p class="text-sm text-muted-foreground">{@selected_thought.description}</p>
+                <%= if @selected_rumination.description do %>
+                  <p class="text-sm text-muted-foreground">{@selected_rumination.description}</p>
                 <% end %>
 
                 <%!-- Synapse chain --%>
-                <%= if step_count(@selected_thought) > 0 do %>
+                <%= if step_count(@selected_rumination) > 0 do %>
                   <div>
                     <p class="text-xs t-dim uppercase tracking-wide mb-2">Synapse Chain</p>
                     <div class="space-y-1">
-                      <%= for {step, idx} <- Enum.with_index(@selected_thought.steps) do %>
+                      <%= for {step, idx} <- Enum.with_index(@selected_rumination.steps) do %>
                         <div class="flex items-center gap-2 text-sm">
                           <span class="t-dim font-mono text-xs w-4 shrink-0">{idx + 1}.</span>
                           <span class="flex-1 truncate">
@@ -280,11 +280,11 @@ defmodule ExCortexWeb.ThoughtsLive do
                     />
                     <.button
                       size="sm"
-                      phx-click="run_thought"
-                      phx-value-id={@selected_thought.id}
-                      disabled={Map.get(@running, @selected_thought.id) == :running}
+                      phx-click="run_rumination"
+                      phx-value-id={@selected_rumination.id}
+                      disabled={Map.get(@running, @selected_rumination.id) == :running}
                     >
-                      {if Map.get(@running, @selected_thought.id) == :running,
+                      {if Map.get(@running, @selected_rumination.id) == :running,
                         do: "Running…",
                         else: "▶ Run"}
                     </.button>
@@ -297,7 +297,7 @@ defmodule ExCortexWeb.ThoughtsLive do
                     size="sm"
                     variant="ghost"
                     phx-click="navigate"
-                    phx-value-to="/thoughts"
+                    phx-value-to="/ruminations"
                   >
                     Edit
                   </.button>
@@ -305,9 +305,9 @@ defmodule ExCortexWeb.ThoughtsLive do
                     size="sm"
                     variant="ghost"
                     class="text-destructive hover:text-destructive"
-                    phx-click="delete_thought"
-                    phx-value-id={@selected_thought.id}
-                    data-confirm={"Delete thought \"#{@selected_thought.name}\"?"}
+                    phx-click="delete_rumination"
+                    phx-value-id={@selected_rumination.id}
+                    data-confirm={"Delete rumination \"#{@selected_rumination.name}\"?"}
                   >
                     Delete
                   </.button>
@@ -332,9 +332,9 @@ defmodule ExCortexWeb.ThoughtsLive do
               <% end %>
             </.panel>
           <% else %>
-            <.panel title="select a thought">
+            <.panel title="select a rumination">
               <p class="text-sm t-dim py-4 text-center">
-                Choose a thought from the list to view its synapse chain and run history.
+                Choose a rumination from the list to view its synapse chain and run history.
               </p>
             </.panel>
           <% end %>

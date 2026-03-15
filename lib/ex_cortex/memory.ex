@@ -8,13 +8,13 @@ defmodule ExCortex.Memory do
 
   def list_engrams(opts \\ []) do
     tags = Keyword.get(opts, :tags, [])
-    thought_id = Keyword.get(opts, :thought_id)
+    rumination_id = Keyword.get(opts, :rumination_id)
     sort = Keyword.get(opts, :sort, "newest")
 
     query =
       from(e in Engram)
       |> filter_tags(tags)
-      |> filter_thought(thought_id)
+      |> filter_rumination(rumination_id)
       |> apply_sort(sort)
 
     Repo.all(query)
@@ -33,32 +33,32 @@ defmodule ExCortex.Memory do
   def delete_engram(%Engram{} = engram), do: Repo.delete(engram)
 
   @doc """
-  Used by artifact daydreams. Appends or replaces based on thought write_mode.
+  Used by artifact daydreams. Appends or replaces based on rumination write_mode.
   - "append": always creates a new entry
-  - "replace": overwrites the existing thought-owned entry (never overwrites source: "manual")
+  - "replace": overwrites the existing rumination-owned entry (never overwrites source: "manual")
   - "both": replaces the pinned summary entry AND appends a dated log entry
   """
-  def write_artifact(thought, attrs) do
+  def write_artifact(rumination, attrs) do
     if repetitive_content?(attrs[:body]) do
       require Logger
 
-      Logger.warning("[Memory] Rejecting repetitive/garbled artifact for thought #{thought.id}")
+      Logger.warning("[Memory] Rejecting repetitive/garbled artifact for rumination #{rumination.id}")
       {:error, :repetitive_content}
     else
       result =
-        case thought.write_mode do
+        case rumination.write_mode do
           "replace" ->
-            replace_or_create(thought, attrs)
+            replace_or_create(rumination, attrs)
 
           "both" ->
-            replace_or_create(thought, attrs)
+            replace_or_create(rumination, attrs)
             date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
-            log_template = thought.log_title_template || "#{thought.name || "Entry"} — Log — {date}"
+            log_template = rumination.log_title_template || "#{rumination.name || "Entry"} — Log — {date}"
             log_title = String.replace(log_template, "{date}", date)
-            create_engram(Map.merge(attrs, %{thought_id: thought.id, title: log_title}))
+            create_engram(Map.merge(attrs, %{rumination_id: rumination.id, title: log_title}))
 
           _ ->
-            create_engram(Map.put(attrs, :thought_id, thought.id))
+            create_engram(Map.put(attrs, :rumination_id, rumination.id))
         end
 
       with {:ok, entry} <- result, do: broadcast_and_sync(entry)
@@ -74,13 +74,13 @@ defmodule ExCortex.Memory do
     ExCortex.Obsidian.Sync.sync_engram(entry)
   end
 
-  defp replace_or_create(thought, attrs) do
+  defp replace_or_create(rumination, attrs) do
     case Repo.one(
            from e in Engram,
-             where: e.thought_id == ^thought.id and e.source == "thought",
+             where: e.rumination_id == ^rumination.id and e.source == "thought",
              limit: 1
          ) do
-      nil -> create_engram(Map.put(attrs, :thought_id, thought.id))
+      nil -> create_engram(Map.put(attrs, :rumination_id, rumination.id))
       existing -> update_engram(existing, attrs)
     end
   end
@@ -156,10 +156,10 @@ defmodule ExCortex.Memory do
     from e in query, where: fragment("? && ?", e.tags, ^tags)
   end
 
-  defp filter_thought(query, nil), do: query
+  defp filter_rumination(query, nil), do: query
 
-  defp filter_thought(query, thought_id) do
-    from e in query, where: e.thought_id == ^thought_id
+  defp filter_rumination(query, rumination_id) do
+    from e in query, where: e.rumination_id == ^rumination_id
   end
 
   defp apply_sort(query, "importance") do

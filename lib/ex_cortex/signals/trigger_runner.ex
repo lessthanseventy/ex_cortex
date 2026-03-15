@@ -1,12 +1,12 @@
 defmodule ExCortex.Signals.TriggerRunner do
   @moduledoc """
-  Listens for new cortex signal cards and fires any thoughts with trigger: "cortex"
+  Listens for new cortex signal cards and fires any ruminations with trigger: "cortex"
   whose signal_trigger_types/signal_trigger_tags overlap the card's type/tags.
   """
   use GenServer
 
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Runner
 
   require Logger
 
@@ -21,16 +21,16 @@ defmodule ExCortex.Signals.TriggerRunner do
   @impl true
   def handle_info({:signal_posted, card}, state) do
     try do
-      Thoughts.list_thoughts()
+      Ruminations.list_ruminations()
       |> Enum.filter(fn q ->
         q.trigger == "cortex" && q.status == "active" &&
           types_match?(q.signal_trigger_types, card.type) &&
           tags_match?(q.signal_trigger_tags, card.tags || [])
       end)
-      |> Enum.each(fn thought ->
-        Logger.info("[SignalTriggerRunner] Firing thought #{thought.id} (#{thought.name}) on signal card #{card.id}")
+      |> Enum.each(fn rumination ->
+        Logger.info("[SignalTriggerRunner] Firing rumination #{rumination.id} (#{rumination.name}) on signal card #{card.id}")
         input = build_input(card)
-        Task.start(fn -> Runner.run(thought, input) end)
+        Task.start(fn -> Runner.run(rumination, input) end)
       end)
     rescue
       e in [DBConnection.OwnershipError, DBConnection.ConnectionError] ->

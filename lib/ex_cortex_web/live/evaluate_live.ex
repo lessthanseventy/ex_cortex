@@ -4,7 +4,7 @@ defmodule ExCortexWeb.EvaluateLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, push_navigate(socket, to: "/thoughts")}
+    {:ok, push_navigate(socket, to: "/ruminations")}
   end
 
   @impl true

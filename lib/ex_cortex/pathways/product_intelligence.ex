@@ -117,7 +117,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Weekly Product Intelligence",

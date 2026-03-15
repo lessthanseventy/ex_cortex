@@ -120,7 +120,7 @@ defmodule ExCortex.Pathways.QualityCollective do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Quality Review Campaign",

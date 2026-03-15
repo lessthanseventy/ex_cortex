@@ -1,15 +1,15 @@
-defmodule ExCortex.Thoughts.Runner.GuardrailsIntegrationTest do
+defmodule ExCortex.Ruminations.Runner.GuardrailsIntegrationTest do
   use ExCortex.DataCase, async: false
 
   alias ExCortex.LLM.Ollama
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.ImpulseRunner
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.ImpulseRunner
+  alias ExCortex.Ruminations.Runner
 
   describe "verdict gate integration" do
-    test "thought with gated step that fails is detected by check_gate" do
+    test "rumination with gated step that fails is detected by check_gate" do
       {:ok, gate_step} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Test Gate Step",
           trigger: "manual",
           output_type: "verdict",
@@ -98,7 +98,7 @@ defmodule ExCortex.Thoughts.Runner.GuardrailsIntegrationTest do
   describe "step schema guardrail fields" do
     test "step accepts dangerous_tool_mode" do
       {:ok, step} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Guarded Step",
           trigger: "manual",
           output_type: "freeform",
@@ -113,7 +113,7 @@ defmodule ExCortex.Thoughts.Runner.GuardrailsIntegrationTest do
 
     test "step defaults dangerous_tool_mode to execute" do
       {:ok, step} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Default Step",
           trigger: "manual",
           output_type: "freeform",
@@ -126,7 +126,7 @@ defmodule ExCortex.Thoughts.Runner.GuardrailsIntegrationTest do
 
     test "step rejects invalid dangerous_tool_mode" do
       {:error, changeset} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Bad Step",
           trigger: "manual",
           output_type: "freeform",

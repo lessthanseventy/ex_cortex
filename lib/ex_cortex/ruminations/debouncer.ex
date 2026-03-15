@@ -1,18 +1,18 @@
-defmodule ExCortex.Thoughts.Debouncer do
+defmodule ExCortex.Ruminations.Debouncer do
   @moduledoc """
   Coalesces items from multiple sources into a single step or daydream.
 
   When multiple sources fire (e.g. Sync All), each calls `enqueue/3` (for steps)
-  or `enqueue_thought/3` (for thoughts) with their items. The debouncer waits
+  or `enqueue_rumination/3` (for ruminations) with their items. The debouncer waits
   for a collection window, then summarises each source's batch with a quick LLM
-  call, combines the summaries, and runs the step or thought exactly once.
+  call, combines the summaries, and runs the step or rumination exactly once.
 
-  State keys are tagged tuples: {:step, id} or {:thought, id} to avoid collisions.
+  State keys are tagged tuples: {:step, id} or {:rumination, id} to avoid collisions.
   """
   use GenServer
 
-  alias ExCortex.Thoughts.ImpulseRunner
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations.ImpulseRunner
+  alias ExCortex.Ruminations.Runner
 
   require Logger
 
@@ -25,9 +25,9 @@ defmodule ExCortex.Thoughts.Debouncer do
     GenServer.cast(__MODULE__, {:enqueue, {:step, step.id}, step, source_label, items})
   end
 
-  @doc "Enqueue items from a named source for a thought."
-  def enqueue_thought(thought, source_label, items) when is_list(items) and items != [] do
-    GenServer.cast(__MODULE__, {:enqueue, {:thought, thought.id}, thought, source_label, items})
+  @doc "Enqueue items from a named source for a rumination."
+  def enqueue_rumination(rumination, source_label, items) when is_list(items) and items != [] do
+    GenServer.cast(__MODULE__, {:enqueue, {:rumination, rumination.id}, rumination, source_label, items})
   end
 
   # ── GenServer callbacks ────────────────────────────────────────────────────
@@ -65,30 +65,30 @@ defmodule ExCortex.Thoughts.Debouncer do
         Phoenix.PubSub.broadcast(
           ExCortex.PubSub,
           "source_activity",
-          {:thought_started, entity_name, total_items}
+          {:rumination_started, entity_name, total_items}
         )
 
         Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
           try do
             Logger.info(
-              "[ThoughtDebouncer] Summarising #{map_size(batches)} source(s) for #{inspect(key)} (#{entity_name}), #{total_items} total items"
+              "[RuminationDebouncer] Summarising #{map_size(batches)} source(s) for #{inspect(key)} (#{entity_name}), #{total_items} total items"
             )
 
             combined = summarise_batches(batches)
-            Logger.info("[ThoughtDebouncer] Running #{inspect(key)} (#{entity_name})")
+            Logger.info("[RuminationDebouncer] Running #{inspect(key)} (#{entity_name})")
 
             case key do
               {:step, _} -> ImpulseRunner.run(entity, combined)
-              {:thought, _} -> Runner.run(entity, combined)
+              {:rumination, _} -> Runner.run(entity, combined)
             end
           rescue
             e ->
-              Logger.error("Step/Thought failed: #{Exception.message(e)}")
+              Logger.error("Step/Rumination failed: #{Exception.message(e)}")
 
               Phoenix.PubSub.broadcast(
                 ExCortex.PubSub,
                 "source_activity",
-                {:thought_error, entity_name, Exception.message(e)}
+                {:rumination_error, entity_name, Exception.message(e)}
               )
           end
         end)

@@ -31,7 +31,7 @@ defmodule ExCortexWeb.Router do
       live "/", CortexLive, :index
       live "/cortex", CortexLive, :index
       live "/neurons", NeuronsLive, :index
-      live "/thoughts", ThoughtsLive, :index
+      live "/ruminations", RuminationsLive, :index
       live "/memory", MemoryLive, :index
       live "/senses", SensesLive, :index
       live "/instinct", InstinctLive, :index

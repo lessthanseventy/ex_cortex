@@ -2,11 +2,11 @@ defmodule ExCortex.DangerousToolInterceptionTest do
   use ExCortex.DataCase, async: true
 
   alias ExCortex.LLM.Ollama
-  alias ExCortex.Thoughts.ImpulseRunner
+  alias ExCortex.Ruminations.ImpulseRunner
 
   describe "ImpulseRunner.dangerous?/1" do
     test "returns true for dangerous tools" do
-      for tool <- ~w(send_email create_github_issue comment_github run_thought merge_pr git_pull restart_app close_issue) do
+      for tool <- ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue) do
         assert ImpulseRunner.dangerous?(tool), "expected #{tool} to be dangerous"
       end
     end
@@ -21,7 +21,7 @@ defmodule ExCortex.DangerousToolInterceptionTest do
   describe "intercept_dangerous_tool/4" do
     test "creates a proposal for a dangerous tool" do
       {:ok, step} =
-        ExCortex.Thoughts.create_synapse(%{
+        ExCortex.Ruminations.create_synapse(%{
           name: "interception-test-step",
           trigger: "manual",
           roster: [%{"who" => "all", "how" => "solo"}]
@@ -68,7 +68,7 @@ defmodule ExCortex.DangerousToolInterceptionTest do
     test "accepts valid dangerous_tool_mode values" do
       for mode <- ~w(execute intercept dry_run) do
         {:ok, step} =
-          ExCortex.Thoughts.create_synapse(%{
+          ExCortex.Ruminations.create_synapse(%{
             name: "mode-test-#{mode}",
             trigger: "manual",
             roster: [%{"who" => "all", "how" => "solo"}],
@@ -81,7 +81,7 @@ defmodule ExCortex.DangerousToolInterceptionTest do
 
     test "defaults dangerous_tool_mode to execute" do
       {:ok, step} =
-        ExCortex.Thoughts.create_synapse(%{
+        ExCortex.Ruminations.create_synapse(%{
           name: "default-mode-step",
           trigger: "manual",
           roster: [%{"who" => "all", "how" => "solo"}]
@@ -92,7 +92,7 @@ defmodule ExCortex.DangerousToolInterceptionTest do
 
     test "rejects invalid dangerous_tool_mode" do
       {:error, changeset} =
-        ExCortex.Thoughts.create_synapse(%{
+        ExCortex.Ruminations.create_synapse(%{
           name: "bad-mode-step",
           trigger: "manual",
           roster: [%{"who" => "all", "how" => "solo"}],
@@ -116,9 +116,9 @@ defmodule ExCortex.DangerousToolInterceptionTest do
   end
 
   describe "intercept message format" do
-    test "produces expected format with thought_id" do
-      thought_id = 42
-      expected = "Tool call queued for human approval. Proposal ID: #{thought_id}. Continue without this result."
+    test "produces expected format with proposal_id" do
+      proposal_id = 42
+      expected = "Tool call queued for human approval. Proposal ID: #{proposal_id}. Continue without this result."
       assert String.contains?(expected, "queued for human approval")
       assert String.contains?(expected, "42")
     end

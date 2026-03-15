@@ -6,7 +6,7 @@ defmodule ExCortexTUI.Screens.Cortex do
   alias ExCortexTUI.Components.Status
 
   def render(_state) do
-    thoughts_content = fetch_thoughts()
+    ruminations_content = fetch_ruminations()
     signals_content = fetch_signals()
     clusters_content = fetch_clusters()
     memory_content = fetch_memory()
@@ -15,7 +15,7 @@ defmodule ExCortexTUI.Screens.Cortex do
       KeyHints.render([
         {"c", "Cortex"},
         {"n", "Neurons"},
-        {"t", "Thoughts"},
+        {"t", "Ruminations"},
         {"m", "Memory"},
         {"s", "Senses"},
         {"i", "Instinct"},
@@ -25,7 +25,7 @@ defmodule ExCortexTUI.Screens.Cortex do
 
     Enum.join(
       [
-        Panel.render("Active Thoughts", thoughts_content),
+        Panel.render("Active Ruminations", ruminations_content),
         Panel.render("Recent Signals", signals_content),
         Panel.render("Cluster Health", clusters_content),
         Panel.render("Recent Memory", memory_content),
@@ -36,16 +36,16 @@ defmodule ExCortexTUI.Screens.Cortex do
     )
   end
 
-  defp fetch_thoughts do
-    thoughts = ExCortex.Thoughts.list_thoughts()
+  defp fetch_ruminations do
+    ruminations = ExCortex.Ruminations.list_ruminations()
 
-    if Enum.empty?(thoughts) do
-      Status.render(:amber, "No active thoughts")
+    if Enum.empty?(ruminations) do
+      Status.render(:amber, "No active ruminations")
     else
-      thoughts
+      ruminations
       |> Enum.take(5)
       |> Enum.map_join("\n", fn t ->
-        color = thought_color(t.status)
+        color = rumination_color(t.status)
         Status.render(color, "#{t.name}  [#{t.status}]")
       end)
     end
@@ -97,10 +97,10 @@ defmodule ExCortexTUI.Screens.Cortex do
     _ -> Status.render(:red, "Unavailable — DB not connected")
   end
 
-  defp thought_color("active"), do: :green
-  defp thought_color("running"), do: :cyan
-  defp thought_color("failed"), do: :red
-  defp thought_color(_), do: :amber
+  defp rumination_color("active"), do: :green
+  defp rumination_color("running"), do: :cyan
+  defp rumination_color("failed"), do: :red
+  defp rumination_color(_), do: :amber
 
   defp truncate(nil, _), do: ""
   defp truncate(s, max) when byte_size(s) <= max, do: s

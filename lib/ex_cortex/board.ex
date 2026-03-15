@@ -1,10 +1,10 @@
 defmodule ExCortex.Board do
   @moduledoc """
-  Pre-configured thought templates for the Thought Board.
+  Pre-configured rumination templates for the Rumination Board.
 
   Templates are organized by category and declare hard requirements
   (source types and expression types that must be configured) so the UI
-  can show which thoughts are ready to install today.
+  can show which ruminations are ready to install today.
   """
 
   import Ecto.Query
@@ -13,7 +13,7 @@ defmodule ExCortex.Board do
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
   alias ExCortex.Senses.Sense
-  alias ExCortex.Thoughts.Thought
+  alias ExCortex.Ruminations.Rumination
 
   defstruct [
     :id,
@@ -24,9 +24,9 @@ defmodule ExCortex.Board do
     :suggested_team,
     :requires,
     :step_definitions,
-    :thought_definition,
+    :rumination_definition,
     source_definitions: [],
-    extra_thoughts: []
+    extra_ruminations: []
   ]
 
   @categories [:triage, :reporting, :generation, :review, :onboarding, :lifestyle]
@@ -72,13 +72,13 @@ defmodule ExCortex.Board do
         {met, "Active neurons"}
 
       {:not_installed, template_id} ->
-        thought_prefix = template_id_to_thought_prefix(template_id)
+        rumination_prefix = template_id_to_rumination_prefix(template_id)
 
         installed =
           Repo.exists?(
-            from(q in Thought,
+            from(q in Rumination,
               where: q.status in ["active", "paused"],
-              where: like(q.name, ^"%#{thought_prefix}%")
+              where: like(q.name, ^"%#{rumination_prefix}%")
             )
           )
 
@@ -161,11 +161,11 @@ defmodule ExCortex.Board do
   defp fetch_installed_prefixes([]), do: MapSet.new()
 
   defp fetch_installed_prefixes(not_installed_ids) do
-    prefixes = Enum.map(not_installed_ids, &template_id_to_thought_prefix/1)
-    thought_names = Repo.all(from(q in Thought, where: q.status in ["active", "paused"], select: q.name))
+    prefixes = Enum.map(not_installed_ids, &template_id_to_rumination_prefix/1)
+    rumination_names = Repo.all(from(q in Rumination, where: q.status in ["active", "paused"], select: q.name))
 
     prefixes
-    |> Enum.filter(fn prefix -> Enum.any?(thought_names, &String.contains?(&1, prefix)) end)
+    |> Enum.filter(fn prefix -> Enum.any?(rumination_names, &String.contains?(&1, prefix)) end)
     |> MapSet.new()
   end
 
@@ -187,7 +187,7 @@ defmodule ExCortex.Board do
         {has_active_members, "Active neurons"}
 
       {:not_installed, id} ->
-        {!MapSet.member?(installed_prefixes, template_id_to_thought_prefix(id)), "Not included in #{humanize(id)}"}
+        {!MapSet.member?(installed_prefixes, template_id_to_rumination_prefix(id)), "Not included in #{humanize(id)}"}
     end)
   end
 
@@ -208,19 +208,19 @@ defmodule ExCortex.Board do
   end
 
   @doc """
-  Install a template: creates its steps and thought.
-  Returns {:ok, thought} or {:error, reason}.
+  Install a template: creates its steps and rumination.
+  Returns {:ok, rumination} or {:error, reason}.
   """
   def install(%__MODULE__{} = template) do
     require Logger
 
     Enum.each(template.step_definitions || [], &install_step/1)
 
-    step_by_name = Map.new(ExCortex.Thoughts.list_synapses(), &{&1.name, &1.id})
+    step_by_name = Map.new(ExCortex.Ruminations.list_synapses(), &{&1.name, &1.id})
 
-    result = install_main_thought(template, step_by_name)
+    result = install_main_rumination(template, step_by_name)
 
-    Enum.each(template.extra_thoughts || [], &install_extra_thought(&1, step_by_name))
+    Enum.each(template.extra_ruminations || [], &install_extra_rumination(&1, step_by_name))
     Enum.each(template.source_definitions || [], &install_source/1)
 
     result
@@ -229,7 +229,7 @@ defmodule ExCortex.Board do
   defp install_step(attrs) do
     require Logger
 
-    case ExCortex.Thoughts.create_synapse(attrs) do
+    case ExCortex.Ruminations.create_synapse(attrs) do
       {:ok, step} ->
         Logger.debug("[Board] Created step #{step.id} (#{step.name})")
 
@@ -244,13 +244,13 @@ defmodule ExCortex.Board do
     end
   end
 
-  defp install_main_thought(%{thought_definition: nil}, _step_by_name), do: {:ok, nil}
+  defp install_main_rumination(%{rumination_definition: nil}, _step_by_name), do: {:ok, nil}
 
-  defp install_main_thought(%{thought_definition: thought_def, id: template_id} = _template, step_by_name) do
+  defp install_main_rumination(%{rumination_definition: rumination_def, id: template_id} = _template, step_by_name) do
     require Logger
 
     steps =
-      (thought_def.steps || [])
+      (rumination_def.steps || [])
       |> Enum.map(fn step ->
         resolved_id = Map.get(step_by_name, step["step_name"])
 
@@ -264,28 +264,28 @@ defmodule ExCortex.Board do
       end)
       |> Enum.reject(&is_nil(&1["step_id"]))
 
-    ExCortex.Thoughts.create_thought(Map.put(thought_def, :steps, steps))
+    ExCortex.Ruminations.create_rumination(Map.put(rumination_def, :steps, steps))
   end
 
-  defp install_extra_thought(thought_def, step_by_name) do
+  defp install_extra_rumination(rumination_def, step_by_name) do
     require Logger
 
-    thought_synapses =
-      (thought_def.steps || [])
+    rumination_synapses =
+      (rumination_def.steps || [])
       |> Enum.map(fn step ->
         %{"step_id" => Map.get(step_by_name, step["step_name"]), "flow" => step["flow"]}
       end)
       |> Enum.reject(&is_nil(&1["step_id"]))
 
-    case ExCortex.Thoughts.create_thought(Map.put(thought_def, :steps, thought_synapses)) do
+    case ExCortex.Ruminations.create_rumination(Map.put(rumination_def, :steps, rumination_synapses)) do
       {:ok, _} ->
         :ok
 
       {:error, changeset} ->
         if unique_name_conflict?(changeset) do
-          Logger.debug("[Board] Thought already exists: #{thought_def.name}")
+          Logger.debug("[Board] Rumination already exists: #{rumination_def.name}")
         else
-          Logger.warning("[Board] Failed to create thought #{thought_def.name}: #{inspect(changeset_errors(changeset))}")
+          Logger.warning("[Board] Failed to create rumination #{rumination_def.name}: #{inspect(changeset_errors(changeset))}")
         end
     end
   end
@@ -312,14 +312,14 @@ defmodule ExCortex.Board do
   end
 
   @doc """
-  One-click install: creates the thought + steps and auto-recruits any
+  One-click install: creates the rumination + steps and auto-recruits any
   missing neurons mentioned in the template's suggested_team.
   """
   def recruit_and_go(%__MODULE__{} = template) do
     case install(template) do
-      {:ok, thought} ->
+      {:ok, rumination} ->
         recruited = auto_recruit_neurons(template)
-        {:ok, %{thought: thought, steps_created: template.step_definitions || [], neurons_recruited: recruited}}
+        {:ok, %{rumination: rumination, steps_created: template.step_definitions || [], neurons_recruited: recruited}}
 
       error ->
         error
@@ -374,8 +374,8 @@ defmodule ExCortex.Board do
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
 
-  defp template_id_to_thought_prefix("everyday_council"), do: "Everyday Council"
-  defp template_id_to_thought_prefix(id), do: humanize(id)
+  defp template_id_to_rumination_prefix("everyday_council"), do: "Everyday Council"
+  defp template_id_to_rumination_prefix(id), do: humanize(id)
 
   # ---------------------------------------------------------------------------
   # Template definitions — loaded by all/0

@@ -124,7 +124,7 @@ defmodule ExCortex.Pathways.CreativeStudio do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Content Review Campaign",

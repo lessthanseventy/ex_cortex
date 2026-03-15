@@ -74,7 +74,7 @@ defmodule ExCortex.Board.Triage do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Jira Ticket Triage Thought",
         description: "Source-triggered triage that escalates high-severity Jira tickets to Slack.",
         status: "active",
@@ -134,7 +134,7 @@ defmodule ExCortex.Board.Triage do
           expression_name: "github_issue:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "GitHub Issue Triage Thought",
         description: "Webhook-triggered triage that files tracked responses for confirmed bugs.",
         status: "active",
@@ -208,7 +208,7 @@ defmodule ExCortex.Board.Triage do
           expression_name: "pagerduty:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Error Monitor Thought",
         description: "Real-time error stream triage with PagerDuty escalation for critical issues.",
         status: "active",
@@ -279,7 +279,7 @@ defmodule ExCortex.Board.Triage do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Feedback Triage Thought",
         description: "Source-triggered feedback triage with Slack alert for high-signal items.",
         status: "active",
@@ -339,7 +339,7 @@ defmodule ExCortex.Board.Triage do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Threat Feed Monitor Thought",
         description: "Feed-triggered threat intelligence triage with Slack escalation.",
         status: "active",

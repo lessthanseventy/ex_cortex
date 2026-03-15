@@ -6,9 +6,9 @@ defmodule ExCortex.Senses.Worker do
   alias ExCortex.Sandbox
   alias ExCortex.Senses.Reflex
   alias ExCortex.Senses.Sense
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.Debouncer
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Debouncer
+  alias ExCortex.Ruminations.Runner
 
   require Logger
 
@@ -60,10 +60,10 @@ defmodule ExCortex.Senses.Worker do
 
       {:ok, items, new_worker_state} ->
         maybe_write_to_memory(items, state.source)
-        steps = Thoughts.list_synapses_for_source(to_string(state.source.id))
-        thoughts = Thoughts.list_thoughts_for_source(to_string(state.source.id))
+        steps = Ruminations.list_synapses_for_source(to_string(state.source.id))
+        ruminations = Ruminations.list_ruminations_for_source(to_string(state.source.id))
         evaluate_items(items, state.source, steps)
-        enqueue_thoughts(items, state.source, thoughts)
+        enqueue_ruminations(items, state.source, ruminations)
         source = update_source_state(state.source, new_worker_state)
         timer = Process.send_after(self(), :fetch, state.interval)
         {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer}}
@@ -99,19 +99,19 @@ defmodule ExCortex.Senses.Worker do
     end)
   end
 
-  defp enqueue_thoughts(_items, _source, []), do: :ok
+  defp enqueue_ruminations(_items, _source, []), do: :ok
 
-  defp enqueue_thoughts(items, source, thoughts) do
+  defp enqueue_ruminations(items, source, ruminations) do
     label = source.config["label"] || source.source_type
-    Logger.info("[SourceWorker] Firing #{length(items)} item(s) from '#{label}' for #{length(thoughts)} thought(s)")
+    Logger.info("[SourceWorker] Firing #{length(items)} item(s) from '#{label}' for #{length(ruminations)} rumination(s)")
 
-    Enum.each(thoughts, fn thought ->
+    Enum.each(ruminations, fn rumination ->
       Enum.each(items, fn item ->
         Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
           try do
-            Runner.run(thought, item.content)
+            Runner.run(rumination, item.content)
           rescue
-            e -> Logger.error("[SourceWorker] Thought #{thought.name} failed: #{Exception.message(e)}")
+            e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
           end
         end)
       end)

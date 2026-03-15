@@ -296,7 +296,7 @@ defmodule ExCortex.Board.Lifestyle do
           engram_tags: ["review", "monthly"]
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Everyday Council Thought",
         description: "Life OS intake loop. Processes incoming webhook drops and news feeds.",
         status: "active",
@@ -308,7 +308,7 @@ defmodule ExCortex.Board.Lifestyle do
         ],
         source_ids: []
       },
-      extra_thoughts: [
+      extra_ruminations: [
         %{
           name: "Daily Briefings Thought",
           description: "Morning, midday, and evening briefings posted to the Cortex.",
@@ -431,7 +431,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 30, "sort" => "newest"}]
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Tech Digest Loop Thought",
         description: "Continuous tech news intake and weekly trend synthesis.",
         status: "active",
@@ -518,7 +518,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 10, "sort" => "newest"}]
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Sports Digest Loop Thought",
         description: "Continuous sports news intake and weekend narrative synthesis.",
         status: "active",
@@ -599,7 +599,7 @@ defmodule ExCortex.Board.Lifestyle do
           entry_title_template: "Market Roundup — {date}"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Market Digest Loop Thought",
         description: "Continuous market news intake and weekly pattern synthesis.",
         status: "active",
@@ -684,7 +684,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 10, "sort" => "newest"}]
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Culture Digest Loop Thought",
         description: "Continuous culture intake and weekly arts synthesis.",
         status: "active",
@@ -775,7 +775,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 20, "sort" => "newest"}]
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Science Digest Loop Thought",
         description: "Continuous science news intake and weekly research synthesis.",
         status: "active",

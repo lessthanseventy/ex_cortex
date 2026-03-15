@@ -1,15 +1,15 @@
-defmodule ExCortex.ContextProviders.ThoughtOutput do
+defmodule ExCortex.ContextProviders.RuminationOutput do
   @moduledoc """
-  Injects the output of the most recent completed daydream of a named thought.
+  Injects the output of the most recent completed daydream of a named rumination.
 
   Config:
-    "thought"              - thought name to look up (required)
+    "rumination"           - rumination name to look up (required)
     "synapses"             - list of synapse indices to include, e.g. [0, 1] (default: all)
     "label"                - section header
     "max_bytes_per_synapse" - per-synapse output truncation (default: 2000)
 
   Example:
-    %{"type" => "thought_output", "thought" => "SI: Analyst Sweep", "synapses" => [0, 1]}
+    %{"type" => "rumination_output", "rumination" => "SI: Analyst Sweep", "synapses" => [0, 1]}
   """
 
   @behaviour ExCortex.ContextProviders.ContextProvider
@@ -17,44 +17,44 @@ defmodule ExCortex.ContextProviders.ThoughtOutput do
   import Ecto.Query
 
   alias ExCortex.Repo
-  alias ExCortex.Thoughts.Daydream
-  alias ExCortex.Thoughts.Thought
+  alias ExCortex.Ruminations.Daydream
+  alias ExCortex.Ruminations.Rumination
 
   require Logger
 
   @default_max_bytes 2_000
 
   @impl true
-  def build(config, _thought, _input) do
-    case Map.get(config, "thought") || Map.get(config, "thought") do
+  def build(config, _rumination, _input) do
+    case Map.get(config, "rumination") || Map.get(config, "rumination") do
       nil ->
-        Logger.warning("[ThoughtOutputCtx] No 'thought' name in config")
+        Logger.warning("[RuminationOutputCtx] No 'rumination' name in config")
         ""
 
-      thought_name ->
-        fetch_output(thought_name, config)
+      rumination_name ->
+        fetch_output(rumination_name, config)
     end
   end
 
-  defp fetch_output(thought_name, config) do
-    label = Map.get(config, "label", "## Previous Thought Output: #{thought_name}")
+  defp fetch_output(rumination_name, config) do
+    label = Map.get(config, "label", "## Previous Rumination Output: #{rumination_name}")
     synapse_indices = Map.get(config, "synapses") || Map.get(config, "steps")
     max_bytes = Map.get(config, "max_bytes_per_synapse") || Map.get(config, "max_bytes_per_step", @default_max_bytes)
 
-    with %Thought{id: thought_id} <- Repo.one(from t in Thought, where: t.name == ^thought_name, limit: 1),
-         %Daydream{synapse_results: results} <- latest_daydream(thought_id) do
+    with %Rumination{id: rumination_id} <- Repo.one(from t in Rumination, where: t.name == ^rumination_name, limit: 1),
+         %Daydream{synapse_results: results} <- latest_daydream(rumination_id) do
       format_output(label, results, synapse_indices, max_bytes)
     else
       nil ->
-        Logger.debug("[ThoughtOutputCtx] No completed daydream found for thought: #{thought_name}")
+        Logger.debug("[RuminationOutputCtx] No completed daydream found for rumination: #{rumination_name}")
         ""
     end
   end
 
-  defp latest_daydream(thought_id) do
+  defp latest_daydream(rumination_id) do
     Repo.one(
       from d in Daydream,
-        where: d.thought_id == ^thought_id and d.status == "complete",
+        where: d.rumination_id == ^rumination_id and d.status == "complete",
         order_by: [desc: d.inserted_at],
         limit: 1
     )

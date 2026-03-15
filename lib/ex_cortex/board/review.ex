@@ -58,7 +58,7 @@ defmodule ExCortex.Board.Review do
           expression_name: "github_pr:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "PR Review Pipeline Thought",
         description: "Webhook-triggered PR review with GitHub comment for flagged PRs.",
         status: "active",
@@ -118,7 +118,7 @@ defmodule ExCortex.Board.Review do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "URL Change Monitor Thought",
         description: "URL change detection with Slack alert for significant changes.",
         status: "active",
@@ -178,7 +178,7 @@ defmodule ExCortex.Board.Review do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Content Safety Thought",
         description: "Webhook-triggered content safety review with Slack escalation.",
         status: "active",
@@ -247,7 +247,7 @@ defmodule ExCortex.Board.Review do
           source_ids: []
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Accessibility Audit Thought",
         description: "Source-triggered a11y audit with evidence check for flagged issues.",
         status: "active",
@@ -339,7 +339,7 @@ defmodule ExCortex.Board.Review do
           source_ids: []
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Proposal Review Thought",
         description: "Manual proposal gauntlet — challenge, scope, future perspective, evidence.",
         status: "active",
@@ -408,7 +408,7 @@ defmodule ExCortex.Board.Review do
           expression_name: "slack:default"
         }
       ],
-      thought_definition: %{
+      rumination_definition: %{
         name: "Compliance Monitor Thought",
         description: "Feed-triggered compliance monitoring with Slack alerts.",
         status: "active",

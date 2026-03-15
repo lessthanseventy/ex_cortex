@@ -69,11 +69,11 @@ defmodule ExCortex.MemoryTest do
 
   describe "recall paths" do
     test "logs and retrieves recall paths" do
-      {:ok, thought} =
-        ExCortex.Thoughts.create_thought(%{name: "Recall Test", trigger: "manual", steps: []})
+      {:ok, rumination} =
+        ExCortex.Ruminations.create_rumination(%{name: "Recall Test", trigger: "manual", steps: []})
 
       {:ok, daydream} =
-        ExCortex.Thoughts.create_daydream(%{thought_id: thought.id, status: "running"})
+        ExCortex.Ruminations.create_daydream(%{rumination_id: rumination.id, status: "running"})
 
       {:ok, engram} = Memory.create_engram(%{title: "Recall target", body: "details"})
 

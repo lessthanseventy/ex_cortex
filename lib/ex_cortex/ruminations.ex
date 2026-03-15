@@ -1,15 +1,15 @@
-defmodule ExCortex.Thoughts do
+defmodule ExCortex.Ruminations do
   @moduledoc false
   import Ecto.Query
 
   alias ExCortex.Repo
-  alias ExCortex.Thoughts.Daydream
-  alias ExCortex.Thoughts.Impulse
-  alias ExCortex.Thoughts.Proposal
-  alias ExCortex.Thoughts.Synapse
-  alias ExCortex.Thoughts.Thought
+  alias ExCortex.Ruminations.Daydream
+  alias ExCortex.Ruminations.Impulse
+  alias ExCortex.Ruminations.Proposal
+  alias ExCortex.Ruminations.Rumination
+  alias ExCortex.Ruminations.Synapse
 
-  # --- Synapses (step definitions within a thought) ---
+  # --- Synapses (step definitions within a rumination) ---
 
   def list_synapses do
     Repo.all(from s in Synapse, order_by: [asc: s.name])
@@ -37,11 +37,11 @@ defmodule ExCortex.Thoughts do
 
   def delete_synapse(%Synapse{} = synapse), do: Repo.delete(synapse)
 
-  # --- Thoughts (pipeline definitions) ---
+  # --- Ruminations (pipeline definitions) ---
 
-  def list_thoughts_for_source(source_id) do
+  def list_ruminations_for_source(source_id) do
     Repo.all(
-      from t in Thought,
+      from t in Rumination,
         where:
           t.trigger == "source" and
             t.status == "active" and
@@ -49,16 +49,16 @@ defmodule ExCortex.Thoughts do
     )
   end
 
-  def list_thoughts do
-    Repo.all(from t in Thought, order_by: [asc: t.name])
+  def list_ruminations do
+    Repo.all(from t in Rumination, order_by: [asc: t.name])
   end
 
-  def get_thought!(id), do: Repo.get!(Thought, id)
+  def get_rumination!(id), do: Repo.get!(Rumination, id)
 
-  def create_thought(attrs) do
-    case %Thought{} |> Thought.changeset(attrs) |> Repo.insert() do
-      {:ok, thought} = result ->
-        maybe_schedule_once_job(thought)
+  def create_rumination(attrs) do
+    case %Rumination{} |> Rumination.changeset(attrs) |> Repo.insert() do
+      {:ok, rumination} = result ->
+        maybe_schedule_once_job(rumination)
         result
 
       error ->
@@ -66,8 +66,8 @@ defmodule ExCortex.Thoughts do
     end
   end
 
-  def update_thought(%Thought{} = thought, attrs) do
-    case thought |> Thought.changeset(attrs) |> Repo.update() do
+  def update_rumination(%Rumination{} = rumination, attrs) do
+    case rumination |> Rumination.changeset(attrs) |> Repo.update() do
       {:ok, updated} = result ->
         maybe_schedule_once_job(updated)
         result
@@ -77,15 +77,15 @@ defmodule ExCortex.Thoughts do
     end
   end
 
-  def delete_thought(%Thought{} = thought), do: Repo.delete(thought)
+  def delete_rumination(%Rumination{} = rumination), do: Repo.delete(rumination)
 
-  defp maybe_schedule_once_job(%Thought{trigger: "once", run_at: run_at, id: id}) when not is_nil(run_at) do
-    %{thought_id: id}
-    |> ExCortex.Workers.ThoughtWorker.new(scheduled_at: run_at)
+  defp maybe_schedule_once_job(%Rumination{trigger: "once", run_at: run_at, id: id}) when not is_nil(run_at) do
+    %{rumination_id: id}
+    |> ExCortex.Workers.RuminationWorker.new(scheduled_at: run_at)
     |> Oban.insert()
   end
 
-  defp maybe_schedule_once_job(_thought), do: :ok
+  defp maybe_schedule_once_job(_rumination), do: :ok
 
   # --- Impulses (step executions within a daydream) ---
 
@@ -106,12 +106,12 @@ defmodule ExCortex.Thoughts do
     run |> Impulse.changeset(attrs) |> Repo.update()
   end
 
-  # --- Daydreams (thought executions) ---
+  # --- Daydreams (rumination executions) ---
 
-  def list_daydreams(%Thought{id: thought_id}) do
+  def list_daydreams(%Rumination{id: rumination_id}) do
     Repo.all(
       from r in Daydream,
-        where: r.thought_id == ^thought_id,
+        where: r.rumination_id == ^rumination_id,
         order_by: [desc: r.inserted_at],
         limit: 10
     )

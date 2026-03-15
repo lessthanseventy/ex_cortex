@@ -1,4 +1,4 @@
-defmodule ExCortex.Thoughts.Impulse do
+defmodule ExCortex.Ruminations.Impulse do
   @moduledoc false
   use Ecto.Schema
 

@@ -141,7 +141,7 @@ defmodule ExCortex.Pathways.CodeReview do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Daily Code Review Campaign",

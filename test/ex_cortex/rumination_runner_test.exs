@@ -1,13 +1,13 @@
-defmodule ExCortex.Thoughts.RunnerTest do
+defmodule ExCortex.Ruminations.RunnerTest do
   use ExCortex.DataCase, async: false
 
-  alias ExCortex.Thoughts
-  alias ExCortex.Thoughts.Runner
+  alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Runner
 
   test "run/2 executes each step in order and returns final result" do
     # Create two steps
     {:ok, s1} =
-      Thoughts.create_synapse(%{
+      Ruminations.create_synapse(%{
         name: "Step 1",
         trigger: "manual",
         output_type: "artifact",
@@ -15,16 +15,16 @@ defmodule ExCortex.Thoughts.RunnerTest do
       })
 
     {:ok, s2} =
-      Thoughts.create_synapse(%{
+      Ruminations.create_synapse(%{
         name: "Step 2",
         trigger: "manual",
         output_type: "artifact",
         roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
       })
 
-    {:ok, thought} =
-      Thoughts.create_thought(%{
-        name: "Two-Step Thought",
+    {:ok, rumination} =
+      Ruminations.create_rumination(%{
+        name: "Two-Step Rumination",
         trigger: "manual",
         steps: [
           %{"step_id" => to_string(s1.id), "flow" => "always"},
@@ -34,15 +34,15 @@ defmodule ExCortex.Thoughts.RunnerTest do
 
     # No neurons in test DB → ImpulseRunner returns {:error, :no_members}
     # Runner should still return a result (even if each step errors)
-    result = Runner.run(thought, "test input")
+    result = Runner.run(rumination, "test input")
     assert elem(result, 0) in [:ok, :error]
   end
 
   test "run/2 with empty steps returns ok with empty result" do
-    {:ok, thought} =
-      Thoughts.create_thought(%{name: "Empty Thought", trigger: "manual", steps: []})
+    {:ok, rumination} =
+      Ruminations.create_rumination(%{name: "Empty Rumination", trigger: "manual", steps: []})
 
-    assert {:ok, %{steps: []}} = Runner.run(thought, "input")
+    assert {:ok, %{steps: []}} = Runner.run(rumination, "input")
   end
 
   test "result_to_text/1 formats artifact result as markdown" do
@@ -61,7 +61,7 @@ defmodule ExCortex.Thoughts.RunnerTest do
   describe "branch steps" do
     test "run/2 with a branch step runs all steps and synthesizer" do
       {:ok, s1} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Branch A",
           trigger: "manual",
           output_type: "verdict",
@@ -69,7 +69,7 @@ defmodule ExCortex.Thoughts.RunnerTest do
         })
 
       {:ok, s2} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Branch B",
           trigger: "manual",
           output_type: "verdict",
@@ -77,16 +77,16 @@ defmodule ExCortex.Thoughts.RunnerTest do
         })
 
       {:ok, synth} =
-        Thoughts.create_synapse(%{
+        Ruminations.create_synapse(%{
           name: "Synthesizer",
           trigger: "manual",
           output_type: "verdict",
           roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
         })
 
-      {:ok, thought} =
-        Thoughts.create_thought(%{
-          name: "Branch Thought",
+      {:ok, rumination} =
+        Ruminations.create_rumination(%{
+          name: "Branch Rumination",
           trigger: "manual",
           steps: [
             %{
@@ -98,7 +98,7 @@ defmodule ExCortex.Thoughts.RunnerTest do
           ]
         })
 
-      result = Runner.run(thought, "test input")
+      result = Runner.run(rumination, "test input")
       assert elem(result, 0) in [:ok, :error]
     end
 

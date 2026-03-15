@@ -136,7 +136,7 @@ defmodule ExCortex.Pathways.ContentModeration do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Continuous Moderation Campaign",

@@ -33,12 +33,12 @@ defmodule ExCortex.Nextcloud.RolesTest do
     test "super_admin can do anything" do
       assert Roles.can?("admin", :manage_system)
       assert Roles.can?("admin", :manage_clusters)
-      assert Roles.can?("admin", :run_thoughts)
+      assert Roles.can?("admin", :run_ruminations)
     end
 
     test "user can view and run thoughts" do
       assert Roles.can?("random", :view_all)
-      assert Roles.can?("random", :run_thoughts)
+      assert Roles.can?("random", :run_ruminations)
     end
 
     test "user cannot manage system" do

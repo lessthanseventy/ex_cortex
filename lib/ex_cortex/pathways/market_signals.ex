@@ -137,7 +137,7 @@ defmodule ExCortex.Pathways.MarketSignals do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Market Digest Loop",

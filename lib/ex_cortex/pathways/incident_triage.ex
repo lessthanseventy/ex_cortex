@@ -81,7 +81,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
         roster: [%{"who" => "apprentice", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         context_providers: [
-          %{"type" => "thought_history", "limit" => 5},
+          %{"type" => "rumination_history", "limit" => 5},
           %{"type" => "memory", "tags" => ["incidents"], "limit" => 3, "sort" => "newest"}
         ],
         escalate: true,
@@ -144,7 +144,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
     ]
   end
 
-  def thought_definitions do
+  def rumination_definitions do
     [
       %{
         name: "Incident Response Campaign",
@@ -153,11 +153,11 @@ defmodule ExCortex.Pathways.IncidentTriage do
         trigger: "scheduled",
         schedule: "@hourly",
         steps: [
-          %{"thought_name" => "Incident Quick Triage", "flow" => "always"},
-          %{"thought_name" => "Full Incident Analysis", "flow" => "on_flag"},
-          %{"thought_name" => "Page On-Call", "flow" => "on_flag"},
-          %{"thought_name" => "Post Incident Summary", "flow" => "on_flag"},
-          %{"thought_name" => "Incident Pattern Memory", "flow" => "always"}
+          %{"step_name" => "Incident Quick Triage", "flow" => "always"},
+          %{"step_name" => "Full Incident Analysis", "flow" => "on_flag"},
+          %{"step_name" => "Page On-Call", "flow" => "on_flag"},
+          %{"step_name" => "Post Incident Summary", "flow" => "on_flag"},
+          %{"step_name" => "Incident Pattern Memory", "flow" => "always"}
         ],
         source_ids: []
       }

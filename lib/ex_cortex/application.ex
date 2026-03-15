@@ -6,7 +6,7 @@ defmodule ExCortex.Application do
   use Application
 
   alias ExCortex.Senses.Supervisor, as: SensesSupervisor
-  alias ExCortex.Thoughts.Daydream
+  alias ExCortex.Ruminations.Daydream
 
   require Logger
 
@@ -37,7 +37,7 @@ defmodule ExCortex.Application do
         {Task.Supervisor, name: ExCortex.SourceTaskSupervisor, max_children: 4},
         {Task.Supervisor, name: ExCortex.AsyncTaskSupervisor},
         ExCortex.AppTelemetry,
-        ExCortex.Thoughts.Debouncer,
+        ExCortex.Ruminations.Debouncer,
         SensesSupervisor,
         {Task, fn -> SensesSupervisor.start_all_active() end},
         ExCortexWeb.Endpoint
@@ -45,7 +45,7 @@ defmodule ExCortex.Application do
         if(sandbox?,
           do: [],
           else: [
-            ExCortex.Thoughts.Scheduler,
+            ExCortex.Ruminations.Scheduler,
             ExCortex.Memory.EngramTriggerRunner,
             ExCortex.Signals.TriggerRunner
           ]

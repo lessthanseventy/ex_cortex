@@ -111,11 +111,11 @@ defmodule ExCortex.AppTelemetry do
 
   @impl true
   def handle_info({:daydream_completed, daydream}, state) do
-    thought_name = fetch_thought_name(daydream.thought_id)
+    rumination_name = fetch_rumination_name(daydream.rumination_id)
     failed_synapse = extract_failed_synapse(daydream.synapse_results)
 
     entry = %{
-      thought_name: thought_name,
+      rumination_name: rumination_name,
       status: daydream.status,
       timestamp: now(),
       failed_synapse: failed_synapse
@@ -176,7 +176,7 @@ defmodule ExCortex.AppTelemetry do
     problems =
       Enum.map(gated ++ failed, fn r ->
         synapse_note = if r.failed_synapse, do: " — #{r.failed_synapse}", else: ""
-        "  #{r.thought_name} (#{r.status})#{synapse_note}"
+        "  #{r.rumination_name} (#{r.status})#{synapse_note}"
       end)
 
     if problems == [] do
@@ -268,17 +268,17 @@ defmodule ExCortex.AppTelemetry do
 
   defp now, do: System.system_time(:second)
 
-  defp fetch_thought_name(thought_id) do
+  defp fetch_rumination_name(rumination_id) do
     import Ecto.Query
 
-    alias ExCortex.Thoughts.Thought
+    alias ExCortex.Ruminations.Rumination
 
-    case ExCortex.Repo.one(from q in Thought, where: q.id == ^thought_id, select: q.name) do
-      nil -> "Thought ##{thought_id}"
+    case ExCortex.Repo.one(from q in Rumination, where: q.id == ^rumination_id, select: q.name) do
+      nil -> "Rumination ##{rumination_id}"
       name -> name
     end
   rescue
-    _ -> "Thought ##{thought_id}"
+    _ -> "Rumination ##{rumination_id}"
   end
 
   defp extract_failed_synapse(synapse_results) when is_map(synapse_results) do

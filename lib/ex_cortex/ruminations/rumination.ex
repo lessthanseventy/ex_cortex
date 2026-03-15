@@ -1,10 +1,10 @@
-defmodule ExCortex.Thoughts.Thought do
+defmodule ExCortex.Ruminations.Rumination do
   @moduledoc false
   use Ecto.Schema
 
   import Ecto.Changeset
 
-  schema "thoughts" do
+  schema "ruminations" do
     field :name, :string
     field :description, :string
     field :status, :string, default: "active"
@@ -32,8 +32,8 @@ defmodule ExCortex.Thoughts.Thought do
     :signal_trigger_tags
   ]
 
-  def changeset(thought, attrs) do
-    thought
+  def changeset(rumination, attrs) do
+    rumination
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> validate_inclusion(:status, ["active", "paused", "done"])

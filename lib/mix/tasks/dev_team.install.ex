@@ -2,12 +2,12 @@ defmodule Mix.Tasks.DevTeam.Install do
   @shortdoc "Install Dev Team cluster + SI pipeline seeds"
 
   @moduledoc """
-  Installs (or reinstalls) the Dev Team cluster: neurons, synapses, thoughts, and SI seeds.
+  Installs (or reinstalls) the Dev Team cluster: neurons, synapses, ruminations, and SI seeds.
 
       mix dev_team.install
 
   Safe to run after a DB reset or at any time — neurons use on_conflict: :nothing,
-  synapses are skipped if a unique name conflict occurs, and ThoughtSeed is idempotent.
+  synapses are skipped if a unique name conflict occurs, and RuminationSeed is idempotent.
   """
 
   use Mix.Task
@@ -26,10 +26,10 @@ defmodule Mix.Tasks.DevTeam.Install do
     IO.puts("Installing Dev Team synapses...")
     install_synapses(mod)
 
-    IO.puts("Installing Dev Team thoughts...")
-    install_thoughts(mod)
+    IO.puts("Installing Dev Team ruminations...")
+    install_ruminations(mod)
 
-    IO.puts("Running SI thought seed...")
+    IO.puts("Running SI rumination seed...")
     seed_si()
 
     IO.puts("Done.")
@@ -52,7 +52,7 @@ defmodule Mix.Tasks.DevTeam.Install do
   defp install_synapses(mod) do
     if function_exported?(mod, :synapse_definitions, 0) do
       Enum.each(mod.synapse_definitions(), fn attrs ->
-        case ExCortex.Thoughts.create_synapse(attrs) do
+        case ExCortex.Ruminations.create_synapse(attrs) do
           {:ok, s} -> IO.puts("  + synapse: #{s.name}")
           {:error, cs} -> IO.puts("  ~ skipped synapse (#{attrs[:name] || attrs["name"]}): #{inspect(cs.errors)}")
         end
@@ -60,17 +60,17 @@ defmodule Mix.Tasks.DevTeam.Install do
     end
   end
 
-  defp install_thoughts(mod) do
-    if function_exported?(mod, :thought_definitions, 0) do
-      step_by_name = Map.new(ExCortex.Thoughts.list_synapses(), &{&1.name, &1.id})
+  defp install_ruminations(mod) do
+    if function_exported?(mod, :rumination_definitions, 0) do
+      step_by_name = Map.new(ExCortex.Ruminations.list_synapses(), &{&1.name, &1.id})
 
-      Enum.each(mod.thought_definitions(), fn attrs ->
+      Enum.each(mod.rumination_definitions(), fn attrs ->
         steps =
           Enum.map(attrs.steps, fn step ->
             %{"step_id" => Map.get(step_by_name, step["thought_name"] || step["step_name"]), "flow" => step["flow"]}
           end)
 
-        case ExCortex.Thoughts.create_thought(Map.put(attrs, :steps, steps)) do
+        case ExCortex.Ruminations.create_rumination(Map.put(attrs, :steps, steps)) do
           {:ok, q} -> IO.puts("  + thought: #{q.name}")
           {:error, cs} -> IO.puts("  ~ skipped thought (#{attrs[:name] || attrs["name"]}): #{inspect(cs.errors)}")
         end

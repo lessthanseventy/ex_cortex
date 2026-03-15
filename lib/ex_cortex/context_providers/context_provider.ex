@@ -8,7 +8,7 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   ## Provider config map format (stored on Thought)
     %{"type" => "static", "content" => "Always consider..."}
-    %{"type" => "thought_history", "limit" => 5}
+    %{"type" => "rumination_history", "limit" => 5}
     %{"type" => "neuron_stats"}
   """
 
@@ -45,7 +45,7 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   defp module_for("static"), do: Module.concat([ExCortex, ContextProviders, Static])
 
-  defp module_for("thought_history"), do: Module.concat([ExCortex, ContextProviders, ThoughtHistory])
+  defp module_for("rumination_history"), do: Module.concat([ExCortex, ContextProviders, RuminationHistory])
 
   defp module_for("neuron_stats"), do: Module.concat([ExCortex, ContextProviders, NeuronStats])
 
@@ -67,7 +67,7 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   defp module_for("git_log"), do: Module.concat([ExCortex, ContextProviders, GitLog])
 
-  defp module_for("thought_output"), do: Module.concat([ExCortex, ContextProviders, ThoughtOutput])
+  defp module_for("rumination_output"), do: Module.concat([ExCortex, ContextProviders, RuminationOutput])
 
   defp module_for("test_failures"), do: Module.concat([ExCortex, ContextProviders, TestFailures])
 
