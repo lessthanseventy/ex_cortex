@@ -441,6 +441,42 @@ defmodule ExCortexWeb.RuminationsLive do
     end
   end
 
+  def handle_event("duplicate_synapse", %{"step-idx" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    step = Enum.at(socket.assigns.pipeline_steps, idx)
+    synapse = step["synapse"]
+
+    if synapse do
+      attrs = %{
+        name: synapse.name <> " (copy)",
+        trigger: synapse.trigger,
+        roster: synapse.roster,
+        description: synapse.description,
+        output_type: synapse.output_type,
+        context_providers: synapse.context_providers,
+        cluster_name: synapse.cluster_name,
+        min_rank: synapse.min_rank
+      }
+
+      case Ruminations.create_synapse(attrs) do
+        {:ok, new_synapse} ->
+          updated_step =
+            step
+            |> Map.put("synapse", new_synapse)
+            |> Map.put("step_id", new_synapse.id)
+
+          steps = List.replace_at(socket.assigns.pipeline_steps, idx, updated_step)
+          synapses = Ruminations.list_synapses()
+          {:noreply, assign(socket, pipeline_steps: steps, synapses: synapses)}
+
+        {:error, _} ->
+          {:noreply, put_flash(socket, :error, "Failed to duplicate synapse")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("add_roster_entry", %{"step-idx" => idx_str}, socket) do
     idx = String.to_integer(idx_str)
     steps = socket.assigns.pipeline_steps
@@ -764,6 +800,7 @@ defmodule ExCortexWeb.RuminationsLive do
                     picker={@synapse_picker}
                     search={@synapse_search}
                     picker_tab={@picker_tab}
+                    ruminations={@ruminations}
                   />
                 </div>
 
@@ -922,6 +959,7 @@ defmodule ExCortexWeb.RuminationsLive do
   attr :picker, :any, default: nil
   attr :search, :string, default: ""
   attr :picker_tab, :string, default: "existing"
+  attr :ruminations, :list, default: []
 
   defp step_chain(assigns) do
     ~H"""
@@ -936,25 +974,77 @@ defmodule ExCortexWeb.RuminationsLive do
       <%= if @steps == [] do %>
         <p class="text-xs t-dim italic py-2 pl-4">no steps — click [+] to add a synapse</p>
       <% else %>
-        <%= for {step, idx} <- Enum.with_index(@steps) do %>
-          <.step_card
-            step={step}
-            idx={idx}
-            total={length(@steps)}
-            expanded={@expanded == idx}
-            focused={@focused == idx}
-          />
-          <.step_inserter
-            position={idx + 1}
-            picker={@picker}
-            synapses={@synapses}
-            search={@search}
-            picker_tab={@picker_tab}
-          />
+        <%= for group <- group_steps(@steps) do %>
+          <%= case group do %>
+            <% {:linear, step, idx} -> %>
+              <.step_card
+                step={step}
+                idx={idx}
+                total={length(@steps)}
+                expanded={@expanded == idx}
+                focused={@focused == idx}
+                ruminations={@ruminations}
+              />
+              <div class="flex justify-center py-0.5">
+                <span class="t-dim">│</span>
+              </div>
+              <.step_inserter
+                position={idx + 1}
+                picker={@picker}
+                synapses={@synapses}
+                search={@search}
+                picker_tab={@picker_tab}
+              />
+            <% {:branch, branch_steps, _synthesizer_idx} -> %>
+              <div class="my-1">
+                <p class="text-xs t-dim font-mono text-center">╱ ╲ branch</p>
+                <div class="flex gap-2 border-l border-r border-dashed border-input px-2 py-1">
+                  <%= for {step, idx} <- branch_steps do %>
+                    <div class="flex-1">
+                      <.step_card
+                        step={step}
+                        idx={idx}
+                        total={length(@steps)}
+                        expanded={@expanded == idx}
+                        focused={@focused == idx}
+                        ruminations={@ruminations}
+                      />
+                    </div>
+                  <% end %>
+                </div>
+                <p class="text-xs t-dim font-mono text-center">╲ ╱ merge</p>
+              </div>
+              <div class="flex justify-center py-0.5">
+                <span class="t-dim">│</span>
+              </div>
+              <% last_branch_idx = branch_steps |> List.last() |> elem(1) %>
+              <.step_inserter
+                position={last_branch_idx + 1}
+                picker={@picker}
+                synapses={@synapses}
+                search={@search}
+                picker_tab={@picker_tab}
+              />
+          <% end %>
         <% end %>
       <% end %>
     </div>
     """
+  end
+
+  defp group_steps(steps) do
+    steps
+    |> Enum.with_index()
+    |> Enum.chunk_by(fn {step, _idx} -> step["type"] == "branch" end)
+    |> Enum.flat_map(fn chunk ->
+      case chunk do
+        [{%{"type" => "branch"}, _} | _] = branches ->
+          [{:branch, branches, nil}]
+
+        linear_steps ->
+          Enum.map(linear_steps, fn {step, idx} -> {:linear, step, idx} end)
+      end
+    end)
   end
 
   attr :position, :integer, required: true
@@ -1052,6 +1142,7 @@ defmodule ExCortexWeb.RuminationsLive do
   attr :total, :integer, required: true
   attr :expanded, :boolean, default: false
   attr :focused, :boolean, default: false
+  attr :ruminations, :list, default: []
 
   defp step_card(assigns) do
     synapse = assigns.step["synapse"]
