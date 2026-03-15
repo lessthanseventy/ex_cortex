@@ -22,6 +22,22 @@ defmodule ExCortex.Evaluator do
   def pathways, do: @pathways
 
   def current_cluster do
+    case :persistent_term.get(:evaluator_current_cluster, :not_cached) do
+      :not_cached ->
+        result = do_find_cluster()
+        :persistent_term.put(:evaluator_current_cluster, result)
+        result
+
+      cached ->
+        cached
+    end
+  end
+
+  def invalidate_cluster_cache do
+    :persistent_term.put(:evaluator_current_cluster, :not_cached)
+  end
+
+  defp do_find_cluster do
     import Ecto.Query
 
     alias ExCortex.Neurons.Neuron
@@ -81,62 +97,51 @@ defmodule ExCortex.Evaluator do
       safe_name = role_def.name |> String.replace(~r/[^a-zA-Z0-9]/, "") |> Macro.camelize()
       mod_name = Module.concat([ExCortex, Roles, safe_name])
 
-      unless Code.ensure_loaded?(mod_name) do
-        contents =
-          quote do
-            use ExCortex.Core.Role
-
-            system_prompt(unquote(role_def.system_prompt))
-
-            unquote_splicing(
-              Enum.map(role_def.perspectives, fn p ->
-                quote do
-                  perspective(unquote(String.to_atom(p.name)),
-                    model: unquote(p.model),
-                    strategy: unquote(String.to_atom(p.strategy)),
-                    name: unquote("#{role_def.name}.#{p.name}")
-                  )
-                end
-              end)
-            )
-
-            def build_prompt(input, _context) do
-              "Evaluate the following:\n\n#{inspect(input)}"
-            end
-          end
-
-        try do
-          Module.create(mod_name, contents, Macro.Env.location(__ENV__))
-        rescue
-          _error in [Code.LoadError] ->
-            Logger.error("Failed to load dependencies for role module #{inspect(mod_name)}",
-              context: %{role_name: role_def.name, error_type: "LoadError"}
-            )
-
-            fallback_role_module(mod_name, role_def)
-
-          _error in [CompileError] ->
-            Logger.error("Failed to compile role module #{inspect(mod_name)}",
-              context: %{role_name: role_def.name, error_type: "CompileError"}
-            )
-
-            fallback_role_module(mod_name, role_def)
-
-          error ->
-            if Code.ensure_loaded?(mod_name) do
-              :ok
-            else
-              Logger.error("Failed to create dynamic role module #{inspect(mod_name)}: #{inspect(error)}",
-                context: %{role_name: role_def.name, error_type: Exception.message(error)}
-              )
-
-              fallback_role_module(mod_name, role_def)
-            end
-        end
+      # Skip if already compiled (handles concurrent callers)
+      if Code.ensure_loaded?(mod_name) do
+        :already_loaded
+      else
+        create_role_module(mod_name, role_def)
       end
 
       mod_name
     end)
+  end
+
+  defp create_role_module(mod_name, role_def) do
+    contents =
+      quote do
+        use ExCortex.Core.Role
+
+        system_prompt(unquote(role_def.system_prompt))
+
+        unquote_splicing(
+          Enum.map(role_def.perspectives, fn p ->
+            quote do
+              perspective(unquote(String.to_atom(p.name)),
+                model: unquote(p.model),
+                strategy: unquote(String.to_atom(p.strategy)),
+                name: unquote("#{role_def.name}.#{p.name}")
+              )
+            end
+          end)
+        )
+
+        def build_prompt(input, _context) do
+          "Evaluate the following:\n\n#{inspect(input)}"
+        end
+      end
+
+    try do
+      Module.create(mod_name, contents, Macro.Env.location(__ENV__))
+    rescue
+      _ ->
+        # Another process may have created it concurrently — that's fine
+        unless Code.ensure_loaded?(mod_name) do
+          Logger.warning("Failed to create role module #{inspect(mod_name)} — using fallback")
+          fallback_role_module(mod_name, role_def)
+        end
+    end
   end
 
   defp build_actions_from_pathway(meta) do
