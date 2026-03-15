@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN_DIR="$SCRIPT_DIR/burrito_out"
+
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64)  BIN="ex_cortex_linux_x86" ;;
+  Linux-aarch64) BIN="ex_cortex_linux_arm" ;;
+  Darwin-arm64)  BIN="ex_cortex_macos_arm" ;;
+  *)
+    echo "Unsupported platform: $(uname -s)-$(uname -m)" >&2
+    echo "Build a release for your platform with: mise release" >&2
+    exit 1
+    ;;
+esac
+
+if [ ! -f "$BIN_DIR/$BIN" ]; then
+  echo "Binary not found: $BIN_DIR/$BIN" >&2
+  echo "Build it with: mise release" >&2
+  exit 1
+fi
+
+exec "$BIN_DIR/$BIN" "$@"
