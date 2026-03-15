@@ -40,13 +40,17 @@ defmodule ExCortex.Thoughts do
 
   def delete_thought(%Thought{} = t), do: Repo.delete(t)
 
-  def save_to_memory(%Thought{question: q, answer: a, tags: tags}) do
-    ExCortex.Memory.create_engram(%{
-      title: q,
-      body: a,
-      tags: tags || [],
-      source: "muse",
-      category: "episodic"
-    })
+  def save_to_memory(%Thought{question: q, answer: a, tags: tags} = thought) do
+    with {:ok, engram} <-
+           ExCortex.Memory.create_engram(%{
+             title: q,
+             body: a,
+             tags: tags || [],
+             source: "muse",
+             category: "episodic"
+           }),
+         {:ok, _thought} <- update_thought(thought, %{status: "saved"}) do
+      {:ok, engram}
+    end
   end
 end
