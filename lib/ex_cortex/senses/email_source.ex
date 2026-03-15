@@ -25,7 +25,9 @@ defmodule ExCortex.Senses.EmailSense do
     max_results = config["max_results"] || 50
     last_timestamp = state[:last_timestamp] || state["last_timestamp"] || 0
 
-    case search_threads(query, max_results) do
+    sort = config["sort"] || "oldest-first"
+
+    case search_threads(query, max_results, sort) do
       {:ok, threads} ->
         new_threads =
           threads
@@ -52,11 +54,12 @@ defmodule ExCortex.Senses.EmailSense do
     end
   end
 
-  defp search_threads(query, max_results) do
+  defp search_threads(query, max_results, sort) do
     args = [
       "search",
       "--format=json",
       "--output=summary",
+      "--sort=#{sort}",
       "--limit=#{max_results}",
       query
     ]
