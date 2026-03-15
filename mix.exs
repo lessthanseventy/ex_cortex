@@ -116,6 +116,7 @@ defmodule ExCortex.MixProject do
       "ecto.fresh": ["ecto.reset", "dev_team.install"],
 
       # Dev
+      seed: ["run priv/repo/seeds.exs"],
       dev: ["phx.server"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       lint: ["compile --warnings-as-errors", "format --check-formatted", "credo"],
