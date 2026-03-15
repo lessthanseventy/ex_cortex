@@ -302,6 +302,84 @@ defmodule ExCortexWeb.RuminationsLive do
     {:noreply, assign(socket, pipeline_steps: steps)}
   end
 
+  def handle_event("open_picker", %{"position" => pos_str}, socket) do
+    pos = String.to_integer(pos_str)
+    {:noreply, assign(socket, synapse_picker: pos, synapse_search: "", picker_tab: "existing")}
+  end
+
+  def handle_event("close_picker", _params, socket) do
+    {:noreply, assign(socket, synapse_picker: nil)}
+  end
+
+  def handle_event("picker_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, picker_tab: tab)}
+  end
+
+  def handle_event("picker_search", %{"value" => val}, socket) do
+    {:noreply, assign(socket, synapse_search: val)}
+  end
+
+  def handle_event("set_new_synapse_name", %{"value" => val}, socket) do
+    {:noreply, assign(socket, new_synapse_name: val)}
+  end
+
+  def handle_event("insert_synapse", %{"id" => id_str, "position" => pos_str}, socket) do
+    pos = String.to_integer(pos_str)
+    synapse_id = String.to_integer(id_str)
+    synapse = Enum.find(socket.assigns.synapses, &(&1.id == synapse_id))
+
+    new_step = %{
+      "idx" => pos,
+      "step_id" => synapse_id,
+      "synapse" => synapse,
+      "gate" => false,
+      "type" => "linear",
+      "synthesizer" => nil
+    }
+
+    steps =
+      socket.assigns.pipeline_steps
+      |> List.insert_at(pos, new_step)
+      |> Enum.with_index()
+      |> Enum.map(fn {s, i} -> Map.put(s, "idx", i) end)
+
+    {:noreply, assign(socket, pipeline_steps: steps, synapse_picker: nil)}
+  end
+
+  def handle_event("create_and_insert_synapse", %{"position" => pos_str}, socket) do
+    pos = String.to_integer(pos_str)
+    name = socket.assigns[:new_synapse_name] || "New Synapse"
+    name = if name == "", do: "New Synapse", else: name
+
+    case Ruminations.create_synapse(%{
+           name: name,
+           trigger: "manual",
+           roster: [%{"who" => "all", "when" => "sequential", "how" => "solo"}]
+         }) do
+      {:ok, synapse} ->
+        new_step = %{
+          "idx" => pos,
+          "step_id" => synapse.id,
+          "synapse" => synapse,
+          "gate" => false,
+          "type" => "linear",
+          "synthesizer" => nil
+        }
+
+        steps =
+          socket.assigns.pipeline_steps
+          |> List.insert_at(pos, new_step)
+          |> Enum.with_index()
+          |> Enum.map(fn {s, i} -> Map.put(s, "idx", i) end)
+
+        synapses = Ruminations.list_synapses()
+        {:noreply, assign(socket, pipeline_steps: steps, synapse_picker: nil, synapses: synapses)}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Failed to create synapse")}
+    end
+  end
+
   def handle_event("add_roster_entry", %{"step-idx" => idx_str}, socket) do
     idx = String.to_integer(idx_str)
     steps = socket.assigns.pipeline_steps
@@ -705,10 +783,20 @@ defmodule ExCortexWeb.RuminationsLive do
   attr :expanded, :any, default: nil
   attr :focused, :integer, default: 0
   attr :synapses, :list, required: true
+  attr :picker, :any, default: nil
+  attr :search, :string, default: ""
+  attr :picker_tab, :string, default: "existing"
 
   defp step_chain(assigns) do
     ~H"""
     <div class="font-mono text-sm">
+      <.step_inserter
+        position={0}
+        picker={@picker}
+        synapses={@synapses}
+        search={@search}
+        picker_tab={@picker_tab}
+      />
       <%= if @steps == [] do %>
         <p class="text-xs t-dim italic py-2 pl-4">no steps — click [+] to add a synapse</p>
       <% else %>
@@ -720,15 +808,107 @@ defmodule ExCortexWeb.RuminationsLive do
             expanded={@expanded == idx}
             focused={@focused == idx}
           />
-          <%= if idx < length(@steps) - 1 do %>
-            <div class="flex justify-center py-0.5">
-              <span class="t-dim">│</span>
-            </div>
-          <% end %>
+          <.step_inserter
+            position={idx + 1}
+            picker={@picker}
+            synapses={@synapses}
+            search={@search}
+            picker_tab={@picker_tab}
+          />
         <% end %>
       <% end %>
     </div>
     """
+  end
+
+  attr :position, :integer, required: true
+  attr :picker, :any, default: nil
+  attr :synapses, :list, required: true
+  attr :search, :string, default: ""
+  attr :picker_tab, :string, default: "existing"
+
+  defp step_inserter(assigns) do
+    open = assigns.picker == assigns.position
+    assigns = assign(assigns, open: open)
+
+    ~H"""
+    <div class="flex justify-center py-1">
+      <%= if @open do %>
+        <div class="border border-input rounded p-3 w-full space-y-2 bg-background">
+          <div class="flex gap-2 text-xs">
+            <button
+              phx-click="picker_tab"
+              phx-value-tab="existing"
+              class={"hover:underline " <> if(@picker_tab == "existing", do: "t-cyan", else: "t-dim")}
+            >
+              existing
+            </button>
+            <span class="t-dim">|</span>
+            <button
+              phx-click="picker_tab"
+              phx-value-tab="new"
+              class={"hover:underline " <> if(@picker_tab == "new", do: "t-cyan", else: "t-dim")}
+            >
+              new
+            </button>
+            <div class="flex-1" />
+            <button phx-click="close_picker" class="t-dim hover:t-bright">&#x2715;</button>
+          </div>
+
+          <%= if @picker_tab == "existing" do %>
+            <input
+              type="text"
+              value={@search}
+              phx-keyup="picker_search"
+              placeholder="search synapses…"
+              phx-debounce="200"
+              class="w-full h-7 text-xs border border-input rounded px-2 bg-background mb-1"
+            />
+            <div class="max-h-40 overflow-y-auto space-y-1">
+              <%= for s <- filtered_synapses(@synapses, @search) do %>
+                <button
+                  phx-click="insert_synapse"
+                  phx-value-id={s.id}
+                  phx-value-position={@position}
+                  class="w-full text-left text-xs px-2 py-1 rounded hover:bg-muted/40 flex items-center gap-2"
+                >
+                  <span class="flex-1 truncate">{s.name}</span>
+                  <span class="t-dim">{s.cluster_name || "—"}</span>
+                  <span class="t-dim">◆ {length(s.roster || [])}</span>
+                </button>
+              <% end %>
+            </div>
+          <% else %>
+            <input
+              type="text"
+              phx-keyup="set_new_synapse_name"
+              placeholder="synapse name"
+              class="w-full h-7 text-xs border border-input rounded px-2 bg-background"
+            />
+            <.button size="sm" phx-click="create_and_insert_synapse" phx-value-position={@position}>
+              create &amp; insert
+            </.button>
+          <% end %>
+        </div>
+      <% else %>
+        <button
+          phx-click="open_picker"
+          phx-value-position={@position}
+          class="text-xs t-dim hover:t-cyan px-2"
+          title="Insert synapse"
+        >
+          [+]
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp filtered_synapses(synapses, ""), do: synapses
+
+  defp filtered_synapses(synapses, search) do
+    term = String.downcase(search)
+    Enum.filter(synapses, fn s -> String.contains?(String.downcase(s.name), term) end)
   end
 
   attr :step, :map, required: true
