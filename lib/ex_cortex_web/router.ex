@@ -28,6 +28,9 @@ defmodule ExCortexWeb.Router do
     pipe_through :browser
 
     live_session :default, layout: {ExCortexWeb.Layouts, :app} do
+      live "/wonder", WonderLive, :index
+      live "/muse", MuseLive, :index
+      live "/thoughts", ThoughtsLive, :index
       live "/", CortexLive, :index
       live "/cortex", CortexLive, :index
       live "/neurons", NeuronsLive, :index
