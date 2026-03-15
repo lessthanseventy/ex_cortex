@@ -93,19 +93,43 @@ defmodule ExCortex.Evaluator do
   end
 
   defp build_roles_from_pathway(meta) do
-    Enum.map(meta.roles, fn role_def ->
+    role_names = Enum.map(meta.roles, fn role_def ->
       safe_name = role_def.name |> String.replace(~r/[^a-zA-Z0-9]/, "") |> Macro.camelize()
-      mod_name = Module.concat([ExCortex, Roles, safe_name])
-
-      # Skip if already compiled (handles concurrent callers)
-      if Code.ensure_loaded?(mod_name) do
-        :already_loaded
-      else
-        create_role_module(mod_name, role_def)
-      end
-
-      mod_name
+      Module.concat([ExCortex, Roles, safe_name])
     end)
+
+    # Check if all modules already exist — fast path, no lock needed
+    unless Enum.all?(role_names, &Code.ensure_loaded?/1) do
+      ensure_roles_built(meta, role_names)
+    end
+
+    role_names
+  end
+
+  # Serialize module creation through a single caller. The first process to
+  # register wins and builds; all others block until it's done.
+  defp ensure_roles_built(meta, role_names) do
+    case :global.register_name(:evaluator_role_builder, self()) do
+      :yes ->
+        # We won — build all modules
+        Enum.zip(meta.roles, role_names)
+        |> Enum.each(fn {role_def, mod_name} ->
+          unless Code.ensure_loaded?(mod_name) do
+            create_role_module(mod_name, role_def)
+          end
+        end)
+
+        :global.unregister_name(:evaluator_role_builder)
+
+      :no ->
+        # Another process is building — wait for it to finish
+        Process.sleep(100)
+
+        unless Enum.all?(role_names, &Code.ensure_loaded?/1) do
+          # Still not done, try again (will either build or wait)
+          ensure_roles_built(meta, role_names)
+        end
+    end
   end
 
   defp create_role_module(mod_name, role_def) do
@@ -136,10 +160,8 @@ defmodule ExCortex.Evaluator do
       Module.create(mod_name, contents, Macro.Env.location(__ENV__))
     rescue
       _ ->
-        # Another process may have created it concurrently — that's fine
         unless Code.ensure_loaded?(mod_name) do
-          Logger.warning("Failed to create role module #{inspect(mod_name)} — using fallback")
-          fallback_role_module(mod_name, role_def)
+          Logger.warning("Failed to create role module #{inspect(mod_name)} — skipping")
         end
     end
   end
@@ -191,35 +213,4 @@ defmodule ExCortex.Evaluator do
     mod_name
   end
 
-  defp fallback_role_module(mod_name, role_def) do
-    # Create a minimal fallback role module that can be used when the main creation fails
-    contents =
-      quote do
-        use ExCortex.Core.Role
-
-        system_prompt("Fallback role for #{inspect(role_def.name)} - basic evaluation capabilities")
-
-        # Add basic perspective as fallback
-        perspective(:basic, model: "llama3", strategy: :default, name: "#{role_def.name}.fallback")
-
-        def build_prompt(input, _context) do
-          "Fallback evaluation for #{inspect(role_def.name)}:\n\n#{inspect(input)}"
-        end
-      end
-
-    try do
-      Module.create(mod_name, contents, Macro.Env.location(__ENV__))
-    rescue
-      error ->
-        if Code.ensure_loaded?(mod_name) do
-          :ok
-        else
-          Logger.error("Fallback role module creation also failed for #{inspect(mod_name)}: #{inspect(error)}",
-            context: %{role_name: role_def.name, error_type: Exception.message(error)}
-          )
-
-          ExCortex.Roles.Fallback
-        end
-    end
-  end
 end
