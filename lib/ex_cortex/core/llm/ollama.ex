@@ -7,7 +7,7 @@ defmodule ExCortex.Core.LLM.Ollama do
   def new(opts \\ []) do
     %__MODULE__{
       base_url: Keyword.get(opts, :base_url, "http://127.0.0.1:11434"),
-      timeout: Keyword.get(opts, :timeout, 120_000),
+      timeout: Keyword.get(opts, :timeout, 300_000),
       api_key: Keyword.get(opts, :api_key)
     }
   end

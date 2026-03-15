@@ -10,7 +10,7 @@ defmodule ExCortex.LLM.Ollama do
 
   @max_tool_iterations 15
   @empty_threshold 3
-  @max_tools_per_turn 3
+  @max_tools_per_turn 15
 
   @impl true
   def complete(model, system_prompt, user_text, opts \\ []) do
