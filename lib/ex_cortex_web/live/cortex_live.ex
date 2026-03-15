@@ -3,6 +3,7 @@ defmodule ExCortexWeb.CortexLive do
   use ExCortexWeb, :live_view
 
   import Ecto.Query, only: [from: 2]
+  import ExCortexWeb.Components.SignalCards, only: [signal_card: 1]
 
   alias ExCortex.Clusters
   alias ExCortex.Memory
@@ -28,7 +29,8 @@ defmodule ExCortexWeb.CortexLive do
          page_title: "Cortex",
          muse_input: "",
          muse_answer: nil,
-         muse_loading: false
+         muse_loading: false,
+         expanded_signals: MapSet.new()
        )
      )}
   end
@@ -62,6 +64,18 @@ defmodule ExCortexWeb.CortexLive do
 
   def handle_event("navigate", _params, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("toggle_signal", %{"id" => id}, socket) do
+    signal_id = String.to_integer(id)
+    expanded = socket.assigns.expanded_signals
+
+    expanded =
+      if MapSet.member?(expanded, signal_id),
+        do: MapSet.delete(expanded, signal_id),
+        else: MapSet.put(expanded, signal_id)
+
+    {:noreply, assign(socket, expanded_signals: expanded)}
   end
 
   def handle_event("quick_muse", %{"question" => q}, socket) when q != "" do
@@ -142,12 +156,29 @@ defmodule ExCortexWeb.CortexLive do
           <% else %>
             <div class="space-y-1">
               <%= for signal <- @signals do %>
-                <div class="flex items-start gap-2 text-sm">
-                  <.status color={signal_color(signal)} label={signal.title} />
+                <div
+                  class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+                  phx-click="toggle_signal"
+                  phx-value-id={signal.id}
+                >
+                  <div class="flex items-start gap-2 text-sm">
+                    <.status color={signal_color(signal)} label={signal.title} />
+                    <span class="ml-auto text-xs t-dim">
+                      {if MapSet.member?(@expanded_signals, signal.id), do: "▾", else: "▸"}
+                    </span>
+                  </div>
+                  <%= if MapSet.member?(@expanded_signals, signal.id) do %>
+                    <div class="pl-4 mt-1 mb-2">
+                      <.signal_card card={signal} />
+                    </div>
+                  <% else %>
+                    <%= if signal.body && signal.body != "" do %>
+                      <div class="pl-4 text-xs t-dim truncate">
+                        {String.slice(signal.body, 0, 60)}
+                      </div>
+                    <% end %>
+                  <% end %>
                 </div>
-                <%= if signal.body && signal.body != "" do %>
-                  <div class="pl-4 text-xs t-dim truncate">{String.slice(signal.body, 0, 60)}</div>
-                <% end %>
               <% end %>
             </div>
           <% end %>

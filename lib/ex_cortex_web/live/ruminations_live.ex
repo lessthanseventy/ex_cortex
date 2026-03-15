@@ -22,7 +22,8 @@ defmodule ExCortexWeb.RuminationsLive do
        selected_rumination: nil,
        daydreams: [],
        running: %{},
-       adhoc_input: ""
+       adhoc_input: "",
+       output_dest: nil
      )}
   end
 
@@ -61,7 +62,18 @@ defmodule ExCortexWeb.RuminationsLive do
         socket.assigns.daydreams
       end
 
-    {:noreply, assign(socket, running: running, daydreams: daydreams)}
+    rumination_name =
+      case Enum.find(socket.assigns.ruminations, &(&1.id == run.rumination_id)) do
+        %{name: name} -> name
+        _ -> "Rumination ##{run.rumination_id}"
+      end
+
+    socket =
+      socket
+      |> assign(running: running, daydreams: daydreams)
+      |> put_flash(:info, "#{rumination_name} completed (#{run.status})")
+
+    {:noreply, socket}
   end
 
   # Internal task result (fallback for when PubSub doesn't fire)
@@ -135,7 +147,33 @@ defmodule ExCortexWeb.RuminationsLive do
   defp load_rumination(socket, rumination_id) do
     rumination = Ruminations.get_rumination!(rumination_id)
     daydreams = Ruminations.list_daydreams(rumination)
-    assign(socket, selected_id: rumination_id, selected_rumination: rumination, daydreams: daydreams)
+    output_dest = last_step_output_destination(rumination, socket.assigns.synapses)
+
+    assign(socket,
+      selected_id: rumination_id,
+      selected_rumination: rumination,
+      daydreams: daydreams,
+      output_dest: output_dest
+    )
+  end
+
+  defp last_step_output_destination(rumination, synapses) do
+    last_step_id =
+      rumination.steps
+      |> Enum.sort_by(&(&1["order"] || 0))
+      |> List.last()
+      |> case do
+        %{"step_id" => id} -> id
+        _ -> nil
+      end
+
+    synapse = Enum.find(synapses, &(&1.id == last_step_id))
+
+    case synapse do
+      %{output_type: "signal"} -> {:cortex, "→ signal on cortex"}
+      %{output_type: "artifact"} -> {:memory, "→ engram in memory"}
+      _ -> nil
+    end
   end
 
   defp status_color("active"), do: "green"
@@ -327,7 +365,7 @@ defmodule ExCortexWeb.RuminationsLive do
               <% else %>
                 <div class="space-y-2">
                   <%= for run <- @daydreams do %>
-                    <.daydream_row run={run} />
+                    <.daydream_row run={run} output_dest={@output_dest} />
                   <% end %>
                 </div>
               <% end %>
@@ -346,6 +384,7 @@ defmodule ExCortexWeb.RuminationsLive do
   end
 
   attr :run, :map, required: true
+  attr :output_dest, :any, default: nil
 
   defp daydream_row(assigns) do
     ~H"""
@@ -353,11 +392,23 @@ defmodule ExCortexWeb.RuminationsLive do
       <.status color={run_color(@run.status)} label={@run.status} />
       <span class="t-dim text-xs">{format_time(@run.inserted_at)}</span>
       <%= if @run.synapse_results != %{} do %>
-        <span class="text-xs t-dim ml-auto">
+        <span class="text-xs t-dim">
           {map_size(@run.synapse_results)} step{if map_size(@run.synapse_results) != 1, do: "s"}
         </span>
+      <% end %>
+      <%= if @run.status == "complete" && @output_dest do %>
+        <.link
+          navigate={output_dest_path(@output_dest)}
+          class="text-xs t-cyan hover:underline ml-auto"
+        >
+          {elem(@output_dest, 1)}
+        </.link>
       <% end %>
     </div>
     """
   end
+
+  defp output_dest_path({:cortex, _}), do: ~p"/cortex"
+  defp output_dest_path({:memory, _}), do: ~p"/memory"
+  defp output_dest_path(_), do: ~p"/cortex"
 end
