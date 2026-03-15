@@ -248,7 +248,7 @@ defmodule ExCortex.Seeds do
       %{
         name: "Classifier",
         team: "Triage",
-        rank: "apprentice",
+        rank: "journeyman",
         prompt: """
         You are Classifier, responsible for categorizing incoming signals by type
         and priority level.
@@ -265,7 +265,7 @@ defmodule ExCortex.Seeds do
       %{
         name: "Router",
         team: "Triage",
-        rank: "apprentice",
+        rank: "journeyman",
         prompt: """
         You are Router, responsible for directing classified signals to the appropriate
         cluster for further processing.
@@ -533,7 +533,7 @@ defmodule ExCortex.Seeds do
       %{
         name: "Collector",
         team: "Archivist",
-        rank: "apprentice",
+        rank: "journeyman",
         prompt: """
         You are Collector, responsible for gathering related engrams and signals
         into thematic collections ready for packaging.
