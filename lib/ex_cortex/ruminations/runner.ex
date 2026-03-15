@@ -101,14 +101,16 @@ defmodule ExCortex.Ruminations.Runner do
     {:ok, daydream} = Ruminations.update_daydream(daydream, %{status: final_status, synapse_results: synapse_results})
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_completed, daydream})
 
-    if !dry_run? && !Application.get_env(:ex_cortex, :sql_sandbox, false) do
+    if !Application.get_env(:ex_cortex, :sql_sandbox, false) do
       Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-        post_artifacts(synapse_results, thought, daydream)
+        # Skip side effects (signals, artifacts) in dry run, but still extract memory
+        if !dry_run?, do: post_artifacts(synapse_results, thought, daydream)
 
         ExCortex.Memory.Extractor.extract(%{
           id: daydream.id,
           rumination_name: thought.name,
           cluster_name: Map.get(thought, :cluster_name),
+          dry_run: dry_run?,
           status: final_status,
           results: synapse_results,
           impulses: results |> Enum.with_index() |> Enum.map(fn {r, i} -> %{step: i, results: r} end)
