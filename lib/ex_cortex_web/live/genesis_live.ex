@@ -311,7 +311,13 @@ defmodule ExCortexWeb.GenesisLive do
   defp step_chain(assigns) do
     ~H"""
     <div class="space-y-2">
-      <.step_row :for={{step, idx} <- Enum.with_index(@steps)} step={step} index={idx} editable={@editable} last={idx == length(@steps) - 1} />
+      <.step_row
+        :for={{step, idx} <- Enum.with_index(@steps)}
+        step={step}
+        index={idx}
+        editable={@editable}
+        last={idx == length(@steps) - 1}
+      />
     </div>
     """
   end
@@ -325,9 +331,23 @@ defmodule ExCortexWeb.GenesisLive do
     ~H"""
     <div class="flex items-start gap-3 border border-border rounded p-3 bg-muted/20">
       <div class="flex flex-col gap-1 text-xs t-dim">
-        <button :if={@index > 0} phx-click="move_step_up" phx-value-index={@index} class="hover:t-bright">↑</button>
+        <button
+          :if={@index > 0}
+          phx-click="move_step_up"
+          phx-value-index={@index}
+          class="hover:t-bright"
+        >
+          ↑
+        </button>
         <span class="t-amber font-mono">{@index + 1}</span>
-        <button :if={!@last} phx-click="move_step_down" phx-value-index={@index} class="hover:t-bright">↓</button>
+        <button
+          :if={!@last}
+          phx-click="move_step_down"
+          phx-value-index={@index}
+          class="hover:t-bright"
+        >
+          ↓
+        </button>
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
@@ -340,7 +360,11 @@ defmodule ExCortexWeb.GenesisLive do
           <span :if={@step.preferred_neuron}>neuron: {@step.preferred_neuron}</span>
         </div>
       </div>
-      <button phx-click="remove_step" phx-value-index={@index} class="text-xs t-dim hover:text-destructive shrink-0">
+      <button
+        phx-click="remove_step"
+        phx-value-index={@index}
+        class="text-xs t-dim hover:text-destructive shrink-0"
+      >
         remove
       </button>
     </div>
