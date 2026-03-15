@@ -612,6 +612,14 @@ defmodule ExCortexWeb.RuminationsLive do
     handle_event("edit_rumination", %{}, socket)
   end
 
+  defp handle_view_keydown("r", %{assigns: %{selected_rumination: rum}} = socket) when not is_nil(rum) do
+    handle_event("run_rumination", %{"id" => to_string(rum.id)}, socket)
+  end
+
+  defp handle_view_keydown("d", %{assigns: %{selected_rumination: rum}} = socket) when not is_nil(rum) do
+    handle_event("delete_rumination", %{"id" => to_string(rum.id)}, socket)
+  end
+
   defp handle_view_keydown("Escape", %{assigns: %{selected_rumination: rum}} = socket) when not is_nil(rum) do
     {:noreply, assign(socket, selected_id: nil, selected_rumination: nil, daydreams: [])}
   end
