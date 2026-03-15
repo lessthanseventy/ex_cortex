@@ -80,7 +80,7 @@ Existing `lore_entries`, `decisions`, `outcomes`, `step_runs` tables already hav
 
 ### Move Components
 
-Absorb the 6 ex_cellence_ui components into `lib/ex_calibur_web/components/excellence/`:
+Absorb the 6 ex_cellence_ui components into `lib/ex_cortex_web/components/excellence/`:
 - RoleForm
 - ActionsForm
 - GuardForm
@@ -92,7 +92,7 @@ Delete the standalone `ex_cellence_ui/` project (its own `.git`, `_build`, `deps
 
 ### New Card Renderer
 
-`ExCaliburWeb.Components.LodgeCards` — single module with `lodge_card/1` function component that pattern-matches on card type:
+`ExCortexWeb.Components.LodgeCards` — single module with `lodge_card/1` function component that pattern-matches on card type:
 
 ```elixir
 def lodge_card(%{card: %{type: "note"}} = assigns), do: ~H"..."

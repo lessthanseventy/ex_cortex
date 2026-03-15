@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddLoreTagsToSteps do
+defmodule ExCortex.Repo.Migrations.AddLoreTagsToSteps do
   use Ecto.Migration
 
   def change do

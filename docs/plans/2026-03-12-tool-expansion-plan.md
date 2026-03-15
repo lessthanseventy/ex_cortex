@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:executing-plans to implement this plan task-by-task.
 
-**Goal:** Expand ExCalibur from 3 tools to 29, add Obsidian as a durable knowledge layer, create a settings UI, wire all guilds to appropriate tools, and add 3 new source types.
+**Goal:** Expand ExCortex from 3 tools to 29, add Obsidian as a durable knowledge layer, create a settings UI, wire all guilds to appropriate tools, and add 3 new source types.
 
 **Architecture:** Each tool is a module returning a ReqLLM.Tool struct, registered in a three-tier registry (safe/write/dangerous). Obsidian syncs from Postgres as a side effect of every write. Settings stored in a jsonb column. Guild charters updated with per-member tool assignments.
 
@@ -41,17 +41,17 @@ Parallel tracks after Tasks 0+1: Obsidian, Email, GitHub, Data, Web, Media can a
 ### Task 0: Registry three-tier refactor
 
 **Files:**
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Modify: `lib/ex_calibur/step_runner.ex` (lines 324-328)
-- Test: `test/ex_calibur/tools/registry_test.exs`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Modify: `lib/ex_cortex/step_runner.ex` (lines 324-328)
+- Test: `test/ex_cortex/tools/registry_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/tools/registry_test.exs
-defmodule ExCalibur.Tools.RegistryTest do
+# test/ex_cortex/tools/registry_test.exs
+defmodule ExCortex.Tools.RegistryTest do
   use ExUnit.Case, async: true
-  alias ExCalibur.Tools.Registry
+  alias ExCortex.Tools.Registry
 
   test "resolve_tools(:all_safe) returns only safe tools" do
     tools = Registry.resolve_tools(:all_safe)
@@ -83,15 +83,15 @@ end
 
 **Step 2: Run test, verify fail**
 
-Run: `mix test test/ex_calibur/tools/registry_test.exs`
+Run: `mix test test/ex_cortex/tools/registry_test.exs`
 Expected: FAIL — :write and :dangerous not recognized
 
 **Step 3: Refactor registry**
 
 ```elixir
-# lib/ex_calibur/tools/registry.ex
-defmodule ExCalibur.Tools.Registry do
-  alias ExCalibur.Tools.{QueryLore, FetchUrl, RunQuest}
+# lib/ex_cortex/tools/registry.ex
+defmodule ExCortex.Tools.Registry do
+  alias ExCortex.Tools.{QueryLore, FetchUrl, RunQuest}
 
   @safe [QueryLore, FetchUrl]
   @write []
@@ -120,25 +120,25 @@ end
 **Step 4: Update step_runner resolve_member_tools**
 
 ```elixir
-# lib/ex_calibur/step_runner.ex — replace resolve_member_tools functions
+# lib/ex_cortex/step_runner.ex — replace resolve_member_tools functions
 defp resolve_member_tools(nil), do: []
-defp resolve_member_tools("all_safe"), do: ExCalibur.Tools.Registry.resolve_tools(:all_safe)
-defp resolve_member_tools("write"), do: ExCalibur.Tools.Registry.resolve_tools(:write)
-defp resolve_member_tools("dangerous"), do: ExCalibur.Tools.Registry.resolve_tools(:dangerous)
-defp resolve_member_tools("yolo"), do: ExCalibur.Tools.Registry.resolve_tools(:dangerous)
-defp resolve_member_tools(names) when is_list(names), do: ExCalibur.Tools.Registry.resolve_tools(names)
+defp resolve_member_tools("all_safe"), do: ExCortex.Tools.Registry.resolve_tools(:all_safe)
+defp resolve_member_tools("write"), do: ExCortex.Tools.Registry.resolve_tools(:write)
+defp resolve_member_tools("dangerous"), do: ExCortex.Tools.Registry.resolve_tools(:dangerous)
+defp resolve_member_tools("yolo"), do: ExCortex.Tools.Registry.resolve_tools(:dangerous)
+defp resolve_member_tools(names) when is_list(names), do: ExCortex.Tools.Registry.resolve_tools(names)
 defp resolve_member_tools(_), do: []
 ```
 
 **Step 5: Run tests, verify pass**
 
-Run: `mix test test/ex_calibur/tools/registry_test.exs`
+Run: `mix test test/ex_cortex/tools/registry_test.exs`
 Expected: PASS
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/registry.ex lib/ex_calibur/step_runner.ex test/ex_calibur/tools/registry_test.exs
+git add lib/ex_cortex/tools/registry.ex lib/ex_cortex/step_runner.ex test/ex_cortex/tools/registry_test.exs
 git commit -m "feat: three-tier tool registry (safe/write/dangerous)"
 ```
 
@@ -148,16 +148,16 @@ git commit -m "feat: three-tier tool registry (safe/write/dangerous)"
 
 **Files:**
 - Create: `priv/repo/migrations/TIMESTAMP_add_config_to_settings.exs`
-- Modify: `lib/ex_calibur/settings.ex`
-- Test: `test/ex_calibur/settings_test.exs`
+- Modify: `lib/ex_cortex/settings.ex`
+- Test: `test/ex_cortex/settings_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/settings_test.exs
-defmodule ExCalibur.SettingsTest do
-  use ExCalibur.DataCase, async: true
-  alias ExCalibur.Settings
+# test/ex_cortex/settings_test.exs
+defmodule ExCortex.SettingsTest do
+  use ExCortex.DataCase, async: true
+  alias ExCortex.Settings
 
   test "get/1 returns nil for unconfigured key" do
     assert Settings.get(:obsidian_vault) == nil
@@ -178,12 +178,12 @@ end
 
 **Step 2: Run test, verify fail**
 
-Run: `mix test test/ex_calibur/settings_test.exs`
+Run: `mix test test/ex_cortex/settings_test.exs`
 
 **Step 3: Create migration**
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.AddConfigToSettings do
+defmodule ExCortex.Repo.Migrations.AddConfigToSettings do
   use Ecto.Migration
 
   def change do
@@ -219,12 +219,12 @@ Also add `:config` to the Setting schema and changeset.
 
 **Step 5: Run migration, run tests**
 
-Run: `mix ecto.migrate && mix test test/ex_calibur/settings_test.exs`
+Run: `mix ecto.migrate && mix test test/ex_cortex/settings_test.exs`
 
 **Step 6: Commit**
 
 ```bash
-git add priv/repo/migrations/ lib/ex_calibur/settings.ex test/ex_calibur/settings_test.exs
+git add priv/repo/migrations/ lib/ex_cortex/settings.ex test/ex_cortex/settings_test.exs
 git commit -m "feat: add jsonb config column to settings for tool configuration"
 ```
 
@@ -233,17 +233,17 @@ git commit -m "feat: add jsonb config column to settings for tool configuration"
 ### Task 2: Obsidian tools (6 tools)
 
 **Files:**
-- Create: `lib/ex_calibur/tools/search_obsidian.ex`
-- Create: `lib/ex_calibur/tools/search_obsidian_content.ex`
-- Create: `lib/ex_calibur/tools/read_obsidian.ex`
-- Create: `lib/ex_calibur/tools/read_obsidian_frontmatter.ex`
-- Create: `lib/ex_calibur/tools/create_obsidian_note.ex`
-- Create: `lib/ex_calibur/tools/daily_obsidian.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/obsidian_tools_test.exs`
+- Create: `lib/ex_cortex/tools/search_obsidian.ex`
+- Create: `lib/ex_cortex/tools/search_obsidian_content.ex`
+- Create: `lib/ex_cortex/tools/read_obsidian.ex`
+- Create: `lib/ex_cortex/tools/read_obsidian_frontmatter.ex`
+- Create: `lib/ex_cortex/tools/create_obsidian_note.ex`
+- Create: `lib/ex_cortex/tools/daily_obsidian.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/obsidian_tools_test.exs`
 
 All follow the same pattern — see design doc Section 2 for the example. Each tool:
-1. Reads vault from `ExCalibur.Settings.get(:obsidian_vault)`
+1. Reads vault from `ExCortex.Settings.get(:obsidian_vault)`
 2. Builds obsidian-cli args with `--vault` flag if vault configured
 3. Calls `System.cmd("obsidian-cli", args, stderr_to_stdout: true)`
 4. Returns `{:ok, output}` or `{:error, error}`
@@ -257,11 +257,11 @@ Tiers: search_obsidian, search_obsidian_content, read_obsidian, read_obsidian_fr
 ### Task 3: Email tools (3 tools)
 
 **Files:**
-- Create: `lib/ex_calibur/tools/search_email.ex`
-- Create: `lib/ex_calibur/tools/read_email.ex`
-- Create: `lib/ex_calibur/tools/send_email.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/email_tools_test.exs`
+- Create: `lib/ex_cortex/tools/search_email.ex`
+- Create: `lib/ex_cortex/tools/read_email.ex`
+- Create: `lib/ex_cortex/tools/send_email.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/email_tools_test.exs`
 
 search_email: `System.cmd("notmuch", ["search", query, "--limit=#{limit}"])`
 read_email: `System.cmd("notmuch", ["show", "--format=text", message_id])`
@@ -276,13 +276,13 @@ Tiers: search_email, read_email → @safe. send_email → @dangerous.
 ### Task 4: GitHub tools (5 tools)
 
 **Files:**
-- Create: `lib/ex_calibur/tools/search_github.ex`
-- Create: `lib/ex_calibur/tools/read_github_issue.ex`
-- Create: `lib/ex_calibur/tools/list_github_notifications.ex`
-- Create: `lib/ex_calibur/tools/create_github_issue.ex`
-- Create: `lib/ex_calibur/tools/comment_github.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/github_tools_test.exs`
+- Create: `lib/ex_cortex/tools/search_github.ex`
+- Create: `lib/ex_cortex/tools/read_github_issue.ex`
+- Create: `lib/ex_cortex/tools/list_github_notifications.ex`
+- Create: `lib/ex_cortex/tools/create_github_issue.ex`
+- Create: `lib/ex_cortex/tools/comment_github.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/github_tools_test.exs`
 
 All use `System.cmd("gh", [...])`. Repo param falls back to `Settings.get(:default_repo)`.
 
@@ -295,11 +295,11 @@ Tiers: search_github, read_github_issue, list_github_notifications → @safe. cr
 ### Task 5: Data processing tools (3 tools)
 
 **Files:**
-- Create: `lib/ex_calibur/tools/jq_query.ex`
-- Create: `lib/ex_calibur/tools/read_pdf.ex`
-- Create: `lib/ex_calibur/tools/convert_document.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/data_tools_test.exs`
+- Create: `lib/ex_cortex/tools/jq_query.ex`
+- Create: `lib/ex_cortex/tools/read_pdf.ex`
+- Create: `lib/ex_cortex/tools/convert_document.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/data_tools_test.exs`
 
 jq_query: `System.cmd("jq", [expression], input: json)` — important: use `input:` option, not a temp file.
 read_pdf: `System.cmd("pdftotext", [path, "-"])` — the "-" means stdout.
@@ -314,10 +314,10 @@ All @safe.
 ### Task 6: Web tools (2 tools)
 
 **Files:**
-- Modify: `lib/ex_calibur/tools/fetch_url.ex` → upgrade or create `lib/ex_calibur/tools/web_fetch.ex`
-- Create: `lib/ex_calibur/tools/web_search.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/web_tools_test.exs`
+- Modify: `lib/ex_cortex/tools/fetch_url.ex` → upgrade or create `lib/ex_cortex/tools/web_fetch.ex`
+- Create: `lib/ex_cortex/tools/web_search.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/web_tools_test.exs`
 
 web_fetch: Req.get(url) then pipe HTML through `System.cmd("w3m", ["-dump", "-T", "text/html"], input: html)`. Fall back to raw body. Replaces fetch_url (keep alias).
 web_search: `System.cmd("ddgr", ["--json", "--num", to_string(num), query])`, parse JSON results.
@@ -331,17 +331,17 @@ Both @safe. Move fetch_url out of @yolo.
 ### Task 7: Media tools (4 tools)
 
 **Files:**
-- Create: `lib/ex_calibur/media.ex`
-- Create: `lib/ex_calibur/tools/download_media.ex`
-- Create: `lib/ex_calibur/tools/extract_audio.ex`
-- Create: `lib/ex_calibur/tools/extract_frames.ex`
-- Create: `lib/ex_calibur/tools/transcribe_audio.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/media_tools_test.exs`
+- Create: `lib/ex_cortex/media.ex`
+- Create: `lib/ex_cortex/tools/download_media.ex`
+- Create: `lib/ex_cortex/tools/extract_audio.ex`
+- Create: `lib/ex_cortex/tools/extract_frames.ex`
+- Create: `lib/ex_cortex/tools/transcribe_audio.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/media_tools_test.exs`
 
-ExCalibur.Media shared helper:
+ExCortex.Media shared helper:
 ```elixir
-def media_dir, do: ExCalibur.Settings.get(:media_dir) || "/tmp/ex_calibur/media"
+def media_dir, do: ExCortex.Settings.get(:media_dir) || "/tmp/ex_cortex/media"
 def job_dir do
   dir = Path.join(media_dir(), Ecto.UUID.generate())
   File.mkdir_p!(dir)
@@ -362,14 +362,14 @@ transcribe_audio (safe): Stub returning `{:error, :not_configured}` with TODO fo
 ### Task 8: Vision tools (3 tools)
 
 **Files:**
-- Create: `lib/ex_calibur/vision.ex`
-- Create: `lib/ex_calibur/tools/describe_image.ex`
-- Create: `lib/ex_calibur/tools/read_image_text.ex`
-- Create: `lib/ex_calibur/tools/analyze_video.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Test: `test/ex_calibur/tools/vision_tools_test.exs`
+- Create: `lib/ex_cortex/vision.ex`
+- Create: `lib/ex_cortex/tools/describe_image.ex`
+- Create: `lib/ex_cortex/tools/read_image_text.ex`
+- Create: `lib/ex_cortex/tools/analyze_video.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Test: `test/ex_cortex/tools/vision_tools_test.exs`
 
-ExCalibur.Vision routing:
+ExCortex.Vision routing:
 ```elixir
 def describe(image_path, prompt \\ "Describe this image in detail.") do
   image_b64 = image_path |> File.read!() |> Base.encode64()
@@ -391,7 +391,7 @@ All @safe.
 ### Task 9: Reclassify existing tools
 
 **Files:**
-- Modify: `lib/ex_calibur/tools/registry.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
 
 Move fetch_url to @safe (or remove if replaced by web_fetch). Move run_quest to @dangerous. This should already be done if Tasks 0+6 are complete — verify and clean up.
 
@@ -402,14 +402,14 @@ Move fetch_url to @safe (or remove if replaced by web_fetch). Move run_quest to 
 ### Task 10: Obsidian sync layer
 
 **Files:**
-- Create: `lib/ex_calibur/obsidian/sync.ex`
-- Modify: `lib/ex_calibur/lore.ex`
-- Modify: `lib/ex_calibur/lodge.ex`
-- Test: `test/ex_calibur/obsidian/sync_test.exs`
+- Create: `lib/ex_cortex/obsidian/sync.ex`
+- Modify: `lib/ex_cortex/lore.ex`
+- Modify: `lib/ex_cortex/lodge.ex`
+- Test: `test/ex_cortex/obsidian/sync_test.exs`
 
 See design doc Section 3 for full spec. Key functions:
-- `sync_lore_entry/1`: Writes `ExCalibur/Lore/slug.md` with YAML frontmatter
-- `sync_lodge_card/1`: Writes `ExCalibur/Lodge/slug.md` with YAML frontmatter
+- `sync_lore_entry/1`: Writes `ExCortex/Lore/slug.md` with YAML frontmatter
+- `sync_lodge_card/1`: Writes `ExCortex/Lodge/slug.md` with YAML frontmatter
 - `slug/1`: Slugify title + date
 - `vault_path/0`: From Settings, construct full path to vault
 - `sync_enabled?/0`: Check Settings.get(:obsidian_sync_enabled)
@@ -422,7 +422,7 @@ Wire in via `Task.start(fn -> Sync.sync_lore_entry(entry) end)` — fire-and-for
 
 ### Task 11: Wire guild charters to new tools
 
-**Files:** All 19 charter files in `lib/ex_calibur/charters/`
+**Files:** All 19 charter files in `lib/ex_cortex/charters/`
 
 See design doc Section 5 for complete per-guild wiring table. Two changes per charter:
 1. `resource_definitions/0`: Change `"tools" => "all_safe"` to the appropriate tier or specific tool list
@@ -437,11 +437,11 @@ For Everyday Council specifically: per-member tool config (journal-keeper gets "
 ### Task 12: New source types (Obsidian, Email, Media)
 
 **Files:**
-- Create: `lib/ex_calibur/sources/obsidian_watcher.ex`
-- Create: `lib/ex_calibur/sources/email_source.ex`
-- Create: `lib/ex_calibur/sources/media_source.ex`
-- Modify: `lib/ex_calibur/sources/source_worker.ex`
-- Modify: `lib/ex_calibur/sources/book.ex`
+- Create: `lib/ex_cortex/sources/obsidian_watcher.ex`
+- Create: `lib/ex_cortex/sources/email_source.ex`
+- Create: `lib/ex_cortex/sources/media_source.ex`
+- Modify: `lib/ex_cortex/sources/source_worker.ex`
+- Modify: `lib/ex_cortex/sources/book.ex`
 - Tests for each
 
 See design doc Section 6 for specs. Each implements `init/1` and `fetch/2` callbacks.
@@ -453,10 +453,10 @@ See design doc Section 6 for specs. Each implements `init/1` and `fetch/2` callb
 ### Task 13: Settings UI page
 
 **Files:**
-- Create: `lib/ex_calibur_web/live/settings_live.ex`
-- Modify: `lib/ex_calibur_web/router.ex`
-- Modify: `lib/ex_calibur_web/components/layouts/app.html.heex`
-- Test: `test/ex_calibur_web/live/settings_live_test.exs`
+- Create: `lib/ex_cortex_web/live/settings_live.ex`
+- Modify: `lib/ex_cortex_web/router.ex`
+- Modify: `lib/ex_cortex_web/components/layouts/app.html.heex`
+- Test: `test/ex_cortex_web/live/settings_live_test.exs`
 
 7 form sections, each with phx-submit saving to Settings.put/2. See design doc Section 7.
 
@@ -467,7 +467,7 @@ See design doc Section 6 for specs. Each implements `init/1` and `fetch/2` callb
 ### Task 14: Integration test
 
 **Files:**
-- Test: `test/ex_calibur/integration/everyday_council_flow_test.exs`
+- Test: `test/ex_cortex/integration/everyday_council_flow_test.exs`
 
 End-to-end smoke test of the full pipeline with new tools.
 

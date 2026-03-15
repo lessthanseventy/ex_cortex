@@ -10,7 +10,7 @@ import Config
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",
-  ex_calibur: [
+  ex_cortex: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
@@ -18,35 +18,35 @@ config :esbuild,
   ]
 
 # Configure the endpoint
-config :ex_calibur, ExCaliburWeb.Endpoint,
+config :ex_cortex, ExCortexWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
-    formats: [html: ExCaliburWeb.ErrorHTML, json: ExCaliburWeb.ErrorJSON],
+    formats: [html: ExCortexWeb.ErrorHTML, json: ExCortexWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: ExCalibur.PubSub,
+  pubsub_server: ExCortex.PubSub,
   live_view: [signing_salt: "dE89EITe"]
 
-config :ex_calibur, Oban,
+config :ex_cortex, Oban,
   engine: Oban.Engines.Basic,
   queues: [default: 10],
-  repo: ExCalibur.Repo
+  repo: ExCortex.Repo
 
-config :ex_calibur, :model_fallback_chain, ["devstral-small-2:24b"]
+config :ex_cortex, :model_fallback_chain, ["devstral-small-2:24b"]
 
-config :ex_calibur, :nextcloud_roles, %{
+config :ex_cortex, :nextcloud_roles, %{
   "admin" => :super_admin,
   "andrew" => :super_admin,
   "robyn" => :admin,
   "jude" => :user
 }
 
-config :ex_calibur,
-  ecto_repos: [ExCalibur.Repo],
+config :ex_cortex,
+  ecto_repos: [ExCortex.Repo],
   generators: [timestamp_type: :utc_datetime]
 
-config :ex_calibur,
+config :ex_cortex,
   nextcloud_url: System.get_env("NEXTCLOUD_URL", "http://localhost:8080"),
   nextcloud_user: System.get_env("NEXTCLOUD_USER", "admin"),
   nextcloud_password: System.get_env("NEXTCLOUD_PASSWORD", "admin")
@@ -58,7 +58,7 @@ config :logger, :default_formatter,
 
 # OpenTelemetry
 config :opentelemetry,
-  resource: [service: [name: "ex_calibur", version: "0.1.0"]],
+  resource: [service: [name: "ex_cortex", version: "0.1.0"]],
   span_processor: :batch,
   traces_exporter: :otlp
 
@@ -72,7 +72,7 @@ config :phoenix, :json_library, Jason
 # Configure tailwind (the version is required)
 config :tailwind,
   version: "4.1.12",
-  ex_calibur: [
+  ex_cortex: [
     args: ~w(
       --input=assets/css/app.css
       --output=priv/static/assets/css/app.css

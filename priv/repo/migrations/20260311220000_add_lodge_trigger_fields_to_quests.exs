@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddLodgeTriggerFieldsToQuests do
+defmodule ExCortex.Repo.Migrations.AddLodgeTriggerFieldsToQuests do
   use Ecto.Migration
 
   def change do

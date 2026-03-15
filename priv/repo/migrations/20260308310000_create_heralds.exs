@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.CreateHeralds do
+defmodule ExCortex.Repo.Migrations.CreateHeralds do
   use Ecto.Migration
 
   def change do

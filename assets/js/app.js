@@ -22,7 +22,7 @@ import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
-import {hooks as colocatedHooks} from "phoenix-colocated/ex_calibur"
+import {hooks as colocatedHooks} from "phoenix-colocated/ex_cortex"
 import SaladUI from "salad_ui/assets/salad_ui"
 import "salad_ui/assets/salad_ui/components/tabs"
 import topbar from "../vendor/topbar"
@@ -34,9 +34,27 @@ window.addEventListener("phx:reset-form", ({detail: {id}}) => {
   if (form) form.reset()
 })
 
+const KeyboardNav = {
+  mounted() {
+    this.handleKeydown = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable) return;
+      const routes = { c: "/cortex", n: "/neurons", t: "/thoughts", m: "/memory", s: "/senses", i: "/instinct", g: "/guide" };
+      if (routes[e.key]) {
+        e.preventDefault();
+        this.pushEvent("navigate", { to: routes[e.key] });
+      }
+    };
+    window.addEventListener("keydown", this.handleKeydown);
+  },
+  destroyed() {
+    window.removeEventListener("keydown", this.handleKeydown);
+  }
+};
+
 const Hooks = {
   ...colocatedHooks,
   SaladUI: SaladUI.SaladUIHook,
+  KeyboardNav,
   AutoDismissFlash: {
     mounted() {
       this.timer = setTimeout(() => {

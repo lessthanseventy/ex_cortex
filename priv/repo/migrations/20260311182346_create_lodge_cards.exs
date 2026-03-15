@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.CreateLodgeCards do
+defmodule ExCortex.Repo.Migrations.CreateLodgeCards do
   use Ecto.Migration
 
   def change do

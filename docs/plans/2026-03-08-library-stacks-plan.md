@@ -10,12 +10,12 @@ Books are standalone source blueprints — not tied to specific guilds. When ins
 
 ## Task 1: Define Book catalogue module
 
-**File:** `lib/ex_calibur/sources/book.ex`
+**File:** `lib/ex_cortex/sources/book.ex`
 
 **Steps:**
 1. Create a module that defines all available source books as data:
    ```elixir
-   defmodule ExCalibur.Sources.Book do
+   defmodule ExCortex.Sources.Book do
      defstruct [:id, :name, :description, :source_type, :default_config, :suggested_guild]
 
      @books [
@@ -88,8 +88,8 @@ Books are standalone source blueprints — not tied to specific guilds. When ins
 ## Task 2: Create Library LiveView page
 
 **Files:**
-- `lib/ex_calibur_web/live/library_live.ex` (new)
-- `test/ex_calibur_web/live/library_live_test.exs` (new)
+- `lib/ex_cortex_web/live/library_live.ex` (new)
+- `test/ex_cortex_web/live/library_live_test.exs` (new)
 
 **Steps:**
 1. Create LibraryLive that displays all available books as cards in a grid:
@@ -107,8 +107,8 @@ Books are standalone source blueprints — not tied to specific guilds. When ins
 ## Task 3: Rename SourcesLive to StacksLive
 
 **Files:**
-- `lib/ex_calibur_web/live/stacks_live.ex` (rename from sources_live.ex)
-- `test/ex_calibur_web/live/stacks_live_test.exs` (rename from sources_live_test.exs)
+- `lib/ex_cortex_web/live/stacks_live.ex` (rename from sources_live.ex)
+- `test/ex_cortex_web/live/stacks_live_test.exs` (rename from sources_live_test.exs)
 
 **Steps:**
 1. Rename `SourcesLive` module to `StacksLive`
@@ -127,9 +127,9 @@ Books are standalone source blueprints — not tied to specific guilds. When ins
 ## Task 4: Update nav, routes, and redirects
 
 **Files:**
-- `lib/ex_calibur_web/components/layouts/root.html.heex`
-- `lib/ex_calibur_web/router.ex`
-- `lib/ex_calibur_web/live/guild_hall_live.ex`
+- `lib/ex_cortex_web/components/layouts/root.html.heex`
+- `lib/ex_cortex_web/router.ex`
+- `lib/ex_cortex_web/live/guild_hall_live.ex`
 
 **Steps:**
 1. Nav links: replace "Sources" with "Library" and "Stacks" (between Quests and Evaluate)

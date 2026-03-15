@@ -13,11 +13,11 @@
 ## Task 1: Add MDEx Dependency
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/mix.exs`
+- Modify: `/home/andrew/projects/ex_cortex/mix.exs`
 
 **Step 1: Add mdex to deps**
 
-In `/home/andrew/projects/ex_calibur/mix.exs`, add to the `deps` function:
+In `/home/andrew/projects/ex_cortex/mix.exs`, add to the `deps` function:
 
 ```elixir
 {:mdex, "~> 0.11"},
@@ -47,19 +47,19 @@ git commit -m "deps: add mdex for Markdown rendering"
 ## Task 2: Settings Schema, Migration & Context
 
 **Files:**
-- Create: `/home/andrew/projects/ex_calibur/lib/ex_calibur/settings.ex`
+- Create: `/home/andrew/projects/ex_cortex/lib/ex_cortex/settings.ex`
 - Create: `priv/repo/migrations/TIMESTAMP_create_settings.exs`
-- Create: `/home/andrew/projects/ex_calibur/test/ex_calibur/settings_test.exs`
+- Create: `/home/andrew/projects/ex_cortex/test/ex_cortex/settings_test.exs`
 
 **Step 1: Write the failing test**
 
-Create `/home/andrew/projects/ex_calibur/test/ex_calibur/settings_test.exs`:
+Create `/home/andrew/projects/ex_cortex/test/ex_cortex/settings_test.exs`:
 
 ```elixir
-defmodule ExCalibur.SettingsTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.SettingsTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Settings
+  alias ExCortex.Settings
 
   describe "banner" do
     test "get_banner/0 returns nil when no settings exist" do
@@ -87,7 +87,7 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/settings_test.exs`
+Run: `mix test test/ex_cortex/settings_test.exs`
 Expected: Compilation error — `Settings` module doesn't exist.
 
 **Step 3: Create the migration**
@@ -97,7 +97,7 @@ Run: `mix ecto.gen.migration create_settings`
 Then edit the generated migration file:
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.CreateSettings do
+defmodule ExCortex.Repo.Migrations.CreateSettings do
   use Ecto.Migration
 
   def change do
@@ -112,10 +112,10 @@ end
 
 **Step 4: Create the Settings context**
 
-Create `/home/andrew/projects/ex_calibur/lib/ex_calibur/settings.ex`:
+Create `/home/andrew/projects/ex_cortex/lib/ex_cortex/settings.ex`:
 
 ```elixir
-defmodule ExCalibur.Settings do
+defmodule ExCortex.Settings do
   @moduledoc "App-wide settings (single-row table)."
 
   use Ecto.Schema
@@ -136,32 +136,32 @@ defmodule ExCalibur.Settings do
   end
 
   def get_banner do
-    case ExCalibur.Repo.one(__MODULE__) do
+    case ExCortex.Repo.one(__MODULE__) do
       nil -> nil
       settings -> settings.banner
     end
   end
 
   def set_banner(banner) do
-    case ExCalibur.Repo.one(__MODULE__) do
+    case ExCortex.Repo.one(__MODULE__) do
       nil -> %__MODULE__{}
       existing -> existing
     end
     |> changeset(%{banner: banner})
-    |> ExCalibur.Repo.insert_or_update()
+    |> ExCortex.Repo.insert_or_update()
   end
 end
 ```
 
 **Step 5: Run migration and tests**
 
-Run: `mix ecto.migrate && mix test test/ex_calibur/settings_test.exs`
+Run: `mix ecto.migrate && mix test test/ex_cortex/settings_test.exs`
 Expected: All 4 tests pass.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/settings.ex test/ex_calibur/settings_test.exs priv/repo/migrations/*_create_settings.exs
+git add lib/ex_cortex/settings.ex test/ex_cortex/settings_test.exs priv/repo/migrations/*_create_settings.exs
 git commit -m "feat: add Settings schema with banner persistence"
 ```
 
@@ -170,19 +170,19 @@ git commit -m "feat: add Settings schema with banner persistence"
 ## Task 3: Banner Tags on Charters
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/town_square_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/town_square_live.ex`
 
 **Step 1: Write the failing test**
 
-Create `/home/andrew/projects/ex_calibur/test/ex_calibur/banner_tags_test.exs`:
+Create `/home/andrew/projects/ex_cortex/test/ex_cortex/banner_tags_test.exs`:
 
 ```elixir
-defmodule ExCalibur.BannerTagsTest do
+defmodule ExCortex.BannerTagsTest do
   use ExUnit.Case, async: true
 
   describe "charter banners" do
     test "all charters have a banner tag" do
-      for {_name, mod} <- ExCaliburWeb.TownSquareLive.charters() do
+      for {_name, mod} <- ExCortexWeb.TownSquareLive.charters() do
         meta = mod.metadata()
         assert meta[:banner] in [:tech, :lifestyle, :business],
                "#{meta.name} missing banner tag"
@@ -194,7 +194,7 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/banner_tags_test.exs`
+Run: `mix test test/ex_cortex/banner_tags_test.exs`
 Expected: Fails — `charters/0` not exported or `banner` key missing from metadata.
 
 **Step 3: Expose charters and add banner to each charter's metadata**
@@ -216,7 +216,7 @@ Then add a `:banner` key to each charter module's `metadata/0` return map. The m
 **Business banner:**
 - `ContractReview`, `RiskAssessment`, `ProductIntelligence`, `MarketSignals`
 
-For each charter module (e.g. `/home/andrew/projects/ex_calibur/lib/ex_calibur/charters/code_review.ex`), add `banner: :tech` to the map returned by `metadata/0`.
+For each charter module (e.g. `/home/andrew/projects/ex_cortex/lib/ex_cortex/charters/code_review.ex`), add `banner: :tech` to the map returned by `metadata/0`.
 
 Example for CodeReview:
 ```elixir
@@ -233,13 +233,13 @@ Repeat for all 19 charters with the appropriate banner atom.
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/banner_tags_test.exs`
+Run: `mix test test/ex_cortex/banner_tags_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/charters/*.ex lib/ex_calibur_web/live/town_square_live.ex test/ex_calibur/banner_tags_test.exs
+git add lib/ex_cortex/charters/*.ex lib/ex_cortex_web/live/town_square_live.ex test/ex_cortex/banner_tags_test.exs
 git commit -m "feat: add banner tags to all 19 guild charters"
 ```
 
@@ -248,23 +248,23 @@ git commit -m "feat: add banner tags to all 19 guild charters"
 ## Task 4: Banner Tags on Board Templates
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board.ex` (struct)
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board/triage.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board/reporting.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board/generation.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board/review.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board/onboarding.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board/lifestyle.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board.ex` (struct)
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board/triage.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board/reporting.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board/generation.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board/review.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board/onboarding.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board/lifestyle.ex`
 
 **Step 1: Write the failing test**
 
-Create `/home/andrew/projects/ex_calibur/test/ex_calibur/board_banners_test.exs`:
+Create `/home/andrew/projects/ex_cortex/test/ex_cortex/board_banners_test.exs`:
 
 ```elixir
-defmodule ExCalibur.BoardBannersTest do
+defmodule ExCortex.BoardBannersTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   describe "board template banners" do
     test "all templates have a banner tag" do
@@ -285,12 +285,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/board_banners_test.exs`
+Run: `mix test test/ex_cortex/board_banners_test.exs`
 Expected: Fails — `:banner` not in struct / `filter_by_banner` undefined.
 
 **Step 3: Add `:banner` to Board struct**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur/board.ex`, add `:banner` to the defstruct:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex/board.ex`, add `:banner` to the defstruct:
 
 ```elixir
 defstruct [
@@ -338,13 +338,13 @@ In each template struct in the category modules, add `banner: :tech` (or `:lifes
 
 **Step 5: Run tests**
 
-Run: `mix test test/ex_calibur/board_banners_test.exs`
+Run: `mix test test/ex_cortex/board_banners_test.exs`
 Expected: Pass.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/board.ex lib/ex_calibur/board/*.ex test/ex_calibur/board_banners_test.exs
+git add lib/ex_cortex/board.ex lib/ex_cortex/board/*.ex test/ex_cortex/board_banners_test.exs
 git commit -m "feat: add banner tags to all board templates"
 ```
 
@@ -353,17 +353,17 @@ git commit -m "feat: add banner tags to all board templates"
 ## Task 5: Banner Tags on Builtin Members
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/members/member.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/members/member.ex`
 
 **Step 1: Write the failing test**
 
-Create `/home/andrew/projects/ex_calibur/test/ex_calibur/member_banners_test.exs`:
+Create `/home/andrew/projects/ex_cortex/test/ex_cortex/member_banners_test.exs`:
 
 ```elixir
-defmodule ExCalibur.MemberBannersTest do
+defmodule ExCortex.MemberBannersTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Members.BuiltinMember
+  alias ExCortex.Members.BuiltinMember
 
   describe "builtin member banners" do
     test "all members have a banner tag" do
@@ -384,12 +384,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/member_banners_test.exs`
+Run: `mix test test/ex_cortex/member_banners_test.exs`
 Expected: Fails — `:banner` not in BuiltinMember struct.
 
 **Step 3: Add `:banner` to BuiltinMember struct and tag all members**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur/members/member.ex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex/members/member.ex`:
 
 Add `:banner` to defstruct:
 
@@ -418,13 +418,13 @@ Use judgment — the exact mapping matters less than having one. Add `banner: :t
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/member_banners_test.exs`
+Run: `mix test test/ex_cortex/member_banners_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/members/member.ex test/ex_calibur/member_banners_test.exs
+git add lib/ex_cortex/members/member.ex test/ex_cortex/member_banners_test.exs
 git commit -m "feat: add banner tags to all builtin members"
 ```
 
@@ -433,17 +433,17 @@ git commit -m "feat: add banner tags to all builtin members"
 ## Task 6: Banner Tags on Library Books
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/sources/book.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/sources/book.ex`
 
 **Step 1: Write the failing test**
 
-Create `/home/andrew/projects/ex_calibur/test/ex_calibur/book_banners_test.exs`:
+Create `/home/andrew/projects/ex_cortex/test/ex_cortex/book_banners_test.exs`:
 
 ```elixir
-defmodule ExCalibur.BookBannersTest do
+defmodule ExCortex.BookBannersTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Sources.Book
+  alias ExCortex.Sources.Book
 
   describe "book banners" do
     test "all books have a banner tag" do
@@ -464,12 +464,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/book_banners_test.exs`
+Run: `mix test test/ex_cortex/book_banners_test.exs`
 Expected: Fails — `:banner` not in Book struct or `filter_by_banner` undefined.
 
 **Step 3: Add `:banner` to Book struct and tag books**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur/sources/book.ex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex/sources/book.ex`:
 
 The struct already has fields. Add `:banner` with default `nil`:
 
@@ -493,13 +493,13 @@ Tag books:
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/book_banners_test.exs`
+Run: `mix test test/ex_cortex/book_banners_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/book.ex test/ex_calibur/book_banners_test.exs
+git add lib/ex_cortex/sources/book.ex test/ex_cortex/book_banners_test.exs
 git commit -m "feat: add banner tags to library books and digest feeds"
 ```
 
@@ -508,14 +508,14 @@ git commit -m "feat: add banner tags to library books and digest feeds"
 ## Task 7: Town Square Banner Picker UI
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/town_square_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/town_square_live.ex`
 
 **Step 1: Write the failing test**
 
 Add to existing town_square_live_test or create a new test:
 
 ```elixir
-# In test/ex_calibur_web/live/town_square_live_test.exs
+# In test/ex_cortex_web/live/town_square_live_test.exs
 describe "banner selection" do
   test "shows banner picker when no banner set", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/town-square")
@@ -536,19 +536,19 @@ describe "banner selection" do
   test "banner persists to settings", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/town-square")
     view |> element(~s{[phx-click="select_banner"][phx-value-banner="tech"]}) |> render_click()
-    assert ExCalibur.Settings.get_banner() == "tech"
+    assert ExCortex.Settings.get_banner() == "tech"
   end
 end
 ```
 
 **Step 2: Run tests to verify they fail**
 
-Run: `mix test test/ex_calibur_web/live/town_square_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/town_square_live_test.exs`
 Expected: Failures — no banner picker UI, no `select_banner` event.
 
 **Step 3: Implement banner picker in TownSquareLive**
 
-Modify `mount/3` in `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/town_square_live.ex`:
+Modify `mount/3` in `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/town_square_live.ex`:
 
 ```elixir
 def mount(_params, _session, socket) do
@@ -620,13 +620,13 @@ Update the template to show the banner picker when `@banner == nil`, and show fi
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/town_square_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/town_square_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/town_square_live.ex test/ex_calibur_web/live/town_square_live_test.exs
+git add lib/ex_cortex_web/live/town_square_live.ex test/ex_cortex_web/live/town_square_live_test.exs
 git commit -m "feat: banner picker UI on Town Square"
 ```
 
@@ -635,17 +635,17 @@ git commit -m "feat: banner picker UI on Town Square"
 ## Task 8: Banner Indicator in Nav + Nav Simplification
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/components/layouts/root.html.heex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/router.ex` (remove `/guide` or keep as-is)
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/components/layouts/root.html.heex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/router.ex` (remove `/guide` or keep as-is)
 
 **Step 1: Write the failing test**
 
 Add to an existing layout test or create:
 
 ```elixir
-# In test/ex_calibur_web/live/layout_test.exs or town_square_live_test.exs
+# In test/ex_cortex_web/live/layout_test.exs or town_square_live_test.exs
 test "nav shows banner indicator when banner is set", %{conn: conn} do
-  ExCalibur.Settings.set_banner("tech")
+  ExCortex.Settings.set_banner("tech")
   {:ok, _view, html} = live(conn, ~p"/lodge")
   assert html =~ "Tech"
 end
@@ -657,11 +657,11 @@ Run the test. Expected: Fails — no banner indicator in nav.
 
 **Step 3: Update the nav in root.html.heex**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/components/layouts/root.html.heex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/components/layouts/root.html.heex`:
 
 The nav currently iterates over a hardcoded list of 7 items. We need to:
 
-1. Add a banner indicator next to "ExCalibur"
+1. Add a banner indicator next to "ExCortex"
 2. Reduce to 6 nav items (remove Guide, or convert to icon)
 
 The tricky part: `root.html.heex` uses `@conn`, not LiveView assigns. To get the banner, we need to either:
@@ -675,14 +675,14 @@ pipeline :browser do
   plug :accepts, ["html"]
   plug :fetch_session
   plug :fetch_live_flash
-  plug :put_root_layout, html: {ExCaliburWeb.Layouts, :root}
+  plug :put_root_layout, html: {ExCortexWeb.Layouts, :root}
   plug :protect_from_forgery
   plug :put_secure_browser_headers
   plug :assign_banner
 end
 
 defp assign_banner(conn, _opts) do
-  assign(conn, :banner, ExCalibur.Settings.get_banner())
+  assign(conn, :banner, ExCortex.Settings.get_banner())
 end
 ```
 
@@ -693,7 +693,7 @@ Then update the nav:
   <div class="max-w-6xl mx-auto flex items-center gap-8 px-6 py-0">
     <a href={~p"/town-square"} class="flex items-center gap-2 shrink-0 py-4 border-b-2 border-transparent hover:opacity-80 transition-opacity">
       <span class="text-sm font-bold text-foreground tracking-widest uppercase select-none">
-        ExCalibur
+        ExCortex
       </span>
       <%= if @banner do %>
         <span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium capitalize">
@@ -730,13 +730,13 @@ Then update the nav:
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/town_square_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/town_square_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/layouts/root.html.heex lib/ex_calibur_web/router.ex
+git add lib/ex_cortex_web/components/layouts/root.html.heex lib/ex_cortex_web/router.ex
 git commit -m "feat: banner indicator in nav, simplify to 6 items"
 ```
 
@@ -745,15 +745,15 @@ git commit -m "feat: banner indicator in nav, simplify to 6 items"
 ## Task 9: Banner Filtering in QuestsLive
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# In test/ex_calibur_web/live/quests_live_test.exs
+# In test/ex_cortex_web/live/quests_live_test.exs
 describe "banner filtering" do
   test "quest board filters templates by banner", %{conn: conn} do
-    ExCalibur.Settings.set_banner("lifestyle")
+    ExCortex.Settings.set_banner("lifestyle")
     {:ok, _view, html} = live(conn, ~p"/quests")
     # Lifestyle templates should appear
     # Tech-only templates should not
@@ -764,12 +764,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur_web/live/quests_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/quests_live_test.exs`
 Expected: Fails — all templates still shown.
 
 **Step 3: Filter templates by banner in mount**
 
-In `mount/3` of `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex`, after building `board_templates`:
+In `mount/3` of `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex`, after building `board_templates`:
 
 ```elixir
 banner = Settings.get_banner()
@@ -787,17 +787,17 @@ board_templates =
   |> Enum.map(&board_with_status/1)
 ```
 
-Add `alias ExCalibur.Settings` to the module.
+Add `alias ExCortex.Settings` to the module.
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/quests_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/quests_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex test/ex_calibur_web/live/quests_live_test.exs
+git add lib/ex_cortex_web/live/quests_live.ex test/ex_cortex_web/live/quests_live_test.exs
 git commit -m "feat: filter quest board templates by active banner"
 ```
 
@@ -806,16 +806,16 @@ git commit -m "feat: filter quest board templates by active banner"
 ## Task 10: Banner Filtering in GuildHallLive and LibraryLive
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/guild_hall_live.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/library_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/guild_hall_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/library_live.ex`
 
 **Step 1: Write failing tests**
 
 ```elixir
-# test/ex_calibur_web/live/guild_hall_live_test.exs
+# test/ex_cortex_web/live/guild_hall_live_test.exs
 describe "banner filtering" do
   test "builtin member catalog filters by banner", %{conn: conn} do
-    ExCalibur.Settings.set_banner("lifestyle")
+    ExCortex.Settings.set_banner("lifestyle")
     {:ok, _view, html} = live(conn, ~p"/guild-hall")
     # Life Use members should appear, tech specialists should not
     refute html =~ "Frontend Reviewer"
@@ -824,10 +824,10 @@ end
 ```
 
 ```elixir
-# test/ex_calibur_web/live/library_live_test.exs
+# test/ex_cortex_web/live/library_live_test.exs
 describe "banner filtering" do
   test "library books filter by banner", %{conn: conn} do
-    ExCalibur.Settings.set_banner("lifestyle")
+    ExCortex.Settings.set_banner("lifestyle")
     {:ok, _view, html} = live(conn, ~p"/library")
     # Tech-specific books should be hidden
     refute html =~ "Credo Scanner"
@@ -873,13 +873,13 @@ books =
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/guild_hall_live_test.exs test/ex_calibur_web/live/library_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/guild_hall_live_test.exs test/ex_cortex_web/live/library_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guild_hall_live.ex lib/ex_calibur_web/live/library_live.ex test/ex_calibur_web/live/guild_hall_live_test.exs test/ex_calibur_web/live/library_live_test.exs
+git add lib/ex_cortex_web/live/guild_hall_live.ex lib/ex_cortex_web/live/library_live.ex test/ex_cortex_web/live/guild_hall_live_test.exs test/ex_cortex_web/live/library_live_test.exs
 git commit -m "feat: banner filtering in Guild Hall and Library"
 ```
 
@@ -888,23 +888,23 @@ git commit -m "feat: banner filtering in Guild Hall and Library"
 ## Task 11: Redirect to Town Square When No Banner Set
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/lodge_live.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/router.ex` (possibly add on_mount hook)
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/lodge_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/router.ex` (possibly add on_mount hook)
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur_web/live/lodge_live_test.exs
+# test/ex_cortex_web/live/lodge_live_test.exs
 describe "banner redirect" do
   test "redirects to town square when no banner set", %{conn: conn} do
     # Ensure no banner
-    assert ExCalibur.Settings.get_banner() == nil
+    assert ExCortex.Settings.get_banner() == nil
     {:error, {:live_redirect, %{to: path}}} = live(conn, ~p"/lodge")
     assert path == "/town-square"
   end
 
   test "stays on lodge when banner is set", %{conn: conn} do
-    ExCalibur.Settings.set_banner("tech")
+    ExCortex.Settings.set_banner("tech")
     {:ok, _view, html} = live(conn, ~p"/lodge")
     assert html =~ "Lodge"
   end
@@ -913,12 +913,12 @@ end
 
 **Step 2: Run tests to verify they fail**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs`
 Expected: First test fails — no redirect.
 
 **Step 3: Add banner check to LodgeLive mount**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/lodge_live.ex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/lodge_live.ex`:
 
 ```elixir
 def mount(_params, _session, socket) do
@@ -934,13 +934,13 @@ Add the same pattern to other LiveViews that should require a banner (quests, gu
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/lodge_live.ex test/ex_calibur_web/live/lodge_live_test.exs
+git add lib/ex_cortex_web/live/lodge_live.ex test/ex_cortex_web/live/lodge_live_test.exs
 git commit -m "feat: redirect to Town Square when no banner set"
 ```
 
@@ -949,16 +949,16 @@ git commit -m "feat: redirect to Town Square when no banner set"
 ## Task 12: MDEx Rendering Helper Module
 
 **Files:**
-- Create: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/components/markdown.ex`
-- Create: `/home/andrew/projects/ex_calibur/test/ex_calibur_web/components/markdown_test.exs`
+- Create: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/components/markdown.ex`
+- Create: `/home/andrew/projects/ex_cortex/test/ex_cortex_web/components/markdown_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-defmodule ExCaliburWeb.MarkdownTest do
+defmodule ExCortexWeb.MarkdownTest do
   use ExUnit.Case, async: true
 
-  alias ExCaliburWeb.Markdown
+  alias ExCortexWeb.Markdown
 
   describe "render/1" do
     test "renders markdown to HTML" do
@@ -990,15 +990,15 @@ end
 
 **Step 2: Run tests to verify they fail**
 
-Run: `mix test test/ex_calibur_web/components/markdown_test.exs`
+Run: `mix test test/ex_cortex_web/components/markdown_test.exs`
 Expected: Compilation error — module doesn't exist.
 
 **Step 3: Create the Markdown helper module**
 
-Create `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/components/markdown.ex`:
+Create `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/components/markdown.ex`:
 
 ```elixir
-defmodule ExCaliburWeb.Markdown do
+defmodule ExCortexWeb.Markdown do
   @moduledoc "MDEx-powered Markdown rendering helpers."
 
   def render(nil), do: ""
@@ -1012,13 +1012,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/components/markdown_test.exs`
+Run: `mix test test/ex_cortex_web/components/markdown_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/markdown.ex test/ex_calibur_web/components/markdown_test.exs
+git add lib/ex_cortex_web/components/markdown.ex test/ex_cortex_web/components/markdown_test.exs
 git commit -m "feat: add Markdown rendering helper using MDEx"
 ```
 
@@ -1027,14 +1027,14 @@ git commit -m "feat: add Markdown rendering helper using MDEx"
 ## Task 13: MDEx Component for LiveView Templates
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/components/core_components.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/components/core_components.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur_web/components/markdown_component_test.exs
-defmodule ExCaliburWeb.MarkdownComponentTest do
-  use ExCaliburWeb.ConnCase, async: true
+# test/ex_cortex_web/components/markdown_component_test.exs
+defmodule ExCortexWeb.MarkdownComponentTest do
+  use ExCortexWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import Phoenix.Component
@@ -1043,7 +1043,7 @@ defmodule ExCaliburWeb.MarkdownComponentTest do
     test "renders markdown content" do
       assigns = %{content: "**bold text**"}
       html = rendered_to_string(~H"""
-      <ExCaliburWeb.CoreComponents.md content={@content} />
+      <ExCortexWeb.CoreComponents.md content={@content} />
       """)
       assert html =~ "<strong>"
       assert html =~ "bold text"
@@ -1052,7 +1052,7 @@ defmodule ExCaliburWeb.MarkdownComponentTest do
     test "renders nil as empty" do
       assigns = %{content: nil}
       html = rendered_to_string(~H"""
-      <ExCaliburWeb.CoreComponents.md content={@content} />
+      <ExCortexWeb.CoreComponents.md content={@content} />
       """)
       assert html =~ ""
     end
@@ -1066,7 +1066,7 @@ Expected: Function `md/1` undefined.
 
 **Step 3: Add the `md` component to CoreComponents**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/components/core_components.ex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/components/core_components.ex`:
 
 ```elixir
 attr :content, :string, default: nil
@@ -1076,7 +1076,7 @@ def md(assigns) do
   ~H"""
   <div class={@class}>
     <%= if @content do %>
-      <%= Phoenix.HTML.raw(ExCaliburWeb.Markdown.render(@content)) %>
+      <%= Phoenix.HTML.raw(ExCortexWeb.Markdown.render(@content)) %>
     <% end %>
   </div>
   """
@@ -1085,13 +1085,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/components/markdown_component_test.exs`
+Run: `mix test test/ex_cortex_web/components/markdown_component_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/core_components.ex test/ex_calibur_web/components/markdown_component_test.exs
+git add lib/ex_cortex_web/components/core_components.ex test/ex_cortex_web/components/markdown_component_test.exs
 git commit -m "feat: add <.md> component for inline Markdown rendering"
 ```
 
@@ -1100,16 +1100,16 @@ git commit -m "feat: add <.md> component for inline Markdown rendering"
 ## Task 14: Wire MDEx Rendering Into Grimoire
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/grimoire_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/grimoire_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# In test/ex_calibur_web/live/grimoire_live_test.exs
+# In test/ex_cortex_web/live/grimoire_live_test.exs
 describe "markdown rendering" do
   test "grimoire entries render markdown", %{conn: conn} do
     # Create a lore entry with markdown content
-    ExCalibur.Lore.create_entry(%{
+    ExCortex.Lore.create_entry(%{
       content: "# Test Entry\n\n**Bold** text with `code`",
       tags: ["test"],
       source: "test"
@@ -1141,13 +1141,13 @@ instead of:
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/grimoire_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/grimoire_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/grimoire_live.ex test/ex_calibur_web/live/grimoire_live_test.exs
+git add lib/ex_cortex_web/live/grimoire_live.ex test/ex_cortex_web/live/grimoire_live_test.exs
 git commit -m "feat: render grimoire entries with MDEx markdown"
 ```
 
@@ -1156,12 +1156,12 @@ git commit -m "feat: render grimoire entries with MDEx markdown"
 ## Task 15: Wire MDEx Into Guild Hall (Charters + System Prompts)
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/guild_hall_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/guild_hall_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# In test/ex_calibur_web/live/guild_hall_live_test.exs
+# In test/ex_cortex_web/live/guild_hall_live_test.exs
 describe "markdown rendering" do
   test "member system prompts render as markdown in expanded view", %{conn: conn} do
     # Create a member with markdown in system prompt
@@ -1172,7 +1172,7 @@ describe "markdown rendering" do
       status: "active",
       config: %{"system_prompt" => "# Reviewer\n\nYou check **code quality**."}
     })
-    |> ExCalibur.Repo.insert!()
+    |> ExCortex.Repo.insert!()
 
     {:ok, view, _html} = live(conn, ~p"/guild-hall")
     # Expand the member card to see system prompt
@@ -1198,13 +1198,13 @@ Do the same for guild charter text display.
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/guild_hall_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/guild_hall_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guild_hall_live.ex test/ex_calibur_web/live/guild_hall_live_test.exs
+git add lib/ex_cortex_web/live/guild_hall_live.ex test/ex_cortex_web/live/guild_hall_live_test.exs
 git commit -m "feat: render charters and system prompts with MDEx"
 ```
 
@@ -1213,22 +1213,22 @@ git commit -m "feat: render charters and system prompts with MDEx"
 ## Task 16: Quest Card Redesign — Collapsible Steps
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# In test/ex_calibur_web/live/quests_live_test.exs
+# In test/ex_cortex_web/live/quests_live_test.exs
 describe "quest card redesign" do
   test "quest template shows step count in collapsed state", %{conn: conn} do
-    ExCalibur.Settings.set_banner("tech")
+    ExCortex.Settings.set_banner("tech")
     {:ok, _view, html} = live(conn, ~p"/quests")
     # Templates with steps should show step count
     assert html =~ ~r/\d+ steps?/
   end
 
   test "expanding a template shows nested step cards", %{conn: conn} do
-    ExCalibur.Settings.set_banner("tech")
+    ExCortex.Settings.set_banner("tech")
     {:ok, view, _html} = live(conn, ~p"/quests")
     # Click to expand a template
     html = view |> element(~s{[phx-click="board_expand_template"]}, ~r/./) |> render_click()
@@ -1314,13 +1314,13 @@ Update the template card rendering to show:
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/quests_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/quests_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex test/ex_calibur_web/live/quests_live_test.exs
+git add lib/ex_cortex_web/live/quests_live.ex test/ex_cortex_web/live/quests_live_test.exs
 git commit -m "feat: collapsible step cards in quest board templates"
 ```
 
@@ -1329,17 +1329,17 @@ git commit -m "feat: collapsible step cards in quest board templates"
 ## Task 17: "Recruit & Go" Turnkey Install Path
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur/board.ex`
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex/board.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/board_recruit_and_go_test.exs
-defmodule ExCalibur.Board.RecruitAndGoTest do
-  use ExCalibur.DataCase
+# test/ex_cortex/board_recruit_and_go_test.exs
+defmodule ExCortex.Board.RecruitAndGoTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   describe "recruit_and_go/1" do
     test "installs quest, steps, and auto-recruits missing members" do
@@ -1351,7 +1351,7 @@ defmodule ExCalibur.Board.RecruitAndGoTest do
       assert length(result.steps_created) > 0
 
       # Members should have been auto-recruited
-      members = ExCalibur.Repo.all(Excellence.Schemas.Member)
+      members = ExCortex.Repo.all(Excellence.Schemas.Member)
       assert length(members) > 0
     end
   end
@@ -1364,7 +1364,7 @@ Expected: `recruit_and_go/1` undefined.
 
 **Step 3: Implement `Board.recruit_and_go/1`**
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur/board.ex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex/board.ex`:
 
 ```elixir
 def recruit_and_go(%__MODULE__{} = template) do
@@ -1384,9 +1384,9 @@ defp auto_recruit_members(%{suggested_team: nil}), do: []
 defp auto_recruit_members(%{suggested_team: team_desc}) do
   # Parse suggested_team to find member archetypes
   # Look at existing members, recruit any that are missing
-  existing = ExCalibur.Repo.all(Excellence.Schemas.Member) |> Enum.map(& &1.name)
+  existing = ExCortex.Repo.all(Excellence.Schemas.Member) |> Enum.map(& &1.name)
 
-  ExCalibur.Members.BuiltinMember.all()
+  ExCortex.Members.BuiltinMember.all()
   |> Enum.filter(fn m ->
     String.contains?(String.downcase(team_desc), String.downcase(m.name)) and
       m.name not in existing
@@ -1409,7 +1409,7 @@ defp auto_recruit_members(%{suggested_team: team_desc}) do
         "strategy" => rank_config.strategy
       }
     })
-    |> ExCalibur.Repo.insert(on_conflict: :nothing)
+    |> ExCortex.Repo.insert(on_conflict: :nothing)
 
     member.name
   end)
@@ -1454,13 +1454,13 @@ end
 
 **Step 5: Run tests**
 
-Run: `mix test test/ex_calibur/board_recruit_and_go_test.exs`
+Run: `mix test test/ex_cortex/board_recruit_and_go_test.exs`
 Expected: Pass.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/board.ex lib/ex_calibur_web/live/quests_live.ex test/ex_calibur/board_recruit_and_go_test.exs
+git add lib/ex_cortex/board.ex lib/ex_cortex_web/live/quests_live.ex test/ex_cortex/board_recruit_and_go_test.exs
 git commit -m "feat: Recruit & Go turnkey install with auto member recruitment"
 ```
 
@@ -1469,15 +1469,15 @@ git commit -m "feat: Recruit & Go turnkey install with auto member recruitment"
 ## Task 18: Quest Board "Customize" Path Redesign
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# In test/ex_calibur_web/live/quests_live_test.exs
+# In test/ex_cortex_web/live/quests_live_test.exs
 describe "customize path" do
   test "customize expands template with editable step cards", %{conn: conn} do
-    ExCalibur.Settings.set_banner("tech")
+    ExCortex.Settings.set_banner("tech")
     {:ok, view, _html} = live(conn, ~p"/quests")
     # Click customize on a template
     html = view |> element(~s{[phx-click="board_expand_template"]}, ~r/./) |> render_click()
@@ -1567,13 +1567,13 @@ Add `board_customized: %{}` to mount assigns.
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/quests_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/quests_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex test/ex_calibur_web/live/quests_live_test.exs
+git add lib/ex_cortex_web/live/quests_live.ex test/ex_cortex_web/live/quests_live_test.exs
 git commit -m "feat: editable step cards in customize path"
 ```
 
@@ -1582,18 +1582,18 @@ git commit -m "feat: editable step cards in customize path"
 ## Task 19: MDEx Rendering in Quest Descriptions and Step Cards
 
 **Files:**
-- Modify: `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# In test/ex_calibur_web/live/quests_live_test.exs
+# In test/ex_cortex_web/live/quests_live_test.exs
 describe "markdown in quest descriptions" do
   test "active quest descriptions render markdown", %{conn: conn} do
-    ExCalibur.Settings.set_banner("tech")
-    ExCalibur.Quests.create_step(%{name: "MD Step", description: "**bold step**", status: "active", trigger: "manual"})
-    {:ok, step} = ExCalibur.Quests.create_step(%{name: "MD Step 2", description: "test", status: "active", trigger: "manual"})
-    ExCalibur.Quests.create_quest(%{
+    ExCortex.Settings.set_banner("tech")
+    ExCortex.Quests.create_step(%{name: "MD Step", description: "**bold step**", status: "active", trigger: "manual"})
+    {:ok, step} = ExCortex.Quests.create_step(%{name: "MD Step 2", description: "test", status: "active", trigger: "manual"})
+    ExCortex.Quests.create_quest(%{
       name: "MD Quest",
       description: "# Quest Title\n\nWith **markdown**",
       trigger: "manual",
@@ -1627,13 +1627,13 @@ For step descriptions in active quests:
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/quests_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/quests_live_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex test/ex_calibur_web/live/quests_live_test.exs
+git add lib/ex_cortex_web/live/quests_live.ex test/ex_cortex_web/live/quests_live_test.exs
 git commit -m "feat: render quest and step descriptions with MDEx"
 ```
 

@@ -5,9 +5,9 @@
 @import "./salad_ui.css";
 @source "../css";
 @source "../js";
-@source "../../lib/ex_calibur_web";
-@source "../../lib/ex_calibur_web.ex";
-@source "../../lib/ex_calibur.ex";
+@source "../../lib/ex_cortex_web";
+@source "../../lib/ex_cortex_web.ex";
+@source "../../lib/ex_cortex.ex";
 @source "../../deps/salad_ui/lib";
 @source "../../deps/ex_cellence_ui/lib";
 @source "../../deps/ex_cellence_dashboard/lib";
@@ -225,3 +225,34 @@ body::after {
 .t-muted { color: var(--term-text-muted); }
 .glow-amber { text-shadow: 0 0 8px rgba(255, 176, 0, 0.4); }
 .glow-green { text-shadow: 0 0 8px rgba(51, 255, 0, 0.4); }
+
+/* ============================================
+   TUI Panel — box-drawing chrome
+   ============================================ */
+.tui-panel {
+  border: 1px solid var(--term-border);
+  border-radius: 2px;
+}
+.tui-panel-header {
+  border-bottom: 1px solid var(--term-border);
+  padding: 0.25rem 0.5rem;
+  color: var(--term-amber);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.tui-panel-body { padding: 0.5rem; }
+
+/* TUI Nav */
+.tui-nav-link {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  color: var(--term-text-muted);
+  transition: color 0.15s;
+}
+.tui-nav-link:hover { color: var(--term-text); }
+.tui-nav-link.active {
+  color: var(--term-amber);
+  background: var(--term-bg-card);
+}
+.tui-nav-key { color: var(--term-cyan); }

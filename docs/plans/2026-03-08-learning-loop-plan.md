@@ -6,7 +6,7 @@
 
 **Architecture:** A `Proposal` schema stores proposed changes with auto-apply bounds. A `LearningLoop` module collects recent quest run data, formats it as a structured prompt, calls a master-tier or Claude member, and parses the response into Proposal records. A `ScheduledQuestRunner` GenServer checks cron-scheduled quests every minute. The Lodge page gains a Proposals card for one-click approve/reject.
 
-**Tech Stack:** Phoenix LiveView, Ecto, ExCalibur.QuestRunner, ExCalibur.ClaudeClient, `crontab` hex package for cron parsing.
+**Tech Stack:** Phoenix LiveView, Ecto, ExCortex.QuestRunner, ExCortex.ClaudeClient, `crontab` hex package for cron parsing.
 
 ---
 
@@ -14,14 +14,14 @@
 
 **Files:**
 - Create: `priv/repo/migrations/20260308250000_add_proposals.exs`
-- Create: `lib/ex_calibur/learning/proposal.ex`
-- Create: `test/ex_calibur/learning/proposal_test.exs`
+- Create: `lib/ex_cortex/learning/proposal.ex`
+- Create: `test/ex_cortex/learning/proposal_test.exs`
 
 **Step 1: Write the migration**
 
 ```elixir
 # priv/repo/migrations/20260308250000_add_proposals.exs
-defmodule ExCalibur.Repo.Migrations.AddProposals do
+defmodule ExCortex.Repo.Migrations.AddProposals do
   use Ecto.Migration
 
   def change do
@@ -45,7 +45,7 @@ end
 **Step 2: Run it**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix ecto.migrate
+cd /home/andrew/projects/ex_cortex && mix ecto.migrate
 ```
 
 Expected: `== Migrated 20260308250000 in 0.0s`
@@ -53,12 +53,12 @@ Expected: `== Migrated 20260308250000 in 0.0s`
 **Step 3: Write the failing test**
 
 ```elixir
-# test/ex_calibur/learning/proposal_test.exs
-defmodule ExCalibur.Learning.ProposalTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/learning/proposal_test.exs
+defmodule ExCortex.Learning.ProposalTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Learning.Proposal
-  alias ExCalibur.Repo
+  alias ExCortex.Learning.Proposal
+  alias ExCortex.Repo
 
   test "changeset valid with required fields" do
     params = %{
@@ -113,7 +113,7 @@ end
 **Step 4: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur/learning/proposal_test.exs
+mix test test/ex_cortex/learning/proposal_test.exs
 ```
 
 Expected: error — module not found.
@@ -121,8 +121,8 @@ Expected: error — module not found.
 **Step 5: Implement Proposal schema**
 
 ```elixir
-# lib/ex_calibur/learning/proposal.ex
-defmodule ExCalibur.Learning.Proposal do
+# lib/ex_cortex/learning/proposal.ex
+defmodule ExCortex.Learning.Proposal do
   @moduledoc """
   A proposed change to member config, quest roster, or escalation thresholds.
   Small changes are auto-applied. Larger changes require human approval in Lodge.
@@ -184,7 +184,7 @@ end
 **Step 6: Run tests**
 
 ```bash
-mix test test/ex_calibur/learning/proposal_test.exs
+mix test test/ex_cortex/learning/proposal_test.exs
 ```
 
 Expected: all passing.
@@ -192,7 +192,7 @@ Expected: all passing.
 **Step 7: Commit**
 
 ```bash
-git add priv/repo/migrations/20260308250000_add_proposals.exs lib/ex_calibur/learning/proposal.ex test/ex_calibur/learning/proposal_test.exs
+git add priv/repo/migrations/20260308250000_add_proposals.exs lib/ex_cortex/learning/proposal.ex test/ex_cortex/learning/proposal_test.exs
 git commit -m "feat: add Proposal schema for learning loop"
 ```
 
@@ -201,18 +201,18 @@ git commit -m "feat: add Proposal schema for learning loop"
 ## Task 2: LearningLoop — retrospective analysis and proposal generation
 
 **Files:**
-- Create: `lib/ex_calibur/learning/learning_loop.ex`
-- Create: `test/ex_calibur/learning/learning_loop_test.exs`
+- Create: `lib/ex_cortex/learning/learning_loop.ex`
+- Create: `test/ex_cortex/learning/learning_loop_test.exs`
 
 **Step 1: Write the failing tests**
 
 ```elixir
-# test/ex_calibur/learning/learning_loop_test.exs
-defmodule ExCalibur.Learning.LearningLoopTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/learning/learning_loop_test.exs
+defmodule ExCortex.Learning.LearningLoopTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Learning.LearningLoop
-  alias ExCalibur.Quests
+  alias ExCortex.Learning.LearningLoop
+  alias ExCortex.Quests
 
   describe "build_retrospective_prompt/2" do
     test "includes quest name and run stats" do
@@ -257,7 +257,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur/learning/learning_loop_test.exs
+mix test test/ex_cortex/learning/learning_loop_test.exs
 ```
 
 Expected: error — module not found.
@@ -265,8 +265,8 @@ Expected: error — module not found.
 **Step 3: Implement LearningLoop**
 
 ```elixir
-# lib/ex_calibur/learning/learning_loop.ex
-defmodule ExCalibur.Learning.LearningLoop do
+# lib/ex_cortex/learning/learning_loop.ex
+defmodule ExCortex.Learning.LearningLoop do
   @moduledoc """
   Analyzes recent quest run outcomes and generates Proposal records.
   Small changes are auto-applied immediately. Larger changes are queued for human approval.
@@ -274,11 +274,11 @@ defmodule ExCalibur.Learning.LearningLoop do
 
   import Ecto.Query
 
-  alias ExCalibur.ClaudeClient
-  alias ExCalibur.Learning.Proposal
-  alias ExCalibur.Quests
-  alias ExCalibur.Quests.QuestRun
-  alias ExCalibur.Repo
+  alias ExCortex.ClaudeClient
+  alias ExCortex.Learning.Proposal
+  alias ExCortex.Quests
+  alias ExCortex.Quests.QuestRun
+  alias ExCortex.Repo
 
   @system_prompt """
   You are a performance analyst for an AI evaluation pipeline.
@@ -476,7 +476,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur/learning/learning_loop_test.exs
+mix test test/ex_cortex/learning/learning_loop_test.exs
 ```
 
 Expected: all passing.
@@ -484,7 +484,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/learning/learning_loop.ex test/ex_calibur/learning/learning_loop_test.exs
+git add lib/ex_cortex/learning/learning_loop.ex test/ex_cortex/learning/learning_loop_test.exs
 git commit -m "feat: add LearningLoop retrospective analysis and proposal generation"
 ```
 
@@ -493,8 +493,8 @@ git commit -m "feat: add LearningLoop retrospective analysis and proposal genera
 ## Task 3: Scheduled quest runner (cron support)
 
 **Files:**
-- Create: `lib/ex_calibur/scheduled_quest_runner.ex`
-- Modify: `lib/ex_calibur/application.ex`
+- Create: `lib/ex_cortex/scheduled_quest_runner.ex`
+- Modify: `lib/ex_cortex/application.ex`
 
 **Step 1: Add `crontab` dependency**
 
@@ -513,16 +513,16 @@ mix deps.get
 **Step 2: Implement ScheduledQuestRunner GenServer**
 
 ```elixir
-# lib/ex_calibur/scheduled_quest_runner.ex
-defmodule ExCalibur.ScheduledQuestRunner do
+# lib/ex_cortex/scheduled_quest_runner.ex
+defmodule ExCortex.ScheduledQuestRunner do
   @moduledoc """
   GenServer that wakes up every minute, checks for scheduled quests that are due,
   and runs them via QuestRunner.
   """
   use GenServer
 
-  alias ExCalibur.Quests
-  alias ExCalibur.QuestRunner
+  alias ExCortex.Quests
+  alias ExCortex.QuestRunner
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -599,10 +599,10 @@ end
 
 **Step 3: Add to application supervision tree**
 
-In `lib/ex_calibur/application.ex`, add to the children list:
+In `lib/ex_cortex/application.ex`, add to the children list:
 
 ```elixir
-ExCalibur.ScheduledQuestRunner
+ExCortex.ScheduledQuestRunner
 ```
 
 **Step 4: Compile check**
@@ -616,7 +616,7 @@ Expected: clean compile.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/scheduled_quest_runner.ex lib/ex_calibur/application.ex mix.exs mix.lock
+git add lib/ex_cortex/scheduled_quest_runner.ex lib/ex_cortex/application.ex mix.exs mix.lock
 git commit -m "feat: add ScheduledQuestRunner GenServer for cron-based quest execution"
 ```
 
@@ -625,19 +625,19 @@ git commit -m "feat: add ScheduledQuestRunner GenServer for cron-based quest exe
 ## Task 4: Lodge Proposals card + approve/reject events
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
-- Create: `test/ex_calibur_web/live/lodge_proposals_test.exs`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
+- Create: `test/ex_cortex_web/live/lodge_proposals_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur_web/live/lodge_proposals_test.exs
-defmodule ExCaliburWeb.LodgeProposalsTest do
-  use ExCaliburWeb.ConnCase, async: true
+# test/ex_cortex_web/live/lodge_proposals_test.exs
+defmodule ExCortexWeb.LodgeProposalsTest do
+  use ExCortexWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
 
-  alias ExCalibur.Learning.Proposal
-  alias ExCalibur.Repo
+  alias ExCortex.Learning.Proposal
+  alias ExCortex.Repo
   alias Excellence.Schemas.Member
 
   setup do
@@ -718,19 +718,19 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur_web/live/lodge_proposals_test.exs
+mix test test/ex_cortex_web/live/lodge_proposals_test.exs
 ```
 
 Expected: failures — Lodge doesn't have proposals yet.
 
 **Step 3: Update LodgeLive to include proposals**
 
-In `lib/ex_calibur_web/live/lodge_live.ex`:
+In `lib/ex_cortex_web/live/lodge_live.ex`:
 
 Add alias at top:
 
 ```elixir
-alias ExCalibur.Learning.Proposal
+alias ExCortex.Learning.Proposal
 ```
 
 Add to `load_dashboard_data/1`:
@@ -832,7 +832,7 @@ Add Proposals card to render:
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur_web/live/lodge_proposals_test.exs
+mix test test/ex_cortex_web/live/lodge_proposals_test.exs
 ```
 
 Expected: all passing.
@@ -840,7 +840,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/lodge_live.ex test/ex_calibur_web/live/lodge_proposals_test.exs
+git add lib/ex_cortex_web/live/lodge_live.ex test/ex_cortex_web/live/lodge_proposals_test.exs
 git commit -m "feat: add Proposals card to Lodge with approve/reject"
 ```
 
@@ -849,7 +849,7 @@ git commit -m "feat: add Proposals card to Lodge with approve/reject"
 ## Task 5: Wire retrospective to run from QuestsLive
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Add "Run Retrospective" button to quest card**
 
@@ -878,7 +878,7 @@ def handle_event("run_retrospective", %{"id" => id}, socket) do
   parent = self()
 
   Task.start(fn ->
-    result = ExCalibur.Learning.LearningLoop.run_for_quest(quest)
+    result = ExCortex.Learning.LearningLoop.run_for_quest(quest)
     send(parent, {:retrospective_complete, id, result})
   end)
 
@@ -907,7 +907,7 @@ Expected: all passing.
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: add Run Retrospective button to quest cards"
 ```
 

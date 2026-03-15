@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddContextProvidersToQuests do
+defmodule ExCortex.Repo.Migrations.AddContextProvidersToQuests do
   use Ecto.Migration
 
   def change do

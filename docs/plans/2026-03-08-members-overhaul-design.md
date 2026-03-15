@@ -69,8 +69,8 @@ Built-ins (`Member.all()`) and custom members (`ResourceDefinition`) are merged 
 
 ## Key Files
 
-- `lib/ex_calibur_web/live/members_live.ex` — main LiveView (full rewrite)
-- `lib/ex_calibur/members/member.ex` — built-in definitions (unchanged)
+- `lib/ex_cortex_web/live/members_live.ex` — main LiveView (full rewrite)
+- `lib/ex_cortex/members/member.ex` — built-in definitions (unchanged)
 - No new files needed; the `ResourceDefinition` schema handles persistence as-is
 
 ## Out of Scope

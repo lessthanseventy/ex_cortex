@@ -5,28 +5,28 @@
 
 ## Overview
 
-Add Nextcloud to ExCalibur's docker-compose stack as a self-contained collaboration platform that agents can read from, write to, and react to. Phased build covering infrastructure, event-driven source watching, agent tools, source blueprints, and output sinks.
+Add Nextcloud to ExCortex's docker-compose stack as a self-contained collaboration platform that agents can read from, write to, and react to. Phased build covering infrastructure, event-driven source watching, agent tools, source blueprints, and output sinks.
 
 ## 1. Infrastructure — Docker Services
 
 Add two new services to `docker-compose.yml`:
 
 - **nextcloud** — `nextcloud:latest` on port 8080, persistent data volume, depends on nextcloud-db
-- **nextcloud-db** — `mariadb:11`, isolated from ExCalibur's TimescaleDB
+- **nextcloud-db** — `mariadb:11`, isolated from ExCortex's TimescaleDB
 
 **Configuration:**
 - `NEXTCLOUD_URL` env var (defaults to `http://nextcloud:80` in docker, `http://localhost:8080` outside)
 - `NEXTCLOUD_USER` / `NEXTCLOUD_PASSWORD` env vars (app password auth)
-- Init script (`docker/init-nextcloud.sh`): enables Flow, Notes, Calendar, Talk apps; creates default "ExCalibur" folder; registers Flow webhook rule
+- Init script (`docker/init-nextcloud.sh`): enables Flow, Notes, Calendar, Talk apps; creates default "ExCortex" folder; registers Flow webhook rule
 
 ## 2. Nextcloud Client Module
 
-`ExCalibur.Nextcloud.Client` — thin Req wrapper with auth + base URL:
+`ExCortex.Nextcloud.Client` — thin Req wrapper with auth + base URL:
 
 - **WebDAV**: `propfind/1`, `get_file/1`, `put_file/2`, `mkcol/1`, `delete/1`
 - **OCS REST**: `get/1`, `post/2` for Notes, Calendar, Talk, Activity APIs
 - Auth: Basic auth with app password
-- Configurable via `ExCalibur.Settings` (UI-changeable) and env vars
+- Configurable via `ExCortex.Settings` (UI-changeable) and env vars
 
 ## 3. Source: Nextcloud Watcher
 
@@ -36,7 +36,7 @@ New source type `"nextcloud"` with dual mechanism:
 Nextcloud Flow fires webhook on file create/update/delete → existing `WebhookController` → routes to linked quests/steps/evaluator. No new controller code needed.
 
 ### Activity API poller (Talk/Calendar/Notes)
-New `ExCalibur.Sources.NextcloudWatcher` implementing `Sources.Behaviour`:
+New `ExCortex.Sources.NextcloudWatcher` implementing `Sources.Behaviour`:
 - Polls `/ocs/v2.php/apps/activity/api/v2/activity` with `since` parameter
 - Filters by activity type (files, calendar, talk, notes)
 - Configurable interval (default 30s)
@@ -76,9 +76,9 @@ Four new books in `book.ex`:
 
 ## 6. Output Sink
 
-`ExCalibur.Nextcloud.Sink` — called from quest completion and lodge card creation:
+`ExCortex.Nextcloud.Sink` — called from quest completion and lodge card creation:
 
-- Writes quest outcomes to `ExCalibur/quests/<quest-name>/<date>.md` via WebDAV PUT
+- Writes quest outcomes to `ExCortex/quests/<quest-name>/<date>.md` via WebDAV PUT
 - Optionally posts summaries to a configured Talk channel
 - Configurable per-quest via step config (`"output_to_nextcloud": true`)
 - Creates directory structure automatically via MKCOL

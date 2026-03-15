@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddStepGuardrailFields do
+defmodule ExCortex.Repo.Migrations.AddStepGuardrailFields do
   use Ecto.Migration
 
   def change do

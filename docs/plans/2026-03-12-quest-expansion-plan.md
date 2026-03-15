@@ -13,47 +13,47 @@
 ## Task 0: Add Task.Supervisor for Obsidian Sync
 
 **Files:**
-- Modify: `lib/ex_calibur/application.ex:25` (add new supervisor)
-- Modify: `lib/ex_calibur/lodge.ex:59` (replace Task.start)
-- Modify: `lib/ex_calibur/lore.ex` (replace any Task.start)
+- Modify: `lib/ex_cortex/application.ex:25` (add new supervisor)
+- Modify: `lib/ex_cortex/lodge.ex:59` (replace Task.start)
+- Modify: `lib/ex_cortex/lore.ex` (replace any Task.start)
 
 **Step 1: Add TaskSupervisor to application supervision tree**
 
-In `lib/ex_calibur/application.ex`, add after the existing `SourceTaskSupervisor`:
+In `lib/ex_cortex/application.ex`, add after the existing `SourceTaskSupervisor`:
 
 ```elixir
-{Task.Supervisor, name: ExCalibur.AsyncTaskSupervisor},
+{Task.Supervisor, name: ExCortex.AsyncTaskSupervisor},
 ```
 
 **Step 2: Replace Task.start in Lodge.post_card**
 
-In `lib/ex_calibur/lodge.ex:59`, replace:
+In `lib/ex_cortex/lodge.ex:59`, replace:
 
 ```elixir
-Task.start(fn -> ExCalibur.Obsidian.Sync.sync_lodge_card(card) end)
+Task.start(fn -> ExCortex.Obsidian.Sync.sync_lodge_card(card) end)
 ```
 
 with:
 
 ```elixir
-Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-  ExCalibur.Obsidian.Sync.sync_lodge_card(card)
+Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
+  ExCortex.Obsidian.Sync.sync_lodge_card(card)
 end)
 ```
 
 **Step 3: Replace any Task.start in Lore**
 
-Search `lib/ex_calibur/lore.ex` for `Task.start` and replace the same way.
+Search `lib/ex_cortex/lore.ex` for `Task.start` and replace the same way.
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs --trace`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs --trace`
 Expected: All pass
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/application.ex lib/ex_calibur/lodge.ex lib/ex_calibur/lore.ex
+git add lib/ex_cortex/application.ex lib/ex_cortex/lodge.ex lib/ex_cortex/lore.ex
 git commit -m "refactor: use Task.Supervisor for fire-and-forget Obsidian sync"
 ```
 
@@ -63,12 +63,12 @@ git commit -m "refactor: use Task.Supervisor for fire-and-forget Obsidian sync"
 
 **Files:**
 - Create: `priv/repo/migrations/20260312000001_upgrade_lodge_cards.exs`
-- Modify: `lib/ex_calibur/lodge/card.ex`
+- Modify: `lib/ex_cortex/lodge/card.ex`
 
 **Step 1: Write the migration**
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.UpgradeLodgeCards do
+defmodule ExCortex.Repo.Migrations.UpgradeLodgeCards do
   use Ecto.Migration
 
   def change do
@@ -95,7 +95,7 @@ end
 
 **Step 2: Update Card schema**
 
-In `lib/ex_calibur/lodge/card.ex`, update `@valid_types` to include the new types:
+In `lib/ex_cortex/lodge/card.ex`, update `@valid_types` to include the new types:
 
 ```elixir
 @valid_types ~w(note checklist meeting alert link proposal augury briefing action_list table media metric freeform)
@@ -129,13 +129,13 @@ Expected: Migration succeeds
 
 **Step 4: Run existing tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs --trace`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs --trace`
 Expected: All pass (no behavior change yet)
 
 **Step 5: Commit**
 
 ```bash
-git add priv/repo/migrations/20260312000001_upgrade_lodge_cards.exs lib/ex_calibur/lodge/card.ex
+git add priv/repo/migrations/20260312000001_upgrade_lodge_cards.exs lib/ex_cortex/lodge/card.ex
 git commit -m "feat: add card_type, pin_slug, pin_order, guild_name to lodge_cards + versions table"
 ```
 
@@ -145,12 +145,12 @@ git commit -m "feat: add card_type, pin_slug, pin_order, guild_name to lodge_car
 
 **Files:**
 - Create: `priv/repo/migrations/20260312000002_upgrade_proposals.exs`
-- Modify: `lib/ex_calibur/quests/proposal.ex`
+- Modify: `lib/ex_cortex/quests/proposal.ex`
 
 **Step 1: Write the migration**
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.UpgradeProposals do
+defmodule ExCortex.Repo.Migrations.UpgradeProposals do
   use Ecto.Migration
 
   def change do
@@ -166,7 +166,7 @@ end
 
 **Step 2: Update Proposal schema**
 
-In `lib/ex_calibur/quests/proposal.ex`, add fields to schema (after `applied_at`):
+In `lib/ex_cortex/quests/proposal.ex`, add fields to schema (after `applied_at`):
 
 ```elixir
 field :tool_name, :string
@@ -206,7 +206,7 @@ Expected: All pass
 **Step 5: Commit**
 
 ```bash
-git add priv/repo/migrations/20260312000002_upgrade_proposals.exs lib/ex_calibur/quests/proposal.ex
+git add priv/repo/migrations/20260312000002_upgrade_proposals.exs lib/ex_cortex/quests/proposal.ex
 git commit -m "feat: add tool_name, tool_args, context, result to proposals"
 ```
 
@@ -215,12 +215,12 @@ git commit -m "feat: add tool_name, tool_args, context, result to proposals"
 ## Task 3: Lodge Card Version Schema
 
 **Files:**
-- Create: `lib/ex_calibur/lodge/card_version.ex`
+- Create: `lib/ex_cortex/lodge/card_version.ex`
 
 **Step 1: Create CardVersion schema**
 
 ```elixir
-defmodule ExCalibur.Lodge.CardVersion do
+defmodule ExCortex.Lodge.CardVersion do
   @moduledoc false
   use Ecto.Schema
 
@@ -231,7 +231,7 @@ defmodule ExCalibur.Lodge.CardVersion do
     field :metadata, :map, default: %{}
     field :replaced_at, :utc_datetime
 
-    belongs_to :card, ExCalibur.Lodge.Card
+    belongs_to :card, ExCortex.Lodge.Card
   end
 
   def changeset(version, attrs) do
@@ -245,7 +245,7 @@ end
 **Step 2: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge/card_version.ex
+git add lib/ex_cortex/lodge/card_version.ex
 git commit -m "feat: add CardVersion schema for pinned card history"
 ```
 
@@ -254,18 +254,18 @@ git commit -m "feat: add CardVersion schema for pinned card history"
 ## Task 4: Lodge Context — Upsert by Pin Slug + Versioning
 
 **Files:**
-- Modify: `lib/ex_calibur/lodge.ex`
-- Create: `test/ex_calibur/lodge_test.exs`
+- Modify: `lib/ex_cortex/lodge.ex`
+- Create: `test/ex_cortex/lodge_test.exs`
 
 **Step 1: Write failing test for upsert_card**
 
-Create `test/ex_calibur/lodge_test.exs`:
+Create `test/ex_cortex/lodge_test.exs`:
 
 ```elixir
-defmodule ExCalibur.LodgeTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.LodgeTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Lodge
+  alias ExCortex.Lodge
 
   describe "upsert_card/1" do
     test "creates a new card when pin_slug does not exist" do
@@ -311,7 +311,7 @@ defmodule ExCalibur.LodgeTest do
       assert updated.title == "V2"
       assert updated.body == "Updated body"
 
-      versions = ExCalibur.Repo.all(ExCalibur.Lodge.CardVersion)
+      versions = ExCortex.Repo.all(ExCortex.Lodge.CardVersion)
       assert length(versions) == 1
       assert hd(versions).body == "Original body"
     end
@@ -321,12 +321,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/lodge_test.exs --trace`
+Run: `mix test test/ex_cortex/lodge_test.exs --trace`
 Expected: FAIL — `upsert_card/1` not defined
 
 **Step 3: Implement upsert_card and update list_cards**
 
-In `lib/ex_calibur/lodge.ex`, add after `post_card/1`:
+In `lib/ex_cortex/lodge.ex`, add after `post_card/1`:
 
 ```elixir
 def upsert_card(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" do
@@ -336,8 +336,8 @@ def upsert_card(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" d
 
     existing ->
       # Save version before overwriting
-      %ExCalibur.Lodge.CardVersion{}
-      |> ExCalibur.Lodge.CardVersion.changeset(%{
+      %ExCortex.Lodge.CardVersion{}
+      |> ExCortex.Lodge.CardVersion.changeset(%{
         card_id: existing.id,
         body: existing.body,
         metadata: existing.metadata,
@@ -358,9 +358,9 @@ Update `post_card/1` to use upsert when pin_slug is present:
 def post_card(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" do
   case upsert_card(attrs) do
     {:ok, card} ->
-      Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
-      Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
-        ExCalibur.Obsidian.Sync.sync_lodge_card(card)
+      Phoenix.PubSub.broadcast(ExCortex.PubSub, "lodge", {:lodge_card_posted, card})
+      Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
+        ExCortex.Obsidian.Sync.sync_lodge_card(card)
       end)
       {:ok, card}
 
@@ -385,13 +385,13 @@ end
 
 **Step 4: Run test to verify it passes**
 
-Run: `mix test test/ex_calibur/lodge_test.exs --trace`
+Run: `mix test test/ex_cortex/lodge_test.exs --trace`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge.ex test/ex_calibur/lodge_test.exs
+git add lib/ex_cortex/lodge.ex test/ex_cortex/lodge_test.exs
 git commit -m "feat: add upsert_card with pin_slug matching and card versioning"
 ```
 
@@ -400,7 +400,7 @@ git commit -m "feat: add upsert_card with pin_slug matching and card versioning"
 ## Task 5: New Lodge Card Type Components
 
 **Files:**
-- Modify: `lib/ex_calibur_web/components/lodge_cards.ex`
+- Modify: `lib/ex_cortex_web/components/lodge_cards.ex`
 
 This task adds 5 new card type renderers: `briefing`, `action_list`, `table`, `media`, `metric`, `freeform`. The existing `checklist` renderer already works. The existing `note` renderer covers simple markdown.
 
@@ -584,7 +584,7 @@ end
 
 **Step 7: Update parse_artifact CARD_TYPE validation**
 
-In `lib/ex_calibur/step_runner.ex:643`, update the valid card types:
+In `lib/ex_cortex/step_runner.ex:643`, update the valid card types:
 
 ```elixir
 if ct in ~w(note checklist meeting alert link briefing action_list table media metric freeform), do: ct
@@ -604,7 +604,7 @@ Expected: All pass
 **Step 9: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/lodge_cards.ex lib/ex_calibur/step_runner.ex
+git add lib/ex_cortex_web/components/lodge_cards.ex lib/ex_cortex/step_runner.ex
 git commit -m "feat: add briefing, action_list, table, media, metric, freeform card renderers"
 ```
 
@@ -613,7 +613,7 @@ git commit -m "feat: add briefing, action_list, table, media, metric, freeform c
 ## Task 6: Lodge LiveView — Pinned Grid + Feed Layout
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
 
 **Step 1: Update mount to separate pinned vs unpinned**
 
@@ -734,13 +734,13 @@ Add new types to the `<select>` in the card creation form:
 
 **Step 6: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs --trace`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs --trace`
 Expected: All pass
 
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/lodge_live.ex
+git add lib/ex_cortex_web/live/lodge_live.ex
 git commit -m "feat: lodge dashboard with pinned grid + feed layout and action_list handlers"
 ```
 
@@ -749,16 +749,16 @@ git commit -m "feat: lodge dashboard with pinned grid + feed layout and action_l
 ## Task 7: Step Runner — Dangerous Tool Interception
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
-- Create: `test/ex_calibur/step_runner_dangerous_test.exs`
+- Modify: `lib/ex_cortex/step_runner.ex`
+- Create: `test/ex_cortex/step_runner_dangerous_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-defmodule ExCalibur.StepRunnerDangerousTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.StepRunnerDangerousTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.StepRunner
+  alias ExCortex.StepRunner
 
   describe "dangerous tool interception" do
     test "dangerous?/1 returns true for dangerous tools" do
@@ -773,12 +773,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/step_runner_dangerous_test.exs --trace`
+Run: `mix test test/ex_cortex/step_runner_dangerous_test.exs --trace`
 Expected: FAIL — function not exported
 
 **Step 3: Add dangerous tool interception**
 
-In `lib/ex_calibur/step_runner.ex`, add the dangerous tool list and interception function near the top:
+In `lib/ex_cortex/step_runner.ex`, add the dangerous tool list and interception function near the top:
 
 ```elixir
 @dangerous_tools ~w(send_email create_github_issue comment_github run_quest)
@@ -790,7 +790,7 @@ Add a function that creates a proposal instead of executing a dangerous tool:
 
 ```elixir
 def intercept_dangerous_tool(tool_name, tool_args, quest_id, context \\ nil) do
-  ExCalibur.Quests.create_proposal(%{
+  ExCortex.Quests.create_proposal(%{
     quest_id: quest_id,
     type: "tool_action",
     description: "Tool call: #{tool_name}",
@@ -805,13 +805,13 @@ end
 
 **Step 4: Run test**
 
-Run: `mix test test/ex_calibur/step_runner_dangerous_test.exs --trace`
+Run: `mix test test/ex_cortex/step_runner_dangerous_test.exs --trace`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/step_runner.ex test/ex_calibur/step_runner_dangerous_test.exs
+git add lib/ex_cortex/step_runner.ex test/ex_cortex/step_runner_dangerous_test.exs
 git commit -m "feat: add dangerous tool interception with proposal creation"
 ```
 
@@ -820,12 +820,12 @@ git commit -m "feat: add dangerous tool interception with proposal creation"
 ## Task 8: Step Runner — Multi-Card Output
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex` (run/2 lodge_card clause)
-- Modify: `lib/ex_calibur/quest_runner.ex` (result_to_text for lodge_card)
+- Modify: `lib/ex_cortex/step_runner.ex` (run/2 lodge_card clause)
+- Modify: `lib/ex_cortex/quest_runner.ex` (result_to_text for lodge_card)
 
 **Step 1: Update lodge_card run clause to support pin_slug and multi-card**
 
-In `lib/ex_calibur/step_runner.ex`, replace the `run(%{output_type: "lodge_card"})` clause (lines 163-187):
+In `lib/ex_cortex/step_runner.ex`, replace the `run(%{output_type: "lodge_card"})` clause (lines 163-187):
 
 ```elixir
 def run(%{output_type: "lodge_card"} = quest, input_text) do
@@ -855,7 +855,7 @@ def run(%{output_type: "lodge_card"} = quest, input_text) do
               guild_name: quest[:guild_name]
             }
 
-            ExCalibur.Lodge.post_card(card_attrs)
+            ExCortex.Lodge.post_card(card_attrs)
           end)
 
         {:ok, %{lodge_cards: posted}}
@@ -880,7 +880,7 @@ def run(%{output_type: "lodge_card"} = quest, input_text) do
           guild_name: quest[:guild_name]
         }
 
-        ExCalibur.Lodge.post_card(card_attrs)
+        ExCortex.Lodge.post_card(card_attrs)
         {:ok, %{lodge_card: card_attrs}}
       end
 
@@ -892,7 +892,7 @@ end
 
 **Step 2: Add result_to_text clause for lodge_card in quest_runner**
 
-In `lib/ex_calibur/quest_runner.ex`, add before the catch-all `result_to_text`:
+In `lib/ex_cortex/quest_runner.ex`, add before the catch-all `result_to_text`:
 
 ```elixir
 def result_to_text({:ok, %{lodge_card: %{title: title, body: body}}}, step_name, next_step_name) do
@@ -921,7 +921,7 @@ Expected: All pass
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/step_runner.ex lib/ex_calibur/quest_runner.ex
+git add lib/ex_cortex/step_runner.ex lib/ex_cortex/quest_runner.ex
 git commit -m "feat: support pin_slug, multi-card output, and guild_name in lodge_card quests"
 ```
 
@@ -930,12 +930,12 @@ git commit -m "feat: support pin_slug, multi-card output, and guild_name in lodg
 ## Task 9: Proposal Execution on Approve
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex` (approve_proposal handler)
-- Modify: `lib/ex_calibur/quests.ex` (add execute_proposal)
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex` (approve_proposal handler)
+- Modify: `lib/ex_cortex/quests.ex` (add execute_proposal)
 
 **Step 1: Check existing approve_proposal logic**
 
-Read `lib/ex_calibur/quests.ex` to find `approve_proposal/1`.
+Read `lib/ex_cortex/quests.ex` to find `approve_proposal/1`.
 
 **Step 2: Add execute_proposal for tool_action proposals**
 
@@ -943,7 +943,7 @@ In the Quests context, add a function that executes the saved tool call when a t
 
 ```elixir
 def execute_tool_proposal(%Proposal{type: "tool_action", tool_name: tool_name, tool_args: tool_args} = proposal) do
-  case ExCalibur.Tools.Registry.get(tool_name) do
+  case ExCortex.Tools.Registry.get(tool_name) do
     nil ->
       update_proposal(proposal, %{status: "failed", result: "Tool #{tool_name} not found"})
 
@@ -969,13 +969,13 @@ def handle_event("approve_proposal", %{"card-id" => id}, socket) do
   proposal_id = card.metadata["proposal_id"]
 
   if proposal_id do
-    proposal = ExCalibur.Repo.get(Proposal, proposal_id)
+    proposal = ExCortex.Repo.get(Proposal, proposal_id)
 
     if proposal do
-      ExCalibur.Quests.approve_proposal(proposal)
+      ExCortex.Quests.approve_proposal(proposal)
 
       if proposal.type == "tool_action" do
-        ExCalibur.Quests.execute_tool_proposal(proposal)
+        ExCortex.Quests.execute_tool_proposal(proposal)
       end
     end
   end
@@ -987,13 +987,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs --trace`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs --trace`
 Expected: All pass
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quests.ex lib/ex_calibur_web/live/lodge_live.ex
+git add lib/ex_cortex/quests.ex lib/ex_cortex_web/live/lodge_live.ex
 git commit -m "feat: execute tool_action proposals on approve"
 ```
 
@@ -1002,7 +1002,7 @@ git commit -m "feat: execute tool_action proposals on approve"
 ## Task 10: Lodge Header with Guild Identity
 
 **Files:**
-- Modify: `lib/ex_calibur_web/components/lodge_cards.ex` (header)
+- Modify: `lib/ex_cortex_web/components/lodge_cards.ex` (header)
 
 **Step 1: Update lodge_card_header to show guild badge and type icon**
 
@@ -1064,7 +1064,7 @@ Expected: All pass
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/lodge_cards.ex
+git add lib/ex_cortex_web/components/lodge_cards.ex
 git commit -m "feat: add type icons and guild badges to lodge card headers"
 ```
 
@@ -1073,7 +1073,7 @@ git commit -m "feat: add type icons and guild badges to lodge card headers"
 ## Task 11: Everyday Council — New Quest Definitions
 
 **Files:**
-- Modify: `lib/ex_calibur/charters/everyday_council.ex`
+- Modify: `lib/ex_cortex/charters/everyday_council.ex`
 
 **Step 1: Replace Journal Intake with Smart Intake**
 
@@ -1348,7 +1348,7 @@ Run: `mix format`
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/charters/everyday_council.ex
+git add lib/ex_cortex/charters/everyday_council.ex
 git commit -m "feat: add 15 new quest definitions to Everyday Council (email, GitHub, research, multi-modal, automation)"
 ```
 
@@ -1357,7 +1357,7 @@ git commit -m "feat: add 15 new quest definitions to Everyday Council (email, Gi
 ## Task 12: Everyday Council — Updated Campaign Definitions
 
 **Files:**
-- Modify: `lib/ex_calibur/charters/everyday_council.ex` (campaign_definitions)
+- Modify: `lib/ex_cortex/charters/everyday_council.ex` (campaign_definitions)
 
 **Step 1: Update campaign_definitions to match design**
 
@@ -1472,7 +1472,7 @@ Expected: All pass
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/charters/everyday_council.ex
+git add lib/ex_cortex/charters/everyday_council.ex
 git commit -m "feat: update Everyday Council campaigns (morning start, midday, nightly, weekly cleanup)"
 ```
 
@@ -1482,14 +1482,14 @@ git commit -m "feat: update Everyday Council campaigns (morning start, midday, n
 
 **Files:**
 - Create: `priv/repo/migrations/20260312000003_add_card_fields_to_steps.exs`
-- Modify: `lib/ex_calibur/quests/step.ex`
+- Modify: `lib/ex_cortex/quests/step.ex`
 
 The step schema needs pin_slug, pinned, pin_order, guild_name, and cards fields so quests can declare card output behavior.
 
 **Step 1: Write migration**
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.AddCardFieldsToSteps do
+defmodule ExCortex.Repo.Migrations.AddCardFieldsToSteps do
   use Ecto.Migration
 
   def change do
@@ -1524,7 +1524,7 @@ Expected: All pass
 **Step 4: Commit**
 
 ```bash
-git add priv/repo/migrations/20260312000003_add_card_fields_to_steps.exs lib/ex_calibur/quests/step.ex
+git add priv/repo/migrations/20260312000003_add_card_fields_to_steps.exs lib/ex_cortex/quests/step.ex
 git commit -m "feat: add pin_slug, pin_order, cards, guild_name to steps schema"
 ```
 
@@ -1533,7 +1533,7 @@ git commit -m "feat: add pin_slug, pin_order, cards, guild_name to steps schema"
 ## Task 14: Lodge Live Tests — Pinned Grid + Action List
 
 **Files:**
-- Modify: `test/ex_calibur_web/live/lodge_live_test.exs`
+- Modify: `test/ex_cortex_web/live/lodge_live_test.exs`
 
 **Step 1: Add tests for pinned grid rendering**
 
@@ -1577,13 +1577,13 @@ end
 
 **Step 2: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs --trace`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs --trace`
 Expected: All pass
 
 **Step 3: Commit**
 
 ```bash
-git add test/ex_calibur_web/live/lodge_live_test.exs
+git add test/ex_cortex_web/live/lodge_live_test.exs
 git commit -m "test: add lodge live tests for pinned grid and action_list cards"
 ```
 

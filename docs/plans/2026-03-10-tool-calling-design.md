@@ -29,7 +29,7 @@ Members and Steps are currently single-shot: one LLM call in, one verdict/artifa
 Tools are Elixir functions with metadata that serialises into the LLM's native tool-calling format (Claude tool use blocks / Ollama function calling).
 
 ```elixir
-defmodule ExCalibur.Tools.Tool do
+defmodule ExCortex.Tools.Tool do
   defstruct [:name, :description, :parameters, :handler, :safe?]
 end
 ```

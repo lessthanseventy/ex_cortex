@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title suffix=" · ExCortex">
+      {assigns[:page_title] || "ExCortex"}
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+  </head>
+  <body class="bg-background min-h-screen">
+    <nav class="border-b bg-card sticky top-0 z-50 shadow-sm">
+      <div class="max-w-6xl mx-auto flex items-center gap-8 px-6 py-0">
+        <a
+          href={~p"/cortex"}
+          class="flex items-center gap-2 shrink-0 py-4 border-b-2 border-transparent hover:opacity-80 transition-opacity"
+        >
+          <span class="text-sm font-bold text-foreground tracking-widest uppercase select-none">
+            ExCortex
+          </span>
+          <%= if @banner do %>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium capitalize">
+              {@banner}
+            </span>
+          <% end %>
+        </a>
+        <div class="flex overflow-x-auto">
+          <%= for {label, path, tooltip} <- [
+            {"Cortex", ~p"/cortex", "Dashboard — active thoughts, signals, health"},
+            {"Neurons", ~p"/neurons", "Clusters and agent management"},
+            {"Thoughts", ~p"/thoughts", "Pipeline builder and run history"},
+            {"Memory", ~p"/memory", "Engram browser with tiered drill-down"},
+            {"Senses", ~p"/senses", "Source management and reflex library"},
+            {"Instinct", ~p"/instinct", "Configuration and settings"},
+            {"Guide", ~p"/guide", "Documentation and onboarding"}
+          ] do %>
+            <a
+              href={path}
+              title={tooltip}
+              class={[
+                "px-4 py-4 text-sm whitespace-nowrap transition-colors border-b-2",
+                if(String.starts_with?(@conn.request_path, path),
+                  do: "border-foreground text-foreground font-medium",
+                  else:
+                    "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                )
+              ]}
+            >
+              {label}
+            </a>
+          <% end %>
+        </div>
+      </div>
+    </nav>
+    <main class="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+      {@inner_content}
+    </main>
+  </body>
+</html>

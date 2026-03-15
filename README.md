@@ -1,6 +1,6 @@
-# ExCalibur
+# ExCortex
 
-ExCalibur is a local-first AI agent platform. You give it teams of AI agents, wire them up to your data sources, and they work autonomously — reviewing code, triaging issues, summarizing feeds, running tests, filing bugs, and improving the system itself.
+ExCortex is a local-first AI agent platform. You give it teams of AI agents, wire them up to your data sources, and they work autonomously — reviewing code, triaging issues, summarizing feeds, running tests, filing bugs, and improving the system itself.
 
 It runs entirely on your machine. No cloud, no SaaS, no data leaving your network. Just Ollama, a Postgres database, and a Phoenix web UI.
 
@@ -33,7 +33,7 @@ You end up with a continuously-maintained backlog driven by actual analysis, not
 
 ### Improve itself
 
-This is the interesting one. ExCalibur includes a Dev Team guild that reads its own GitHub issues, writes fixes, reviews the code, runs the test suite, and merges approved changes. The loop:
+This is the interesting one. ExCortex includes a Dev Team guild that reads its own GitHub issues, writes fixes, reviews the code, runs the test suite, and merges approved changes. The loop:
 
 ```
 Issue filed → PM Triage → Code Writer → Code Reviewer → QA → Merge/Escalate
@@ -142,7 +142,7 @@ That's it. Starts the app, Postgres, Ollama, Jaeger, Prometheus, and Grafana. Vi
 
 | Service | URL |
 |---|---|
-| ExCalibur | http://localhost:4001 |
+| ExCortex | http://localhost:4001 |
 | Jaeger traces | http://localhost:16686 |
 | Grafana | http://localhost:3000 |
 | Nextcloud (optional) | http://localhost:8080 |

@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.TextDescriptionsOnQuestsAndCampaigns do
+defmodule ExCortex.Repo.Migrations.TextDescriptionsOnQuestsAndCampaigns do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddTagsToLodgeCards do
+defmodule ExCortex.Repo.Migrations.AddTagsToLodgeCards do
   use Ecto.Migration
 
   def change do

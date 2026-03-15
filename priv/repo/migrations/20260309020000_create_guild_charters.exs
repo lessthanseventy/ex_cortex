@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.CreateGuildCharters do
+defmodule ExCortex.Repo.Migrations.CreateGuildCharters do
   use Ecto.Migration
 
   def change do

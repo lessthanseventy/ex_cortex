@@ -2,7 +2,7 @@
 
 ## Overview
 
-Expand ExCalibur's tool calling layer from 3 tools to 29, introduce Obsidian as a
+Expand ExCortex's tool calling layer from 3 tools to 29, introduce Obsidian as a
 durable knowledge layer synced from Postgres, add a settings UI for tool config,
 and wire every guild to appropriate tools by role and purpose.
 
@@ -101,7 +101,7 @@ def resolve_tools(:dangerous), do: Enum.map(@safe ++ @write ++ @dangerous, & &1.
 Every tool follows the same pattern:
 
 ```elixir
-defmodule ExCalibur.Tools.SearchObsidian do
+defmodule ExCortex.Tools.SearchObsidian do
   @tier :safe
 
   def tool do
@@ -120,7 +120,7 @@ defmodule ExCalibur.Tools.SearchObsidian do
   end
 
   def call(%{"query" => query}) do
-    vault = ExCalibur.Settings.get(:obsidian_vault)
+    vault = ExCortex.Settings.get(:obsidian_vault)
     args = ["search", query, "--print"] ++ if(vault, do: ["--vault", vault], else: [])
     case System.cmd("obsidian-cli", args, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
@@ -140,7 +140,7 @@ as a markdown file.
 
 ```
 <Vault>/
-  ExCalibur/
+  ExCortex/
     Lore/
       2026-03-12-big-ten-tampering.md
       2026-03-12-morning-briefing.md
@@ -171,14 +171,14 @@ updated: 2026-03-12T03:06:39Z
 Dataview queries in Obsidian can then do:
 ```dataview
 TABLE tags, importance, created
-FROM "ExCalibur/Lore"
+FROM "ExCortex/Lore"
 WHERE importance >= 4
 SORT created DESC
 ```
 
 ### Sync Mechanics
 
-- `ExCalibur.Obsidian.Sync` module with `sync_lore_entry/1` and `sync_lodge_card/1`
+- `ExCortex.Obsidian.Sync` module with `sync_lore_entry/1` and `sync_lodge_card/1`
 - Called as side effect after every DB write in `Lore.write_artifact/2`,
   `Lodge.post_card/1`, etc.
 - New notes: `obsidian-cli create` or `File.write/2` to vault path
@@ -199,7 +199,7 @@ SORT created DESC
 ### Directory Structure
 
 All downloaded/extracted media goes to a configurable temp dir
-(default `/tmp/ex_calibur/media/`). Each job gets a UUID subdirectory.
+(default `/tmp/ex_cortex/media/`). Each job gets a UUID subdirectory.
 
 ### Video Analysis Flow
 
@@ -312,7 +312,7 @@ the existing `settings` table.
 | Web Search | ddgr_num_results, ddgr_region |
 | Tools | Per-tool enable/disable toggles |
 
-Read via `ExCalibur.Settings.get(:obsidian_vault)` etc.
+Read via `ExCortex.Settings.get(:obsidian_vault)` etc.
 
 ## 8. System Dependencies
 
@@ -329,7 +329,7 @@ for local transcription. Can use Ollama whisper model as alternative.
 - Postgres remains the operational data store
 - LiveView reads from Postgres for speed
 - The existing ReqLLM.Tool struct format is unchanged
-- The Claude agent loop in ExCalibur.LLM.Claude is unchanged
+- The Claude agent loop in ExCortex.LLM.Claude is unchanged
 - Ollama still lacks native tool calling (falls back to plain completion)
 - Member rank/model progression is unchanged
 - Quest/campaign structure is unchanged

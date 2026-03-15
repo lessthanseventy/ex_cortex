@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddRunAtToQuests do
+defmodule ExCortex.Repo.Migrations.AddRunAtToQuests do
   use Ecto.Migration
 
   def change do

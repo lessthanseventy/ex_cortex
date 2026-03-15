@@ -6,29 +6,29 @@
 
 **Architecture:** Tools are `ReqLLM.Tool` structs (with callbacks) registered in our own module with a `safe?` tier. The registry returns `[%ReqLLM.Tool{}]` lists that are passed directly to `ReqLLM.generate_text/3` as `tools:`. The Claude agent loop uses `ReqLLM.Response.classify/1` to detect tool calls and `ReqLLM.Context.execute_and_append_tools/3` to execute and thread results — no manual HTTP or message building. StepRunner gains reflect and escalate phases that wrap the existing roster run.
 
-**Tech Stack:** Elixir/OTP, ReqLLM (native tool calling, Context, Response), Excellence.LLM.Ollama, ExCalibur.Lore, ExCalibur.Quests
+**Tech Stack:** Elixir/OTP, ReqLLM (native tool calling, Context, Response), Excellence.LLM.Ollama, ExCortex.Lore, ExCortex.Quests
 
 ---
 
 ## Task 1: Tool registry using ReqLLM.Tool
 
 **Files:**
-- Create: `lib/ex_calibur/tools/registry.ex`
-- Create: `lib/ex_calibur/tools/query_lore.ex`
-- Create: `lib/ex_calibur/tools/run_quest.ex`
-- Create: `lib/ex_calibur/tools/fetch_url.ex`
-- Create: `test/ex_calibur/tools/registry_test.exs`
+- Create: `lib/ex_cortex/tools/registry.ex`
+- Create: `lib/ex_cortex/tools/query_lore.ex`
+- Create: `lib/ex_cortex/tools/run_quest.ex`
+- Create: `lib/ex_cortex/tools/fetch_url.ex`
+- Create: `test/ex_cortex/tools/registry_test.exs`
 
 We use `ReqLLM.Tool` as the tool struct — it handles parameter schema compilation, Anthropic/Ollama format conversion, and callback execution. Our registry adds only the `safe?` tier that ReqLLM doesn't have.
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/tools/registry_test.exs
-defmodule ExCalibur.Tools.RegistryTest do
+# test/ex_cortex/tools/registry_test.exs
+defmodule ExCortex.Tools.RegistryTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.Registry
+  alias ExCortex.Tools.Registry
 
   test "list_safe/0 returns ReqLLM.Tool structs for safe tools only" do
     tools = Registry.list_safe()
@@ -78,7 +78,7 @@ end
 **Step 2: Run test to verify it fails**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/tools/registry_test.exs 2>&1 | tail -5' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/tools/registry_test.exs 2>&1 | tail -5' --pane=main:1.3
 ```
 
 Expected: compilation error (modules don't exist)
@@ -86,8 +86,8 @@ Expected: compilation error (modules don't exist)
 **Step 3: Create tool modules using ReqLLM.Tool.new!**
 
 ```elixir
-# lib/ex_calibur/tools/query_lore.ex
-defmodule ExCalibur.Tools.QueryLore do
+# lib/ex_cortex/tools/query_lore.ex
+defmodule ExCortex.Tools.QueryLore do
   @moduledoc "Tool: search lore entries by tags."
 
   def req_llm_tool do
@@ -108,7 +108,7 @@ defmodule ExCalibur.Tools.QueryLore do
 
   def call(%{"tags" => tags} = input) do
     limit = Map.get(input, "limit", 5)
-    entries = ExCalibur.Lore.list_entries(tags: tags) |> Enum.take(limit)
+    entries = ExCortex.Lore.list_entries(tags: tags) |> Enum.take(limit)
     summaries = Enum.map(entries, fn e -> "#{e.title}: #{String.slice(e.body || "", 0, 200)}" end)
     {:ok, Enum.join(summaries, "\n---\n")}
   end
@@ -118,8 +118,8 @@ end
 ```
 
 ```elixir
-# lib/ex_calibur/tools/run_quest.ex
-defmodule ExCalibur.Tools.RunQuest do
+# lib/ex_cortex/tools/run_quest.ex
+defmodule ExCortex.Tools.RunQuest do
   @moduledoc "Tool: run a quest by name with a given input string."
 
   def req_llm_tool do
@@ -140,14 +140,14 @@ defmodule ExCalibur.Tools.RunQuest do
 
   def call(%{"quest_name" => name, "input" => input}) do
     import Ecto.Query
-    alias ExCalibur.Repo
-    alias ExCalibur.Quests.Quest
+    alias ExCortex.Repo
+    alias ExCortex.Quests.Quest
 
     case Repo.one(from q in Quest, where: q.name == ^name, limit: 1) do
       nil -> {:error, "Quest '#{name}' not found"}
       quest ->
         preloaded = Repo.preload(quest, :steps)
-        case ExCalibur.QuestRunner.run(preloaded, input) do
+        case ExCortex.QuestRunner.run(preloaded, input) do
           {:ok, result} -> {:ok, inspect(result)}
           {:error, reason} -> {:error, inspect(reason)}
         end
@@ -157,8 +157,8 @@ end
 ```
 
 ```elixir
-# lib/ex_calibur/tools/fetch_url.ex
-defmodule ExCalibur.Tools.FetchUrl do
+# lib/ex_cortex/tools/fetch_url.ex
+defmodule ExCortex.Tools.FetchUrl do
   @moduledoc "Tool (YOLO): fetch the body of a URL."
 
   def req_llm_tool do
@@ -192,8 +192,8 @@ end
 **Step 4: Create Registry**
 
 ```elixir
-# lib/ex_calibur/tools/registry.ex
-defmodule ExCalibur.Tools.Registry do
+# lib/ex_cortex/tools/registry.ex
+defmodule ExCortex.Tools.Registry do
   @moduledoc """
   Registry of available tools, tiered by safety.
 
@@ -208,12 +208,12 @@ defmodule ExCalibur.Tools.Registry do
   """
 
   @safe_entries [
-    ExCalibur.Tools.QueryLore,
-    ExCalibur.Tools.RunQuest
+    ExCortex.Tools.QueryLore,
+    ExCortex.Tools.RunQuest
   ]
 
   @yolo_entries [
-    ExCalibur.Tools.FetchUrl
+    ExCortex.Tools.FetchUrl
   ]
 
   def list_safe, do: Enum.map(@safe_entries, & &1.req_llm_tool())
@@ -252,7 +252,7 @@ end
 **Step 5: Run tests**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/tools/registry_test.exs 2>&1 | tail -5' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/tools/registry_test.exs 2>&1 | tail -5' --pane=main:1.3
 ```
 
 Expected: all pass
@@ -260,7 +260,7 @@ Expected: all pass
 **Step 6: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/tools/ test/ex_calibur/tools/ && git commit -m "feat: add tool registry using ReqLLM.Tool with safe/yolo tier"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_cortex/tools/ test/ex_cortex/tools/ && git commit -m "feat: add tool registry using ReqLLM.Tool with safe/yolo tier"' --pane=main:1.3
 ```
 
 ---
@@ -268,19 +268,19 @@ tmux-cli send 'git add lib/ex_calibur/tools/ test/ex_calibur/tools/ && git commi
 ## Task 2: Claude agent loop using ReqLLM natively
 
 **Files:**
-- Modify: `lib/ex_calibur/claude_client.ex`
-- Create: `test/ex_calibur/tools/claude_agent_loop_test.exs`
+- Modify: `lib/ex_cortex/claude_client.ex`
+- Create: `test/ex_cortex/tools/claude_agent_loop_test.exs`
 
 ReqLLM handles the entire multi-turn loop: `generate_text` passes tools to the model, `Response.classify` detects tool calls vs final answer, `Context.execute_and_append_tools` runs the tools and threads results back. No manual HTTP or message building needed.
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/tools/claude_agent_loop_test.exs
-defmodule ExCalibur.ClaudeAgentLoopTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/tools/claude_agent_loop_test.exs
+defmodule ExCortex.ClaudeAgentLoopTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.ClaudeClient
+  alias ExCortex.ClaudeClient
 
   test "complete_with_tools/4 returns {:error, _} or {:ok, _} — does not crash without API key" do
     result = ClaudeClient.complete_with_tools("claude_haiku", "You are helpful", "Say hi", [])
@@ -297,12 +297,12 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/tools/claude_agent_loop_test.exs 2>&1 | tail -5' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/tools/claude_agent_loop_test.exs 2>&1 | tail -5' --pane=main:1.3
 ```
 
 **Step 3: Add `complete_with_tools/4` to ClaudeClient**
 
-Add to `lib/ex_calibur/claude_client.ex`:
+Add to `lib/ex_cortex/claude_client.ex`:
 
 ```elixir
   @max_tool_iterations 5
@@ -313,7 +313,7 @@ Add to `lib/ex_calibur/claude_client.ex`:
   - `tier` — "claude_haiku" | "claude_sonnet" | "claude_opus"
   - `system_prompt` — system prompt string
   - `user_text` — initial user message
-  - `tools` — list of %ReqLLM.Tool{} structs (from ExCalibur.Tools.Registry)
+  - `tools` — list of %ReqLLM.Tool{} structs (from ExCortex.Tools.Registry)
 
   Returns {:ok, text} on final answer or {:error, reason} on failure.
   """
@@ -360,7 +360,7 @@ Add to `lib/ex_calibur/claude_client.ex`:
 **Step 4: Run tests**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/tools/claude_agent_loop_test.exs 2>&1 | tail -5' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/tools/claude_agent_loop_test.exs 2>&1 | tail -5' --pane=main:1.3
 ```
 
 **Step 5: Run full suite**
@@ -372,7 +372,7 @@ tmux-cli send 'mix test 2>&1 | tail -5' --pane=main:1.3
 **Step 6: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/claude_client.ex test/ex_calibur/tools/claude_agent_loop_test.exs && git commit -m "feat: add Claude agent loop via ReqLLM native tool calling"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_cortex/claude_client.ex test/ex_cortex/tools/claude_agent_loop_test.exs && git commit -m "feat: add Claude agent loop via ReqLLM native tool calling"' --pane=main:1.3
 ```
 
 ---
@@ -380,7 +380,7 @@ tmux-cli send 'git add lib/ex_calibur/claude_client.ex test/ex_calibur/tools/cla
 ## Task 3: Wire tools into StepRunner member calls
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
+- Modify: `lib/ex_cortex/step_runner.ex`
 
 Members now carry a `tools` config key. When tools are present, `call_member` uses `ClaudeClient.complete_with_tools` (which takes `[%ReqLLM.Tool{}]`). When absent, falls through to the existing single-shot path.
 
@@ -401,9 +401,9 @@ In `step_runner.ex`, find `member_to_runner_spec/1` and update:
 
   # Resolve tools config string/list to [%ReqLLM.Tool{}] at spec-build time.
   defp resolve_member_tools(nil), do: []
-  defp resolve_member_tools("all_safe"), do: ExCalibur.Tools.Registry.resolve_tools(:all_safe)
-  defp resolve_member_tools("yolo"), do: ExCalibur.Tools.Registry.resolve_tools(:yolo)
-  defp resolve_member_tools(names) when is_list(names), do: ExCalibur.Tools.Registry.resolve_tools(names)
+  defp resolve_member_tools("all_safe"), do: ExCortex.Tools.Registry.resolve_tools(:all_safe)
+  defp resolve_member_tools("yolo"), do: ExCortex.Tools.Registry.resolve_tools(:yolo)
+  defp resolve_member_tools(names) when is_list(names), do: ExCortex.Tools.Registry.resolve_tools(names)
   defp resolve_member_tools(_), do: []
 ```
 
@@ -472,7 +472,7 @@ Expected: same pass count — no behaviour change for members without tools
 **Step 4: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/step_runner.ex && git commit -m "feat: wire tool config into member runner specs and call_member dispatch"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_cortex/step_runner.ex && git commit -m "feat: wire tool config into member runner specs and call_member dispatch"' --pane=main:1.3
 ```
 
 ---
@@ -480,12 +480,12 @@ tmux-cli send 'git add lib/ex_calibur/step_runner.ex && git commit -m "feat: wir
 ## Task 4: Escalate mode in StepRunner
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
-- Modify: `test/ex_calibur/step_runner_test.exs`
+- Modify: `lib/ex_cortex/step_runner.ex`
+- Modify: `test/ex_cortex/step_runner_test.exs`
 
 **Step 1: Write the failing test**
 
-Add to `test/ex_calibur/step_runner_test.exs`:
+Add to `test/ex_cortex/step_runner_test.exs`:
 
 ```elixir
   describe "escalate mode" do
@@ -502,7 +502,7 @@ Add to `test/ex_calibur/step_runner_test.exs`:
       }
 
       # Should not crash even with no members — returns abstain, not error
-      result = ExCalibur.StepRunner.run(step, "test input")
+      result = ExCortex.StepRunner.run(step, "test input")
       assert match?({:ok, %{verdict: _}}, result)
     end
 
@@ -516,7 +516,7 @@ Add to `test/ex_calibur/step_runner_test.exs`:
         context_providers: []
       }
 
-      assert {:ok, %{verdict: "pass"}} = ExCalibur.StepRunner.run(step, "test")
+      assert {:ok, %{verdict: "pass"}} = ExCortex.StepRunner.run(step, "test")
     end
   end
 ```
@@ -524,7 +524,7 @@ Add to `test/ex_calibur/step_runner_test.exs`:
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
 ```
 
 Expected: compile error (Step struct doesn't have escalate field yet, or function clause error)
@@ -532,10 +532,10 @@ Expected: compile error (Step struct doesn't have escalate field yet, or functio
 **Step 3: Check the Step schema and add escalate fields**
 
 ```bash
-tmux-cli send 'grep -n "field" lib/ex_calibur/quests/step.ex | head -30' --pane=main:1.3
+tmux-cli send 'grep -n "field" lib/ex_cortex/quests/step.ex | head -30' --pane=main:1.3
 ```
 
-Add to `lib/ex_calibur/quests/step.ex` schema (find the existing fields and add):
+Add to `lib/ex_cortex/quests/step.ex` schema (find the existing fields and add):
 
 ```elixir
     field :escalate, :boolean, default: false
@@ -599,7 +599,7 @@ The escalate logic wraps the existing `run/2` for roster lists. Add a new functi
 **Step 5: Run escalate tests**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
 ```
 
 **Step 6: Run full suite**
@@ -611,7 +611,7 @@ tmux-cli send 'mix test 2>&1 | tail -5' --pane=main:1.3
 **Step 7: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/quests/step.ex lib/ex_calibur/step_runner.ex test/ex_calibur/step_runner_test.exs && git commit -m "feat: add escalate mode to StepRunner — rank ladder with confidence threshold"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_cortex/quests/step.ex lib/ex_cortex/step_runner.ex test/ex_cortex/step_runner_test.exs && git commit -m "feat: add escalate mode to StepRunner — rank ladder with confidence threshold"' --pane=main:1.3
 ```
 
 ---
@@ -619,13 +619,13 @@ tmux-cli send 'git add lib/ex_calibur/quests/step.ex lib/ex_calibur/step_runner.
 ## Task 5: Reflect mode in StepRunner
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
-- Modify: `lib/ex_calibur/quests/step.ex`
-- Modify: `test/ex_calibur/step_runner_test.exs`
+- Modify: `lib/ex_cortex/step_runner.ex`
+- Modify: `lib/ex_cortex/quests/step.ex`
+- Modify: `test/ex_cortex/step_runner_test.exs`
 
 **Step 1: Write the failing test**
 
-Add to `test/ex_calibur/step_runner_test.exs`:
+Add to `test/ex_cortex/step_runner_test.exs`:
 
 ```elixir
   describe "reflect mode" do
@@ -642,7 +642,7 @@ Add to `test/ex_calibur/step_runner_test.exs`:
       }
 
       # Empty roster → pass verdict, no reflect needed
-      assert {:ok, %{verdict: "pass"}} = ExCalibur.StepRunner.run(step, "test")
+      assert {:ok, %{verdict: "pass"}} = ExCortex.StepRunner.run(step, "test")
     end
   end
 ```
@@ -650,12 +650,12 @@ Add to `test/ex_calibur/step_runner_test.exs`:
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
 ```
 
 **Step 3: Add reflect fields to Step schema**
 
-Add to `lib/ex_calibur/quests/step.ex`:
+Add to `lib/ex_cortex/quests/step.ex`:
 
 ```elixir
     field :loop_mode, :string       # nil | "reflect" | "plan"
@@ -680,7 +680,7 @@ Add a clause before the escalate clause (reflect wraps the inner run, escalate w
     threshold = quest.reflect_threshold || 0.6
     reflect_on = quest.reflect_on_verdict || []
     max_iter = quest.max_iterations || 3
-    tools = ExCalibur.Tools.Registry.resolve_tools(quest.loop_tools || [])
+    tools = ExCortex.Tools.Registry.resolve_tools(quest.loop_tools || [])
 
     do_reflect(quest, augmented, tools, threshold, reflect_on, max_iter, 0)
   end
@@ -744,7 +744,7 @@ Add a clause before the escalate clause (reflect wraps the inner run, escalate w
 **Step 5: Run reflect tests**
 
 ```bash
-tmux-cli send 'mix test test/ex_calibur/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'mix test test/ex_cortex/step_runner_test.exs 2>&1 | tail -10' --pane=main:1.3
 ```
 
 **Step 6: Run full suite**
@@ -756,7 +756,7 @@ tmux-cli send 'mix test 2>&1 | tail -5' --pane=main:1.3
 **Step 7: Commit**
 
 ```bash
-tmux-cli send 'git add lib/ex_calibur/quests/step.ex lib/ex_calibur/step_runner.ex test/ex_calibur/step_runner_test.exs && git commit -m "feat: add reflect mode to StepRunner — tool-assisted context gathering with retry"' --pane=main:1.3
+tmux-cli send 'git add lib/ex_cortex/quests/step.ex lib/ex_cortex/step_runner.ex test/ex_cortex/step_runner_test.exs && git commit -m "feat: add reflect mode to StepRunner — tool-assisted context gathering with retry"' --pane=main:1.3
 ```
 
 ---

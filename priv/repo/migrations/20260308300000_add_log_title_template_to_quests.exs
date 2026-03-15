@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddLogTitleTemplateToQuests do
+defmodule ExCortex.Repo.Migrations.AddLogTitleTemplateToQuests do
   use Ecto.Migration
 
   def change do

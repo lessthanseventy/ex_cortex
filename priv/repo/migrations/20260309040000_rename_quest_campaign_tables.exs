@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.RenameQuestCampaignTables do
+defmodule ExCortex.Repo.Migrations.RenameQuestCampaignTables do
   use Ecto.Migration
 
   def up do

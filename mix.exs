@@ -1,9 +1,9 @@
-defmodule ExCalibur.MixProject do
+defmodule ExCortex.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :ex_calibur,
+      app: :ex_cortex,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -12,7 +12,8 @@ defmodule ExCalibur.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      elixirc_options: [warnings_as_errors: Mix.env() == :test]
+      elixirc_options: [warnings_as_errors: Mix.env() == :test],
+      releases: releases()
     ]
   end
 
@@ -21,7 +22,7 @@ defmodule ExCalibur.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {ExCalibur.Application, []},
+      mod: {ExCortex.Application, []},
       extra_applications: [:logger, :runtime_tools, :opentelemetry_api, :opentelemetry]
     ]
   end
@@ -76,8 +77,27 @@ defmodule ExCalibur.MixProject do
       {:req_llm, "~> 1.6"},
       {:file_system, "~> 1.0"},
       {:fresh, "~> 0.4"},
+      # TUI
+      {:owl, "~> 0.13"},
+      # Packaging
+      {:burrito, "~> 1.5", only: :prod},
       # Accessibility
       {:excessibility, "~> 0.10", only: [:dev, :test]}
+    ]
+  end
+
+  defp releases do
+    [
+      ex_cortex: [
+        steps: if(Mix.env() == :prod, do: [:assemble, &Burrito.wrap/1], else: [:assemble]),
+        burrito: [
+          targets: [
+            linux_x86: [os: :linux, cpu: :x86_64],
+            linux_arm: [os: :linux, cpu: :aarch64],
+            macos_arm: [os: :darwin, cpu: :aarch64]
+          ]
+        ]
+      ]
     ]
   end
 
@@ -96,10 +116,10 @@ defmodule ExCalibur.MixProject do
       "ecto.fresh": ["ecto.reset", "dev_team.install"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
-      "assets.build": ["compile", "tailwind ex_calibur", "esbuild ex_calibur"],
+      "assets.build": ["compile", "tailwind ex_cortex", "esbuild ex_cortex"],
       "assets.deploy": [
-        "tailwind ex_calibur --minify",
-        "esbuild ex_calibur --minify",
+        "tailwind ex_cortex --minify",
+        "esbuild ex_cortex --minify",
         "phx.digest"
       ],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]

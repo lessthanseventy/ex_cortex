@@ -36,7 +36,7 @@ npm-debug.log
 /assets/node_modules/
 
 # Self-improvement loop
-.ex_calibur.pid
+.ex_cortex.pid
 .worktrees/
 
 # Local settings seed (personal values, not checked in)

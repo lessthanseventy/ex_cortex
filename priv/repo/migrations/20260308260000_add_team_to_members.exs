@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddTeamToMembers do
+defmodule ExCortex.Repo.Migrations.AddTeamToMembers do
   use Ecto.Migration
 
   def change do

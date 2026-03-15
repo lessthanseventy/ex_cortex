@@ -1,0 +1,77 @@
+defmodule ExCortex.ContextProviders.ContextProvider do
+  @moduledoc """
+  Behaviour for context providers — modules that supply additional context
+  to inject into the prompt preamble before evaluation.
+
+  Each provider receives the thought and input text, and returns a string
+  to prepend to the user message.
+
+  ## Provider config map format (stored on Thought)
+    %{"type" => "static", "content" => "Always consider..."}
+    %{"type" => "quest_history", "limit" => 5}
+    %{"type" => "neuron_stats"}
+  """
+
+  @callback build(config :: map(), thought :: map(), input :: String.t()) :: String.t()
+
+  @doc """
+  Assemble all context strings from a list of provider configs.
+  Returns a single string to prepend, or "" if none.
+  """
+  def assemble(providers, thought, input) when is_list(providers) do
+    providers
+    |> Enum.map(&build_one(&1, thought, input))
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join("\n\n")
+  end
+
+  def assemble(_, _, _), do: ""
+
+  defp build_one(%{"type" => type} = config, thought, input) do
+    mod = module_for(type)
+
+    if mod do
+      try do
+        apply(mod, :build, [config, thought, input])
+      rescue
+        _ -> ""
+      end
+    else
+      ""
+    end
+  end
+
+  defp build_one(_, _, _), do: ""
+
+  defp module_for("static"), do: Module.concat([ExCortex, ContextProviders, Static])
+
+  defp module_for("quest_history"), do: Module.concat([ExCortex, ContextProviders, QuestHistory])
+
+  defp module_for("member_stats"), do: Module.concat([ExCortex, ContextProviders, MemberStats])
+
+  defp module_for("memory"), do: Module.concat([ExCortex, ContextProviders, Memory])
+
+  defp module_for("guild_charter"), do: Module.concat([ExCortex, ContextProviders, Cluster])
+
+  defp module_for("dictionary"), do: Module.concat([ExCortex, ContextProviders, Dictionary])
+
+  defp module_for("sandbox"), do: Module.concat([ExCortex, ContextProviders, Sandbox])
+
+  defp module_for("file_reader"), do: Module.concat([ExCortex, ContextProviders, FileReader])
+
+  defp module_for("github_issues"), do: Module.concat([ExCortex, ContextProviders, GithubIssues])
+
+  defp module_for("app_telemetry"), do: Module.concat([ExCortex, ContextProviders, AppTelemetry])
+
+  defp module_for("pr_diff"), do: Module.concat([ExCortex, ContextProviders, PrDiff])
+
+  defp module_for("git_log"), do: Module.concat([ExCortex, ContextProviders, GitLog])
+
+  defp module_for("quest_output"), do: Module.concat([ExCortex, ContextProviders, QuestOutput])
+
+  defp module_for("test_failures"), do: Module.concat([ExCortex, ContextProviders, TestFailures])
+
+  defp module_for("member_roster"), do: Module.concat([ExCortex, ContextProviders, MemberRoster])
+
+  defp module_for(_), do: nil
+end

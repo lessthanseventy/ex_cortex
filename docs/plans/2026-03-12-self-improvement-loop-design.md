@@ -1,10 +1,10 @@
 # Self-Improvement Loop Design
 
-ExCalibur operates on itself: a guild of AI members watches its own GitHub issues,
+ExCortex operates on itself: a guild of AI members watches its own GitHub issues,
 writes code, reviews it, tests it, and ships PRs — with the human owner as CTO
 receiving escalations.
 
-## Guild: "ExCalibur Dev Team"
+## Guild: "ExCortex Dev Team"
 
 ### Members (v1)
 
@@ -119,7 +119,7 @@ The guild works in isolated git worktrees, not the live running copy.
 ### Dev mode
 
 A `bin/restart.sh` script:
-1. Reads beam PID from `.ex_calibur.pid` (written on app boot)
+1. Reads beam PID from `.ex_cortex.pid` (written on app boot)
 2. Sends SIGTERM to beam process
 3. Polls for process exit (timeout 10s)
 4. SIGKILL if it won't die
@@ -144,7 +144,7 @@ A `bin/restart-docker.sh` script:
 
 ### PID file
 
-App writes its PID to `.ex_calibur.pid` on boot. Restart script reads it.
+App writes its PID to `.ex_cortex.pid` on boot. Restart script reads it.
 
 ## Feedback Loop
 
@@ -212,7 +212,7 @@ Filed by: {member name} during quest #{quest_id}
 ## Infrastructure Changes Summary
 
 ### New modules
-- Charter definition for "ExCalibur Dev Team" guild
+- Charter definition for "ExCortex Dev Team" guild
 - Tool implementations: `read_file`, `list_files`, `write_file`, `edit_file`, `git_commit`, `git_push`, `open_pr`, `merge_pr`, `git_pull`, `restart_app`, `close_issue`, `run_sandbox`
 - Worktree manager (create/cleanup)
 - PID file writer (application.ex)

@@ -4,7 +4,7 @@
 
 **Goal:** Add a persistent lore where artifact quests write synthesized entries, humans can CRUD them manually, and verdict quests can read them back as context.
 
-**Architecture:** New `lore_entries` table + `ExCalibur.Lore` context module. Quests gain `output_type` ("verdict"|"artifact"), `write_mode` ("append"|"replace"), `entry_title_template`. `QuestRunner` detects artifact quests and writes entries instead of verdicts. New `/grimoire` LiveView. New `lore` context provider.
+**Architecture:** New `lore_entries` table + `ExCortex.Lore` context module. Quests gain `output_type` ("verdict"|"artifact"), `write_mode` ("append"|"replace"), `entry_title_template`. `QuestRunner` detects artifact quests and writes entries instead of verdicts. New `/grimoire` LiveView. New `lore` context provider.
 
 **Tech Stack:** Phoenix LiveView, Ecto, SaladUI.Badge, existing `ContextProviders` behaviour pattern, existing `QuestRunner` pattern.
 
@@ -20,7 +20,7 @@
 
 ```elixir
 # priv/repo/migrations/20260308280000_add_artifact_fields_to_quests.exs
-defmodule ExCalibur.Repo.Migrations.AddArtifactFieldsToQuests do
+defmodule ExCortex.Repo.Migrations.AddArtifactFieldsToQuests do
   use Ecto.Migration
 
   def change do
@@ -37,7 +37,7 @@ end
 
 ```elixir
 # priv/repo/migrations/20260308290000_create_lore_entries.exs
-defmodule ExCalibur.Repo.Migrations.CreateKnowledgeEntries do
+defmodule ExCortex.Repo.Migrations.CreateKnowledgeEntries do
   use Ecto.Migration
 
   def change do
@@ -60,7 +60,7 @@ end
 **Step 3: Run migrations**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix ecto.migrate
+cd /home/andrew/projects/ex_cortex && mix ecto.migrate
 ```
 
 Expected: both migrations run successfully.
@@ -77,14 +77,14 @@ git commit -m "feat: migrations for artifact quests and lore_entries"
 ## Task 2: LoreEntry Schema + Knowledge Context Module
 
 **Files:**
-- Create: `lib/ex_calibur/lore/lore_entry.ex`
-- Create: `lib/ex_calibur/lore.ex`
+- Create: `lib/ex_cortex/lore/lore_entry.ex`
+- Create: `lib/ex_cortex/lore.ex`
 
 **Step 1: Write the schema**
 
 ```elixir
-# lib/ex_calibur/lore/lore_entry.ex
-defmodule ExCalibur.Lore.LoreEntry do
+# lib/ex_cortex/lore/lore_entry.ex
+defmodule ExCortex.Lore.LoreEntry do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
@@ -115,13 +115,13 @@ end
 **Step 2: Write the context module**
 
 ```elixir
-# lib/ex_calibur/lore.ex
-defmodule ExCalibur.Lore do
+# lib/ex_cortex/lore.ex
+defmodule ExCortex.Lore do
   @moduledoc false
   import Ecto.Query
 
-  alias ExCalibur.Lore.LoreEntry
-  alias ExCalibur.Repo
+  alias ExCortex.Lore.LoreEntry
+  alias ExCortex.Repo
 
   def list_entries(opts \\ []) do
     tags = Keyword.get(opts, :tags, [])
@@ -188,12 +188,12 @@ end
 **Step 3: Write a test**
 
 ```elixir
-# test/ex_calibur/lore_test.exs
-defmodule ExCalibur.LoreTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/lore_test.exs
+defmodule ExCortex.LoreTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Lore
-  alias ExCalibur.Lore.LoreEntry
+  alias ExCortex.Lore
+  alias ExCortex.Lore.LoreEntry
 
   test "create and list entries" do
     {:ok, _} = Lore.create_entry(%{title: "Test Entry", body: "hello", tags: ["a11y"]})
@@ -247,7 +247,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/lore_test.exs 2>&1
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/lore_test.exs 2>&1
 ```
 
 Expected: 4 tests, 0 failures.
@@ -255,7 +255,7 @@ Expected: 4 tests, 0 failures.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/lore.ex lib/ex_calibur/lore/ test/ex_calibur/lore_test.exs
+git add lib/ex_cortex/lore.ex lib/ex_cortex/lore/ test/ex_cortex/lore_test.exs
 git commit -m "feat: LoreEntry schema and Knowledge context module"
 ```
 
@@ -264,13 +264,13 @@ git commit -m "feat: LoreEntry schema and Knowledge context module"
 ## Task 3: Update Quest Schema
 
 **Files:**
-- Modify: `lib/ex_calibur/quests/quest.ex`
+- Modify: `lib/ex_cortex/quests/quest.ex`
 
 **Step 1: Add fields**
 
 ```elixir
-# lib/ex_calibur/quests/quest.ex
-defmodule ExCalibur.Quests.Quest do
+# lib/ex_cortex/quests/quest.ex
+defmodule ExCortex.Quests.Quest do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
@@ -310,7 +310,7 @@ end
 **Step 2: Run existing tests to make sure nothing broke**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/quests_live_test.exs 2>&1
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/quests_live_test.exs 2>&1
 ```
 
 Expected: 7 tests, 0 failures.
@@ -318,7 +318,7 @@ Expected: 7 tests, 0 failures.
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/quests/quest.ex
+git add lib/ex_cortex/quests/quest.ex
 git commit -m "feat: add output_type, write_mode, entry_title_template to Quest"
 ```
 
@@ -327,7 +327,7 @@ git commit -m "feat: add output_type, write_mode, entry_title_template to Quest"
 ## Task 4: QuestRunner Artifact Support
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex`
+- Modify: `lib/ex_cortex/quest_runner.ex`
 
 **Step 1: Update `run/2` to branch on output_type**
 
@@ -341,7 +341,7 @@ def run(%{output_type: "artifact"} = quest, input_text) do
 
   case result do
     {:ok, attrs} ->
-      ExCalibur.Lore.write_artifact(quest, attrs)
+      ExCortex.Lore.write_artifact(quest, attrs)
       {:ok, %{artifact: attrs}}
 
     error ->
@@ -362,7 +362,7 @@ Add these private functions to `quest_runner.ex`:
 
 ```elixir
 defp run_artifact(quest, input_text) do
-  ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+  ollama_url = Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
   ollama = Ollama.new(base_url: ollama_url)
 
   # Use the first roster step's member config, or default to all active members
@@ -461,7 +461,7 @@ end
 **Step 3: Run the existing quest tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/quests_live_test.exs 2>&1
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/quests_live_test.exs 2>&1
 ```
 
 Expected: 7 tests, 0 failures.
@@ -469,7 +469,7 @@ Expected: 7 tests, 0 failures.
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_runner.ex
+git add lib/ex_cortex/quest_runner.ex
 git commit -m "feat: QuestRunner artifact output type — writes to lore"
 ```
 
@@ -478,22 +478,22 @@ git commit -m "feat: QuestRunner artifact output type — writes to lore"
 ## Task 5: Lore Context Provider
 
 **Files:**
-- Create: `lib/ex_calibur/context_providers/lore.ex`
-- Modify: `lib/ex_calibur/context_providers/context_provider.ex`
+- Create: `lib/ex_cortex/context_providers/lore.ex`
+- Modify: `lib/ex_cortex/context_providers/context_provider.ex`
 
 **Step 1: Write the provider**
 
 ```elixir
-# lib/ex_calibur/context_providers/lore.ex
-defmodule ExCalibur.ContextProviders.Lore do
+# lib/ex_cortex/context_providers/lore.ex
+defmodule ExCortex.ContextProviders.Lore do
   @moduledoc """
   Injects lore entries as prompt context.
   Config: %{"type" => "lore", "tags" => ["a11y"], "limit" => 10, "sort" => "importance"}
   """
 
-  @behaviour ExCalibur.ContextProviders.ContextProvider
+  @behaviour ExCortex.ContextProviders.ContextProvider
 
-  alias ExCalibur.Lore
+  alias ExCortex.Lore
 
   @impl true
   def build(config, _quest, _input) do
@@ -524,10 +524,10 @@ end
 
 **Step 2: Register it in context_provider.ex**
 
-In `lib/ex_calibur/context_providers/context_provider.ex`, add one line in `module_for/1`:
+In `lib/ex_cortex/context_providers/context_provider.ex`, add one line in `module_for/1`:
 
 ```elixir
-defp module_for("lore"), do: Module.concat([ExCalibur, ContextProviders, Lore])
+defp module_for("lore"), do: Module.concat([ExCortex, ContextProviders, Lore])
 ```
 
 (After the existing `module_for("member_stats")` clause.)
@@ -535,12 +535,12 @@ defp module_for("lore"), do: Module.concat([ExCalibur, ContextProviders, Lore])
 **Step 3: Write a test**
 
 ```elixir
-# test/ex_calibur/context_providers/lore_test.exs
-defmodule ExCalibur.ContextProviders.LoreTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/context_providers/lore_test.exs
+defmodule ExCortex.ContextProviders.LoreTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.ContextProviders.Lore
-  alias ExCalibur.Lore
+  alias ExCortex.ContextProviders.Lore
+  alias ExCortex.Lore
 
   test "returns empty string when no entries" do
     result = Lore.build(%{"type" => "lore"}, %{}, "input")
@@ -570,7 +570,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/context_providers/lore_test.exs 2>&1
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/context_providers/lore_test.exs 2>&1
 ```
 
 Expected: 3 tests, 0 failures.
@@ -578,7 +578,7 @@ Expected: 3 tests, 0 failures.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/context_providers/lore.ex lib/ex_calibur/context_providers/context_provider.ex test/ex_calibur/context_providers/
+git add lib/ex_cortex/context_providers/lore.ex lib/ex_cortex/context_providers/context_provider.ex test/ex_cortex/context_providers/
 git commit -m "feat: lore context provider"
 ```
 
@@ -587,23 +587,23 @@ git commit -m "feat: lore context provider"
 ## Task 6: Lore LiveView
 
 **Files:**
-- Create: `lib/ex_calibur_web/live/grimoire_live.ex`
-- Modify: `lib/ex_calibur_web/router.ex`
-- Modify: `lib/ex_calibur_web/components/layouts/root.html.heex`
+- Create: `lib/ex_cortex_web/live/grimoire_live.ex`
+- Modify: `lib/ex_cortex_web/router.ex`
+- Modify: `lib/ex_cortex_web/components/layouts/root.html.heex`
 
 **Step 1: Write the LiveView**
 
 ```elixir
-# lib/ex_calibur_web/live/grimoire_live.ex
-defmodule ExCaliburWeb.GrimoireLive do
+# lib/ex_cortex_web/live/grimoire_live.ex
+defmodule ExCortexWeb.GrimoireLive do
   @moduledoc false
-  use ExCaliburWeb, :live_view
+  use ExCortexWeb, :live_view
 
   import SaladUI.Badge
 
-  alias ExCalibur.Lore
-  alias ExCalibur.Lore.LoreEntry
-  alias ExCalibur.Quests
+  alias ExCortex.Lore
+  alias ExCortex.Lore.LoreEntry
+  alias ExCortex.Quests
 
   @impl true
   def mount(_params, _session, socket) do
@@ -936,7 +936,7 @@ end
 
 **Step 2: Add route to router.ex**
 
-In `lib/ex_calibur_web/router.ex`, inside the `scope "/", ExCaliburWeb` block, add:
+In `lib/ex_cortex_web/router.ex`, inside the `scope "/", ExCortexWeb` block, add:
 
 ```elixir
 live "/grimoire", GrimoireLive, :index
@@ -959,7 +959,7 @@ Replace the nav list:
 **Step 4: Run compile check**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix compile 2>&1
+cd /home/andrew/projects/ex_cortex && mix compile 2>&1
 ```
 
 Expected: no warnings, no errors.
@@ -967,14 +967,14 @@ Expected: no warnings, no errors.
 **Step 5: Write a basic test**
 
 ```elixir
-# test/ex_calibur_web/live/grimoire_live_test.exs
-defmodule ExCaliburWeb.GrimoireLiveTest do
-  use ExCaliburWeb.ConnCase, async: true
+# test/ex_cortex_web/live/grimoire_live_test.exs
+defmodule ExCortexWeb.GrimoireLiveTest do
+  use ExCortexWeb.ConnCase, async: true
   use Excessibility
 
   import Phoenix.LiveViewTest
 
-  alias ExCalibur.Lore
+  alias ExCortex.Lore
 
   test "renders empty state", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/grimoire")
@@ -1017,7 +1017,7 @@ end
 **Step 6: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/grimoire_live_test.exs 2>&1
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/grimoire_live_test.exs 2>&1
 ```
 
 Expected: 4 tests, 0 failures.
@@ -1025,7 +1025,7 @@ Expected: 4 tests, 0 failures.
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/grimoire_live.ex lib/ex_calibur_web/router.ex lib/ex_calibur_web/components/layouts/root.html.heex test/ex_calibur_web/live/grimoire_live_test.exs
+git add lib/ex_cortex_web/live/grimoire_live.ex lib/ex_cortex_web/router.ex lib/ex_cortex_web/components/layouts/root.html.heex test/ex_cortex_web/live/grimoire_live_test.exs
 git commit -m "feat: Grimoire LiveView at /grimoire"
 ```
 
@@ -1034,7 +1034,7 @@ git commit -m "feat: Grimoire LiveView at /grimoire"
 ## Task 7: Quest Form — Artifact Output Fields
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Add output_type preview tracking to mount**
 
@@ -1165,7 +1165,7 @@ Pass `output_previews` to render calls: `new_quest_form` and `quest_card`.
 **Step 8: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/quests_live_test.exs 2>&1
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/quests_live_test.exs 2>&1
 ```
 
 Expected: 7 tests, 0 failures.
@@ -1173,7 +1173,7 @@ Expected: 7 tests, 0 failures.
 **Step 9: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: artifact output type fields in quest create/edit forms"
 ```
 
@@ -1182,7 +1182,7 @@ git commit -m "feat: artifact output type fields in quest create/edit forms"
 ## Task 8: Quest Form — Lore Context Provider Option
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Add "Knowledge board" to context type dropdown**
 
@@ -1247,7 +1247,7 @@ context_providers =
 **Step 4: Run all tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test 2>&1
+cd /home/andrew/projects/ex_cortex && mix test 2>&1
 ```
 
 Expected: all tests pass, 0 failures.
@@ -1255,7 +1255,7 @@ Expected: all tests pass, 0 failures.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: lore context provider option in quest form"
 ```
 
@@ -1264,7 +1264,7 @@ git commit -m "feat: lore context provider option in quest form"
 ## Task 9: Final — Run Full Test Suite
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test 2>&1
+cd /home/andrew/projects/ex_cortex && mix test 2>&1
 ```
 
 Expected: all tests pass, 0 failures, 0 warnings.
@@ -1272,7 +1272,7 @@ Expected: all tests pass, 0 failures, 0 warnings.
 If accessibility snapshot tests fail (html_snapshots need updating), run:
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test --update-snapshots 2>&1
+cd /home/andrew/projects/ex_cortex && mix test --update-snapshots 2>&1
 ```
 
 Then commit updated snapshots:

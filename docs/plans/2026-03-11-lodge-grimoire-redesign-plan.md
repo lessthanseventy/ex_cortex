@@ -2,47 +2,47 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Transform the Lodge from a monitoring dashboard into an active workspace with typed cards, rebuild the Grimoire as a quest log with per-quest telemetry, and absorb ex_cellence_ui components into ExCaliburUI.
+**Goal:** Transform the Lodge from a monitoring dashboard into an active workspace with typed cards, rebuild the Grimoire as a quest log with per-quest telemetry, and absorb ex_cellence_ui components into ExCortexUI.
 
-**Architecture:** New `lodge_cards` table stores typed cards (note, checklist, meeting, alert, link, proposal, augury) with jsonb metadata. Lodge LiveView renders cards via pattern-matched function components. Grimoire gets two-level navigation (overview + per-quest drill-down) housing the relocated monitoring widgets. Ex_cellence_ui components move into `lib/ex_calibur_ui/` under the `ExCaliburUI` namespace.
+**Architecture:** New `lodge_cards` table stores typed cards (note, checklist, meeting, alert, link, proposal, augury) with jsonb metadata. Lodge LiveView renders cards via pattern-matched function components. Grimoire gets two-level navigation (overview + per-quest drill-down) housing the relocated monitoring widgets. Ex_cellence_ui components move into `lib/ex_cortex_ui/` under the `ExCortexUI` namespace.
 
 **Tech Stack:** Phoenix LiveView, Ecto, SaladUI components, MDEx markdown rendering, PubSub for live updates.
 
 ---
 
-## Task 1: Absorb ex_cellence_ui into ExCaliburUI
+## Task 1: Absorb ex_cellence_ui into ExCortexUI
 
 **Files:**
-- Create: `lib/ex_calibur_ui/components/role_form.ex`
-- Create: `lib/ex_calibur_ui/components/actions_form.ex`
-- Create: `lib/ex_calibur_ui/components/guard_form.ex`
-- Create: `lib/ex_calibur_ui/components/pipeline_builder.ex`
-- Create: `lib/ex_calibur_ui/components/charter_picker.ex`
-- Create: `lib/ex_calibur_ui/components/ai_builder.ex`
+- Create: `lib/ex_cortex_ui/components/role_form.ex`
+- Create: `lib/ex_cortex_ui/components/actions_form.ex`
+- Create: `lib/ex_cortex_ui/components/guard_form.ex`
+- Create: `lib/ex_cortex_ui/components/pipeline_builder.ex`
+- Create: `lib/ex_cortex_ui/components/charter_picker.ex`
+- Create: `lib/ex_cortex_ui/components/ai_builder.ex`
 - Modify: `mix.exs` (remove `:ex_cellence_ui` dep)
 
-**Step 1: Create the ExCaliburUI directory and copy components**
+**Step 1: Create the ExCortexUI directory and copy components**
 
-Create `lib/ex_calibur_ui/components/`. For each component file in `ex_cellence_ui/lib/ex_cellence_ui/components/`, copy it to the new location and rename the module from `ExCellenceUI.Components.*` to `ExCaliburUI.Components.*`.
+Create `lib/ex_cortex_ui/components/`. For each component file in `ex_cellence_ui/lib/ex_cellence_ui/components/`, copy it to the new location and rename the module from `ExCellenceUI.Components.*` to `ExCortexUI.Components.*`.
 
 Example for `role_form.ex`:
 ```elixir
-defmodule ExCaliburUI.Components.RoleForm do
+defmodule ExCortexUI.Components.RoleForm do
   # ... same implementation, just renamed module
 end
 ```
 
 Do this for all 6 component files:
-- `role_form.ex` → `ExCaliburUI.Components.RoleForm`
-- `actions_form.ex` → `ExCaliburUI.Components.ActionsForm`
-- `guard_form.ex` → `ExCaliburUI.Components.GuardForm`
-- `pipeline_builder.ex` → `ExCaliburUI.Components.PipelineBuilder`
-- `charter_picker.ex` → `ExCaliburUI.Components.CharterPicker`
-- `ai_builder.ex` → `ExCaliburUI.Components.AIBuilder`
+- `role_form.ex` → `ExCortexUI.Components.RoleForm`
+- `actions_form.ex` → `ExCortexUI.Components.ActionsForm`
+- `guard_form.ex` → `ExCortexUI.Components.GuardForm`
+- `pipeline_builder.ex` → `ExCortexUI.Components.PipelineBuilder`
+- `charter_picker.ex` → `ExCortexUI.Components.CharterPicker`
+- `ai_builder.ex` → `ExCortexUI.Components.AIBuilder`
 
 **Step 2: Remove ex_cellence_ui path dep from mix.exs**
 
-In `/home/andrew/projects/ex_calibur/mix.exs`, remove:
+In `/home/andrew/projects/ex_cortex/mix.exs`, remove:
 ```elixir
 {:ex_cellence_ui, path: "ex_cellence_ui"},
 ```
@@ -55,8 +55,8 @@ Expected: Compiles cleanly. No code references ExCellenceUI anywhere in the main
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_ui/ mix.exs
-git commit -m "feat: absorb ex_cellence_ui components into ExCaliburUI namespace"
+git add lib/ex_cortex_ui/ mix.exs
+git commit -m "feat: absorb ex_cellence_ui components into ExCortexUI namespace"
 ```
 
 ---
@@ -64,18 +64,18 @@ git commit -m "feat: absorb ex_cellence_ui components into ExCaliburUI namespace
 ## Task 2: Lodge Cards Schema and Migration
 
 **Files:**
-- Create: `lib/ex_calibur/lodge/card.ex`
+- Create: `lib/ex_cortex/lodge/card.ex`
 - Create: `priv/repo/migrations/*_create_lodge_cards.exs`
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur/lodge/card_test.exs`:
+Create `test/ex_cortex/lodge/card_test.exs`:
 
 ```elixir
-defmodule ExCalibur.Lodge.CardTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.Lodge.CardTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Lodge.Card
+  alias ExCortex.Lodge.Card
 
   describe "changeset/2" do
     test "valid note card" do
@@ -113,8 +113,8 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/lodge/card_test.exs`
-Expected: Compilation error — `ExCalibur.Lodge.Card` not found.
+Run: `mix test test/ex_cortex/lodge/card_test.exs`
+Expected: Compilation error — `ExCortex.Lodge.Card` not found.
 
 **Step 3: Create the migration**
 
@@ -123,7 +123,7 @@ Run: `mix ecto.gen.migration create_lodge_cards`
 Edit the migration:
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.CreateLodgeCards do
+defmodule ExCortex.Repo.Migrations.CreateLodgeCards do
   use Ecto.Migration
 
   def change do
@@ -150,10 +150,10 @@ end
 
 **Step 4: Create the schema module**
 
-Create `lib/ex_calibur/lodge/card.ex`:
+Create `lib/ex_cortex/lodge/card.ex`:
 
 ```elixir
-defmodule ExCalibur.Lodge.Card do
+defmodule ExCortex.Lodge.Card do
   use Ecto.Schema
 
   import Ecto.Changeset
@@ -186,13 +186,13 @@ end
 
 **Step 5: Run migration and tests**
 
-Run: `mix ecto.migrate && mix test test/ex_calibur/lodge/card_test.exs`
+Run: `mix ecto.migrate && mix test test/ex_cortex/lodge/card_test.exs`
 Expected: All 4 tests pass.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge/card.ex test/ex_calibur/lodge/card_test.exs priv/repo/migrations/*_create_lodge_cards.exs
+git add lib/ex_cortex/lodge/card.ex test/ex_cortex/lodge/card_test.exs priv/repo/migrations/*_create_lodge_cards.exs
 git commit -m "feat: add lodge_cards schema and migration"
 ```
 
@@ -201,18 +201,18 @@ git commit -m "feat: add lodge_cards schema and migration"
 ## Task 3: Lodge Context Module
 
 **Files:**
-- Create: `lib/ex_calibur/lodge.ex`
-- Create: `test/ex_calibur/lodge_test.exs`
+- Create: `lib/ex_cortex/lodge.ex`
+- Create: `test/ex_cortex/lodge_test.exs`
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur/lodge_test.exs`:
+Create `test/ex_cortex/lodge_test.exs`:
 
 ```elixir
-defmodule ExCalibur.LodgeTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.LodgeTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Lodge
+  alias ExCortex.Lodge
 
   describe "list_cards/1" do
     test "returns active cards ordered by pinned desc, inserted_at desc" do
@@ -273,7 +273,7 @@ defmodule ExCalibur.LodgeTest do
 
   describe "post_card/1" do
     test "creates a card and broadcasts" do
-      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
+      Phoenix.PubSub.subscribe(ExCortex.PubSub, "lodge")
       {:ok, card} = Lodge.post_card(%{type: "alert", title: "Urgent", source: "quest"})
       assert card.id
       assert_receive {:lodge_card_posted, ^card}
@@ -307,21 +307,21 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/lodge_test.exs`
-Expected: Compilation error — `ExCalibur.Lodge` not found.
+Run: `mix test test/ex_cortex/lodge_test.exs`
+Expected: Compilation error — `ExCortex.Lodge` not found.
 
 **Step 3: Create the Lodge context**
 
-Create `lib/ex_calibur/lodge.ex`:
+Create `lib/ex_cortex/lodge.ex`:
 
 ```elixir
-defmodule ExCalibur.Lodge do
+defmodule ExCortex.Lodge do
   @moduledoc "Context for Lodge workspace cards."
 
   import Ecto.Query
 
-  alias ExCalibur.Lodge.Card
-  alias ExCalibur.Repo
+  alias ExCortex.Lodge.Card
+  alias ExCortex.Repo
 
   def list_cards(opts \\ []) do
     query =
@@ -364,7 +364,7 @@ defmodule ExCalibur.Lodge do
   def post_card(attrs) do
     case create_card(attrs) do
       {:ok, card} ->
-        Phoenix.PubSub.broadcast(ExCalibur.PubSub, "lodge", {:lodge_card_posted, card})
+        Phoenix.PubSub.broadcast(ExCortex.PubSub, "lodge", {:lodge_card_posted, card})
         {:ok, card}
 
       error ->
@@ -387,13 +387,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/lodge_test.exs`
+Run: `mix test test/ex_cortex/lodge_test.exs`
 Expected: All 9 tests pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge.ex test/ex_calibur/lodge_test.exs
+git add lib/ex_cortex/lodge.ex test/ex_cortex/lodge_test.exs
 git commit -m "feat: add Lodge context for card CRUD and PubSub"
 ```
 
@@ -402,21 +402,21 @@ git commit -m "feat: add Lodge context for card CRUD and PubSub"
 ## Task 4: Lodge Card Renderer Components
 
 **Files:**
-- Create: `lib/ex_calibur_web/components/lodge_cards.ex`
-- Create: `test/ex_calibur_web/components/lodge_cards_test.exs`
+- Create: `lib/ex_cortex_web/components/lodge_cards.ex`
+- Create: `test/ex_cortex_web/components/lodge_cards_test.exs`
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur_web/components/lodge_cards_test.exs`:
+Create `test/ex_cortex_web/components/lodge_cards_test.exs`:
 
 ```elixir
-defmodule ExCaliburWeb.LodgeCardsTest do
-  use ExCaliburWeb.ConnCase, async: true
+defmodule ExCortexWeb.LodgeCardsTest do
+  use ExCortexWeb.ConnCase, async: true
 
   import Phoenix.Component
   import Phoenix.LiveViewTest
 
-  alias ExCaliburWeb.Components.LodgeCards
+  alias ExCortexWeb.Components.LodgeCards
 
   defp render_card(card) do
     assigns = %{card: card}
@@ -503,15 +503,15 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur_web/components/lodge_cards_test.exs`
-Expected: Compilation error — `ExCaliburWeb.Components.LodgeCards` not found.
+Run: `mix test test/ex_cortex_web/components/lodge_cards_test.exs`
+Expected: Compilation error — `ExCortexWeb.Components.LodgeCards` not found.
 
 **Step 3: Create the card renderer module**
 
-Create `lib/ex_calibur_web/components/lodge_cards.ex`:
+Create `lib/ex_cortex_web/components/lodge_cards.ex`:
 
 ```elixir
-defmodule ExCaliburWeb.Components.LodgeCards do
+defmodule ExCortexWeb.Components.LodgeCards do
   @moduledoc "Function components for rendering Lodge cards by type."
   use Phoenix.Component
 
@@ -699,7 +699,7 @@ defmodule ExCaliburWeb.Components.LodgeCards do
     ~H"""
     <%= if @body && @body != "" do %>
       <div class="prose prose-sm dark:prose-invert max-w-none">
-        {Phoenix.HTML.raw(ExCaliburWeb.Markdown.render(@body))}
+        {Phoenix.HTML.raw(ExCortexWeb.Markdown.render(@body))}
       </div>
     <% end %>
     """
@@ -709,13 +709,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur_web/components/lodge_cards_test.exs`
+Run: `mix test test/ex_cortex_web/components/lodge_cards_test.exs`
 Expected: All 7 tests pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/lodge_cards.ex test/ex_calibur_web/components/lodge_cards_test.exs
+git add lib/ex_cortex_web/components/lodge_cards.ex test/ex_cortex_web/components/lodge_cards_test.exs
 git commit -m "feat: add Lodge card renderer components for all card types"
 ```
 
@@ -724,14 +724,14 @@ git commit -m "feat: add Lodge card renderer components for all card types"
 ## Task 5: Rebuild Lodge LiveView as Card Workspace
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
-- Modify: `test/ex_calibur_web/live/lodge_live_test.exs`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
+- Modify: `test/ex_cortex_web/live/lodge_live_test.exs`
 
 **Step 1: Write the failing test**
 
 Replace the existing lodge_live_test.exs content. The new Lodge shows cards instead of dashboard widgets.
 
-Add to `test/ex_calibur_web/live/lodge_live_test.exs`:
+Add to `test/ex_cortex_web/live/lodge_live_test.exs`:
 
 ```elixir
 # Keep the existing setup and banner/redirect tests, then add:
@@ -746,7 +746,7 @@ describe "card workspace" do
 
   test "shows cards", %{conn: conn} do
     insert_member()
-    ExCalibur.Lodge.create_card(%{type: "note", title: "Hello World", body: "test", source: "manual"})
+    ExCortex.Lodge.create_card(%{type: "note", title: "Hello World", body: "test", source: "manual"})
     {:ok, _view, html} = live(conn, "/lodge")
     assert html =~ "Hello World"
   end
@@ -766,7 +766,7 @@ describe "card workspace" do
 
   test "can dismiss a card", %{conn: conn} do
     insert_member()
-    {:ok, card} = ExCalibur.Lodge.create_card(%{type: "note", title: "Dismiss Me", source: "manual"})
+    {:ok, card} = ExCortex.Lodge.create_card(%{type: "note", title: "Dismiss Me", source: "manual"})
     {:ok, view, _html} = live(conn, "/lodge")
     assert render(view) =~ "Dismiss Me"
 
@@ -776,7 +776,7 @@ describe "card workspace" do
 
   test "can toggle pin", %{conn: conn} do
     insert_member()
-    {:ok, card} = ExCalibur.Lodge.create_card(%{type: "note", title: "Pin Me", source: "manual"})
+    {:ok, card} = ExCortex.Lodge.create_card(%{type: "note", title: "Pin Me", source: "manual"})
     {:ok, view, _html} = live(conn, "/lodge")
 
     render_click(view, "toggle_pin", %{"card-id" => to_string(card.id)})
@@ -790,7 +790,7 @@ end
 
 Replace the existing `lodge_live.ex` with the card workspace. Keep the banner redirect and member check logic. Remove dashboard widget rendering. Add card CRUD events.
 
-In `/home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/lodge_live.ex`:
+In `/home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/lodge_live.ex`:
 
 Remove these imports (they'll move to Grimoire later):
 ```elixir
@@ -803,8 +803,8 @@ import ExCellenceDashboard.Components.ReplayViewer
 
 Add:
 ```elixir
-import ExCaliburWeb.Components.LodgeCards
-alias ExCalibur.Lodge
+import ExCortexWeb.Components.LodgeCards
+alias ExCortex.Lodge
 ```
 
 Replace `load_dashboard_data/1` with:
@@ -853,8 +853,8 @@ def handle_event("approve_proposal", %{"card-id" => id}, socket) do
   card = Lodge.get_card!(id)
   proposal_id = card.metadata["proposal_id"]
   if proposal_id do
-    proposal = ExCalibur.Repo.get(ExCalibur.Quests.Proposal, proposal_id)
-    if proposal, do: ExCalibur.Quests.approve_proposal(proposal)
+    proposal = ExCortex.Repo.get(ExCortex.Quests.Proposal, proposal_id)
+    if proposal, do: ExCortex.Quests.approve_proposal(proposal)
   end
   Lodge.dismiss_card(card)
   {:noreply, load_cards(socket)}
@@ -864,8 +864,8 @@ def handle_event("reject_proposal", %{"card-id" => id}, socket) do
   card = Lodge.get_card!(id)
   proposal_id = card.metadata["proposal_id"]
   if proposal_id do
-    proposal = ExCalibur.Repo.get(ExCalibur.Quests.Proposal, proposal_id)
-    if proposal, do: ExCalibur.Quests.reject_proposal(proposal)
+    proposal = ExCortex.Repo.get(ExCortex.Quests.Proposal, proposal_id)
+    if proposal, do: ExCortex.Quests.reject_proposal(proposal)
   end
   Lodge.dismiss_card(card)
   {:noreply, load_cards(socket)}
@@ -927,11 +927,11 @@ defp mount_lodge(socket) do
   import Ecto.Query
 
   has_members =
-    ExCalibur.Repo.exists?(from(r in Member, where: r.type == "role"))
+    ExCortex.Repo.exists?(from(r in Member, where: r.type == "role"))
 
   if has_members do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
+      Phoenix.PubSub.subscribe(ExCortex.PubSub, "lodge")
     end
 
     {:ok, load_cards(assign(socket, page_title: "Lodge"))}
@@ -954,13 +954,13 @@ end
 
 **Step 3: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/lodge_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/lodge_live_test.exs`
 Expected: Pass. Some old tests about proposals/decisions may need removal since that content moved.
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/lodge_live.ex test/ex_calibur_web/live/lodge_live_test.exs
+git add lib/ex_cortex_web/live/lodge_live.ex test/ex_cortex_web/live/lodge_live_test.exs
 git commit -m "feat: rebuild Lodge as card workspace with create/dismiss/pin/delete"
 ```
 
@@ -969,18 +969,18 @@ git commit -m "feat: rebuild Lodge as card workspace with create/dismiss/pin/del
 ## Task 6: Migrate Proposals to Lodge Cards
 
 **Files:**
-- Modify: `lib/ex_calibur/lodge.ex`
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
+- Modify: `lib/ex_cortex/lodge.ex`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
 
 **Step 1: Write the failing test**
 
-Add to `test/ex_calibur/lodge_test.exs`:
+Add to `test/ex_cortex/lodge_test.exs`:
 
 ```elixir
 describe "sync_proposals/0" do
   test "creates cards for pending proposals that don't have cards yet" do
-    {:ok, step} = ExCalibur.Quests.create_step(%{name: "Sync Step", trigger: "manual", roster: []})
-    {:ok, proposal} = ExCalibur.Quests.create_proposal(%{
+    {:ok, step} = ExCortex.Quests.create_step(%{name: "Sync Step", trigger: "manual", roster: []})
+    {:ok, proposal} = ExCortex.Quests.create_proposal(%{
       quest_id: step.id,
       type: "roster_change",
       description: "Narrow roster",
@@ -994,8 +994,8 @@ describe "sync_proposals/0" do
   end
 
   test "does not duplicate cards for already-synced proposals" do
-    {:ok, step} = ExCalibur.Quests.create_step(%{name: "Sync Step 2", trigger: "manual", roster: []})
-    {:ok, _} = ExCalibur.Quests.create_proposal(%{
+    {:ok, step} = ExCortex.Quests.create_step(%{name: "Sync Step 2", trigger: "manual", roster: []})
+    {:ok, _} = ExCortex.Quests.create_proposal(%{
       quest_id: step.id,
       type: "other",
       description: "Already here",
@@ -1016,11 +1016,11 @@ Expected: `sync_proposals/0` undefined.
 
 **Step 3: Implement sync_proposals/0**
 
-Add to `lib/ex_calibur/lodge.ex`:
+Add to `lib/ex_cortex/lodge.ex`:
 
 ```elixir
 def sync_proposals do
-  pending = ExCalibur.Quests.list_proposals(status: "pending")
+  pending = ExCortex.Quests.list_proposals(status: "pending")
   existing_ids = list_cards(type: "proposal")
     |> Enum.map(& &1.metadata["proposal_id"])
     |> MapSet.new()
@@ -1047,13 +1047,13 @@ In `lodge_live.ex`, call `Lodge.sync_proposals()` inside `mount_lodge/1` before 
 
 **Step 5: Run tests**
 
-Run: `mix test test/ex_calibur/lodge_test.exs test/ex_calibur_web/live/lodge_live_test.exs`
+Run: `mix test test/ex_cortex/lodge_test.exs test/ex_cortex_web/live/lodge_live_test.exs`
 Expected: Pass.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge.ex lib/ex_calibur_web/live/lodge_live.ex test/ex_calibur/lodge_test.exs
+git add lib/ex_cortex/lodge.ex lib/ex_cortex_web/live/lodge_live.ex test/ex_cortex/lodge_test.exs
 git commit -m "feat: sync pending proposals as Lodge cards"
 ```
 
@@ -1062,18 +1062,18 @@ git commit -m "feat: sync pending proposals as Lodge cards"
 ## Task 7: Move Augury from Grimoire to Lodge
 
 **Files:**
-- Modify: `lib/ex_calibur/lodge.ex`
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
-- Modify: `lib/ex_calibur_web/live/grimoire_live.ex`
+- Modify: `lib/ex_cortex/lodge.ex`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
+- Modify: `lib/ex_cortex_web/live/grimoire_live.ex`
 
 **Step 1: Write the failing test**
 
-Add to `test/ex_calibur/lodge_test.exs`:
+Add to `test/ex_cortex/lodge_test.exs`:
 
 ```elixir
 describe "sync_augury/0" do
   test "creates an augury card from the lore entry tagged augury" do
-    ExCalibur.Lore.create_entry(%{title: "World Read", body: "Markets shifting", tags: ["augury"], source: "manual"})
+    ExCortex.Lore.create_entry(%{title: "World Read", body: "Markets shifting", tags: ["augury"], source: "manual"})
     Lodge.sync_augury()
     cards = Lodge.list_cards(type: "augury")
     assert length(cards) == 1
@@ -1085,12 +1085,12 @@ end
 
 **Step 2: Implement sync_augury/0**
 
-Add to `lib/ex_calibur/lodge.ex`:
+Add to `lib/ex_cortex/lodge.ex`:
 
 ```elixir
 def sync_augury do
   augury_entry =
-    ExCalibur.Lore.list_entries(tags: ["augury"], sort: "newest")
+    ExCortex.Lore.list_entries(tags: ["augury"], sort: "newest")
     |> List.first()
 
   existing = list_cards(type: "augury") |> List.first()
@@ -1113,13 +1113,13 @@ In `grimoire_live.ex`, remove the entire Augury hero section (the `<%= if @augur
 
 **Step 5: Run tests**
 
-Run: `mix test test/ex_calibur/lodge_test.exs test/ex_calibur_web/live/grimoire_live_test.exs test/ex_calibur_web/live/lodge_live_test.exs`
+Run: `mix test test/ex_cortex/lodge_test.exs test/ex_cortex_web/live/grimoire_live_test.exs test/ex_cortex_web/live/lodge_live_test.exs`
 Expected: Pass. May need to update grimoire tests that reference the augury.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge.ex lib/ex_calibur_web/live/lodge_live.ex lib/ex_calibur_web/live/grimoire_live.ex test/
+git add lib/ex_cortex/lodge.ex lib/ex_cortex_web/live/lodge_live.ex lib/ex_cortex_web/live/grimoire_live.ex test/
 git commit -m "feat: move Augury from Grimoire to Lodge as pinned card"
 ```
 
@@ -1128,23 +1128,23 @@ git commit -m "feat: move Augury from Grimoire to Lodge as pinned card"
 ## Task 8: Lodge Source Type
 
 **Files:**
-- Create: `lib/ex_calibur/sources/lodge_source.ex`
-- Modify: `lib/ex_calibur/sources/source.ex` (add "lodge" to valid types)
+- Create: `lib/ex_cortex/sources/lodge_source.ex`
+- Modify: `lib/ex_cortex/sources/source.ex` (add "lodge" to valid types)
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur/sources/lodge_source_test.exs`:
+Create `test/ex_cortex/sources/lodge_source_test.exs`:
 
 ```elixir
-defmodule ExCalibur.Sources.LodgeSourceTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.Sources.LodgeSourceTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Sources.LodgeSource
+  alias ExCortex.Sources.LodgeSource
 
   describe "fetch/1" do
     test "returns active lodge cards as content items" do
-      ExCalibur.Lodge.create_card(%{type: "note", title: "Test Note", body: "content", source: "manual"})
-      ExCalibur.Lodge.create_card(%{type: "checklist", title: "TODO", body: "", source: "manual",
+      ExCortex.Lodge.create_card(%{type: "note", title: "Test Note", body: "content", source: "manual"})
+      ExCortex.Lodge.create_card(%{type: "checklist", title: "TODO", body: "", source: "manual",
         metadata: %{"items" => [%{"text" => "Do thing", "checked" => false}]}})
 
       items = LodgeSource.fetch(%{"types" => ["note", "checklist"]})
@@ -1153,8 +1153,8 @@ defmodule ExCalibur.Sources.LodgeSourceTest do
     end
 
     test "filters by pinned only" do
-      ExCalibur.Lodge.create_card(%{type: "note", title: "Not pinned", body: "", source: "manual"})
-      ExCalibur.Lodge.create_card(%{type: "note", title: "Pinned", body: "", source: "manual", pinned: true})
+      ExCortex.Lodge.create_card(%{type: "note", title: "Not pinned", body: "", source: "manual"})
+      ExCortex.Lodge.create_card(%{type: "note", title: "Pinned", body: "", source: "manual", pinned: true})
 
       items = LodgeSource.fetch(%{"pinned_only" => true})
       assert length(items) == 1
@@ -1166,16 +1166,16 @@ end
 
 **Step 2: Implement LodgeSource**
 
-Create `lib/ex_calibur/sources/lodge_source.ex`:
+Create `lib/ex_cortex/sources/lodge_source.ex`:
 
 ```elixir
-defmodule ExCalibur.Sources.LodgeSource do
+defmodule ExCortex.Sources.LodgeSource do
   @moduledoc "Source adapter that reads active Lodge cards for quest consumption."
 
   import Ecto.Query
 
-  alias ExCalibur.Lodge.Card
-  alias ExCalibur.Repo
+  alias ExCortex.Lodge.Card
+  alias ExCortex.Repo
 
   def fetch(config \\ %{}) do
     query = from(c in Card, where: c.status == "active", order_by: [desc: c.pinned, desc: c.inserted_at])
@@ -1210,17 +1210,17 @@ end
 
 **Step 3: Add "lodge" to Source valid types**
 
-In `lib/ex_calibur/sources/source.ex`, find the `validate_inclusion(:source_type, ...)` call and add `"lodge"` to the list.
+In `lib/ex_cortex/sources/source.ex`, find the `validate_inclusion(:source_type, ...)` call and add `"lodge"` to the list.
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/sources/lodge_source_test.exs`
+Run: `mix test test/ex_cortex/sources/lodge_source_test.exs`
 Expected: Pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/lodge_source.ex lib/ex_calibur/sources/source.ex test/ex_calibur/sources/lodge_source_test.exs
+git add lib/ex_cortex/sources/lodge_source.ex lib/ex_cortex/sources/source.ex test/ex_cortex/sources/lodge_source_test.exs
 git commit -m "feat: add Lodge source type for quest consumption of cards"
 ```
 
@@ -1229,12 +1229,12 @@ git commit -m "feat: add Lodge source type for quest consumption of cards"
 ## Task 9: Rebuild Grimoire as Quest Log — Overview Tab
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/grimoire_live.ex`
-- Modify: `test/ex_calibur_web/live/grimoire_live_test.exs`
+- Modify: `lib/ex_cortex_web/live/grimoire_live.ex`
+- Modify: `test/ex_cortex_web/live/grimoire_live_test.exs`
 
 **Step 1: Write the failing test**
 
-Add to `test/ex_calibur_web/live/grimoire_live_test.exs`:
+Add to `test/ex_cortex_web/live/grimoire_live_test.exs`:
 
 ```elixir
 describe "quest log navigation" do
@@ -1245,8 +1245,8 @@ describe "quest log navigation" do
   end
 
   test "shows quest list in sidebar", %{conn: conn} do
-    {:ok, step} = ExCalibur.Quests.create_step(%{name: "Log Step", trigger: "manual", roster: []})
-    {:ok, _} = ExCalibur.Quests.create_quest(%{name: "Test Quest", trigger: "manual", steps: [%{"step_id" => step.id, "flow" => "always"}]})
+    {:ok, step} = ExCortex.Quests.create_step(%{name: "Log Step", trigger: "manual", roster: []})
+    {:ok, _} = ExCortex.Quests.create_quest(%{name: "Test Quest", trigger: "manual", steps: [%{"step_id" => step.id, "flow" => "always"}]})
     {:ok, _view, html} = live(conn, "/grimoire")
     assert html =~ "Test Quest"
   end
@@ -1266,7 +1266,7 @@ import ExCellenceDashboard.Components.OutcomeTracker
 import ExCellenceDashboard.Components.ReplayViewer
 ```
 
-Add `alias ExCalibur.TrustScorer`
+Add `alias ExCortex.TrustScorer`
 
 Add to assigns in mount:
 ```elixir
@@ -1302,13 +1302,13 @@ Update the render template to add tabs: Overview | Entries | Drop In, plus a que
 
 **Step 3: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/grimoire_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/grimoire_live_test.exs`
 Expected: Pass.
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/grimoire_live.ex test/ex_calibur_web/live/grimoire_live_test.exs
+git add lib/ex_cortex_web/live/grimoire_live.ex test/ex_cortex_web/live/grimoire_live_test.exs
 git commit -m "feat: add overview tab to Grimoire with relocated monitoring widgets"
 ```
 
@@ -1317,18 +1317,18 @@ git commit -m "feat: add overview tab to Grimoire with relocated monitoring widg
 ## Task 10: Grimoire Per-Quest Drill-Down
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/grimoire_live.ex`
+- Modify: `lib/ex_cortex_web/live/grimoire_live.ex`
 
 **Step 1: Write the failing test**
 
-Add to `test/ex_calibur_web/live/grimoire_live_test.exs`:
+Add to `test/ex_cortex_web/live/grimoire_live_test.exs`:
 
 ```elixir
 describe "per-quest view" do
   test "clicking a quest shows its runs and lore entries", %{conn: conn} do
-    {:ok, step} = ExCalibur.Quests.create_step(%{name: "Drill Step", trigger: "manual", roster: []})
-    {:ok, quest} = ExCalibur.Quests.create_quest(%{name: "Drill Quest", trigger: "manual", steps: [%{"step_id" => step.id, "flow" => "always"}]})
-    ExCalibur.Lore.create_entry(%{title: "From drill", body: "data", tags: [], quest_id: quest.id})
+    {:ok, step} = ExCortex.Quests.create_step(%{name: "Drill Step", trigger: "manual", roster: []})
+    {:ok, quest} = ExCortex.Quests.create_quest(%{name: "Drill Quest", trigger: "manual", steps: [%{"step_id" => step.id, "flow" => "always"}]})
+    ExCortex.Lore.create_entry(%{title: "From drill", body: "data", tags: [], quest_id: quest.id})
 
     {:ok, view, _html} = live(conn, "/grimoire")
     html = render_click(view, "select_quest", %{"id" => to_string(quest.id)})
@@ -1346,9 +1346,9 @@ Add `load_quest_data/2` to grimoire_live.ex:
 defp load_quest_data(socket, quest_id) do
   import Ecto.Query
 
-  quest = ExCalibur.Quests.get_quest!(quest_id)
-  quest_runs = ExCalibur.Quests.list_quest_runs(quest)
-  lore_entries = ExCalibur.Lore.list_entries(quest_id: quest_id)
+  quest = ExCortex.Quests.get_quest!(quest_id)
+  quest_runs = ExCortex.Quests.list_quest_runs(quest)
+  lore_entries = ExCortex.Lore.list_entries(quest_id: quest_id)
 
   # Scoped decisions — filter by step_ids belonging to this quest
   step_ids = Enum.map(quest.steps || [], & &1["step_id"]) |> Enum.reject(&is_nil/1)
@@ -1369,13 +1369,13 @@ In the render template, when `@grimoire_tab == "quest"`, show:
 
 **Step 3: Run tests**
 
-Run: `mix test test/ex_calibur_web/live/grimoire_live_test.exs`
+Run: `mix test test/ex_cortex_web/live/grimoire_live_test.exs`
 Expected: Pass.
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/grimoire_live.ex test/ex_calibur_web/live/grimoire_live_test.exs
+git add lib/ex_cortex_web/live/grimoire_live.ex test/ex_cortex_web/live/grimoire_live_test.exs
 git commit -m "feat: add per-quest drill-down view to Grimoire"
 ```
 
@@ -1416,7 +1416,7 @@ git commit -m "fix: update tests for Lodge/Grimoire redesign"
 
 | Task | What | Key Files |
 |------|------|-----------|
-| 1 | Absorb ex_cellence_ui → ExCaliburUI | lib/ex_calibur_ui/ |
+| 1 | Absorb ex_cellence_ui → ExCortexUI | lib/ex_cortex_ui/ |
 | 2 | Lodge cards schema + migration | lodge/card.ex, migration |
 | 3 | Lodge context module | lodge.ex |
 | 4 | Card renderer components | lodge_cards.ex |

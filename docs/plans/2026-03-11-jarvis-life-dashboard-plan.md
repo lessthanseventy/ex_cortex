@@ -14,12 +14,12 @@
 
 **Files:**
 - Create: `priv/repo/migrations/TIMESTAMP_add_lodge_trigger_fields_to_quests.exs`
-- Modify: `lib/ex_calibur/quests/quest.ex`
+- Modify: `lib/ex_cortex/quests/quest.ex`
 
 **Step 1: Create the migration**
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.AddLodgeTriggerFieldsToQuests do
+defmodule ExCortex.Repo.Migrations.AddLodgeTriggerFieldsToQuests do
   use Ecto.Migration
 
   def change do
@@ -31,11 +31,11 @@ defmodule ExCalibur.Repo.Migrations.AddLodgeTriggerFieldsToQuests do
 end
 ```
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix ecto.migrate' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix ecto.migrate' --pane=main:1.3`
 
 **Step 2: Update Quest schema**
 
-In `lib/ex_calibur/quests/quest.ex`:
+In `lib/ex_cortex/quests/quest.ex`:
 
 Add fields after `lore_trigger_tags`:
 ```elixir
@@ -55,12 +55,12 @@ Add both fields to `@optional`:
 
 **Step 3: Run tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quests 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quests 2>&1 | tail -10' --pane=main:1.3`
 
 **Step 4: Commit**
 
 ```bash
-git add priv/repo/migrations/*lodge_trigger* lib/ex_calibur/quests/quest.ex
+git add priv/repo/migrations/*lodge_trigger* lib/ex_cortex/quests/quest.ex
 git commit -m "feat: add lodge_trigger_types and lodge_trigger_tags fields to quests"
 ```
 
@@ -69,23 +69,23 @@ git commit -m "feat: add lodge_trigger_types and lodge_trigger_tags fields to qu
 ### Task 2: LodgeTriggerRunner GenServer
 
 **Files:**
-- Create: `lib/ex_calibur/lodge_trigger_runner.ex`
-- Modify: `lib/ex_calibur/application.ex` (add to supervision tree)
+- Create: `lib/ex_cortex/lodge_trigger_runner.ex`
+- Modify: `lib/ex_cortex/application.ex` (add to supervision tree)
 
 **Step 1: Create LodgeTriggerRunner**
 
-Create `lib/ex_calibur/lodge_trigger_runner.ex`:
+Create `lib/ex_cortex/lodge_trigger_runner.ex`:
 
 ```elixir
-defmodule ExCalibur.LodgeTriggerRunner do
+defmodule ExCortex.LodgeTriggerRunner do
   @moduledoc """
   Listens for new lodge cards and fires any quests with trigger: "lodge"
   whose lodge_trigger_types/lodge_trigger_tags overlap the card's type/tags.
   """
   use GenServer
 
-  alias ExCalibur.QuestRunner
-  alias ExCalibur.Quests
+  alias ExCortex.QuestRunner
+  alias ExCortex.Quests
 
   require Logger
 
@@ -93,7 +93,7 @@ defmodule ExCalibur.LodgeTriggerRunner do
 
   @impl true
   def init(_opts) do
-    Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
+    Phoenix.PubSub.subscribe(ExCortex.PubSub, "lodge")
     {:ok, %{}}
   end
 
@@ -142,20 +142,20 @@ end
 
 **Step 2: Add to supervision tree**
 
-In `lib/ex_calibur/application.ex`, add after `ExCalibur.LoreTriggerRunner`:
+In `lib/ex_cortex/application.ex`, add after `ExCortex.LoreTriggerRunner`:
 
 ```elixir
-ExCalibur.LodgeTriggerRunner,
+ExCortex.LodgeTriggerRunner,
 ```
 
 **Step 3: Compile and verify**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge_trigger_runner.ex lib/ex_calibur/application.ex
+git add lib/ex_cortex/lodge_trigger_runner.ex lib/ex_cortex/application.ex
 git commit -m "feat: add LodgeTriggerRunner GenServer for lodge-triggered quests"
 ```
 
@@ -164,7 +164,7 @@ git commit -m "feat: add LodgeTriggerRunner GenServer for lodge-triggered quests
 ### Task 3: Lodge Trigger UI in Quests LiveView
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Add "Lodge" option to BOTH trigger dropdowns**
 
@@ -274,12 +274,12 @@ Do the same in `handle_event("update_quest", ...)` (around line 352).
 
 **Step 4: Compile and run tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/quests_live_test.exs 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors && mix test test/ex_cortex_web/live/quests_live_test.exs 2>&1 | tail -10' --pane=main:1.3`
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: add Lodge trigger option to quest UI with type/tag filters"
 ```
 
@@ -288,7 +288,7 @@ git commit -m "feat: add Lodge trigger option to quest UI with type/tag filters"
 ### Task 4: Board Requirement — {:not_installed, id}
 
 **Files:**
-- Modify: `lib/ex_calibur/board.ex`
+- Modify: `lib/ex_cortex/board.ex`
 
 **Step 1: Add `:not_installed` requirement handler**
 
@@ -298,7 +298,7 @@ In `check_requirements/1` (around line 51), add a new clause to the `Enum.map` f
 {:not_installed, template_id} ->
   installed =
     Repo.exists?(
-      from(q in ExCalibur.Quests.Quest,
+      from(q in ExCortex.Quests.Quest,
         where: q.status in ["active", "paused"],
         where: like(q.name, ^"%#{template_id_to_quest_prefix(template_id)}%")
       )
@@ -317,12 +317,12 @@ defp template_id_to_quest_prefix(id), do: humanize(id)
 
 **Step 2: Compile and verify**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/board.ex
+git add lib/ex_cortex/board.ex
 git commit -m "feat: add {:not_installed, id} requirement type for board templates"
 ```
 
@@ -331,7 +331,7 @@ git commit -m "feat: add {:not_installed, id} requirement type for board templat
 ### Task 5: Gate Individual Lifestyle Templates
 
 **Files:**
-- Modify: `lib/ex_calibur/board/lifestyle.ex`
+- Modify: `lib/ex_cortex/board/lifestyle.ex`
 
 **Step 1: Add requirement to each individual template**
 
@@ -345,12 +345,12 @@ Add `{:not_installed, "everyday_council"}` to the `requires` list of each indivi
 
 **Step 2: Compile**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/board/lifestyle.ex
+git add lib/ex_cortex/board/lifestyle.ex
 git commit -m "feat: gate individual lifestyle templates when Everyday Council is installed"
 ```
 
@@ -359,7 +359,7 @@ git commit -m "feat: gate individual lifestyle templates when Everyday Council i
 ### Task 6: Rebuild Everyday Council — Sources
 
 **Files:**
-- Modify: `lib/ex_calibur/board/lifestyle.ex`
+- Modify: `lib/ex_cortex/board/lifestyle.ex`
 
 **Step 1: Expand source_definitions in everyday_council**
 
@@ -449,12 +449,12 @@ source_definitions: [
 
 **Step 2: Compile**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/board/lifestyle.ex
+git add lib/ex_cortex/board/lifestyle.ex
 git commit -m "feat: wire 12 sources into Everyday Council (webhook + 11 feeds)"
 ```
 
@@ -463,7 +463,7 @@ git commit -m "feat: wire 12 sources into Everyday Council (webhook + 11 feeds)"
 ### Task 7: Rebuild Everyday Council — Steps
 
 **Files:**
-- Modify: `lib/ex_calibur/board/lifestyle.ex`
+- Modify: `lib/ex_cortex/board/lifestyle.ex`
 
 **Step 1: Replace step_definitions in everyday_council**
 
@@ -663,12 +663,12 @@ step_definitions: [
 
 **Step 2: Compile**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/board/lifestyle.ex
+git add lib/ex_cortex/board/lifestyle.ex
 git commit -m "feat: rebuild Everyday Council with 8 steps — briefings, intake, reflection, review"
 ```
 
@@ -677,7 +677,7 @@ git commit -m "feat: rebuild Everyday Council with 8 steps — briefings, intake
 ### Task 8: Rebuild Everyday Council — Quests and Member Recruitment
 
 **Files:**
-- Modify: `lib/ex_calibur/board/lifestyle.ex`
+- Modify: `lib/ex_cortex/board/lifestyle.ex`
 
 **Step 1: Update quest_definition**
 
@@ -705,7 +705,7 @@ Note: The scheduled steps (Morning Briefing, Midday Pulse, Evening Debrief, Week
 
 The Board struct only supports one quest_definition. We need to add a post-install hook. Add a new field to the Board struct — `extra_quests: []` — and handle it in `Board.install/1`.
 
-In `lib/ex_calibur/board.ex`, add to the defstruct:
+In `lib/ex_cortex/board.ex`, add to the defstruct:
 ```elixir
 extra_quests: []
 ```
@@ -721,7 +721,7 @@ Enum.each(template.extra_quests || [], fn quest_def ->
     end)
     |> Enum.reject(fn step -> is_nil(step["step_id"]) end)
 
-  case ExCalibur.Quests.create_quest(Map.put(quest_def, :steps, quest_steps)) do
+  case ExCortex.Quests.create_quest(Map.put(quest_def, :steps, quest_steps)) do
     {:ok, _} -> :ok
     {:error, changeset} ->
       if Enum.any?(changeset.errors, fn {field, {_, opts}} ->
@@ -803,12 +803,12 @@ description:
 
 **Step 6: Compile and run tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors && mix test 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors && mix test 2>&1 | tail -10' --pane=main:1.3`
 
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/board.ex lib/ex_calibur/board/lifestyle.ex
+git add lib/ex_cortex/board.ex lib/ex_cortex/board/lifestyle.ex
 git commit -m "feat: Everyday Council Jarvis mode — extra_quests, member recruitment, full description"
 ```
 
@@ -821,15 +821,15 @@ git commit -m "feat: Everyday Council Jarvis mode — extra_quests, member recru
 
 **Step 1: Format**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix format' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix format' --pane=main:1.3`
 
 **Step 2: Compile with warnings-as-errors**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -10' --pane=main:1.3`
 
 **Step 3: Run full test suite**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -10' --pane=main:1.3`
 
 **Step 4: Fix any issues**
 

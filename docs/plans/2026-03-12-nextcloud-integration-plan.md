@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:executing-plans to implement this plan task-by-task.
 
-**Goal:** Add Nextcloud to ExCalibur's docker stack and integrate it as a source, tool provider, and output sink for agent guilds.
+**Goal:** Add Nextcloud to ExCortex's docker stack and integrate it as a source, tool provider, and output sink for agent guilds.
 
-**Architecture:** Nextcloud + MariaDB added to docker-compose. New `ExCalibur.Nextcloud.Client` module wraps Req for WebDAV/OCS API calls with basic auth. Event-driven source uses Nextcloud Flow webhooks for file events + Activity API polling for Talk/Calendar/Notes. Seven new tools across three tiers. Output sink writes quest results to Nextcloud via WebDAV.
+**Architecture:** Nextcloud + MariaDB added to docker-compose. New `ExCortex.Nextcloud.Client` module wraps Req for WebDAV/OCS API calls with basic auth. Event-driven source uses Nextcloud Flow webhooks for file events + Activity API polling for Talk/Calendar/Notes. Seven new tools across three tiers. Output sink writes quest results to Nextcloud via WebDAV.
 
 **Tech Stack:** Nextcloud (docker), MariaDB, Req (HTTP), WebDAV (PROPFIND/GET/PUT/MKCOL), OCS REST API, CalDAV
 
@@ -102,7 +102,7 @@ su -s /bin/bash www-data -c "php occ app:enable notes"
 su -s /bin/bash www-data -c "php occ app:enable calendar"
 su -s /bin/bash www-data -c "php occ app:enable spreed"  # Talk
 
-# Create ExCalibur folder
+# Create ExCortex folder
 su -s /bin/bash www-data -c "php occ files:scan --all"
 
 echo "Nextcloud init complete."
@@ -110,7 +110,7 @@ echo "Nextcloud init complete."
 
 **Step 6: Test docker-compose validates**
 
-Run: `cd /home/andrew/projects/ex_calibur && docker-compose config --quiet`
+Run: `cd /home/andrew/projects/ex_cortex && docker-compose config --quiet`
 Expected: no errors
 
 **Step 7: Commit**
@@ -125,17 +125,17 @@ git commit -m "feat: add Nextcloud + MariaDB to docker-compose stack"
 ### Task 1: Nextcloud Client Module
 
 **Files:**
-- Create: `lib/ex_calibur/nextcloud/client.ex`
-- Create: `test/ex_calibur/nextcloud/client_test.exs`
+- Create: `lib/ex_cortex/nextcloud/client.ex`
+- Create: `test/ex_cortex/nextcloud/client_test.exs`
 
 **Step 1: Write failing test for client**
 
 ```elixir
-# test/ex_calibur/nextcloud/client_test.exs
-defmodule ExCalibur.Nextcloud.ClientTest do
+# test/ex_cortex/nextcloud/client_test.exs
+defmodule ExCortex.Nextcloud.ClientTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   describe "base_url/0" do
     test "returns configured URL" do
@@ -169,30 +169,30 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/nextcloud/client_test.exs`
+Run: `mix test test/ex_cortex/nextcloud/client_test.exs`
 Expected: compilation error — module not found
 
 **Step 3: Implement Client module**
 
 ```elixir
-# lib/ex_calibur/nextcloud/client.ex
-defmodule ExCalibur.Nextcloud.Client do
+# lib/ex_cortex/nextcloud/client.ex
+defmodule ExCortex.Nextcloud.Client do
   @moduledoc false
 
   require Logger
 
   def base_url do
-    ExCalibur.Settings.get(:nextcloud_url) ||
+    ExCortex.Settings.get(:nextcloud_url) ||
       System.get_env("NEXTCLOUD_URL", "http://localhost:8080")
   end
 
   def username do
-    ExCalibur.Settings.get(:nextcloud_user) ||
+    ExCortex.Settings.get(:nextcloud_user) ||
       System.get_env("NEXTCLOUD_USER", "admin")
   end
 
   def password do
-    ExCalibur.Settings.get(:nextcloud_password) ||
+    ExCortex.Settings.get(:nextcloud_password) ||
       System.get_env("NEXTCLOUD_PASSWORD", "admin")
   end
 
@@ -364,13 +364,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/nextcloud/client_test.exs`
+Run: `mix test test/ex_cortex/nextcloud/client_test.exs`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/nextcloud/client.ex test/ex_calibur/nextcloud/client_test.exs
+git add lib/ex_cortex/nextcloud/client.ex test/ex_cortex/nextcloud/client_test.exs
 git commit -m "feat: add Nextcloud client module with WebDAV, OCS, Notes, Talk, Activity APIs"
 ```
 
@@ -379,19 +379,19 @@ git commit -m "feat: add Nextcloud client module with WebDAV, OCS, Notes, Talk, 
 ### Task 2: Nextcloud Watcher Source
 
 **Files:**
-- Create: `lib/ex_calibur/sources/nextcloud_watcher.ex`
-- Create: `test/ex_calibur/sources/nextcloud_watcher_test.exs`
-- Modify: `lib/ex_calibur/sources/source.ex` (add "nextcloud" to valid types)
-- Modify: `lib/ex_calibur/sources/source_worker.ex` (add source_module clause)
+- Create: `lib/ex_cortex/sources/nextcloud_watcher.ex`
+- Create: `test/ex_cortex/sources/nextcloud_watcher_test.exs`
+- Modify: `lib/ex_cortex/sources/source.ex` (add "nextcloud" to valid types)
+- Modify: `lib/ex_cortex/sources/source_worker.ex` (add source_module clause)
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/sources/nextcloud_watcher_test.exs
-defmodule ExCalibur.Sources.NextcloudWatcherTest do
+# test/ex_cortex/sources/nextcloud_watcher_test.exs
+defmodule ExCortex.Sources.NextcloudWatcherTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Sources.NextcloudWatcher
+  alias ExCortex.Sources.NextcloudWatcher
 
   describe "init/1" do
     test "initializes with last_activity_id from config" do
@@ -407,19 +407,19 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/sources/nextcloud_watcher_test.exs`
+Run: `mix test test/ex_cortex/sources/nextcloud_watcher_test.exs`
 Expected: compilation error
 
 **Step 3: Implement NextcloudWatcher**
 
 ```elixir
-# lib/ex_calibur/sources/nextcloud_watcher.ex
-defmodule ExCalibur.Sources.NextcloudWatcher do
+# lib/ex_cortex/sources/nextcloud_watcher.ex
+defmodule ExCortex.Sources.NextcloudWatcher do
   @moduledoc false
-  @behaviour ExCalibur.Sources.Behaviour
+  @behaviour ExCortex.Sources.Behaviour
 
-  alias ExCalibur.Nextcloud.Client
-  alias ExCalibur.Sources.SourceItem
+  alias ExCortex.Nextcloud.Client
+  alias ExCortex.Sources.SourceItem
 
   require Logger
 
@@ -488,7 +488,7 @@ end
 
 **Step 4: Add "nextcloud" to source.ex valid types**
 
-In `lib/ex_calibur/sources/source.ex`, add `"nextcloud"` to the `validate_inclusion` list:
+In `lib/ex_cortex/sources/source.ex`, add `"nextcloud"` to the `validate_inclusion` list:
 
 ```elixir
 ~w(git directory feed webhook url websocket lodge obsidian email media github_issues nextcloud)
@@ -496,21 +496,21 @@ In `lib/ex_calibur/sources/source.ex`, add `"nextcloud"` to the `validate_inclus
 
 **Step 5: Add source_module clause to source_worker.ex**
 
-In `lib/ex_calibur/sources/source_worker.ex`, add after the `github_issues` clause:
+In `lib/ex_cortex/sources/source_worker.ex`, add after the `github_issues` clause:
 
 ```elixir
-defp source_module("nextcloud"), do: ExCalibur.Sources.NextcloudWatcher
+defp source_module("nextcloud"), do: ExCortex.Sources.NextcloudWatcher
 ```
 
 **Step 6: Run tests**
 
-Run: `mix test test/ex_calibur/sources/nextcloud_watcher_test.exs`
+Run: `mix test test/ex_cortex/sources/nextcloud_watcher_test.exs`
 Expected: PASS
 
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/nextcloud_watcher.ex test/ex_calibur/sources/nextcloud_watcher_test.exs lib/ex_calibur/sources/source.ex lib/ex_calibur/sources/source_worker.ex
+git add lib/ex_cortex/sources/nextcloud_watcher.ex test/ex_cortex/sources/nextcloud_watcher_test.exs lib/ex_cortex/sources/source.ex lib/ex_cortex/sources/source_worker.ex
 git commit -m "feat: add Nextcloud Activity watcher source type"
 ```
 
@@ -519,7 +519,7 @@ git commit -m "feat: add Nextcloud Activity watcher source type"
 ### Task 3: Nextcloud Books (Source Blueprints)
 
 **Files:**
-- Modify: `lib/ex_calibur/sources/book.ex`
+- Modify: `lib/ex_cortex/sources/book.ex`
 
 **Step 1: Add Nextcloud books to book.ex**
 
@@ -584,7 +584,7 @@ Expected: PASS (no regressions)
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/book.ex
+git add lib/ex_cortex/sources/book.ex
 git commit -m "feat: add Nextcloud book blueprints (files, talk, calendar, notes)"
 ```
 
@@ -593,22 +593,22 @@ git commit -m "feat: add Nextcloud book blueprints (files, talk, calendar, notes
 ### Task 4: Safe Tools — search_nextcloud, read_nextcloud, read_nextcloud_notes
 
 **Files:**
-- Create: `lib/ex_calibur/tools/search_nextcloud.ex`
-- Create: `lib/ex_calibur/tools/read_nextcloud.ex`
-- Create: `lib/ex_calibur/tools/read_nextcloud_notes.ex`
-- Create: `test/ex_calibur/tools/search_nextcloud_test.exs`
-- Create: `test/ex_calibur/tools/read_nextcloud_test.exs`
-- Create: `test/ex_calibur/tools/read_nextcloud_notes_test.exs`
-- Modify: `lib/ex_calibur/tools/registry.ex`
+- Create: `lib/ex_cortex/tools/search_nextcloud.ex`
+- Create: `lib/ex_cortex/tools/read_nextcloud.ex`
+- Create: `lib/ex_cortex/tools/read_nextcloud_notes.ex`
+- Create: `test/ex_cortex/tools/search_nextcloud_test.exs`
+- Create: `test/ex_cortex/tools/read_nextcloud_test.exs`
+- Create: `test/ex_cortex/tools/read_nextcloud_notes_test.exs`
+- Modify: `lib/ex_cortex/tools/registry.ex`
 
 **Step 1: Write failing test for search_nextcloud**
 
 ```elixir
-# test/ex_calibur/tools/search_nextcloud_test.exs
-defmodule ExCalibur.Tools.SearchNextcloudTest do
+# test/ex_cortex/tools/search_nextcloud_test.exs
+defmodule ExCortex.Tools.SearchNextcloudTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.SearchNextcloud
+  alias ExCortex.Tools.SearchNextcloud
 
   test "req_llm_tool returns a valid tool struct" do
     tool = SearchNextcloud.req_llm_tool()
@@ -622,11 +622,11 @@ end
 **Step 2: Implement search_nextcloud**
 
 ```elixir
-# lib/ex_calibur/tools/search_nextcloud.ex
-defmodule ExCalibur.Tools.SearchNextcloud do
+# lib/ex_cortex/tools/search_nextcloud.ex
+defmodule ExCortex.Tools.SearchNextcloud do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -637,7 +637,7 @@ defmodule ExCalibur.Tools.SearchNextcloud do
         "properties" => %{
           "path" => %{
             "type" => "string",
-            "description" => "Directory path to list, e.g. '/Documents' or '/ExCalibur'. Defaults to root."
+            "description" => "Directory path to list, e.g. '/Documents' or '/ExCortex'. Defaults to root."
           }
         }
       },
@@ -662,11 +662,11 @@ end
 **Step 3: Write failing test for read_nextcloud**
 
 ```elixir
-# test/ex_calibur/tools/read_nextcloud_test.exs
-defmodule ExCalibur.Tools.ReadNextcloudTest do
+# test/ex_cortex/tools/read_nextcloud_test.exs
+defmodule ExCortex.Tools.ReadNextcloudTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.ReadNextcloud
+  alias ExCortex.Tools.ReadNextcloud
 
   test "req_llm_tool returns a valid tool struct" do
     tool = ReadNextcloud.req_llm_tool()
@@ -679,11 +679,11 @@ end
 **Step 4: Implement read_nextcloud**
 
 ```elixir
-# lib/ex_calibur/tools/read_nextcloud.ex
-defmodule ExCalibur.Tools.ReadNextcloud do
+# lib/ex_cortex/tools/read_nextcloud.ex
+defmodule ExCortex.Tools.ReadNextcloud do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -722,11 +722,11 @@ end
 **Step 5: Write failing test for read_nextcloud_notes**
 
 ```elixir
-# test/ex_calibur/tools/read_nextcloud_notes_test.exs
-defmodule ExCalibur.Tools.ReadNextcloudNotesTest do
+# test/ex_cortex/tools/read_nextcloud_notes_test.exs
+defmodule ExCortex.Tools.ReadNextcloudNotesTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.ReadNextcloudNotes
+  alias ExCortex.Tools.ReadNextcloudNotes
 
   test "req_llm_tool returns a valid tool struct" do
     tool = ReadNextcloudNotes.req_llm_tool()
@@ -739,11 +739,11 @@ end
 **Step 6: Implement read_nextcloud_notes**
 
 ```elixir
-# lib/ex_calibur/tools/read_nextcloud_notes.ex
-defmodule ExCalibur.Tools.ReadNextcloudNotes do
+# lib/ex_cortex/tools/read_nextcloud_notes.ex
+defmodule ExCortex.Tools.ReadNextcloudNotes do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -797,12 +797,12 @@ end
 
 **Step 7: Register tools in registry.ex**
 
-Add aliases at top of `lib/ex_calibur/tools/registry.ex`:
+Add aliases at top of `lib/ex_cortex/tools/registry.ex`:
 
 ```elixir
-alias ExCalibur.Tools.ReadNextcloud
-alias ExCalibur.Tools.ReadNextcloudNotes
-alias ExCalibur.Tools.SearchNextcloud
+alias ExCortex.Tools.ReadNextcloud
+alias ExCortex.Tools.ReadNextcloudNotes
+alias ExCortex.Tools.SearchNextcloud
 ```
 
 Add to `@safe` list:
@@ -815,13 +815,13 @@ ReadNextcloudNotes
 
 **Step 8: Run all tool tests**
 
-Run: `mix test test/ex_calibur/tools/`
+Run: `mix test test/ex_cortex/tools/`
 Expected: PASS
 
 **Step 9: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/search_nextcloud.ex lib/ex_calibur/tools/read_nextcloud.ex lib/ex_calibur/tools/read_nextcloud_notes.ex test/ex_calibur/tools/search_nextcloud_test.exs test/ex_calibur/tools/read_nextcloud_test.exs test/ex_calibur/tools/read_nextcloud_notes_test.exs lib/ex_calibur/tools/registry.ex
+git add lib/ex_cortex/tools/search_nextcloud.ex lib/ex_cortex/tools/read_nextcloud.ex lib/ex_cortex/tools/read_nextcloud_notes.ex test/ex_cortex/tools/search_nextcloud_test.exs test/ex_cortex/tools/read_nextcloud_test.exs test/ex_cortex/tools/read_nextcloud_notes_test.exs lib/ex_cortex/tools/registry.ex
 git commit -m "feat: add safe Nextcloud tools (search, read file, read notes)"
 ```
 
@@ -830,22 +830,22 @@ git commit -m "feat: add safe Nextcloud tools (search, read file, read notes)"
 ### Task 5: Write Tools — write_nextcloud, create_nextcloud_note, nextcloud_calendar
 
 **Files:**
-- Create: `lib/ex_calibur/tools/write_nextcloud.ex`
-- Create: `lib/ex_calibur/tools/create_nextcloud_note.ex`
-- Create: `lib/ex_calibur/tools/nextcloud_calendar.ex`
-- Create: `test/ex_calibur/tools/write_nextcloud_test.exs`
-- Create: `test/ex_calibur/tools/create_nextcloud_note_test.exs`  (name collision with obsidian — use `create_nextcloud_note`)
-- Create: `test/ex_calibur/tools/nextcloud_calendar_test.exs`
-- Modify: `lib/ex_calibur/tools/registry.ex`
+- Create: `lib/ex_cortex/tools/write_nextcloud.ex`
+- Create: `lib/ex_cortex/tools/create_nextcloud_note.ex`
+- Create: `lib/ex_cortex/tools/nextcloud_calendar.ex`
+- Create: `test/ex_cortex/tools/write_nextcloud_test.exs`
+- Create: `test/ex_cortex/tools/create_nextcloud_note_test.exs`  (name collision with obsidian — use `create_nextcloud_note`)
+- Create: `test/ex_cortex/tools/nextcloud_calendar_test.exs`
+- Modify: `lib/ex_cortex/tools/registry.ex`
 
 **Step 1: Implement write_nextcloud**
 
 ```elixir
-# lib/ex_calibur/tools/write_nextcloud.ex
-defmodule ExCalibur.Tools.WriteNextcloud do
+# lib/ex_cortex/tools/write_nextcloud.ex
+defmodule ExCortex.Tools.WriteNextcloud do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -856,7 +856,7 @@ defmodule ExCalibur.Tools.WriteNextcloud do
         "properties" => %{
           "path" => %{
             "type" => "string",
-            "description" => "Full file path in Nextcloud, e.g. '/ExCalibur/reports/summary.md'"
+            "description" => "Full file path in Nextcloud, e.g. '/ExCortex/reports/summary.md'"
           },
           "content" => %{
             "type" => "string",
@@ -898,11 +898,11 @@ end
 **Step 2: Implement create_nextcloud_note**
 
 ```elixir
-# lib/ex_calibur/tools/create_nextcloud_note.ex
-defmodule ExCalibur.Tools.CreateNextcloudNote do
+# lib/ex_cortex/tools/create_nextcloud_note.ex
+defmodule ExCortex.Tools.CreateNextcloudNote do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -947,11 +947,11 @@ end
 **Step 3: Implement nextcloud_calendar**
 
 ```elixir
-# lib/ex_calibur/tools/nextcloud_calendar.ex
-defmodule ExCalibur.Tools.NextcloudCalendar do
+# lib/ex_cortex/tools/nextcloud_calendar.ex
+defmodule ExCortex.Tools.NextcloudCalendar do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -995,7 +995,7 @@ defmodule ExCalibur.Tools.NextcloudCalendar do
     vevent = """
     BEGIN:VCALENDAR
     VERSION:2.0
-    PRODID:-//ExCalibur//EN
+    PRODID:-//ExCortex//EN
     BEGIN:VEVENT
     UID:#{uid}
     DTSTART:#{format_caldav_dt(start_dt)}
@@ -1079,11 +1079,11 @@ end
 **Step 4: Write tests for all three**
 
 ```elixir
-# test/ex_calibur/tools/write_nextcloud_test.exs
-defmodule ExCalibur.Tools.WriteNextcloudTest do
+# test/ex_cortex/tools/write_nextcloud_test.exs
+defmodule ExCortex.Tools.WriteNextcloudTest do
   use ExUnit.Case, async: true
   test "req_llm_tool returns a valid tool struct" do
-    tool = ExCalibur.Tools.WriteNextcloud.req_llm_tool()
+    tool = ExCortex.Tools.WriteNextcloud.req_llm_tool()
     assert tool.name == "write_nextcloud"
     assert "path" in tool.parameter_schema["required"]
   end
@@ -1091,11 +1091,11 @@ end
 ```
 
 ```elixir
-# test/ex_calibur/tools/create_nextcloud_note_test.exs
-defmodule ExCalibur.Tools.CreateNextcloudNoteTest do
+# test/ex_cortex/tools/create_nextcloud_note_test.exs
+defmodule ExCortex.Tools.CreateNextcloudNoteTest do
   use ExUnit.Case, async: true
   test "req_llm_tool returns a valid tool struct" do
-    tool = ExCalibur.Tools.CreateNextcloudNote.req_llm_tool()
+    tool = ExCortex.Tools.CreateNextcloudNote.req_llm_tool()
     assert tool.name == "create_nextcloud_note"
     assert "title" in tool.parameter_schema["required"]
   end
@@ -1103,11 +1103,11 @@ end
 ```
 
 ```elixir
-# test/ex_calibur/tools/nextcloud_calendar_test.exs
-defmodule ExCalibur.Tools.NextcloudCalendarTest do
+# test/ex_cortex/tools/nextcloud_calendar_test.exs
+defmodule ExCortex.Tools.NextcloudCalendarTest do
   use ExUnit.Case, async: true
   test "req_llm_tool returns a valid tool struct" do
-    tool = ExCalibur.Tools.NextcloudCalendar.req_llm_tool()
+    tool = ExCortex.Tools.NextcloudCalendar.req_llm_tool()
     assert tool.name == "nextcloud_calendar"
     assert "action" in tool.parameter_schema["required"]
   end
@@ -1119,9 +1119,9 @@ end
 Add aliases:
 
 ```elixir
-alias ExCalibur.Tools.CreateNextcloudNote
-alias ExCalibur.Tools.NextcloudCalendar
-alias ExCalibur.Tools.WriteNextcloud
+alias ExCortex.Tools.CreateNextcloudNote
+alias ExCortex.Tools.NextcloudCalendar
+alias ExCortex.Tools.WriteNextcloud
 ```
 
 Add to `@write` list:
@@ -1134,13 +1134,13 @@ NextcloudCalendar
 
 **Step 6: Run tests**
 
-Run: `mix test test/ex_calibur/tools/`
+Run: `mix test test/ex_cortex/tools/`
 Expected: PASS
 
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/write_nextcloud.ex lib/ex_calibur/tools/create_nextcloud_note.ex lib/ex_calibur/tools/nextcloud_calendar.ex test/ex_calibur/tools/write_nextcloud_test.exs test/ex_calibur/tools/create_nextcloud_note_test.exs test/ex_calibur/tools/nextcloud_calendar_test.exs lib/ex_calibur/tools/registry.ex
+git add lib/ex_cortex/tools/write_nextcloud.ex lib/ex_cortex/tools/create_nextcloud_note.ex lib/ex_cortex/tools/nextcloud_calendar.ex test/ex_cortex/tools/write_nextcloud_test.exs test/ex_cortex/tools/create_nextcloud_note_test.exs test/ex_cortex/tools/nextcloud_calendar_test.exs lib/ex_cortex/tools/registry.ex
 git commit -m "feat: add write Nextcloud tools (write file, create note, calendar)"
 ```
 
@@ -1149,18 +1149,18 @@ git commit -m "feat: add write Nextcloud tools (write file, create note, calenda
 ### Task 6: Dangerous Tool — nextcloud_talk
 
 **Files:**
-- Create: `lib/ex_calibur/tools/nextcloud_talk.ex`
-- Create: `test/ex_calibur/tools/nextcloud_talk_test.exs`
-- Modify: `lib/ex_calibur/tools/registry.ex`
+- Create: `lib/ex_cortex/tools/nextcloud_talk.ex`
+- Create: `test/ex_cortex/tools/nextcloud_talk_test.exs`
+- Modify: `lib/ex_cortex/tools/registry.ex`
 
 **Step 1: Implement nextcloud_talk**
 
 ```elixir
-# lib/ex_calibur/tools/nextcloud_talk.ex
-defmodule ExCalibur.Tools.NextcloudTalk do
+# lib/ex_cortex/tools/nextcloud_talk.ex
+defmodule ExCortex.Tools.NextcloudTalk do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -1215,11 +1215,11 @@ end
 **Step 2: Write test**
 
 ```elixir
-# test/ex_calibur/tools/nextcloud_talk_test.exs
-defmodule ExCalibur.Tools.NextcloudTalkTest do
+# test/ex_cortex/tools/nextcloud_talk_test.exs
+defmodule ExCortex.Tools.NextcloudTalkTest do
   use ExUnit.Case, async: true
   test "req_llm_tool returns a valid tool struct" do
-    tool = ExCalibur.Tools.NextcloudTalk.req_llm_tool()
+    tool = ExCortex.Tools.NextcloudTalk.req_llm_tool()
     assert tool.name == "nextcloud_talk"
     assert "action" in tool.parameter_schema["required"]
   end
@@ -1231,7 +1231,7 @@ end
 Add alias:
 
 ```elixir
-alias ExCalibur.Tools.NextcloudTalk
+alias ExCortex.Tools.NextcloudTalk
 ```
 
 Add to `@dangerous` list:
@@ -1242,13 +1242,13 @@ NextcloudTalk
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/tools/`
+Run: `mix test test/ex_cortex/tools/`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/nextcloud_talk.ex test/ex_calibur/tools/nextcloud_talk_test.exs lib/ex_calibur/tools/registry.ex
+git add lib/ex_cortex/tools/nextcloud_talk.ex test/ex_cortex/tools/nextcloud_talk_test.exs lib/ex_cortex/tools/registry.ex
 git commit -m "feat: add Nextcloud Talk tool (dangerous tier)"
 ```
 
@@ -1257,22 +1257,22 @@ git commit -m "feat: add Nextcloud Talk tool (dangerous tier)"
 ### Task 7: Output Sink
 
 **Files:**
-- Create: `lib/ex_calibur/nextcloud/sink.ex`
-- Create: `test/ex_calibur/nextcloud/sink_test.exs`
+- Create: `lib/ex_cortex/nextcloud/sink.ex`
+- Create: `test/ex_cortex/nextcloud/sink_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/nextcloud/sink_test.exs
-defmodule ExCalibur.Nextcloud.SinkTest do
+# test/ex_cortex/nextcloud/sink_test.exs
+defmodule ExCortex.Nextcloud.SinkTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Nextcloud.Sink
+  alias ExCortex.Nextcloud.Sink
 
   describe "quest_path/2" do
     test "builds correct path from quest name and date" do
       path = Sink.quest_path("Code Review", ~D[2026-03-12])
-      assert path == "/ExCalibur/quests/code-review/2026-03-12.md"
+      assert path == "/ExCortex/quests/code-review/2026-03-12.md"
     end
   end
 
@@ -1289,11 +1289,11 @@ end
 **Step 2: Implement Sink**
 
 ```elixir
-# lib/ex_calibur/nextcloud/sink.ex
-defmodule ExCalibur.Nextcloud.Sink do
+# lib/ex_cortex/nextcloud/sink.ex
+defmodule ExCortex.Nextcloud.Sink do
   @moduledoc false
 
-  alias ExCalibur.Nextcloud.Client
+  alias ExCortex.Nextcloud.Client
 
   require Logger
 
@@ -1303,9 +1303,9 @@ defmodule ExCalibur.Nextcloud.Sink do
     content = format_outcome(quest_name, outcome)
 
     # Ensure directory structure
-    Client.mkcol("/ExCalibur")
-    Client.mkcol("/ExCalibur/quests")
-    Client.mkcol("/ExCalibur/quests/#{slugify(quest_name)}")
+    Client.mkcol("/ExCortex")
+    Client.mkcol("/ExCortex/quests")
+    Client.mkcol("/ExCortex/quests/#{slugify(quest_name)}")
 
     case Client.put_file(path, content) do
       :ok ->
@@ -1320,7 +1320,7 @@ defmodule ExCalibur.Nextcloud.Sink do
   end
 
   def quest_path(quest_name, date) do
-    "/ExCalibur/quests/#{slugify(quest_name)}/#{Date.to_iso8601(date)}.md"
+    "/ExCortex/quests/#{slugify(quest_name)}/#{Date.to_iso8601(date)}.md"
   end
 
   def format_outcome(quest_name, outcome) do
@@ -1357,13 +1357,13 @@ end
 
 **Step 3: Run tests**
 
-Run: `mix test test/ex_calibur/nextcloud/sink_test.exs`
+Run: `mix test test/ex_cortex/nextcloud/sink_test.exs`
 Expected: PASS
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/nextcloud/sink.ex test/ex_calibur/nextcloud/sink_test.exs
+git add lib/ex_cortex/nextcloud/sink.ex test/ex_cortex/nextcloud/sink_test.exs
 git commit -m "feat: add Nextcloud output sink for quest outcomes"
 ```
 
@@ -1372,12 +1372,12 @@ git commit -m "feat: add Nextcloud output sink for quest outcomes"
 ### Task 8: Integration Wiring
 
 **Files:**
-- Modify: `lib/ex_calibur/settings.ex` (add Nextcloud settings)
-- Modify: `lib/ex_calibur_web/live/settings_live.ex` (add Nextcloud config section)
+- Modify: `lib/ex_cortex/settings.ex` (add Nextcloud settings)
+- Modify: `lib/ex_cortex_web/live/settings_live.ex` (add Nextcloud config section)
 
 **Step 1: Add Nextcloud settings helpers**
 
-Add to `lib/ex_calibur/settings.ex` — no new functions needed since `get/1` and `put/2` are generic. Just document the keys:
+Add to `lib/ex_cortex/settings.ex` — no new functions needed since `get/1` and `put/2` are generic. Just document the keys:
 - `:nextcloud_url`
 - `:nextcloud_user`
 - `:nextcloud_password`
@@ -1395,7 +1395,7 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/settings.ex lib/ex_calibur_web/live/settings_live.ex
+git add lib/ex_cortex/settings.ex lib/ex_cortex_web/live/settings_live.ex
 git commit -m "feat: add Nextcloud settings to Settings UI"
 ```
 
@@ -1405,11 +1405,11 @@ git commit -m "feat: add Nextcloud settings to Settings UI"
 
 **Files:**
 - Add dep: `mix.exs` (add `ueberauth`, `ueberauth_oidc` or `oauth2`)
-- Create: `lib/ex_calibur_web/auth.ex` (auth plug + role helpers)
-- Create: `lib/ex_calibur_web/controllers/auth_controller.ex` (OAuth callback)
-- Modify: `lib/ex_calibur_web/router.ex` (add auth routes, protect existing routes)
-- Create: `lib/ex_calibur/accounts.ex` (user schema + role mapping)
-- Create: `lib/ex_calibur/accounts/user.ex` (Ecto schema)
+- Create: `lib/ex_cortex_web/auth.ex` (auth plug + role helpers)
+- Create: `lib/ex_cortex_web/controllers/auth_controller.ex` (OAuth callback)
+- Modify: `lib/ex_cortex_web/router.ex` (add auth routes, protect existing routes)
+- Create: `lib/ex_cortex/accounts.ex` (user schema + role mapping)
+- Create: `lib/ex_cortex/accounts/user.ex` (Ecto schema)
 - Create: `priv/repo/migrations/*_create_users.exs`
 - Modify: `docker/init-nextcloud.sh` (enable OIDC app, create groups)
 
@@ -1422,8 +1422,8 @@ git commit -m "feat: add Nextcloud settings to Settings UI"
 **Step 2: Create user schema + migration**
 
 ```elixir
-# lib/ex_calibur/accounts/user.ex
-defmodule ExCalibur.Accounts.User do
+# lib/ex_cortex/accounts/user.ex
+defmodule ExCortex.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -1449,7 +1449,7 @@ end
 Migration:
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.CreateUsers do
+defmodule ExCortex.Repo.Migrations.CreateUsers do
   use Ecto.Migration
 
   def change do
@@ -1470,11 +1470,11 @@ end
 **Step 3: Create Accounts context**
 
 ```elixir
-# lib/ex_calibur/accounts.ex
-defmodule ExCalibur.Accounts do
+# lib/ex_cortex/accounts.ex
+defmodule ExCortex.Accounts do
   import Ecto.Query
-  alias ExCalibur.Repo
-  alias ExCalibur.Accounts.User
+  alias ExCortex.Repo
+  alias ExCortex.Accounts.User
 
   def get_or_create_from_nextcloud(userinfo) do
     nc_id = to_string(userinfo["sub"] || userinfo["id"])
@@ -1511,11 +1511,11 @@ end
 **Step 4: Create OAuth2 client + auth controller**
 
 ```elixir
-# lib/ex_calibur_web/controllers/auth_controller.ex
-defmodule ExCaliburWeb.AuthController do
-  use ExCaliburWeb, :controller
+# lib/ex_cortex_web/controllers/auth_controller.ex
+defmodule ExCortexWeb.AuthController do
+  use ExCortexWeb, :controller
 
-  alias ExCalibur.Accounts
+  alias ExCortex.Accounts
 
   def login(conn, _params) do
     client = oauth_client()
@@ -1547,7 +1547,7 @@ defmodule ExCaliburWeb.AuthController do
   end
 
   defp oauth_client do
-    nc_url = ExCalibur.Nextcloud.Client.base_url()
+    nc_url = ExCortex.Nextcloud.Client.base_url()
 
     OAuth2.Client.new(
       strategy: OAuth2.Strategy.AuthCode,
@@ -1556,7 +1556,7 @@ defmodule ExCaliburWeb.AuthController do
       site: nc_url,
       authorize_url: "#{nc_url}/index.php/apps/oauth2/authorize",
       token_url: "#{nc_url}/index.php/apps/oauth2/api/v1/token",
-      redirect_uri: "#{ExCaliburWeb.Endpoint.url()}/auth/callback"
+      redirect_uri: "#{ExCortexWeb.Endpoint.url()}/auth/callback"
     )
   end
 end
@@ -1565,8 +1565,8 @@ end
 **Step 5: Create auth plug**
 
 ```elixir
-# lib/ex_calibur_web/auth.ex
-defmodule ExCaliburWeb.Auth do
+# lib/ex_cortex_web/auth.ex
+defmodule ExCortexWeb.Auth do
   import Plug.Conn
   import Phoenix.Controller
 
@@ -1575,7 +1575,7 @@ defmodule ExCaliburWeb.Auth do
       nil ->
         conn |> redirect(to: "/login") |> halt()
       user_id ->
-        user = ExCalibur.Accounts.get_user(user_id)
+        user = ExCortex.Accounts.get_user(user_id)
         assign(conn, :current_user, user)
     end
   end
@@ -1603,7 +1603,7 @@ Add auth routes and protect existing routes with role-based pipelines:
 
 **Step 6b: Add tool-tier gating per role**
 
-Modify `ExCalibur.Tools.Registry.resolve_tools/1` to accept a user role and cap tool tier:
+Modify `ExCortex.Tools.Registry.resolve_tools/1` to accept a user role and cap tool tier:
 - `super_admin` → all tools (dangerous)
 - `admin` → safe + write tools
 - `user` → safe tools only
@@ -1632,6 +1632,6 @@ Expected: PASS
 **Step 9: Commit**
 
 ```bash
-git add mix.exs lib/ex_calibur/accounts.ex lib/ex_calibur/accounts/user.ex lib/ex_calibur_web/auth.ex lib/ex_calibur_web/controllers/auth_controller.ex lib/ex_calibur_web/router.ex priv/repo/migrations/*_create_users.exs docker/init-nextcloud.sh
+git add mix.exs lib/ex_cortex/accounts.ex lib/ex_cortex/accounts/user.ex lib/ex_cortex_web/auth.ex lib/ex_cortex_web/controllers/auth_controller.ex lib/ex_cortex_web/router.ex priv/repo/migrations/*_create_users.exs docker/init-nextcloud.sh
 git commit -m "feat: add Nextcloud OAuth2 auth with role-based access (super_admin, admin, user)"
 ```

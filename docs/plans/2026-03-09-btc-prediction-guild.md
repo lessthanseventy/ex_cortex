@@ -15,7 +15,7 @@
 The Oracle needs to see Bull/Bear/Macro/Degen's full reasoning. Currently `run_artifact/2` only uses the first member of the first roster step. We need multi-step artifact quests to run all steps except the last in "reasoning mode" and pass their outputs to the final synthesizer step.
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex`
+- Modify: `lib/ex_cortex/quest_runner.ex`
 
 **Step 1: Read the current `run_artifact/2` function**
 
@@ -27,7 +27,7 @@ Replace the existing `run_artifact/2` with this version:
 
 ```elixir
 defp run_artifact(quest, input_text) do
-  ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+  ollama_url = Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
   ollama = Ollama.new(base_url: ollama_url)
 
   roster = quest.roster || []
@@ -147,7 +147,7 @@ Delete lines 284–331 (the old implementation). The new multi-clause version ab
 **Step 4: Compile and check for warnings**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep -E "(warning|error)"
+cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep -E "(warning|error)"
 ```
 
 Expected: no output (no warnings, no errors)
@@ -155,7 +155,7 @@ Expected: no output (no warnings, no errors)
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_runner.ex
+git add lib/ex_cortex/quest_runner.ex
 git commit -m "feat: thread step outputs to Oracle in multi-step artifact quests"
 ```
 
@@ -179,9 +179,9 @@ One script that creates all 5 members, 8 sources, and 3 quests. Run it on a clea
 #   Sources: Binance ticker, Fear & Greed, 6 RSS feeds
 #   Quests:  BTC Price Prediction, World Thesis Update, Prediction Accuracy Retrospective
 
-alias ExCalibur.Quests
-alias ExCalibur.Sources.Source
-alias ExCalibur.Repo
+alias ExCortex.Quests
+alias ExCortex.Sources.Source
+alias ExCortex.Repo
 import Ecto.Query
 
 IO.puts("Seeding BTC Prediction Guild...")
@@ -513,7 +513,7 @@ IO.puts("Quests: BTC Price Prediction (source), World Thesis (6h), Accuracy Retr
 **Step 2: Run the seed script against the Docker DB**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && DATABASE_URL="ecto://excellence:excellence@localhost:5433/ex_calibur" mix run priv/seeds/btc_guild.exs
+cd /home/andrew/projects/ex_cortex && DATABASE_URL="ecto://excellence:excellence@localhost:5433/ex_cortex" mix run priv/seeds/btc_guild.exs
 ```
 
 Expected output:
@@ -529,11 +529,11 @@ BTC Prediction Guild seeded successfully!
 **Step 3: Verify in the DB**
 
 ```bash
-PGPASSWORD=excellence psql -h localhost -p 5433 -U excellence -d ex_calibur -c \
+PGPASSWORD=excellence psql -h localhost -p 5433 -U excellence -d ex_cortex -c \
   "SELECT name, type, status FROM excellence_members WHERE type='role';"
-PGPASSWORD=excellence psql -h localhost -p 5433 -U excellence -d ex_calibur -c \
+PGPASSWORD=excellence psql -h localhost -p 5433 -U excellence -d ex_cortex -c \
   "SELECT name, trigger, output_type FROM excellence_quests;"
-PGPASSWORD=excellence psql -h localhost -p 5433 -U excellence -d ex_calibur -c \
+PGPASSWORD=excellence psql -h localhost -p 5433 -U excellence -d ex_cortex -c \
   "SELECT source_type, config->>'label' as label, status FROM excellence_sources;"
 ```
 
@@ -551,7 +551,7 @@ git commit -m "feat: add BTC prediction guild seed script"
 The World Thesis quest uses `write_mode: "replace"` but `Lore.write_artifact` replaces based on `quest_id`. The thesis should be findable by `tags: ["thesis"]`. Verify this works and the thesis entry gets the `thesis` tag in its artifact output.
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex` — `artifact_system_prompt/1`
+- Modify: `lib/ex_cortex/quest_runner.ex` — `artifact_system_prompt/1`
 
 **Step 1: Read `artifact_system_prompt/1`**
 
@@ -600,7 +600,7 @@ Always include TAGS: btc,prediction in your response.
 **Step 5: Compile and verify**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep -E "(warning|error)"
+cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep -E "(warning|error)"
 ```
 
 **Step 6: Commit**

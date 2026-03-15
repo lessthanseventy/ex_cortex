@@ -4,41 +4,41 @@
 
 **Goal:** Unify LLM provider dispatch behind a single abstraction, close integration gaps (quest→Lodge, quest run recording, Ollama tool calling), add `lodge_card` output type, and fix all review nits.
 
-**Architecture:** New `ExCalibur.LLM` behaviour with provider modules (`ExCalibur.LLM.Ollama`, `ExCalibur.LLM.Claude`). Member config gains a `provider` field. StepRunner dispatches through `ExCalibur.LLM.complete/4` instead of hardcoded `call_member` branches. QuestRunner records runs. Steps gain `lodge_card` output type.
+**Architecture:** New `ExCortex.LLM` behaviour with provider modules (`ExCortex.LLM.Ollama`, `ExCortex.LLM.Claude`). Member config gains a `provider` field. StepRunner dispatches through `ExCortex.LLM.complete/4` instead of hardcoded `call_member` branches. QuestRunner records runs. Steps gain `lodge_card` output type.
 
 **Tech Stack:** Phoenix LiveView, Ecto, ReqLLM, Excellence.LLM.Ollama, SaladUI components.
 
 ---
 
-## Task 1: Create ExCalibur.LLM Behaviour and Provider Modules
+## Task 1: Create ExCortex.LLM Behaviour and Provider Modules
 
 **Files:**
-- Create: `lib/ex_calibur/llm.ex`
-- Create: `lib/ex_calibur/llm/ollama.ex`
-- Create: `lib/ex_calibur/llm/claude.ex`
-- Create: `test/ex_calibur/llm_test.exs`
+- Create: `lib/ex_cortex/llm.ex`
+- Create: `lib/ex_cortex/llm/ollama.ex`
+- Create: `lib/ex_cortex/llm/claude.ex`
+- Create: `test/ex_cortex/llm_test.exs`
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur/llm_test.exs`:
+Create `test/ex_cortex/llm_test.exs`:
 
 ```elixir
-defmodule ExCalibur.LLMTest do
+defmodule ExCortex.LLMTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.LLM
+  alias ExCortex.LLM
 
   describe "provider_for/1" do
     test "returns Ollama module for ollama provider" do
-      assert LLM.provider_for("ollama") == ExCalibur.LLM.Ollama
+      assert LLM.provider_for("ollama") == ExCortex.LLM.Ollama
     end
 
     test "returns Claude module for claude provider" do
-      assert LLM.provider_for("claude") == ExCalibur.LLM.Claude
+      assert LLM.provider_for("claude") == ExCortex.LLM.Claude
     end
 
     test "returns Ollama as default for nil" do
-      assert LLM.provider_for(nil) == ExCalibur.LLM.Ollama
+      assert LLM.provider_for(nil) == ExCortex.LLM.Ollama
     end
   end
 end
@@ -46,15 +46,15 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/llm_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/llm_test.exs 2>&1' --pane=main:1.3`
 Expected: FAIL — module not defined.
 
 **Step 3: Create the LLM behaviour**
 
-Create `lib/ex_calibur/llm.ex`:
+Create `lib/ex_cortex/llm.ex`:
 
 ```elixir
-defmodule ExCalibur.LLM do
+defmodule ExCortex.LLM do
   @moduledoc """
   Unified LLM provider abstraction.
 
@@ -64,8 +64,8 @@ defmodule ExCalibur.LLM do
 
   ## Usage
 
-      ExCalibur.LLM.complete("ollama", "llama3:8b", system_prompt, user_text)
-      ExCalibur.LLM.complete("claude", "claude-sonnet-4-6", system_prompt, user_text)
+      ExCortex.LLM.complete("ollama", "llama3:8b", system_prompt, user_text)
+      ExCortex.LLM.complete("claude", "claude-sonnet-4-6", system_prompt, user_text)
   """
 
   @callback complete(model :: String.t(), system_prompt :: String.t(), user_text :: String.t(), opts :: keyword()) ::
@@ -82,13 +82,13 @@ defmodule ExCalibur.LLM do
   @callback configured?() :: boolean()
 
   @providers %{
-    "ollama" => ExCalibur.LLM.Ollama,
-    "claude" => ExCalibur.LLM.Claude
+    "ollama" => ExCortex.LLM.Ollama,
+    "claude" => ExCortex.LLM.Claude
   }
 
-  def provider_for(nil), do: ExCalibur.LLM.Ollama
-  def provider_for(""), do: ExCalibur.LLM.Ollama
-  def provider_for(name), do: Map.get(@providers, name, ExCalibur.LLM.Ollama)
+  def provider_for(nil), do: ExCortex.LLM.Ollama
+  def provider_for(""), do: ExCortex.LLM.Ollama
+  def provider_for(name), do: Map.get(@providers, name, ExCortex.LLM.Ollama)
 
   def providers, do: @providers
 
@@ -108,20 +108,20 @@ end
 
 **Step 4: Create Ollama provider module**
 
-Create `lib/ex_calibur/llm/ollama.ex`:
+Create `lib/ex_cortex/llm/ollama.ex`:
 
 ```elixir
-defmodule ExCalibur.LLM.Ollama do
+defmodule ExCortex.LLM.Ollama do
   @moduledoc "Ollama LLM provider."
-  @behaviour ExCalibur.LLM
+  @behaviour ExCortex.LLM
 
   alias Excellence.LLM.Ollama
 
   @impl true
   def complete(model, system_prompt, user_text, opts \\ []) do
     ollama = client(opts)
-    chain = Keyword.get(opts, :fallback_chain, Application.get_env(:ex_calibur, :model_fallback_chain, []))
-    models = ExCalibur.StepRunner.fallback_models_for(model, chain)
+    chain = Keyword.get(opts, :fallback_chain, Application.get_env(:ex_cortex, :model_fallback_chain, []))
+    models = ExCortex.StepRunner.fallback_models_for(model, chain)
 
     messages = [
       %{role: :system, content: system_prompt},
@@ -146,12 +146,12 @@ defmodule ExCalibur.LLM.Ollama do
 
   @impl true
   def configured? do
-    url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    url = Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
     url != nil and url != ""
   end
 
   defp client(opts) do
-    url = Keyword.get(opts, :url, Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434"))
+    url = Keyword.get(opts, :url, Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434"))
     Ollama.new(base_url: url)
   end
 end
@@ -159,12 +159,12 @@ end
 
 **Step 5: Create Claude provider module**
 
-Create `lib/ex_calibur/llm/claude.ex`:
+Create `lib/ex_cortex/llm/claude.ex`:
 
 ```elixir
-defmodule ExCalibur.LLM.Claude do
+defmodule ExCortex.LLM.Claude do
   @moduledoc "Claude (Anthropic) LLM provider."
-  @behaviour ExCalibur.LLM
+  @behaviour ExCortex.LLM
 
   @model_ids %{
     "claude_haiku" => "anthropic:claude-haiku-4-5",
@@ -246,28 +246,28 @@ end
 
 **Step 6: Run tests to verify they pass**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/llm_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/llm_test.exs 2>&1' --pane=main:1.3`
 Expected: PASS
 
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/llm.ex lib/ex_calibur/llm/ test/ex_calibur/llm_test.exs
-git commit -m "feat: add unified ExCalibur.LLM behaviour with Ollama and Claude providers"
+git add lib/ex_cortex/llm.ex lib/ex_cortex/llm/ test/ex_cortex/llm_test.exs
+git commit -m "feat: add unified ExCortex.LLM behaviour with Ollama and Claude providers"
 ```
 
 ---
 
-## Task 2: Refactor StepRunner to Use ExCalibur.LLM
+## Task 2: Refactor StepRunner to Use ExCortex.LLM
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
-- Modify: `lib/ex_calibur/quests/step.ex` (add `freeform` and `lodge_card` to output_type validation)
+- Modify: `lib/ex_cortex/step_runner.ex`
+- Modify: `lib/ex_cortex/quests/step.ex` (add `freeform` and `lodge_card` to output_type validation)
 - Test: existing tests should still pass
 
 **Step 1: Add `provider` to member_to_runner_spec**
 
-In `lib/ex_calibur/step_runner.ex`, change `member_to_runner_spec/1` (around line 285):
+In `lib/ex_cortex/step_runner.ex`, change `member_to_runner_spec/1` (around line 285):
 
 FROM:
 ```elixir
@@ -305,9 +305,9 @@ defp call_member(%{provider: provider, model: model, system_prompt: system_promp
 
   result =
     if tools != [] do
-      ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
+      ExCortex.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
     else
-      ExCalibur.LLM.complete(provider, model, prompt, input_text)
+      ExCortex.LLM.complete(provider, model, prompt, input_text)
     end
 
   case result do
@@ -325,9 +325,9 @@ defp call_member_raw(%{provider: provider, model: model, system_prompt: system_p
 
   result =
     if tools != [] do
-      ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
+      ExCortex.LLM.complete_with_tools(provider, model, prompt, input_text, tools)
     else
-      ExCalibur.LLM.complete(provider, model, prompt, input_text)
+      ExCortex.LLM.complete(provider, model, prompt, input_text)
     end
 
   case result do
@@ -364,11 +364,11 @@ end
 
 **Step 6: Update run_artifact_step dispatch**
 
-In `run_artifact_step/4` and the reasoning pipeline in `run_artifact/2`, replace the `case member do` pattern matching on `:claude`/`:ollama` with a call to `ExCalibur.LLM.complete/4`:
+In `run_artifact_step/4` and the reasoning pipeline in `run_artifact/2`, replace the `case member do` pattern matching on `:claude`/`:ollama` with a call to `ExCortex.LLM.complete/4`:
 
 ```elixir
 raw =
-  case ExCalibur.LLM.complete(member.provider, member.model, system_prompt, input_text) do
+  case ExCortex.LLM.complete(member.provider, member.model, system_prompt, input_text) do
     {:ok, text} -> text
     _ -> nil
   end
@@ -381,13 +381,13 @@ Remove the `ollama` parameter from `run_artifact/2` and `run_artifact_step/4`.
 Remove these aliases from the top of StepRunner:
 ```elixir
 # REMOVE:
-alias ExCalibur.ClaudeClient
+alias ExCortex.ClaudeClient
 alias Excellence.LLM.Ollama
 ```
 
 **Step 8: Add `freeform` and `lodge_card` to Step output_type validation**
 
-In `lib/ex_calibur/quests/step.ex`, update the `validate_inclusion(:output_type, ...)` list:
+In `lib/ex_cortex/quests/step.ex`, update the `validate_inclusion(:output_type, ...)` list:
 
 ```elixir
 |> validate_inclusion(:output_type, [
@@ -406,15 +406,15 @@ In `lib/ex_calibur/quests/step.ex`, update the `validate_inclusion(:output_type,
 
 **Step 9: Verify compilation and run tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -10' --pane=main:1.3`
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -10' --pane=main:1.3`
 Expected: Clean compilation, all tests pass.
 
 **Step 10: Commit**
 
 ```bash
-git add lib/ex_calibur/step_runner.ex lib/ex_calibur/quests/step.ex
-git commit -m "refactor: unify StepRunner LLM dispatch through ExCalibur.LLM provider abstraction"
+git add lib/ex_cortex/step_runner.ex lib/ex_cortex/quests/step.ex
+git commit -m "refactor: unify StepRunner LLM dispatch through ExCortex.LLM provider abstraction"
 ```
 
 ---
@@ -422,18 +422,18 @@ git commit -m "refactor: unify StepRunner LLM dispatch through ExCalibur.LLM pro
 ## Task 3: Add lodge_card Output Type to StepRunner
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
-- Create: `test/ex_calibur/step_runner_lodge_card_test.exs`
+- Modify: `lib/ex_cortex/step_runner.ex`
+- Create: `test/ex_cortex/step_runner_lodge_card_test.exs`
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur/step_runner_lodge_card_test.exs`:
+Create `test/ex_cortex/step_runner_lodge_card_test.exs`:
 
 ```elixir
-defmodule ExCalibur.StepRunner.LodgeCardTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.StepRunner.LodgeCardTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Lodge
+  alias ExCortex.Lodge
 
   describe "lodge_card output type" do
     test "posts a card to the Lodge when output_type is lodge_card" do
@@ -451,7 +451,7 @@ defmodule ExCalibur.StepRunner.LodgeCardTest do
       }
 
       # With empty roster, should get :no_roster error
-      assert {:error, :no_roster} = ExCalibur.StepRunner.run(step, "test input")
+      assert {:error, :no_roster} = ExCortex.StepRunner.run(step, "test input")
     end
   end
 end
@@ -459,12 +459,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/step_runner_lodge_card_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/step_runner_lodge_card_test.exs 2>&1' --pane=main:1.3`
 Expected: FAIL — no matching `run/2` clause for `output_type: "lodge_card"`.
 
 **Step 3: Add lodge_card handler to StepRunner**
 
-In `lib/ex_calibur/step_runner.ex`, add a new `run/2` clause before the default struct clause (around line 170):
+In `lib/ex_cortex/step_runner.ex`, add a new `run/2` clause before the default struct clause (around line 170):
 
 ```elixir
 def run(%{output_type: "lodge_card"} = quest, input_text) do
@@ -482,7 +482,7 @@ def run(%{output_type: "lodge_card"} = quest, input_text) do
         quest_id: quest[:id]
       }
 
-      ExCalibur.Lodge.post_card(card_attrs)
+      ExCortex.Lodge.post_card(card_attrs)
       {:ok, %{lodge_card: card_attrs}}
 
     error ->
@@ -493,13 +493,13 @@ end
 
 **Step 4: Run tests to verify they pass**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/step_runner_lodge_card_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/step_runner_lodge_card_test.exs 2>&1' --pane=main:1.3`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/step_runner.ex test/ex_calibur/step_runner_lodge_card_test.exs
+git add lib/ex_cortex/step_runner.ex test/ex_cortex/step_runner_lodge_card_test.exs
 git commit -m "feat: add lodge_card output type to StepRunner for quest→Lodge integration"
 ```
 
@@ -508,18 +508,18 @@ git commit -m "feat: add lodge_card output type to StepRunner for quest→Lodge 
 ## Task 4: Record Quest Runs in QuestRunner
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex`
-- Create: `test/ex_calibur/quest_runner_recording_test.exs`
+- Modify: `lib/ex_cortex/quest_runner.ex`
+- Create: `test/ex_cortex/quest_runner_recording_test.exs`
 
 **Step 1: Write the failing test**
 
-Create `test/ex_calibur/quest_runner_recording_test.exs`:
+Create `test/ex_cortex/quest_runner_recording_test.exs`:
 
 ```elixir
-defmodule ExCalibur.QuestRunner.RecordingTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.QuestRunner.RecordingTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Quests
+  alias ExCortex.Quests
 
   describe "run/2 recording" do
     test "creates a QuestRun record when a quest is executed" do
@@ -533,7 +533,7 @@ defmodule ExCalibur.QuestRunner.RecordingTest do
         })
 
       # Run the quest
-      ExCalibur.QuestRunner.run(quest, "test input")
+      ExCortex.QuestRunner.run(quest, "test input")
 
       # Verify a quest run was created
       runs = Quests.list_quest_runs(quest)
@@ -548,12 +548,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_recording_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_recording_test.exs 2>&1' --pane=main:1.3`
 Expected: FAIL — no QuestRun created.
 
 **Step 3: Add quest run recording to QuestRunner**
 
-In `lib/ex_calibur/quest_runner.ex`, modify `run/2` to create a QuestRun:
+In `lib/ex_cortex/quest_runner.ex`, modify `run/2` to create a QuestRun:
 
 ```elixir
 def run(quest, input) do
@@ -565,7 +565,7 @@ def run(quest, input) do
   {:ok, quest_run} = Quests.create_quest_run(%{quest_id: quest.id, status: "running"})
 
   # Broadcast quest started
-  Phoenix.PubSub.broadcast(ExCalibur.PubSub, "quest_runs", {:quest_run_started, quest_run})
+  Phoenix.PubSub.broadcast(ExCortex.PubSub, "quest_runs", {:quest_run_started, quest_run})
 
   # ... existing step execution logic ...
 
@@ -582,7 +582,7 @@ def run(quest, input) do
   Quests.update_quest_run(quest_run, %{status: final_status, step_results: step_results})
 
   # Broadcast quest completed
-  Phoenix.PubSub.broadcast(ExCalibur.PubSub, "quest_runs", {:quest_run_completed, quest_run})
+  Phoenix.PubSub.broadcast(ExCortex.PubSub, "quest_runs", {:quest_run_completed, quest_run})
 
   case List.last(results) do
     {:ok, _} = ok -> ok
@@ -601,18 +601,18 @@ defp inspect_result(other), do: %{"status" => "unknown", "data" => inspect(other
 
 **Step 4: Run tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_recording_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_recording_test.exs 2>&1' --pane=main:1.3`
 Expected: PASS
 
 **Step 5: Run full test suite**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -10' --pane=main:1.3`
 Expected: All tests pass.
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_runner.ex test/ex_calibur/quest_runner_recording_test.exs
+git add lib/ex_cortex/quest_runner.ex test/ex_cortex/quest_runner_recording_test.exs
 git commit -m "feat: record QuestRun on every quest execution with PubSub broadcasting"
 ```
 
@@ -621,13 +621,13 @@ git commit -m "feat: record QuestRun on every quest execution with PubSub broadc
 ## Task 5: Fix Review Nits — Lodge & Components
 
 **Files:**
-- Modify: `lib/ex_calibur/lodge.ex`
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
-- Modify: `lib/ex_calibur_web/components/lodge_cards.ex`
+- Modify: `lib/ex_cortex/lodge.ex`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
+- Modify: `lib/ex_cortex_web/components/lodge_cards.ex`
 
 **Step 1: Fix sync_augury source to "lore"**
 
-In `lib/ex_calibur/lodge.ex`, change `source: "quest"` to `source: "lore"` in the `sync_augury/0` function (line 109):
+In `lib/ex_cortex/lodge.ex`, change `source: "quest"` to `source: "lore"` in the `sync_augury/0` function (line 109):
 
 ```elixir
 # FROM:
@@ -638,9 +638,9 @@ source: "lore",
 
 **Step 2: Remove no-op edit_augury handler and button**
 
-In `lib/ex_calibur_web/components/lodge_cards.ex`, remove the Edit button from the augury card renderer (lines 129-136). Remove the entire `<.button>` block for `edit_augury`.
+In `lib/ex_cortex_web/components/lodge_cards.ex`, remove the Edit button from the augury card renderer (lines 129-136). Remove the entire `<.button>` block for `edit_augury`.
 
-In `lib/ex_calibur_web/live/lodge_live.ex`, remove the `handle_event("edit_augury", ...)` clause.
+In `lib/ex_cortex_web/live/lodge_live.ex`, remove the `handle_event("edit_augury", ...)` clause.
 
 **Step 3: Extract shared tag presets**
 
@@ -654,12 +654,12 @@ def preset_tags, do: @preset_tags
 Then in `lodge_live.ex`, replace both instances of `~w(tech urgent meeting todo idea)` with:
 
 ```elixir
-<%= for tag <- ExCaliburWeb.Components.LodgeCards.preset_tags() do %>
+<%= for tag <- ExCortexWeb.Components.LodgeCards.preset_tags() do %>
 ```
 
 **Step 4: Fix card_header tags access**
 
-In `lib/ex_calibur_web/components/lodge_cards.ex`, change line 171:
+In `lib/ex_cortex_web/components/lodge_cards.ex`, change line 171:
 
 ```elixir
 # FROM:
@@ -670,13 +670,13 @@ tags = Map.get(assigns.card, :tags, []) || []
 
 **Step 5: Move sync calls behind connected? guard**
 
-In `lib/ex_calibur_web/live/lodge_live.ex`, move `sync_proposals()` and `sync_augury()` inside the `if connected?(socket)` block so they only run once on the WebSocket connect, not on the initial static render:
+In `lib/ex_cortex_web/live/lodge_live.ex`, move `sync_proposals()` and `sync_augury()` inside the `if connected?(socket)` block so they only run once on the WebSocket connect, not on the initial static render:
 
 ```elixir
 if has_members do
   if connected?(socket) do
-    Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lodge")
-    Phoenix.PubSub.subscribe(ExCalibur.PubSub, "lore")
+    Phoenix.PubSub.subscribe(ExCortex.PubSub, "lodge")
+    Phoenix.PubSub.subscribe(ExCortex.PubSub, "lore")
     Lodge.sync_proposals()
     Lodge.sync_augury()
   end
@@ -689,13 +689,13 @@ end
 
 **Step 6: Verify tests pass**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -10' --pane=main:1.3`
 Expected: All tests pass.
 
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/lodge.ex lib/ex_calibur_web/live/lodge_live.ex lib/ex_calibur_web/components/lodge_cards.ex
+git add lib/ex_cortex/lodge.ex lib/ex_cortex_web/live/lodge_live.ex lib/ex_cortex_web/components/lodge_cards.ex
 git commit -m "fix: review nits — augury source, shared tag presets, sync perf, dead handler"
 ```
 
@@ -704,12 +704,12 @@ git commit -m "fix: review nits — augury source, shared tag presets, sync perf
 ## Task 6: Add Provider Config to Member UI
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/members_live.ex` (or wherever the member/role form renders)
-- Modify: `lib/ex_calibur_ui/components/role_form.ex` (if used)
+- Modify: `lib/ex_cortex_web/live/members_live.ex` (or wherever the member/role form renders)
+- Modify: `lib/ex_cortex_ui/components/role_form.ex` (if used)
 
 **Step 1: Find the member creation/edit form**
 
-Search for the member creation form. It's either in `members_live.ex` or uses the `ExCaliburUI.Components.RoleForm`. Read the file to understand the current form fields.
+Search for the member creation form. It's either in `members_live.ex` or uses the `ExCortexUI.Components.RoleForm`. Read the file to understand the current form fields.
 
 **Step 2: Add provider dropdown**
 
@@ -736,13 +736,13 @@ Test that creating/editing a member with provider="claude" persists it to `confi
 
 **Step 4: Verify compilation and existing tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -10' --pane=main:1.3`
 Expected: All tests pass.
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/members_live.ex
+git add lib/ex_cortex_web/live/members_live.ex
 git commit -m "feat: add provider dropdown to member form for configurable LLM backends"
 ```
 
@@ -751,7 +751,7 @@ git commit -m "feat: add provider dropdown to member form for configurable LLM b
 ## Task 7: Wire lodge_card Output Type into Quest Template UI
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex` (add lodge_card to output type dropdown)
+- Modify: `lib/ex_cortex_web/live/quests_live.ex` (add lodge_card to output type dropdown)
 
 **Step 1: Find the step creation form in quests_live.ex**
 
@@ -763,13 +763,13 @@ Add `<option value="lodge_card">Lodge Card</option>` to the output type dropdown
 
 **Step 3: Verify compilation**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 Expected: Clean.
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: add lodge_card option to step output type dropdown"
 ```
 
@@ -778,11 +778,11 @@ git commit -m "feat: add lodge_card option to step output type dropdown"
 ## Task 8: Fix Grimoire Telemetry Tab
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/grimoire_live.ex`
+- Modify: `lib/ex_cortex_web/live/grimoire_live.ex`
 
 **Step 1: Read the current Grimoire to understand the telemetry placeholder**
 
-Read `lib/ex_calibur_web/live/grimoire_live.ex` and find the telemetry tab content.
+Read `lib/ex_cortex_web/live/grimoire_live.ex` and find the telemetry tab content.
 
 **Step 2: Wire monitoring widgets into the telemetry tab**
 
@@ -820,13 +820,13 @@ end
 
 **Step 4: Verify tests pass**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/grimoire_live_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/grimoire_live_test.exs 2>&1' --pane=main:1.3`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/grimoire_live.ex test/ex_calibur_web/live/grimoire_live_test.exs
+git add lib/ex_cortex_web/live/grimoire_live.ex test/ex_cortex_web/live/grimoire_live_test.exs
 git commit -m "fix: wire telemetry tab in Grimoire with SaladUI components"
 ```
 
@@ -835,7 +835,7 @@ git commit -m "fix: wire telemetry tab in Grimoire with SaladUI components"
 ## Task 9: Rename card_wrapper to Avoid SaladUI.Card Collision
 
 **Files:**
-- Modify: `lib/ex_calibur_web/components/lodge_cards.ex`
+- Modify: `lib/ex_cortex_web/components/lodge_cards.ex`
 
 **Step 1: Rename private components to avoid collision**
 
@@ -863,13 +863,13 @@ end
 
 **Step 4: Run component tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/components/lodge_cards_test.exs 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/components/lodge_cards_test.exs 2>&1' --pane=main:1.3`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/lodge_cards.ex
+git add lib/ex_cortex_web/components/lodge_cards.ex
 git commit -m "refactor: rename lodge card sub-components to avoid SaladUI.Card collision"
 ```
 
@@ -878,7 +878,7 @@ git commit -m "refactor: rename lodge card sub-components to avoid SaladUI.Card 
 ## Task 10: Clean Up ClaudeClient (Now Superseded)
 
 **Files:**
-- Modify: `lib/ex_calibur/claude_client.ex`
+- Modify: `lib/ex_cortex/claude_client.ex`
 
 **Step 1: Check for remaining callers**
 
@@ -888,20 +888,20 @@ Search for `ClaudeClient` references in `lib/`. After Task 2, StepRunner should 
 
 If `ClaudeClient` has no callers, either:
 - Delete it entirely, or
-- Add `@moduledoc deprecated: "Use ExCalibur.LLM.Claude instead"` and delegate the public functions
+- Add `@moduledoc deprecated: "Use ExCortex.LLM.Claude instead"` and delegate the public functions
 
-If callers remain, update them to use `ExCalibur.LLM.Claude` or `ExCalibur.LLM.complete/4`.
+If callers remain, update them to use `ExCortex.LLM.Claude` or `ExCortex.LLM.complete/4`.
 
 **Step 3: Verify compilation**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -5' --pane=main:1.3`
 Expected: Clean.
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/claude_client.ex
-git commit -m "refactor: deprecate ClaudeClient in favor of ExCalibur.LLM.Claude"
+git add lib/ex_cortex/claude_client.ex
+git commit -m "refactor: deprecate ClaudeClient in favor of ExCortex.LLM.Claude"
 ```
 
 ---
@@ -913,7 +913,7 @@ git commit -m "refactor: deprecate ClaudeClient in favor of ExCalibur.LLM.Claude
 
 **Step 1: Run the full test suite**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -20' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -20' --pane=main:1.3`
 
 **Step 2: Fix any failures**
 
@@ -923,11 +923,11 @@ If there are failures, fix them. Common issues:
 
 **Step 3: Run mix format**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix format 2>&1' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix format 2>&1' --pane=main:1.3`
 
 **Step 4: Run compile with warnings-as-errors**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | tail -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | tail -10' --pane=main:1.3`
 
 **Step 5: Commit any fixes**
 

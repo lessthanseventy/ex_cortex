@@ -2,13 +2,13 @@
 
 **Date:** 2026-03-14
 **Status:** Approved
-**Scope:** Rename ExCalibur → ExCortex, collapse deps, new brain/consciousness vocabulary, OpenViking-style memory system, dual frontend (WebTUI + Owl TUI), Burrito standalone binary
+**Scope:** Rename ExCortex → ExCortex, collapse deps, new brain/consciousness vocabulary, OpenViking-style memory system, dual frontend (WebTUI + Owl TUI), Burrito standalone binary
 
 ---
 
 ## Motivation
 
-ExCalibur's guild/fantasy metaphor served its purpose as scaffolding but is now a hindrance. The app is fundamentally **teams of agents that respond to inputs and generate outputs** — the medieval terminology obscures that. Meanwhile, the nested app structure (ex_cellence core lib + ex_calibur web app + dashboard/UI path deps) creates friction with shared Repos, duplicated supervision trees, and coordination headaches.
+ExCortex's guild/fantasy metaphor served its purpose as scaffolding but is now a hindrance. The app is fundamentally **teams of agents that respond to inputs and generate outputs** — the medieval terminology obscures that. Meanwhile, the nested app structure (ex_cellence core lib + ex_cortex web app + dashboard/UI path deps) creates friction with shared Repos, duplicated supervision trees, and coordination headaches.
 
 This redesign:
 1. Renames everything to a brain/consciousness vocabulary that *describes* what the system actually does

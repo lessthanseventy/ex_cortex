@@ -6,7 +6,7 @@
 
 **Architecture:** Quests and Campaigns are persisted in the server's DB (new Ecto schemas). Charters gain `quest_definitions/0` and `campaign_definitions/0` so guilds pre-install their quests on install. The `/quests` board replaces both `/quests` and `/evaluate`. Quest execution for v1 delegates to the existing `Evaluator` (full multi-roster execution with escalation is phase 2).
 
-**Tech Stack:** Phoenix LiveView, Ecto (SQLite via ex_calibur Repo), ExCalibur.Evaluator for execution.
+**Tech Stack:** Phoenix LiveView, Ecto (SQLite via ex_cortex Repo), ExCortex.Evaluator for execution.
 
 ---
 
@@ -18,7 +18,7 @@
 **Step 1: Write the migration**
 
 ```elixir
-defmodule ExCalibur.Repo.Migrations.AddQuestsAndCampaigns do
+defmodule ExCortex.Repo.Migrations.AddQuestsAndCampaigns do
   use Ecto.Migration
 
   def change do
@@ -75,7 +75,7 @@ end
 **Step 2: Run it**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix ecto.migrate
+cd /home/andrew/projects/ex_cortex && mix ecto.migrate
 ```
 
 Expected: `== Migrated 20260308220000 in 0.0s`
@@ -92,17 +92,17 @@ git commit -m "chore: add quests and campaigns migration"
 ## Task 2: Quest Schema
 
 **Files:**
-- Create: `lib/ex_calibur/quests/quest.ex`
-- Create: `test/ex_calibur/quests/quest_test.exs`
+- Create: `lib/ex_cortex/quests/quest.ex`
+- Create: `test/ex_cortex/quests/quest_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/quests/quest_test.exs
-defmodule ExCalibur.Quests.QuestTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/quests/quest_test.exs
+defmodule ExCortex.Quests.QuestTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Quests.Quest
+  alias ExCortex.Quests.Quest
 
   test "changeset valid with required fields" do
     params = %{name: "WCAG Scan", trigger: "manual", roster: []}
@@ -122,7 +122,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur/quests/quest_test.exs
+mix test test/ex_cortex/quests/quest_test.exs
 ```
 
 Expected: error — module not found.
@@ -130,8 +130,8 @@ Expected: error — module not found.
 **Step 3: Implement the schema**
 
 ```elixir
-# lib/ex_calibur/quests/quest.ex
-defmodule ExCalibur.Quests.Quest do
+# lib/ex_cortex/quests/quest.ex
+defmodule ExCortex.Quests.Quest do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
@@ -164,7 +164,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur/quests/quest_test.exs
+mix test test/ex_cortex/quests/quest_test.exs
 ```
 
 Expected: 3 passing.
@@ -172,7 +172,7 @@ Expected: 3 passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quests/quest.ex test/ex_calibur/quests/quest_test.exs
+git add lib/ex_cortex/quests/quest.ex test/ex_cortex/quests/quest_test.exs
 git commit -m "feat: add Quest schema"
 ```
 
@@ -181,15 +181,15 @@ git commit -m "feat: add Quest schema"
 ## Task 3: QuestRun, Campaign, CampaignRun Schemas
 
 **Files:**
-- Create: `lib/ex_calibur/quests/quest_run.ex`
-- Create: `lib/ex_calibur/quests/campaign.ex`
-- Create: `lib/ex_calibur/quests/campaign_run.ex`
+- Create: `lib/ex_cortex/quests/quest_run.ex`
+- Create: `lib/ex_cortex/quests/campaign.ex`
+- Create: `lib/ex_cortex/quests/campaign_run.ex`
 
 **Step 1: Write them all**
 
 ```elixir
-# lib/ex_calibur/quests/quest_run.ex
-defmodule ExCalibur.Quests.QuestRun do
+# lib/ex_cortex/quests/quest_run.ex
+defmodule ExCortex.Quests.QuestRun do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
@@ -213,8 +213,8 @@ end
 ```
 
 ```elixir
-# lib/ex_calibur/quests/campaign.ex
-defmodule ExCalibur.Quests.Campaign do
+# lib/ex_cortex/quests/campaign.ex
+defmodule ExCortex.Quests.Campaign do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
@@ -245,8 +245,8 @@ end
 ```
 
 ```elixir
-# lib/ex_calibur/quests/campaign_run.ex
-defmodule ExCalibur.Quests.CampaignRun do
+# lib/ex_cortex/quests/campaign_run.ex
+defmodule ExCortex.Quests.CampaignRun do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
@@ -278,7 +278,7 @@ Expected: clean compile.
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/quests/
+git add lib/ex_cortex/quests/
 git commit -m "feat: add QuestRun, Campaign, CampaignRun schemas"
 ```
 
@@ -287,19 +287,19 @@ git commit -m "feat: add QuestRun, Campaign, CampaignRun schemas"
 ## Task 4: Quests Context Module
 
 **Files:**
-- Create: `lib/ex_calibur/quests.ex`
-- Create: `test/ex_calibur/quests_test.exs`
+- Create: `lib/ex_cortex/quests.ex`
+- Create: `test/ex_cortex/quests_test.exs`
 
 **Step 1: Write failing tests**
 
 ```elixir
-# test/ex_calibur/quests_test.exs
-defmodule ExCalibur.QuestsTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/quests_test.exs
+defmodule ExCortex.QuestsTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Quests
-  alias ExCalibur.Quests.Quest
-  alias ExCalibur.Quests.Campaign
+  alias ExCortex.Quests
+  alias ExCortex.Quests.Quest
+  alias ExCortex.Quests.Campaign
 
   describe "quests" do
     test "list_quests returns all quests" do
@@ -345,7 +345,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur/quests_test.exs
+mix test test/ex_cortex/quests_test.exs
 ```
 
 Expected: error — module not found.
@@ -353,16 +353,16 @@ Expected: error — module not found.
 **Step 3: Implement context**
 
 ```elixir
-# lib/ex_calibur/quests.ex
-defmodule ExCalibur.Quests do
+# lib/ex_cortex/quests.ex
+defmodule ExCortex.Quests do
   @moduledoc false
   import Ecto.Query
 
-  alias ExCalibur.Repo
-  alias ExCalibur.Quests.Campaign
-  alias ExCalibur.Quests.CampaignRun
-  alias ExCalibur.Quests.Quest
-  alias ExCalibur.Quests.QuestRun
+  alias ExCortex.Repo
+  alias ExCortex.Quests.Campaign
+  alias ExCortex.Quests.CampaignRun
+  alias ExCortex.Quests.Quest
+  alias ExCortex.Quests.QuestRun
 
   # --- Quests ---
 
@@ -443,7 +443,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur/quests_test.exs
+mix test test/ex_cortex/quests_test.exs
 ```
 
 Expected: all passing.
@@ -451,7 +451,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quests.ex test/ex_calibur/quests_test.exs
+git add lib/ex_cortex/quests.ex test/ex_cortex/quests_test.exs
 git commit -m "feat: add Quests context"
 ```
 
@@ -462,7 +462,7 @@ git commit -m "feat: add Quests context"
 **Files:**
 - Modify: `/home/andrew/projects/ex_cellence/lib/excellence/charters/accessibility_review.ex`
 - Modify: all other charter files in the same directory (code_review, content_moderation, contract_review, dependency_audit, incident_triage, performance_audit, risk_assessment)
-- Modify: `lib/ex_calibur_web/live/guild_hall_live.ex`
+- Modify: `lib/ex_cortex_web/live/guild_hall_live.ex`
 
 **Step 1: Add to AccessibilityReview charter**
 
@@ -516,10 +516,10 @@ For each of the 7 remaining charters, add sensible `quest_definitions/0` and `ca
 
 **Step 3: Update guild_hall_live.ex — install quests and campaigns**
 
-In `lib/ex_calibur_web/live/guild_hall_live.ex`, add aliases at top:
+In `lib/ex_cortex_web/live/guild_hall_live.ex`, add aliases at top:
 
 ```elixir
-alias ExCalibur.Quests
+alias ExCortex.Quests
 ```
 
 Update `confirm_install` event handler to also clear old quests/campaigns:
@@ -527,9 +527,9 @@ Update `confirm_install` event handler to also clear old quests/campaigns:
 ```elixir
 import Ecto.Query
 
-ExCalibur.Repo.delete_all(from(r in Member))
-ExCalibur.Repo.delete_all(from(q in ExCalibur.Quests.Quest))
-ExCalibur.Repo.delete_all(from(c in ExCalibur.Quests.Campaign))
+ExCortex.Repo.delete_all(from(r in Member))
+ExCortex.Repo.delete_all(from(q in ExCortex.Quests.Quest))
+ExCortex.Repo.delete_all(from(c in ExCortex.Quests.Campaign))
 ```
 
 Add `install_quests/1` and `install_campaigns/2` private functions after `install_guild/1`:
@@ -579,7 +579,7 @@ mix compile --warnings-as-errors
 
 ```bash
 git add /home/andrew/projects/ex_cellence/lib/excellence/charters/
-git add lib/ex_calibur_web/live/guild_hall_live.ex
+git add lib/ex_cortex_web/live/guild_hall_live.ex
 git commit -m "feat: add quest/campaign definitions to charters and guild install"
 ```
 
@@ -588,18 +588,18 @@ git commit -m "feat: add quest/campaign definitions to charters and guild instal
 ## Task 6: Rewrite QuestsLive
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
-- Create: `test/ex_calibur_web/live/quests_live_test.exs`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
+- Create: `test/ex_cortex_web/live/quests_live_test.exs`
 
 **Step 1: Write failing tests**
 
 ```elixir
-# test/ex_calibur_web/live/quests_live_test.exs
-defmodule ExCaliburWeb.QuestsLiveTest do
-  use ExCaliburWeb.ConnCase, async: true
+# test/ex_cortex_web/live/quests_live_test.exs
+defmodule ExCortexWeb.QuestsLiveTest do
+  use ExCortexWeb.ConnCase, async: true
   import Phoenix.LiveViewTest
 
-  alias ExCalibur.Quests
+  alias ExCortex.Quests
 
   setup do
     {:ok, quest} = Quests.create_quest(%{name: "Test Quest", trigger: "manual", roster: []})
@@ -657,7 +657,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur_web/live/quests_live_test.exs
+mix test test/ex_cortex_web/live/quests_live_test.exs
 ```
 
 Expected: failures — QuestsLive doesn't render the right things yet.
@@ -665,16 +665,16 @@ Expected: failures — QuestsLive doesn't render the right things yet.
 **Step 3: Rewrite QuestsLive**
 
 ```elixir
-# lib/ex_calibur_web/live/quests_live.ex
-defmodule ExCaliburWeb.QuestsLive do
+# lib/ex_cortex_web/live/quests_live.ex
+defmodule ExCortexWeb.QuestsLive do
   @moduledoc false
-  use ExCaliburWeb, :live_view
+  use ExCortexWeb, :live_view
 
   import SaladUI.Badge
 
-  alias ExCalibur.Evaluator
-  alias ExCalibur.Quests
-  alias ExCalibur.Quests.Quest
+  alias ExCortex.Evaluator
+  alias ExCortex.Quests
+  alias ExCortex.Quests.Quest
 
   @impl true
   def mount(_params, _session, socket) do
@@ -839,7 +839,7 @@ defmodule ExCaliburWeb.QuestsLive do
         {:error, reason} -> {"failed", %{error: inspect(reason)}}
       end
 
-    quest_run = ExCalibur.Repo.get!(ExCalibur.Quests.QuestRun, quest_run_id)
+    quest_run = ExCortex.Repo.get!(ExCortex.Quests.QuestRun, quest_run_id)
     Quests.update_quest_run(quest_run, %{status: status, results: results})
 
     running = Map.put(socket.assigns.running, run_id, %{status: status, result: results})
@@ -1137,7 +1137,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur_web/live/quests_live_test.exs
+mix test test/ex_cortex_web/live/quests_live_test.exs
 ```
 
 Expected: all passing.
@@ -1145,7 +1145,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex test/ex_calibur_web/live/quests_live_test.exs
+git add lib/ex_cortex_web/live/quests_live.ex test/ex_cortex_web/live/quests_live_test.exs
 git commit -m "feat: rewrite QuestsLive as quest board with campaigns"
 ```
 
@@ -1154,9 +1154,9 @@ git commit -m "feat: rewrite QuestsLive as quest board with campaigns"
 ## Task 7: Remove /evaluate, update router and nav
 
 **Files:**
-- Modify: `lib/ex_calibur_web/router.ex`
-- Modify: `lib/ex_calibur_web/components/layouts/root.html.heex`
-- Delete (empty out): `lib/ex_calibur_web/live/evaluate_live.ex`
+- Modify: `lib/ex_cortex_web/router.ex`
+- Modify: `lib/ex_cortex_web/components/layouts/root.html.heex`
+- Delete (empty out): `lib/ex_cortex_web/live/evaluate_live.ex`
 
 **Step 1: Update router** — remove evaluate routes, add redirect
 
@@ -1185,12 +1185,12 @@ live "/evaluate", EvaluateLive, :index
 
 **Step 2: Update evaluate_live.ex to a simple redirect**
 
-Replace the content of `lib/ex_calibur_web/live/evaluate_live.ex` with:
+Replace the content of `lib/ex_cortex_web/live/evaluate_live.ex` with:
 
 ```elixir
-defmodule ExCaliburWeb.EvaluateLive do
+defmodule ExCortexWeb.EvaluateLive do
   @moduledoc false
-  use ExCaliburWeb, :live_view
+  use ExCortexWeb, :live_view
 
   @impl true
   def mount(_params, _session, socket) do
@@ -1206,7 +1206,7 @@ Keep the route for now so existing links don't 404, but redirect immediately.
 
 **Step 3: Remove Evaluate from nav**
 
-In `lib/ex_calibur_web/components/layouts/root.html.heex`, find and remove the Evaluate nav link.
+In `lib/ex_cortex_web/components/layouts/root.html.heex`, find and remove the Evaluate nav link.
 
 **Step 4: Compile and smoke test**
 
@@ -1217,7 +1217,7 @@ mix compile --warnings-as-errors
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/router.ex lib/ex_calibur_web/live/evaluate_live.ex lib/ex_calibur_web/components/layouts/root.html.heex
+git add lib/ex_cortex_web/router.ex lib/ex_cortex_web/live/evaluate_live.ex lib/ex_cortex_web/components/layouts/root.html.heex
 git commit -m "feat: remove /evaluate, redirect to /quests"
 ```
 
@@ -1226,7 +1226,7 @@ git commit -m "feat: remove /evaluate, redirect to /quests"
 ## Task 8: Add "Build your own guild" to GuildHallLive
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/guild_hall_live.ex`
+- Modify: `lib/ex_cortex_web/live/guild_hall_live.ex`
 
 **Step 1: Add event handler**
 
@@ -1237,9 +1237,9 @@ Add to `handle_event`:
 def handle_event("build_own_guild", _, socket) do
   import Ecto.Query
 
-  ExCalibur.Repo.delete_all(from(r in Member))
-  ExCalibur.Repo.delete_all(from(q in ExCalibur.Quests.Quest))
-  ExCalibur.Repo.delete_all(from(c in ExCalibur.Quests.Campaign))
+  ExCortex.Repo.delete_all(from(r in Member))
+  ExCortex.Repo.delete_all(from(q in ExCortex.Quests.Quest))
+  ExCortex.Repo.delete_all(from(c in ExCortex.Quests.Campaign))
 
   {:noreply,
    socket
@@ -1284,7 +1284,7 @@ Expected: all passing (warnings as errors).
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guild_hall_live.ex
+git add lib/ex_cortex_web/live/guild_hall_live.ex
 git commit -m "feat: add Build Your Own Guild option to guild hall"
 ```
 

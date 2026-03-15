@@ -6,9 +6,9 @@
 #   Sources: Binance ticker, Fear & Greed, 6 RSS feeds
 #   Quests:  BTC Price Prediction, World Augury Update, Prediction Accuracy Retrospective
 
-alias ExCalibur.Quests
-alias ExCalibur.Sources.Source
-alias ExCalibur.Repo
+alias ExCortex.Quests
+alias ExCortex.Sources.Source
+alias ExCortex.Repo
 
 IO.puts("Seeding BTC Prediction Guild...")
 
@@ -222,7 +222,7 @@ inserted_sources =
 source_ids = Enum.map(inserted_sources, &to_string(&1.id))
 
 Enum.each(inserted_sources, fn source ->
-  ExCalibur.Sources.SourceSupervisor.start_source(source)
+  ExCortex.Sources.SourceSupervisor.start_source(source)
 end)
 
 IO.puts("  ✓ Created #{length(inserted_sources)} sources")

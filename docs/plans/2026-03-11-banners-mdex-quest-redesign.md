@@ -28,7 +28,7 @@ Three banners:
 ### Data Model
 
 - `settings` table (single-row) with a `banner` column (string, nullable). When `nil`, redirect to Town Square for first-time selection.
-- `ExCalibur.Settings` context: `get_banner/0`, `set_banner/1`.
+- `ExCortex.Settings` context: `get_banner/0`, `set_banner/1`.
 - Each charter, quest template, member archetype, and library book gets a `:banner` tag (`:tech | :lifestyle | :business | nil`). These live on compile-time structs, not in the DB.
 
 ## 2. Quest Board Redesign

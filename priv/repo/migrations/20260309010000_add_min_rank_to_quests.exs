@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddMinRankToQuests do
+defmodule ExCortex.Repo.Migrations.AddMinRankToQuests do
   use Ecto.Migration
 
   def change do

@@ -4,7 +4,7 @@
 
 **Goal:** Add a Quest Board page (`/quest-board`) where users browse pre-configured campaign templates by category, see which ones they can run today (based on configured sources/heralds/members), and install campaigns with one click — without replacing their existing guild.
 
-**Architecture:** `ExCalibur.Board` module holds all campaign templates as plain data structs with requirements declarations. A new LiveView loads templates, checks requirements against live DB state at mount, and installs quest+campaign records on demand. `preferred_who` in QuestRunner allows templates to route to named members when present, falling back to rank-based routing.
+**Architecture:** `ExCortex.Board` module holds all campaign templates as plain data structs with requirements declarations. A new LiveView loads templates, checks requirements against live DB state at mount, and installs quest+campaign records on demand. `preferred_who` in QuestRunner allows templates to route to named members when present, falling back to rank-based routing.
 
 **Tech Stack:** Elixir/Phoenix LiveView, Ecto, SaladUI badges/buttons, existing `Quests.create_quest/1` and `Quests.create_campaign/1` helpers
 
@@ -14,7 +14,7 @@
 
 ### Board.Template struct
 ```elixir
-%ExCalibur.Board.Template{
+%ExCortex.Board.Template{
   id: "jira_ticket_triage",         # unique atom-like string
   name: "Jira Ticket Triage",
   category: :triage,                 # :triage | :reporting | :generation | :review | :onboarding
@@ -53,11 +53,11 @@ Unlike Guild Hall which wipes everything, Quest Board is additive: creates new q
 ## Task 1: Jira Book
 
 **Files:**
-- Modify: `lib/ex_calibur/sources/book.ex` (inside `books/0`, after the Dependency Audit section, before Sandbox-enabled books)
+- Modify: `lib/ex_cortex/sources/book.ex` (inside `books/0`, after the Dependency Audit section, before Sandbox-enabled books)
 
 **Step 1: Add the Jira book entry**
 
-Add this entry to the `books/0` list in `lib/ex_calibur/sources/book.ex`, in the dedicated section for Incident Triage (or create a new Jira section after the Dependency Audit entries at line ~164):
+Add this entry to the `books/0` list in `lib/ex_cortex/sources/book.ex`, in the dedicated section for Incident Triage (or create a new Jira section after the Dependency Audit entries at line ~164):
 
 ```elixir
 # Jira
@@ -84,13 +84,13 @@ Add this entry to the `books/0` list in `lib/ex_calibur/sources/book.ex`, in the
 
 **Step 2: Verify no test failures**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/sources/' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/sources/' --pane=main:1.3`
 Expected: All pass (these are pure data, no tests needed)
 
 **Step 3: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/sources/book.ex && git commit -m "feat: add Jira webhook and feed books to Library"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex/sources/book.ex && git commit -m "feat: add Jira webhook and feed books to Library"' --pane=main:1.3
 ```
 
 ---
@@ -98,7 +98,7 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/sou
 ## Task 2: preferred_who in QuestRunner
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex` (resolve_members section, lines ~100-139)
+- Modify: `lib/ex_cortex/quest_runner.ex` (resolve_members section, lines ~100-139)
 
 **Step 1: Add `resolve_members` clause for preferred_who**
 
@@ -150,32 +150,32 @@ defp resolve_members("apprentice"), do: resolve_by_rank("apprentice")
 
 **Step 2: Run existing QuestRunner tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs' --pane=main:1.3`
 
 If the file doesn't exist, skip to step 3 (no existing tests to break).
 
 **Step 3: Compile check**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors 2>&1 | head -30' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors 2>&1 | head -30' --pane=main:1.3`
 Expected: No warnings or errors
 
 **Step 4: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/quest_runner.ex && git commit -m "feat: preferred_who roster field with member name fallback in QuestRunner"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex/quest_runner.ex && git commit -m "feat: preferred_who roster field with member name fallback in QuestRunner"' --pane=main:1.3
 ```
 
 ---
 
-## Task 3: ExCalibur.Board module (core)
+## Task 3: ExCortex.Board module (core)
 
 **Files:**
-- Create: `lib/ex_calibur/board.ex`
+- Create: `lib/ex_cortex/board.ex`
 
 **Step 1: Create the Board module**
 
 ```elixir
-defmodule ExCalibur.Board do
+defmodule ExCortex.Board do
   @moduledoc """
   Pre-configured campaign templates for the Quest Board.
 
@@ -186,9 +186,9 @@ defmodule ExCalibur.Board do
 
   import Ecto.Query
 
-  alias ExCalibur.Heralds.Herald
-  alias ExCalibur.Repo
-  alias ExCalibur.Sources.Source
+  alias ExCortex.Heralds.Herald
+  alias ExCortex.Repo
+  alias ExCortex.Sources.Source
   alias Excellence.Schemas.Member
 
   defstruct [
@@ -267,17 +267,17 @@ defmodule ExCalibur.Board do
   """
   def install(%__MODULE__{} = template) do
     Enum.each(template.quest_definitions, fn attrs ->
-      ExCalibur.Quests.create_quest(attrs)
+      ExCortex.Quests.create_quest(attrs)
     end)
 
-    quest_by_name = Map.new(ExCalibur.Quests.list_quests(), &{&1.name, &1.id})
+    quest_by_name = Map.new(ExCortex.Quests.list_quests(), &{&1.name, &1.id})
 
     steps =
       Enum.map(template.campaign_definition.steps, fn step ->
         %{"quest_id" => Map.get(quest_by_name, step["quest_name"]), "flow" => step["flow"]}
       end)
 
-    ExCalibur.Quests.create_campaign(Map.put(template.campaign_definition, :steps, steps))
+    ExCortex.Quests.create_campaign(Map.put(template.campaign_definition, :steps, steps))
   end
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
@@ -286,23 +286,23 @@ defmodule ExCalibur.Board do
   # Template definitions — loaded by all/0
   # ---------------------------------------------------------------------------
 
-  defp triage, do: ExCalibur.Board.Triage.templates()
-  defp reporting, do: ExCalibur.Board.Reporting.templates()
-  defp generation, do: ExCalibur.Board.Generation.templates()
-  defp review, do: ExCalibur.Board.Review.templates()
-  defp onboarding, do: ExCalibur.Board.Onboarding.templates()
+  defp triage, do: ExCortex.Board.Triage.templates()
+  defp reporting, do: ExCortex.Board.Reporting.templates()
+  defp generation, do: ExCortex.Board.Generation.templates()
+  defp review, do: ExCortex.Board.Review.templates()
+  defp onboarding, do: ExCortex.Board.Onboarding.templates()
 end
 ```
 
 **Step 2: Compile check**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | head -20' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | head -20' --pane=main:1.3`
 Expected: Compile errors for missing submodules (expected — will add them in tasks 4-8)
 
 **Step 3: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/board.ex && git commit -m "feat: ExCalibur.Board core module with requirements checking and install"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex/board.ex && git commit -m "feat: ExCortex.Board core module with requirements checking and install"' --pane=main:1.3
 ```
 
 ---
@@ -310,15 +310,15 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/boa
 ## Task 4: Board Templates — Triage
 
 **Files:**
-- Create: `lib/ex_calibur/board/triage.ex`
+- Create: `lib/ex_cortex/board/triage.ex`
 
 **Step 1: Create the triage templates file**
 
 ```elixir
-defmodule ExCalibur.Board.Triage do
+defmodule ExCortex.Board.Triage do
   @moduledoc "Source-triggered triage campaign templates."
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   def templates do
     [
@@ -607,12 +607,12 @@ end
 
 **Step 2: Compile check**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep -E "error|warning" | head -20' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep -E "error|warning" | head -20' --pane=main:1.3`
 
 **Step 3: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/board/triage.ex && git commit -m "feat: Quest Board triage templates (Jira, GitHub issue, error monitor, threat feed)"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex/board/triage.ex && git commit -m "feat: Quest Board triage templates (Jira, GitHub issue, error monitor, threat feed)"' --pane=main:1.3
 ```
 
 ---
@@ -620,15 +620,15 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/boa
 ## Task 5: Board Templates — Reporting
 
 **Files:**
-- Create: `lib/ex_calibur/board/reporting.ex`
+- Create: `lib/ex_cortex/board/reporting.ex`
 
 **Step 1: Create the reporting templates file**
 
 ```elixir
-defmodule ExCalibur.Board.Reporting do
+defmodule ExCortex.Board.Reporting do
   @moduledoc "Scheduled reporting and digest campaign templates."
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   def templates do
     [
@@ -902,7 +902,7 @@ end
 **Step 2: Compile + commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep error | head -10 && git add lib/ex_calibur/board/reporting.ex && git commit -m "feat: Quest Board reporting templates (security digest, standup, code quality, risk summary)"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep error | head -10 && git add lib/ex_cortex/board/reporting.ex && git commit -m "feat: Quest Board reporting templates (security digest, standup, code quality, risk summary)"' --pane=main:1.3
 ```
 
 ---
@@ -910,15 +910,15 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep er
 ## Task 6: Board Templates — Generation
 
 **Files:**
-- Create: `lib/ex_calibur/board/generation.ex`
+- Create: `lib/ex_cortex/board/generation.ex`
 
 **Step 1: Create the generation templates file**
 
 ```elixir
-defmodule ExCalibur.Board.Generation do
+defmodule ExCortex.Board.Generation do
   @moduledoc "On-demand artifact generation campaign templates."
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   def templates do
     [
@@ -1149,7 +1149,7 @@ end
 **Step 2: Compile + commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep error | head -10 && git add lib/ex_calibur/board/generation.ex && git commit -m "feat: Quest Board generation templates (postmortem, release notes, threat model, onboarding brief)"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep error | head -10 && git add lib/ex_cortex/board/generation.ex && git commit -m "feat: Quest Board generation templates (postmortem, release notes, threat model, onboarding brief)"' --pane=main:1.3
 ```
 
 ---
@@ -1157,15 +1157,15 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep er
 ## Task 7: Board Templates — Review
 
 **Files:**
-- Create: `lib/ex_calibur/board/review.ex`
+- Create: `lib/ex_cortex/board/review.ex`
 
 **Step 1: Create the review templates file**
 
 ```elixir
-defmodule ExCalibur.Board.Review do
+defmodule ExCortex.Board.Review do
   @moduledoc "Continuous review pipeline campaign templates."
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   def templates do
     [
@@ -1420,7 +1420,7 @@ end
 **Step 2: Compile + commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep error | head -10 && git add lib/ex_calibur/board/review.ex && git commit -m "feat: Quest Board review templates (PR pipeline, URL monitor, content safety, compliance)"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep error | head -10 && git add lib/ex_cortex/board/review.ex && git commit -m "feat: Quest Board review templates (PR pipeline, URL monitor, content safety, compliance)"' --pane=main:1.3
 ```
 
 ---
@@ -1428,15 +1428,15 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep er
 ## Task 8: Board Templates — Onboarding
 
 **Files:**
-- Create: `lib/ex_calibur/board/onboarding.ex`
+- Create: `lib/ex_cortex/board/onboarding.ex`
 
 **Step 1: Create the onboarding templates file**
 
 ```elixir
-defmodule ExCalibur.Board.Onboarding do
+defmodule ExCortex.Board.Onboarding do
   @moduledoc "Initial setup and orientation campaign templates."
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   def templates do
     [
@@ -1703,19 +1703,19 @@ end
 
 **Step 2: Compile all board modules**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep -E "error|warning" | head -20' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep -E "error|warning" | head -20' --pane=main:1.3`
 Expected: Clean compile
 
 **Step 3: Verify Board.all/0 returns 20 templates in iex**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && echo "ExCalibur.Board.all() |> length()" | mix run --no-start /dev/stdin 2>/dev/null' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && echo "ExCortex.Board.all() |> length()" | mix run --no-start /dev/stdin 2>/dev/null' --pane=main:1.3`
 
-(Or test in iex: `ExCalibur.Board.all() |> Enum.map(& &1.id)`)
+(Or test in iex: `ExCortex.Board.all() |> Enum.map(& &1.id)`)
 
 **Step 4: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/board/onboarding.ex && git commit -m "feat: Quest Board onboarding templates (team health, first look, security baseline, knowledge bootstrap)"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex/board/onboarding.ex && git commit -m "feat: Quest Board onboarding templates (team health, first look, security baseline, knowledge bootstrap)"' --pane=main:1.3
 ```
 
 ---
@@ -1723,19 +1723,19 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur/boa
 ## Task 9: QuestBoardLive
 
 **Files:**
-- Create: `lib/ex_calibur_web/live/quest_board_live.ex`
+- Create: `lib/ex_cortex_web/live/quest_board_live.ex`
 
 **Step 1: Create the LiveView**
 
 ```elixir
-defmodule ExCaliburWeb.QuestBoardLive do
+defmodule ExCortexWeb.QuestBoardLive do
   @moduledoc false
-  use ExCaliburWeb, :live_view
+  use ExCortexWeb, :live_view
 
   import SaladUI.Badge
 
-  alias ExCalibur.Board
-  alias ExCalibur.Quests
+  alias ExCortex.Board
+  alias ExCortex.Quests
 
   @categories [
     triage: "Triage",
@@ -1972,12 +1972,12 @@ end
 
 **Step 2: Compile check**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep -E "error|warning" | head -20' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep -E "error|warning" | head -20' --pane=main:1.3`
 
 **Step 3: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur_web/live/quest_board_live.ex && git commit -m "feat: QuestBoardLive — browse and install campaign templates by category"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex_web/live/quest_board_live.ex && git commit -m "feat: QuestBoardLive — browse and install campaign templates by category"' --pane=main:1.3
 ```
 
 ---
@@ -1985,12 +1985,12 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur_web
 ## Task 10: Router + Nav
 
 **Files:**
-- Modify: `lib/ex_calibur_web/router.ex`
-- Modify: `lib/ex_calibur_web/components/layouts/root.html.heex`
+- Modify: `lib/ex_cortex_web/router.ex`
+- Modify: `lib/ex_cortex_web/components/layouts/root.html.heex`
 
 **Step 1: Add route to router.ex**
 
-In `lib/ex_calibur_web/router.ex`, add after the `/quests` route:
+In `lib/ex_cortex_web/router.ex`, add after the `/quests` route:
 
 ```elixir
 live "/quest-board", QuestBoardLive, :index
@@ -2013,12 +2013,12 @@ In `root.html.heex`, add `{"Quest Board", "/quest-board"}` to the nav list after
 
 **Step 3: Compile + smoke test**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | grep -E "error" | head -10' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | grep -E "error" | head -10' --pane=main:1.3`
 
 **Step 4: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur_web/router.ex lib/ex_calibur_web/components/layouts/root.html.heex && git commit -m "feat: add /quest-board route and nav link"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add lib/ex_cortex_web/router.ex lib/ex_cortex_web/components/layouts/root.html.heex && git commit -m "feat: add /quest-board route and nav link"' --pane=main:1.3
 ```
 
 ---
@@ -2026,16 +2026,16 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add lib/ex_calibur_web
 ## Task 11: Tests
 
 **Files:**
-- Create: `test/ex_calibur_web/live/quest_board_live_test.exs`
-- Create: `test/ex_calibur/board_test.exs`
+- Create: `test/ex_cortex_web/live/quest_board_live_test.exs`
+- Create: `test/ex_cortex/board_test.exs`
 
 **Step 1: Write the Board module test**
 
 ```elixir
-defmodule ExCalibur.BoardTest do
-  use ExCalibur.DataCase, async: true
+defmodule ExCortex.BoardTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Board
+  alias ExCortex.Board
 
   describe "all/0" do
     test "returns at least 16 templates" do
@@ -2112,22 +2112,22 @@ end
 
 **Step 2: Run Board test to make sure it fails first**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/board_test.exs 2>&1 | tail -20' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/board_test.exs 2>&1 | tail -20' --pane=main:1.3`
 Expected: Tests pass (or compile errors to fix)
 
 **Step 3: Write the LiveView test**
 
 ```elixir
-defmodule ExCaliburWeb.QuestBoardLiveTest do
-  use ExCaliburWeb.ConnCase, async: true
+defmodule ExCortexWeb.QuestBoardLiveTest do
+  use ExCortexWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
   setup do
-    ExCalibur.Repo.delete_all(ExCalibur.Quests.CampaignRun)
-    ExCalibur.Repo.delete_all(ExCalibur.Quests.QuestRun)
-    ExCalibur.Repo.delete_all(ExCalibur.Quests.Campaign)
-    ExCalibur.Repo.delete_all(ExCalibur.Quests.Quest)
+    ExCortex.Repo.delete_all(ExCortex.Quests.CampaignRun)
+    ExCortex.Repo.delete_all(ExCortex.Quests.QuestRun)
+    ExCortex.Repo.delete_all(ExCortex.Quests.Campaign)
+    ExCortex.Repo.delete_all(ExCortex.Quests.Quest)
     :ok
   end
 
@@ -2190,13 +2190,13 @@ end
 
 **Step 4: Run all tests**
 
-Run: `tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -30' --pane=main:1.3`
+Run: `tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -30' --pane=main:1.3`
 Expected: All pass
 
 **Step 5: Commit**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add test/ex_calibur/board_test.exs test/ex_calibur_web/live/quest_board_live_test.exs && git commit -m "test: Quest Board module and LiveView tests"' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && git add test/ex_cortex/board_test.exs test/ex_cortex_web/live/quest_board_live_test.exs && git commit -m "test: Quest Board module and LiveView tests"' --pane=main:1.3
 ```
 
 ---
@@ -2206,7 +2206,7 @@ tmux-cli send 'cd /home/andrew/projects/ex_calibur && git add test/ex_calibur/bo
 Run the full test suite one last time:
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test 2>&1 | tail -10' --pane=main:1.3
 ```
 
 Then visit `/quest-board` in the browser to smoke test the UI.

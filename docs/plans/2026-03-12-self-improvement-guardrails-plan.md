@@ -6,21 +6,21 @@
 
 **Architecture:** Verdict gates live in quest_runner.ex's step iteration loop. Dangerous tool interception hooks into the Ollama/Claude agent loops via an opts-based mode flag. Circuit breaker tracks consecutive empty results per tool in the agent loop. Rollback wraps step execution in step_runner.ex with git stash/checkout. Styler guard auto-formats before git_commit.
 
-**Tech Stack:** Elixir, Ecto (Step schema), ExCalibur.LLM (Ollama/Claude providers), Git (System.cmd)
+**Tech Stack:** Elixir, Ecto (Step schema), ExCortex.LLM (Ollama/Claude providers), Git (System.cmd)
 
 ---
 
 ### Task 0: Add `dangerous_tool_mode` and `max_tool_iterations` to Step Schema
 
 **Files:**
-- Modify: `lib/ex_calibur/quests/step.ex`
+- Modify: `lib/ex_cortex/quests/step.ex`
 - Create: `priv/repo/migrations/*_add_step_guardrail_fields.exs`
 
 **Step 1: Create migration**
 
 ```elixir
 # priv/repo/migrations/TIMESTAMP_add_step_guardrail_fields.exs
-defmodule ExCalibur.Repo.Migrations.AddStepGuardrailFields do
+defmodule ExCortex.Repo.Migrations.AddStepGuardrailFields do
   use Ecto.Migration
 
   def change do
@@ -34,7 +34,7 @@ end
 
 **Step 2: Add fields to Step schema**
 
-In `lib/ex_calibur/quests/step.ex`, add after `field :guild_name, :string`:
+In `lib/ex_cortex/quests/step.ex`, add after `field :guild_name, :string`:
 
 ```elixir
 field :dangerous_tool_mode, :string, default: "execute"
@@ -56,13 +56,13 @@ Expected: migration succeeds
 
 **Step 4: Run tests**
 
-Run: `mix test test/ex_calibur/quests/`
+Run: `mix test test/ex_cortex/quests/`
 Expected: PASS
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quests/step.ex priv/repo/migrations/*_add_step_guardrail_fields.exs
+git add lib/ex_cortex/quests/step.ex priv/repo/migrations/*_add_step_guardrail_fields.exs
 git commit -m "feat: add dangerous_tool_mode and max_tool_iterations fields to Step schema"
 ```
 
@@ -71,17 +71,17 @@ git commit -m "feat: add dangerous_tool_mode and max_tool_iterations fields to S
 ### Task 1: Iteration Circuit Breaker in Ollama Agent Loop
 
 **Files:**
-- Modify: `lib/ex_calibur/llm/ollama.ex:86-153`
-- Create: `test/ex_calibur/llm/circuit_breaker_test.exs`
+- Modify: `lib/ex_cortex/llm/ollama.ex:86-153`
+- Create: `test/ex_cortex/llm/circuit_breaker_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/llm/circuit_breaker_test.exs
-defmodule ExCalibur.LLM.CircuitBreakerTest do
+# test/ex_cortex/llm/circuit_breaker_test.exs
+defmodule ExCortex.LLM.CircuitBreakerTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.LLM.Ollama
+  alias ExCortex.LLM.Ollama
 
   describe "empty_result?/1" do
     test "detects empty string" do
@@ -123,12 +123,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/llm/circuit_breaker_test.exs`
+Run: `mix test test/ex_cortex/llm/circuit_breaker_test.exs`
 Expected: FAIL — functions not defined
 
 **Step 3: Add circuit breaker functions to Ollama module**
 
-Add these public functions to `lib/ex_calibur/llm/ollama.ex` (after `fallback_models_for/2`):
+Add these public functions to `lib/ex_cortex/llm/ollama.ex` (after `fallback_models_for/2`):
 
 ```elixir
 @empty_threshold 3
@@ -242,7 +242,7 @@ Pass `max_iter` into `run_tool_loop` and use it instead of `@max_tool_iterations
 
 **Step 6: Run tests**
 
-Run: `mix test test/ex_calibur/llm/circuit_breaker_test.exs`
+Run: `mix test test/ex_cortex/llm/circuit_breaker_test.exs`
 Expected: PASS
 
 Run: `mix test`
@@ -251,7 +251,7 @@ Expected: PASS (no regressions)
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/llm/ollama.ex test/ex_calibur/llm/circuit_breaker_test.exs
+git add lib/ex_cortex/llm/ollama.ex test/ex_cortex/llm/circuit_breaker_test.exs
 git commit -m "feat: add iteration circuit breaker to Ollama agent loop"
 ```
 
@@ -260,11 +260,11 @@ git commit -m "feat: add iteration circuit breaker to Ollama agent loop"
 ### Task 2: Iteration Circuit Breaker in Claude Agent Loop
 
 **Files:**
-- Modify: `lib/ex_calibur/llm/claude.ex:80-120`
+- Modify: `lib/ex_cortex/llm/claude.ex:80-120`
 
 **Step 1: Add circuit breaker to Claude's `execute_tools_with_log/3`**
 
-Same pattern as Ollama. Change `execute_tools_with_log/3` to `execute_tools_with_log/4` accepting breaker state. Reuse `ExCalibur.LLM.Ollama.empty_result?/1` and `check_circuit_breaker/3` (they're public).
+Same pattern as Ollama. Change `execute_tools_with_log/3` to `execute_tools_with_log/4` accepting breaker state. Reuse `ExCortex.LLM.Ollama.empty_result?/1` and `check_circuit_breaker/3` (they're public).
 
 In `run_agent_loop`, thread breaker state and read `max_tool_iterations` from an opts parameter.
 
@@ -276,7 +276,7 @@ Expected: PASS
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/llm/claude.ex
+git add lib/ex_cortex/llm/claude.ex
 git commit -m "feat: add iteration circuit breaker to Claude agent loop"
 ```
 
@@ -285,20 +285,20 @@ git commit -m "feat: add iteration circuit breaker to Claude agent loop"
 ### Task 3: Dangerous Tool Interception
 
 **Files:**
-- Modify: `lib/ex_calibur/llm/ollama.ex` (execute_tool_calls)
-- Modify: `lib/ex_calibur/llm/claude.ex` (execute_tools_with_log)
-- Modify: `lib/ex_calibur/step_runner.ex` (pass opts through)
-- Modify: `lib/ex_calibur/llm.ex` (if it exists — add opts to behaviour)
-- Create: `test/ex_calibur/step_runner/dangerous_tool_interception_test.exs`
+- Modify: `lib/ex_cortex/llm/ollama.ex` (execute_tool_calls)
+- Modify: `lib/ex_cortex/llm/claude.ex` (execute_tools_with_log)
+- Modify: `lib/ex_cortex/step_runner.ex` (pass opts through)
+- Modify: `lib/ex_cortex/llm.ex` (if it exists — add opts to behaviour)
+- Create: `test/ex_cortex/step_runner/dangerous_tool_interception_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/step_runner/dangerous_tool_interception_test.exs
-defmodule ExCalibur.StepRunner.DangerousToolInterceptionTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/step_runner/dangerous_tool_interception_test.exs
+defmodule ExCortex.StepRunner.DangerousToolInterceptionTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.StepRunner
+  alias ExCortex.StepRunner
 
   describe "dangerous?/1" do
     test "close_issue is dangerous" do
@@ -314,21 +314,21 @@ end
 
 **Step 2: Run test — should already pass (dangerous?/1 exists)**
 
-Run: `mix test test/ex_calibur/step_runner/dangerous_tool_interception_test.exs`
+Run: `mix test test/ex_cortex/step_runner/dangerous_tool_interception_test.exs`
 Expected: PASS
 
 **Step 3: Add `dangerous_tool_mode` to opts flow**
 
-In `lib/ex_calibur/step_runner.ex`, modify `call_member/2` and `call_member_raw/2` to accept an opts keyword list and pass it through to `ExCalibur.LLM.complete_with_tools/5`:
+In `lib/ex_cortex/step_runner.ex`, modify `call_member/2` and `call_member_raw/2` to accept an opts keyword list and pass it through to `ExCortex.LLM.complete_with_tools/5`:
 
 ```elixir
 defp call_member(member, input_text, opts \\ []) do
   # ... existing code ...
   result =
     if tools == [] do
-      ExCalibur.LLM.complete(provider, model, prompt, input_text)
+      ExCortex.LLM.complete(provider, model, prompt, input_text)
     else
-      ExCalibur.LLM.complete_with_tools(provider, model, prompt, input_text, tools, opts)
+      ExCortex.LLM.complete_with_tools(provider, model, prompt, input_text, tools, opts)
     end
   # ...
 end
@@ -397,7 +397,7 @@ Expected: PASS
 **Step 7: Commit**
 
 ```bash
-git add lib/ex_calibur/llm/ollama.ex lib/ex_calibur/llm/claude.ex lib/ex_calibur/step_runner.ex test/ex_calibur/step_runner/dangerous_tool_interception_test.exs
+git add lib/ex_cortex/llm/ollama.ex lib/ex_cortex/llm/claude.ex lib/ex_cortex/step_runner.ex test/ex_cortex/step_runner/dangerous_tool_interception_test.exs
 git commit -m "feat: wire dangerous tool interception into LLM agent loops"
 ```
 
@@ -406,17 +406,17 @@ git commit -m "feat: wire dangerous tool interception into LLM agent loops"
 ### Task 4: Verdict Gates in Quest Runner
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex:50-125`
-- Create: `test/ex_calibur/quest_runner/verdict_gate_test.exs`
+- Modify: `lib/ex_cortex/quest_runner.ex:50-125`
+- Create: `test/ex_cortex/quest_runner/verdict_gate_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/quest_runner/verdict_gate_test.exs
-defmodule ExCalibur.QuestRunner.VerdictGateTest do
+# test/ex_cortex/quest_runner/verdict_gate_test.exs
+defmodule ExCortex.QuestRunner.VerdictGateTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.QuestRunner
+  alias ExCortex.QuestRunner
 
   describe "check_gate/2" do
     test "no gate field passes through" do
@@ -448,12 +448,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/quest_runner/verdict_gate_test.exs`
+Run: `mix test test/ex_cortex/quest_runner/verdict_gate_test.exs`
 Expected: FAIL — function not defined
 
 **Step 3: Implement `check_gate/2`**
 
-Add to `lib/ex_calibur/quest_runner.ex`:
+Add to `lib/ex_cortex/quest_runner.ex`:
 
 ```elixir
 def check_gate(%{"gate" => true}, {:ok, %{verdict: "fail"} = result}) do
@@ -514,7 +514,7 @@ Wrap the `Enum.reduce` in a `try/catch` for the `:gated` throw, and set quest ru
 
 **Step 5: Run tests**
 
-Run: `mix test test/ex_calibur/quest_runner/verdict_gate_test.exs`
+Run: `mix test test/ex_cortex/quest_runner/verdict_gate_test.exs`
 Expected: PASS
 
 Run: `mix test`
@@ -523,7 +523,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_runner.ex test/ex_calibur/quest_runner/verdict_gate_test.exs
+git add lib/ex_cortex/quest_runner.ex test/ex_cortex/quest_runner/verdict_gate_test.exs
 git commit -m "feat: add verdict gates to quest runner — fail stops pipeline"
 ```
 
@@ -532,17 +532,17 @@ git commit -m "feat: add verdict gates to quest runner — fail stops pipeline"
 ### Task 5: Rollback on Failure in Step Runner
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
-- Create: `test/ex_calibur/step_runner/rollback_test.exs`
+- Modify: `lib/ex_cortex/step_runner.ex`
+- Create: `test/ex_cortex/step_runner/rollback_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/step_runner/rollback_test.exs
-defmodule ExCalibur.StepRunner.RollbackTest do
+# test/ex_cortex/step_runner/rollback_test.exs
+defmodule ExCortex.StepRunner.RollbackTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.StepRunner
+  alias ExCortex.StepRunner
 
   describe "has_write_tools?/1" do
     test "detects write tools in loop_tools" do
@@ -562,12 +562,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `mix test test/ex_calibur/step_runner/rollback_test.exs`
+Run: `mix test test/ex_cortex/step_runner/rollback_test.exs`
 Expected: FAIL
 
 **Step 3: Implement rollback helpers**
 
-Add to `lib/ex_calibur/step_runner.ex`:
+Add to `lib/ex_cortex/step_runner.ex`:
 
 ```elixir
 @write_tool_names ~w(write_file edit_file git_commit create_obsidian_note daily_obsidian)
@@ -626,7 +626,7 @@ Also check for max_iterations in the result — if the LLM returned due to hitti
 
 **Step 5: Run tests**
 
-Run: `mix test test/ex_calibur/step_runner/rollback_test.exs`
+Run: `mix test test/ex_cortex/step_runner/rollback_test.exs`
 Expected: PASS
 
 Run: `mix test`
@@ -635,7 +635,7 @@ Expected: PASS
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/step_runner.ex test/ex_calibur/step_runner/rollback_test.exs
+git add lib/ex_cortex/step_runner.ex test/ex_cortex/step_runner/rollback_test.exs
 git commit -m "feat: rollback uncommitted changes when step fails or hits max iterations"
 ```
 
@@ -644,17 +644,17 @@ git commit -m "feat: rollback uncommitted changes when step fails or hits max it
 ### Task 6: Styler Guard in git_commit Tool
 
 **Files:**
-- Modify: `lib/ex_calibur/tools/git_commit.ex`
-- Create: `test/ex_calibur/tools/git_commit_test.exs`
+- Modify: `lib/ex_cortex/tools/git_commit.ex`
+- Create: `test/ex_cortex/tools/git_commit_test.exs`
 
 **Step 1: Write failing test**
 
 ```elixir
-# test/ex_calibur/tools/git_commit_test.exs
-defmodule ExCalibur.Tools.GitCommitTest do
+# test/ex_cortex/tools/git_commit_test.exs
+defmodule ExCortex.Tools.GitCommitTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.GitCommit
+  alias ExCortex.Tools.GitCommit
 
   test "req_llm_tool returns valid tool struct" do
     tool = GitCommit.req_llm_tool()
@@ -666,7 +666,7 @@ end
 
 **Step 2: Add Styler guard to git_commit**
 
-Modify `lib/ex_calibur/tools/git_commit.ex`:
+Modify `lib/ex_cortex/tools/git_commit.ex`:
 
 ```elixir
 def call(%{"files" => files, "message" => message} = params) do
@@ -697,7 +697,7 @@ end
 
 **Step 3: Run tests**
 
-Run: `mix test test/ex_calibur/tools/git_commit_test.exs`
+Run: `mix test test/ex_cortex/tools/git_commit_test.exs`
 Expected: PASS
 
 Run: `mix test`
@@ -706,7 +706,7 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/git_commit.ex test/ex_calibur/tools/git_commit_test.exs
+git add lib/ex_cortex/tools/git_commit.ex test/ex_cortex/tools/git_commit_test.exs
 git commit -m "feat: auto-format Elixir files before git commit (Styler guard)"
 ```
 
@@ -715,7 +715,7 @@ git commit -m "feat: auto-format Elixir files before git commit (Styler guard)"
 ### Task 7: Update Quest Seed with Guardrail Config
 
 **Files:**
-- Modify: `lib/ex_calibur/self_improvement/quest_seed.ex`
+- Modify: `lib/ex_cortex/self_improvement/quest_seed.ex`
 
 **Step 1: Add `dangerous_tool_mode` to step definitions**
 
@@ -781,7 +781,7 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/self_improvement/quest_seed.ex
+git add lib/ex_cortex/self_improvement/quest_seed.ex
 git commit -m "feat: configure SI steps with interception, gates, and iteration caps"
 ```
 
@@ -790,17 +790,17 @@ git commit -m "feat: configure SI steps with interception, gates, and iteration 
 ### Task 8: Integration Test
 
 **Files:**
-- Create: `test/ex_calibur/quest_runner/guardrails_integration_test.exs`
+- Create: `test/ex_cortex/quest_runner/guardrails_integration_test.exs`
 
 **Step 1: Write integration test that verifies the full flow**
 
 ```elixir
-# test/ex_calibur/quest_runner/guardrails_integration_test.exs
-defmodule ExCalibur.QuestRunner.GuardrailsIntegrationTest do
-  use ExCalibur.DataCase, async: false
+# test/ex_cortex/quest_runner/guardrails_integration_test.exs
+defmodule ExCortex.QuestRunner.GuardrailsIntegrationTest do
+  use ExCortex.DataCase, async: false
 
-  alias ExCalibur.QuestRunner
-  alias ExCalibur.Quests
+  alias ExCortex.QuestRunner
+  alias ExCortex.Quests
 
   describe "verdict gate integration" do
     test "quest with gated step that fails skips to final step" do
@@ -831,7 +831,7 @@ end
 
 **Step 2: Run integration test**
 
-Run: `mix test test/ex_calibur/quest_runner/guardrails_integration_test.exs`
+Run: `mix test test/ex_cortex/quest_runner/guardrails_integration_test.exs`
 Expected: PASS
 
 **Step 3: Run full suite**
@@ -842,6 +842,6 @@ Expected: PASS
 **Step 4: Commit**
 
 ```bash
-git add test/ex_calibur/quest_runner/guardrails_integration_test.exs
+git add test/ex_cortex/quest_runner/guardrails_integration_test.exs
 git commit -m "test: add guardrails integration tests"
 ```

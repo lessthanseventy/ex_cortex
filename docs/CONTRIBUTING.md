@@ -1,12 +1,12 @@
-# Contributing to ExCalibur
+# Contributing to ExCortex
 
-Thank you for your interest in contributing to ExCalibur! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to ExCortex! This document provides guidelines for contributing to the project.
 
 ## How to Contribute
 
 ### Reporting Issues
 
-1. Check the [issue tracker](https://github.com/your-org/ex_calibur/issues) to see if the issue has already been reported.
+1. Check the [issue tracker](https://github.com/your-org/ex_cortex/issues) to see if the issue has already been reported.
 2. If not, create a new issue with a clear description of the problem, steps to reproduce, and any relevant logs or error messages.
 
 ### Suggesting Features
@@ -26,8 +26,8 @@ Thank you for your interest in contributing to ExCalibur! This document provides
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-org/ex_calibur.git
-   cd ex_calibur
+   git clone https://github.com/your-org/ex_cortex.git
+   cd ex_cortex
    ```
 
 2. Install dependencies:
@@ -55,7 +55,7 @@ mix test
 
 To run specific tests:
 ```bash
-mix test test/ex_calibur/your_test_file.exs
+mix test test/ex_cortex/your_test_file.exs
 ```
 
 ### Code Style
@@ -99,4 +99,4 @@ Join our community on [Discord](https://discord.gg/your-invite-link) or [Slack](
 
 ## License
 
-By contributing to ExCalibur, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to ExCortex, you agree that your contributions will be licensed under the [MIT License](LICENSE).

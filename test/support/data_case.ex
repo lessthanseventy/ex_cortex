@@ -1,4 +1,4 @@
-defmodule ExCalibur.DataCase do
+defmodule ExCortex.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -10,7 +10,7 @@ defmodule ExCalibur.DataCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use ExCalibur.DataCase, async: true`, although
+  by setting `use ExCortex.DataCase, async: true`, although
   this option is not recommended for other databases.
   """
 
@@ -23,14 +23,14 @@ defmodule ExCalibur.DataCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import ExCalibur.DataCase
+      import ExCortex.DataCase
 
-      alias ExCalibur.Repo
+      alias ExCortex.Repo
     end
   end
 
   setup tags do
-    ExCalibur.DataCase.setup_sandbox(tags)
+    ExCortex.DataCase.setup_sandbox(tags)
     :ok
   end
 
@@ -38,10 +38,10 @@ defmodule ExCalibur.DataCase do
   Sets up the sandbox based on the test tags.
   """
   def setup_sandbox(tags) do
-    pid = Sandbox.start_owner!(ExCalibur.Repo, shared: not tags[:async])
+    pid = Sandbox.start_owner!(ExCortex.Repo, shared: not tags[:async])
 
-    if at_pid = Process.whereis(ExCalibur.AppTelemetry) do
-      Sandbox.allow(ExCalibur.Repo, self(), at_pid)
+    if at_pid = Process.whereis(ExCortex.AppTelemetry) do
+      Sandbox.allow(ExCortex.Repo, self(), at_pid)
     end
 
     on_exit(fn -> Sandbox.stop_owner(pid) end)

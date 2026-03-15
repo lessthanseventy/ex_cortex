@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddHeraldNameToQuests do
+defmodule ExCortex.Repo.Migrations.AddHeraldNameToQuests do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.SeedDefaultHeralds do
+defmodule ExCortex.Repo.Migrations.SeedDefaultHeralds do
   use Ecto.Migration
 
   def up do

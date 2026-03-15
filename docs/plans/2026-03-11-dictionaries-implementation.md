@@ -13,17 +13,17 @@
 ### Task 1: Add `get_dictionary_by_name/1` to Library
 
 **Files:**
-- Modify: `lib/ex_calibur/library.ex`
-- Create: `test/ex_calibur/library_test.exs`
+- Modify: `lib/ex_cortex/library.ex`
+- Create: `test/ex_cortex/library_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/library_test.exs
-defmodule ExCalibur.LibraryTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/library_test.exs
+defmodule ExCortex.LibraryTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Library
+  alias ExCortex.Library
 
   test "get_dictionary_by_name returns dictionary when found" do
     {:ok, _} = Library.create_dictionary(%{name: "test_dict", content: "hello"})
@@ -40,12 +40,12 @@ end
 **Step 2: Run test to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/library_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/library_test.exs' --pane=main:1.3
 ```
 
 Expected: FAIL — `get_dictionary_by_name/1` undefined.
 
-**Step 3: Add the function to `lib/ex_calibur/library.ex`**
+**Step 3: Add the function to `lib/ex_cortex/library.ex`**
 
 Add after line 10 (`get_dictionary/1`):
 
@@ -56,7 +56,7 @@ def get_dictionary_by_name(name), do: Repo.get_by(Dictionary, name: name)
 **Step 4: Run test to verify it passes**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/library_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/library_test.exs' --pane=main:1.3
 ```
 
 Expected: 2 tests pass.
@@ -64,7 +64,7 @@ Expected: 2 tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/library.ex test/ex_calibur/library_test.exs
+git add lib/ex_cortex/library.ex test/ex_cortex/library_test.exs
 git commit -m "feat: add get_dictionary_by_name/1 to Library"
 ```
 
@@ -73,18 +73,18 @@ git commit -m "feat: add get_dictionary_by_name/1 to Library"
 ### Task 2: Implement `QueryDictionary` tool
 
 **Files:**
-- Create: `lib/ex_calibur/tools/query_dictionary.ex`
-- Create: `test/ex_calibur/tools/query_dictionary_test.exs`
+- Create: `lib/ex_cortex/tools/query_dictionary.ex`
+- Create: `test/ex_cortex/tools/query_dictionary_test.exs`
 
 **Step 1: Write the failing tests**
 
 ```elixir
-# test/ex_calibur/tools/query_dictionary_test.exs
-defmodule ExCalibur.Tools.QueryDictionaryTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/tools/query_dictionary_test.exs
+defmodule ExCortex.Tools.QueryDictionaryTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.Library
-  alias ExCalibur.Tools.QueryDictionary
+  alias ExCortex.Library
+  alias ExCortex.Tools.QueryDictionary
 
   setup do
     {:ok, _} =
@@ -146,7 +146,7 @@ end
 **Step 2: Run tests to verify they fail**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/query_dictionary_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/query_dictionary_test.exs' --pane=main:1.3
 ```
 
 Expected: FAIL — `QueryDictionary` undefined.
@@ -154,11 +154,11 @@ Expected: FAIL — `QueryDictionary` undefined.
 **Step 3: Implement the tool**
 
 ```elixir
-# lib/ex_calibur/tools/query_dictionary.ex
-defmodule ExCalibur.Tools.QueryDictionary do
+# lib/ex_cortex/tools/query_dictionary.ex
+defmodule ExCortex.Tools.QueryDictionary do
   @moduledoc "Tool: search a named dictionary for matching rows or lines."
 
-  alias ExCalibur.Library
+  alias ExCortex.Library
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -222,7 +222,7 @@ end
 **Step 4: Run tests to verify they pass**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/query_dictionary_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/query_dictionary_test.exs' --pane=main:1.3
 ```
 
 Expected: 6 tests pass.
@@ -230,7 +230,7 @@ Expected: 6 tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/query_dictionary.ex test/ex_calibur/tools/query_dictionary_test.exs
+git add lib/ex_cortex/tools/query_dictionary.ex test/ex_cortex/tools/query_dictionary_test.exs
 git commit -m "feat: add QueryDictionary tool"
 ```
 
@@ -239,12 +239,12 @@ git commit -m "feat: add QueryDictionary tool"
 ### Task 3: Register `QueryDictionary` in the tool registry
 
 **Files:**
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Modify: `test/ex_calibur/tools/registry_test.exs`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Modify: `test/ex_cortex/tools/registry_test.exs`
 
 **Step 1: Update the registry test — add assertion that `query_dictionary` is in safe tools**
 
-Add to `test/ex_calibur/tools/registry_test.exs` inside the first test:
+Add to `test/ex_cortex/tools/registry_test.exs` inside the first test:
 
 ```elixir
 assert "query_dictionary" in names
@@ -266,17 +266,17 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/registry_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/registry_test.exs' --pane=main:1.3
 ```
 
 Expected: FAIL — `query_dictionary` not in safe tools.
 
 **Step 3: Update the registry**
 
-In `lib/ex_calibur/tools/registry.ex`, change:
+In `lib/ex_cortex/tools/registry.ex`, change:
 
 ```elixir
-alias ExCalibur.Tools.{QueryLore, FetchUrl, RunQuest}
+alias ExCortex.Tools.{QueryLore, FetchUrl, RunQuest}
 
 @safe [QueryLore, FetchUrl]
 ```
@@ -284,7 +284,7 @@ alias ExCalibur.Tools.{QueryLore, FetchUrl, RunQuest}
 To:
 
 ```elixir
-alias ExCalibur.Tools.{QueryDictionary, QueryLore, FetchUrl, RunQuest}
+alias ExCortex.Tools.{QueryDictionary, QueryLore, FetchUrl, RunQuest}
 
 @safe [QueryDictionary, QueryLore, FetchUrl]
 ```
@@ -292,7 +292,7 @@ alias ExCalibur.Tools.{QueryDictionary, QueryLore, FetchUrl, RunQuest}
 **Step 4: Run tests to verify they pass**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/registry_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/registry_test.exs' --pane=main:1.3
 ```
 
 Expected: all tests pass.
@@ -300,7 +300,7 @@ Expected: all tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/registry.ex test/ex_calibur/tools/registry_test.exs
+git add lib/ex_cortex/tools/registry.ex test/ex_cortex/tools/registry_test.exs
 git commit -m "feat: register QueryDictionary as safe tool"
 ```
 
@@ -337,7 +337,7 @@ All active ISO 4217 currency codes. ~180 rows.
 **Step 2: Verify files exist and are well-formed**
 
 ```bash
-tmux-cli send 'head -3 /home/andrew/projects/ex_calibur/priv/dictionaries/sports_teams.csv && echo "---" && wc -l /home/andrew/projects/ex_calibur/priv/dictionaries/*.csv' --pane=main:1.3
+tmux-cli send 'head -3 /home/andrew/projects/ex_cortex/priv/dictionaries/sports_teams.csv && echo "---" && wc -l /home/andrew/projects/ex_cortex/priv/dictionaries/*.csv' --pane=main:1.3
 ```
 
 Expected: each file shows a valid header + first row.
@@ -371,11 +371,11 @@ descriptions = %{
 for path <- Path.wildcard("priv/dictionaries/*.csv") do
   name = Path.basename(path, ".csv")
 
-  unless ExCalibur.Library.get_dictionary_by_name(name) do
+  unless ExCortex.Library.get_dictionary_by_name(name) do
     content = File.read!(path)
 
     {:ok, _} =
-      ExCalibur.Library.create_dictionary(%{
+      ExCortex.Library.create_dictionary(%{
         name: name,
         content: content,
         content_type: "csv",
@@ -390,7 +390,7 @@ end
 **Step 2: Run seeds and verify output**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix run priv/repo/seeds.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix run priv/repo/seeds.exs' --pane=main:1.3
 ```
 
 Expected: prints "Seeded dictionary: sports_teams" etc. for each file.
@@ -398,7 +398,7 @@ Expected: prints "Seeded dictionary: sports_teams" etc. for each file.
 **Step 3: Run seeds again to verify idempotency**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix run priv/repo/seeds.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix run priv/repo/seeds.exs' --pane=main:1.3
 ```
 
 Expected: no output (already seeded, skipped).
@@ -417,7 +417,7 @@ git commit -m "feat: seed pre-baked dictionaries on mix run seeds.exs"
 **Step 1: Run all tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test' --pane=main:1.3
 ```
 
 Expected: all tests pass, no warnings.
@@ -425,7 +425,7 @@ Expected: all tests pass, no warnings.
 **Step 2: Format**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix format' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix format' --pane=main:1.3
 ```
 
 **Step 3: Commit any format fixes if needed**

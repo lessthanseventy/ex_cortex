@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:executing-plans to implement this plan task-by-task.
 
-**Goal:** Make ExCalibur's UI more connected and discoverable: reorder nav, add tooltips, standardize headers, improve empty states, add cross-page links, and add context summaries.
+**Goal:** Make ExCortex's UI more connected and discoverable: reorder nav, add tooltips, standardize headers, improve empty states, add cross-page links, and add context summaries.
 
 **Architecture:** All changes are in LiveView render functions and the root layout template. No schema changes, no new routes. Cross-links use existing query functions. Context summaries are computed from data already loaded in mount.
 
@@ -33,13 +33,13 @@ Tasks 0-2, 4-7 can all run in parallel. Task 3 depends on Task 0 (nav order). Ta
 ### Task 0: Nav reorder + tooltips (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/components/layouts/root.html.heex`
+- Modify: `lib/ex_cortex_web/components/layouts/root.html.heex`
 
 **Step 1: No test needed — template-only change**
 
 **Step 2: Update the nav link list and add title attributes**
 
-In `lib/ex_calibur_web/components/layouts/root.html.heex`, replace lines 31-53:
+In `lib/ex_cortex_web/components/layouts/root.html.heex`, replace lines 31-53:
 
 ```heex
         <div class="flex overflow-x-auto">
@@ -77,7 +77,7 @@ Start server and check nav order is Town Square → Guild Hall → Quests → Li
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/layouts/root.html.heex
+git add lib/ex_cortex_web/components/layouts/root.html.heex
 git commit -m "feat: reorder nav to match workflow and add tooltips"
 ```
 
@@ -86,13 +86,13 @@ git commit -m "feat: reorder nav to match workflow and add tooltips"
 ### Task 1: Settings header standardization (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/settings_live.ex`
+- Modify: `lib/ex_cortex_web/live/settings_live.ex`
 
 **Step 1: No test needed — template-only change**
 
 **Step 2: Update the header in the render function**
 
-In `lib/ex_calibur_web/live/settings_live.ex`, replace lines 81-82:
+In `lib/ex_cortex_web/live/settings_live.ex`, replace lines 81-82:
 
 ```elixir
     <div class="max-w-2xl mx-auto p-6 space-y-8">
@@ -114,7 +114,7 @@ With:
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/settings_live.ex
+git add lib/ex_cortex_web/live/settings_live.ex
 git commit -m "feat: standardize Settings header to match other pages"
 ```
 
@@ -123,14 +123,14 @@ git commit -m "feat: standardize Settings header to match other pages"
 ### Task 2: Improved empty states (Grimoire + Quests) (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/grimoire_live.ex`
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/grimoire_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: No tests needed — text-only template changes**
 
 **Step 2: Update Grimoire empty states**
 
-In `lib/ex_calibur_web/live/grimoire_live.ex`:
+In `lib/ex_cortex_web/live/grimoire_live.ex`:
 
 Replace line 160-164 ("No quests yet" block):
 
@@ -184,7 +184,7 @@ With:
 
 **Step 3: Update Quests empty state**
 
-In `lib/ex_calibur_web/live/quests_live.ex`, replace lines 524-528:
+In `lib/ex_cortex_web/live/quests_live.ex`, replace lines 524-528:
 
 ```heex
             <div class="text-center py-12 text-muted-foreground">
@@ -207,7 +207,7 @@ With:
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/grimoire_live.ex lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/grimoire_live.ex lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: improve empty states with contextual guidance and links"
 ```
 
@@ -216,15 +216,15 @@ git commit -m "feat: improve empty states with contextual guidance and links"
 ### Task 3: Context summaries on page headers (depends: Task 0)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/guild_hall_live.ex`
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
-- Modify: `lib/ex_calibur_web/live/grimoire_live.ex`
-- Modify: `lib/ex_calibur_web/live/library_live.ex`
-- Modify: `lib/ex_calibur_web/live/town_square_live.ex`
+- Modify: `lib/ex_cortex_web/live/guild_hall_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/grimoire_live.ex`
+- Modify: `lib/ex_cortex_web/live/library_live.ex`
+- Modify: `lib/ex_cortex_web/live/town_square_live.ex`
 
 **Step 1: Guild Hall context line**
 
-In `lib/ex_calibur_web/live/guild_hall_live.ex`, the header is inside the render function. Find the tagline paragraph:
+In `lib/ex_cortex_web/live/guild_hall_live.ex`, the header is inside the render function. Find the tagline paragraph:
 
 ```heex
       <p class="text-muted-foreground mt-1.5">
@@ -242,7 +242,7 @@ Add after it:
 
 **Step 2: Quests context line**
 
-In `lib/ex_calibur_web/live/quests_live.ex`, find the tagline:
+In `lib/ex_cortex_web/live/quests_live.ex`, find the tagline:
 
 ```heex
       <p class="text-muted-foreground mt-1.5">
@@ -260,7 +260,7 @@ Add after it:
 
 **Step 3: Grimoire context line**
 
-In `lib/ex_calibur_web/live/grimoire_live.ex`, this only shows when no quest is selected (line 143-148). Find:
+In `lib/ex_cortex_web/live/grimoire_live.ex`, this only shows when no quest is selected (line 143-148). Find:
 
 ```heex
         <div>
@@ -287,7 +287,7 @@ Replace with (adding lore count to mount and context line):
 
 **Step 4: Library context line**
 
-In `lib/ex_calibur_web/live/library_live.ex`, find:
+In `lib/ex_cortex_web/live/library_live.ex`, find:
 
 ```heex
       <p class="text-muted-foreground mt-1.5">
@@ -307,7 +307,7 @@ Note: check that `@dictionaries` is assigned in mount. If not, add it. The Libra
 
 **Step 5: Town Square context line**
 
-In `lib/ex_calibur_web/live/town_square_live.ex`, the banner-set view (line 257-262) shows "Town Square" with tagline. Find:
+In `lib/ex_cortex_web/live/town_square_live.ex`, the banner-set view (line 257-262) shows "Town Square" with tagline. Find:
 
 ```heex
           <p class="text-muted-foreground mt-1.5">
@@ -330,7 +330,7 @@ The `@current_guild` assign is already set in the TownSquareLive mount.
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guild_hall_live.ex lib/ex_calibur_web/live/quests_live.ex lib/ex_calibur_web/live/grimoire_live.ex lib/ex_calibur_web/live/library_live.ex lib/ex_calibur_web/live/town_square_live.ex
+git add lib/ex_cortex_web/live/guild_hall_live.ex lib/ex_cortex_web/live/quests_live.ex lib/ex_cortex_web/live/grimoire_live.ex lib/ex_cortex_web/live/library_live.ex lib/ex_cortex_web/live/town_square_live.ex
 git commit -m "feat: add context summary lines to page headers"
 ```
 
@@ -339,14 +339,14 @@ git commit -m "feat: add context summary lines to page headers"
 ### Task 4: Cross-links — Guild Hall members → Quests (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/guild_hall_live.ex`
+- Modify: `lib/ex_cortex_web/live/guild_hall_live.ex`
 
 **Step 1: Add quest lookup to mount**
 
 In `mount_guild_hall/1`, after loading members, add a lookup map of member name → quest names:
 
 ```elixir
-    quests = ExCalibur.Quests.list_quests()
+    quests = ExCortex.Quests.list_quests()
 
     member_quests =
       Map.new(members, fn m ->
@@ -393,7 +393,7 @@ Update the call site to pass the quests:
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guild_hall_live.ex
+git add lib/ex_cortex_web/live/guild_hall_live.ex
 git commit -m "feat: show quest usage on Guild Hall member cards"
 ```
 
@@ -402,7 +402,7 @@ git commit -m "feat: show quest usage on Guild Hall member cards"
 ### Task 5: Cross-links — Quests → Sources and Members (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Add source name lookup**
 
@@ -440,7 +440,7 @@ This goes near where roster is displayed in the expanded quest step section.
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: show source names on source-triggered quests"
 ```
 
@@ -449,14 +449,14 @@ git commit -m "feat: show source names on source-triggered quests"
 ### Task 6: Cross-links — Library sources → Quests (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/library_live.ex`
+- Modify: `lib/ex_cortex_web/live/library_live.ex`
 
 **Step 1: Add quest lookup to mount**
 
 In the Library mount, after loading sources, build a source_id → quest_names map:
 
 ```elixir
-    quests = ExCalibur.Quests.list_quests()
+    quests = ExCortex.Quests.list_quests()
 
     source_quests =
       Map.new(sources, fn s ->
@@ -490,7 +490,7 @@ Update the call site to pass `quest_names={Map.get(@source_quests, source.id, []
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/library_live.ex
+git add lib/ex_cortex_web/live/library_live.ex
 git commit -m "feat: show triggered quests on Library source rows"
 ```
 
@@ -499,11 +499,11 @@ git commit -m "feat: show triggered quests on Library source rows"
 ### Task 7: Lodge empty state + context summary (depends: none)
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
 
 **Step 1: Update the empty state message**
 
-In `lib/ex_calibur_web/live/lodge_live.ex`, replace lines 325-329:
+In `lib/ex_cortex_web/live/lodge_live.ex`, replace lines 325-329:
 
 ```heex
           <div class="rounded-lg border p-8 text-center">
@@ -556,7 +556,7 @@ Replace with:
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/lodge_live.ex
+git add lib/ex_cortex_web/live/lodge_live.ex
 git commit -m "feat: improve Lodge empty state and add context summary"
 ```
 

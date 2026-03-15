@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.CreateDictionaries do
+defmodule ExCortex.Repo.Migrations.CreateDictionaries do
   use Ecto.Migration
 
   def change do

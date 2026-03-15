@@ -9,10 +9,10 @@ plus five pre-baked seed datasets for common reference data.
 
 ## 1. What Already Exists
 
-- `ExCalibur.Library.Dictionary` schema — name, description, content (text),
+- `ExCortex.Library.Dictionary` schema — name, description, content (text),
   content_type (text/markdown/csv/json), tags, filename
-- `ExCalibur.Library` CRUD — list, get, create, update, delete
-- `ExCalibur.ContextProviders.Dictionary` — injects full content into prompt
+- `ExCortex.Library` CRUD — list, get, create, update, delete
+- `ExCortex.ContextProviders.Dictionary` — injects full content into prompt
 - Library UI — create, edit, delete, upload (tabs: scrolls/books/heralds/dictionaries)
 
 ## 2. New: `query_dictionary` Tool
@@ -59,7 +59,7 @@ end
 
 ### Module Location
 
-`lib/ex_calibur/tools/query_dictionary.ex` — follows the same pattern as
+`lib/ex_cortex/tools/query_dictionary.ex` — follows the same pattern as
 existing tools.
 
 ## 3. Pre-baked Seed Dictionaries
@@ -113,9 +113,9 @@ already exists before inserting (idempotent):
 ```elixir
 for file <- Path.wildcard("priv/dictionaries/*.csv") do
   name = Path.basename(file, ".csv")
-  unless ExCalibur.Library.get_dictionary_by_name(name) do
+  unless ExCortex.Library.get_dictionary_by_name(name) do
     content = File.read!(file)
-    ExCalibur.Library.create_dictionary(%{
+    ExCortex.Library.create_dictionary(%{
       name: name,
       content: content,
       content_type: "csv",

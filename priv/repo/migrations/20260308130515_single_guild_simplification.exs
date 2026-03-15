@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.SingleGuildSimplification do
+defmodule ExCortex.Repo.Migrations.SingleGuildSimplification do
   use Ecto.Migration
 
   def change do

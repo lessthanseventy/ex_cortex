@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:executing-plans to implement this plan task-by-task.
 
-**Goal:** ExCalibur operates on itself — a guild watches GitHub issues, writes code in worktrees, ships PRs, and gracefully restarts after merging.
+**Goal:** ExCortex operates on itself — a guild watches GitHub issues, writes code in worktrees, ships PRs, and gracefully restarts after merging.
 
 **Architecture:** Issue-driven quest pipeline using existing reflect/escalate mechanics. New tools for file I/O and git ops. New GitHub issue source type. LearningLoop wired into step completion. Worktree isolation for all code changes.
 
@@ -15,11 +15,11 @@
 ### Task 0: PID File on Boot
 
 **Files:**
-- Modify: `lib/ex_calibur/application.ex`
+- Modify: `lib/ex_cortex/application.ex`
 
 **Step 1: Write the PID file after supervision tree starts**
 
-In `application.ex`, after the supervision tree starts successfully, write the beam OS PID to `.ex_calibur.pid`:
+In `application.ex`, after the supervision tree starts successfully, write the beam OS PID to `.ex_cortex.pid`:
 
 ```elixir
 # In start/2, after Supervisor.start_link:
@@ -32,17 +32,17 @@ result
 ```elixir
 defp write_pid_file do
   pid = System.pid()
-  path = Path.join(File.cwd!(), ".ex_calibur.pid")
+  path = Path.join(File.cwd!(), ".ex_cortex.pid")
   File.write!(path, pid)
   Logger.info("PID file written: #{path} (#{pid})")
 end
 ```
 
-**Step 2: Add `.ex_calibur.pid` to `.gitignore`**
+**Step 2: Add `.ex_cortex.pid` to `.gitignore`**
 
 ```
 # Self-improvement loop
-.ex_calibur.pid
+.ex_cortex.pid
 .worktrees/
 ```
 
@@ -54,7 +54,7 @@ Expected: compiles cleanly
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/application.ex .gitignore
+git add lib/ex_cortex/application.ex .gitignore
 git commit -m "feat: write PID file on boot for graceful restart"
 ```
 
@@ -73,7 +73,7 @@ git commit -m "feat: write PID file on boot for graceful restart"
 set -euo pipefail
 
 PROJECT_DIR="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
-PID_FILE="$PROJECT_DIR/.ex_calibur.pid"
+PID_FILE="$PROJECT_DIR/.ex_cortex.pid"
 PORT="${PORT:-4000}"
 LOG_FILE="$PROJECT_DIR/log/restart.log"
 
@@ -192,25 +192,25 @@ git commit -m "feat: add restart scripts for dev and docker modes"
 ### Task 2: New Tools — File I/O
 
 **Files:**
-- Create: `lib/ex_calibur/tools/read_file.ex`
-- Create: `lib/ex_calibur/tools/write_file.ex`
-- Create: `lib/ex_calibur/tools/edit_file.ex`
-- Create: `lib/ex_calibur/tools/list_files.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Create: `test/ex_calibur/tools/file_tools_test.exs`
+- Create: `lib/ex_cortex/tools/read_file.ex`
+- Create: `lib/ex_cortex/tools/write_file.ex`
+- Create: `lib/ex_cortex/tools/edit_file.ex`
+- Create: `lib/ex_cortex/tools/list_files.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Create: `test/ex_cortex/tools/file_tools_test.exs`
 
 **Step 1: Write the test**
 
 ```elixir
-defmodule ExCalibur.Tools.FileToolsTest do
+defmodule ExCortex.Tools.FileToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.EditFile
-  alias ExCalibur.Tools.ListFiles
-  alias ExCalibur.Tools.ReadFile
-  alias ExCalibur.Tools.WriteFile
+  alias ExCortex.Tools.EditFile
+  alias ExCortex.Tools.ListFiles
+  alias ExCortex.Tools.ReadFile
+  alias ExCortex.Tools.WriteFile
 
-  @tmp_dir System.tmp_dir!() |> Path.join("ex_calibur_tool_test")
+  @tmp_dir System.tmp_dir!() |> Path.join("ex_cortex_tool_test")
 
   setup do
     File.rm_rf!(@tmp_dir)
@@ -275,13 +275,13 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/file_tools_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/file_tools_test.exs`
 Expected: compilation errors (modules don't exist)
 
 **Step 3: Implement ReadFile**
 
 ```elixir
-defmodule ExCalibur.Tools.ReadFile do
+defmodule ExCortex.Tools.ReadFile do
   @moduledoc "Tool: read a file from the working directory."
 
   def req_llm_tool do
@@ -318,7 +318,7 @@ end
 **Step 4: Implement WriteFile**
 
 ```elixir
-defmodule ExCalibur.Tools.WriteFile do
+defmodule ExCortex.Tools.WriteFile do
   @moduledoc "Tool: write content to a file in the working directory."
 
   def req_llm_tool do
@@ -355,7 +355,7 @@ end
 **Step 5: Implement EditFile**
 
 ```elixir
-defmodule ExCalibur.Tools.EditFile do
+defmodule ExCortex.Tools.EditFile do
   @moduledoc "Tool: find-and-replace text in a file."
 
   def req_llm_tool do
@@ -407,7 +407,7 @@ end
 **Step 6: Implement ListFiles**
 
 ```elixir
-defmodule ExCalibur.Tools.ListFiles do
+defmodule ExCortex.Tools.ListFiles do
   @moduledoc "Tool: list files matching a glob pattern."
 
   def req_llm_tool do
@@ -451,15 +451,15 @@ Add to `registry.ex`:
 
 **Step 8: Run tests**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/file_tools_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/file_tools_test.exs`
 Expected: all pass
 
 **Step 9: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/read_file.ex lib/ex_calibur/tools/write_file.ex \
-  lib/ex_calibur/tools/edit_file.ex lib/ex_calibur/tools/list_files.ex \
-  lib/ex_calibur/tools/registry.ex test/ex_calibur/tools/file_tools_test.exs
+git add lib/ex_cortex/tools/read_file.ex lib/ex_cortex/tools/write_file.ex \
+  lib/ex_cortex/tools/edit_file.ex lib/ex_cortex/tools/list_files.ex \
+  lib/ex_cortex/tools/registry.ex test/ex_cortex/tools/file_tools_test.exs
 git commit -m "feat: add file I/O tools (read, write, edit, list)"
 ```
 
@@ -468,25 +468,25 @@ git commit -m "feat: add file I/O tools (read, write, edit, list)"
 ### Task 3: New Tools — Git Operations
 
 **Files:**
-- Create: `lib/ex_calibur/tools/git_commit.ex`
-- Create: `lib/ex_calibur/tools/git_push.ex`
-- Create: `lib/ex_calibur/tools/open_pr.ex`
-- Create: `lib/ex_calibur/tools/merge_pr.ex`
-- Create: `lib/ex_calibur/tools/git_pull.ex`
-- Create: `lib/ex_calibur/tools/restart_app.ex`
-- Create: `lib/ex_calibur/tools/close_issue.ex`
-- Modify: `lib/ex_calibur/tools/registry.ex`
-- Create: `test/ex_calibur/tools/git_tools_test.exs`
+- Create: `lib/ex_cortex/tools/git_commit.ex`
+- Create: `lib/ex_cortex/tools/git_push.ex`
+- Create: `lib/ex_cortex/tools/open_pr.ex`
+- Create: `lib/ex_cortex/tools/merge_pr.ex`
+- Create: `lib/ex_cortex/tools/git_pull.ex`
+- Create: `lib/ex_cortex/tools/restart_app.ex`
+- Create: `lib/ex_cortex/tools/close_issue.ex`
+- Modify: `lib/ex_cortex/tools/registry.ex`
+- Create: `test/ex_cortex/tools/git_tools_test.exs`
 
 **Step 1: Write tests for git_commit (unit-testable parts)**
 
 ```elixir
-defmodule ExCalibur.Tools.GitToolsTest do
+defmodule ExCortex.Tools.GitToolsTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Tools.GitCommit
+  alias ExCortex.Tools.GitCommit
 
-  @tmp_dir System.tmp_dir!() |> Path.join("ex_calibur_git_test")
+  @tmp_dir System.tmp_dir!() |> Path.join("ex_cortex_git_test")
 
   setup do
     File.rm_rf!(@tmp_dir)
@@ -517,13 +517,13 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/git_tools_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/git_tools_test.exs`
 Expected: compilation error
 
 **Step 3: Implement GitCommit**
 
 ```elixir
-defmodule ExCalibur.Tools.GitCommit do
+defmodule ExCortex.Tools.GitCommit do
   @moduledoc "Tool: stage files and create a git commit in the working directory."
 
   def req_llm_tool do
@@ -564,7 +564,7 @@ end
 **Step 4: Implement GitPush**
 
 ```elixir
-defmodule ExCalibur.Tools.GitPush do
+defmodule ExCortex.Tools.GitPush do
   @moduledoc "Tool: push a branch to origin."
 
   def req_llm_tool do
@@ -596,7 +596,7 @@ end
 **Step 5: Implement OpenPR**
 
 ```elixir
-defmodule ExCalibur.Tools.OpenPR do
+defmodule ExCortex.Tools.OpenPR do
   @moduledoc "Tool: open a GitHub pull request via gh CLI."
 
   def req_llm_tool do
@@ -633,7 +633,7 @@ end
 **Step 6: Implement MergePR**
 
 ```elixir
-defmodule ExCalibur.Tools.MergePR do
+defmodule ExCortex.Tools.MergePR do
   @moduledoc "Tool: merge a GitHub pull request via gh CLI."
 
   def req_llm_tool do
@@ -669,7 +669,7 @@ end
 **Step 7: Implement GitPull**
 
 ```elixir
-defmodule ExCalibur.Tools.GitPull do
+defmodule ExCortex.Tools.GitPull do
   @moduledoc "Tool: pull latest changes from origin."
 
   def req_llm_tool do
@@ -699,15 +699,15 @@ end
 **Step 8: Implement RestartApp**
 
 ```elixir
-defmodule ExCalibur.Tools.RestartApp do
-  @moduledoc "Tool: graceful restart of the ExCalibur application."
+defmodule ExCortex.Tools.RestartApp do
+  @moduledoc "Tool: graceful restart of the ExCortex application."
 
   require Logger
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "restart_app",
-      description: "Gracefully restart the ExCalibur application after pulling new code.",
+      description: "Gracefully restart the ExCortex application after pulling new code.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -744,7 +744,7 @@ end
 **Step 9: Implement CloseIssue**
 
 ```elixir
-defmodule ExCalibur.Tools.CloseIssue do
+defmodule ExCortex.Tools.CloseIssue do
   @moduledoc "Tool: close a GitHub issue with a comment."
 
   def req_llm_tool do
@@ -765,7 +765,7 @@ defmodule ExCalibur.Tools.CloseIssue do
   end
 
   def call(%{"issue_number" => issue_number} = params) do
-    repo = Map.get(params, "repo") || ExCalibur.Settings.get(:default_repo)
+    repo = Map.get(params, "repo") || ExCortex.Settings.get(:default_repo)
 
     unless repo do
       {:error, "repo required — pass 'repo' param or configure default_repo"}
@@ -790,7 +790,7 @@ end
 **Step 10: Implement RunSandbox tool**
 
 ```elixir
-defmodule ExCalibur.Tools.RunSandbox do
+defmodule ExCortex.Tools.RunSandbox do
   @moduledoc "Tool: run an allowlisted shell command in the working directory."
 
   @allowed_prefixes [
@@ -821,7 +821,7 @@ defmodule ExCalibur.Tools.RunSandbox do
     working_dir = Map.get(params, "working_dir", File.cwd!())
 
     if Enum.any?(@allowed_prefixes, &String.starts_with?(command, &1)) do
-      case ExCalibur.Sandbox.run(%{cmd: command, mode: :host}, working_dir) do
+      case ExCortex.Sandbox.run(%{cmd: command, mode: :host}, working_dir) do
         {:ok, output, exit_code} -> {:ok, "Exit #{exit_code}:\n#{output}"}
         {:error, reason} -> {:error, "Sandbox error: #{inspect(reason)}"}
       end
@@ -840,17 +840,17 @@ Add to `@safe`: `RunSandbox`
 
 **Step 12: Run tests**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/tools/git_tools_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/tools/git_tools_test.exs`
 Expected: pass
 
 **Step 13: Commit**
 
 ```bash
-git add lib/ex_calibur/tools/git_commit.ex lib/ex_calibur/tools/git_push.ex \
-  lib/ex_calibur/tools/open_pr.ex lib/ex_calibur/tools/merge_pr.ex \
-  lib/ex_calibur/tools/git_pull.ex lib/ex_calibur/tools/restart_app.ex \
-  lib/ex_calibur/tools/close_issue.ex lib/ex_calibur/tools/run_sandbox.ex \
-  lib/ex_calibur/tools/registry.ex test/ex_calibur/tools/git_tools_test.exs
+git add lib/ex_cortex/tools/git_commit.ex lib/ex_cortex/tools/git_push.ex \
+  lib/ex_cortex/tools/open_pr.ex lib/ex_cortex/tools/merge_pr.ex \
+  lib/ex_cortex/tools/git_pull.ex lib/ex_cortex/tools/restart_app.ex \
+  lib/ex_cortex/tools/close_issue.ex lib/ex_cortex/tools/run_sandbox.ex \
+  lib/ex_cortex/tools/registry.ex test/ex_cortex/tools/git_tools_test.exs
 git commit -m "feat: add git and sandbox tools for self-improvement loop"
 ```
 
@@ -859,18 +859,18 @@ git commit -m "feat: add git and sandbox tools for self-improvement loop"
 ### Task 4: Worktree Manager
 
 **Files:**
-- Create: `lib/ex_calibur/worktree.ex`
-- Create: `test/ex_calibur/worktree_test.exs`
+- Create: `lib/ex_cortex/worktree.ex`
+- Create: `test/ex_cortex/worktree_test.exs`
 
 **Step 1: Write the test**
 
 ```elixir
-defmodule ExCalibur.WorktreeTest do
+defmodule ExCortex.WorktreeTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Worktree
+  alias ExCortex.Worktree
 
-  @tmp_dir System.tmp_dir!() |> Path.join("ex_calibur_worktree_test")
+  @tmp_dir System.tmp_dir!() |> Path.join("ex_cortex_worktree_test")
 
   setup do
     File.rm_rf!(@tmp_dir)
@@ -898,12 +898,12 @@ end
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/worktree_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/worktree_test.exs`
 
 **Step 3: Implement**
 
 ```elixir
-defmodule ExCalibur.Worktree do
+defmodule ExCortex.Worktree do
   @moduledoc "Manages git worktrees for isolated code changes."
 
   require Logger
@@ -951,13 +951,13 @@ end
 
 **Step 4: Run tests**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/worktree_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/worktree_test.exs`
 Expected: pass
 
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/worktree.ex test/ex_calibur/worktree_test.exs
+git add lib/ex_cortex/worktree.ex test/ex_cortex/worktree_test.exs
 git commit -m "feat: add worktree manager for isolated code changes"
 ```
 
@@ -966,17 +966,17 @@ git commit -m "feat: add worktree manager for isolated code changes"
 ### Task 5: GitHub Issue Source
 
 **Files:**
-- Create: `lib/ex_calibur/sources/github_issue_watcher.ex`
-- Modify: `lib/ex_calibur/sources/source_worker.ex` (add module mapping)
-- Create: `test/ex_calibur/sources/github_issue_watcher_test.exs`
+- Create: `lib/ex_cortex/sources/github_issue_watcher.ex`
+- Modify: `lib/ex_cortex/sources/source_worker.ex` (add module mapping)
+- Create: `test/ex_cortex/sources/github_issue_watcher_test.exs`
 
 **Step 1: Write the test**
 
 ```elixir
-defmodule ExCalibur.Sources.GithubIssueWatcherTest do
+defmodule ExCortex.Sources.GithubIssueWatcherTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Sources.GithubIssueWatcher
+  alias ExCortex.Sources.GithubIssueWatcher
 
   test "init with valid config" do
     assert {:ok, %{seen_ids: []}} = GithubIssueWatcher.init(%{"repo" => "owner/repo", "label" => "self-improvement"})
@@ -993,11 +993,11 @@ end
 **Step 3: Implement GithubIssueWatcher**
 
 ```elixir
-defmodule ExCalibur.Sources.GithubIssueWatcher do
+defmodule ExCortex.Sources.GithubIssueWatcher do
   @moduledoc "Polls GitHub for issues with a specific label."
-  @behaviour ExCalibur.Sources.Behaviour
+  @behaviour ExCortex.Sources.Behaviour
 
-  alias ExCalibur.Sources.SourceItem
+  alias ExCortex.Sources.SourceItem
 
   require Logger
 
@@ -1061,19 +1061,19 @@ end
 Add to `source_module/1` in `source_worker.ex`:
 
 ```elixir
-defp source_module("github_issues"), do: ExCalibur.Sources.GithubIssueWatcher
+defp source_module("github_issues"), do: ExCortex.Sources.GithubIssueWatcher
 ```
 
 **Step 5: Run tests**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/sources/github_issue_watcher_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/sources/github_issue_watcher_test.exs`
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/github_issue_watcher.ex \
-  lib/ex_calibur/sources/source_worker.ex \
-  test/ex_calibur/sources/github_issue_watcher_test.exs
+git add lib/ex_cortex/sources/github_issue_watcher.ex \
+  lib/ex_cortex/sources/source_worker.ex \
+  test/ex_cortex/sources/github_issue_watcher_test.exs
 git commit -m "feat: add GitHub issue watcher source type"
 ```
 
@@ -1082,19 +1082,19 @@ git commit -m "feat: add GitHub issue watcher source type"
 ### Task 6: Wire LearningLoop into Step Completion
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex`
-- Create: `test/ex_calibur/learning_loop_test.exs`
+- Modify: `lib/ex_cortex/quest_runner.ex`
+- Create: `test/ex_cortex/learning_loop_test.exs`
 
 **Step 1: Write a test that LearningLoop.retrospect is called**
 
 ```elixir
-defmodule ExCalibur.LearningLoopTest do
-  use ExCalibur.DataCase, async: true
+defmodule ExCortex.LearningLoopTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.LearningLoop
+  alias ExCortex.LearningLoop
 
   test "retrospect returns empty list when Claude not configured" do
-    step = %ExCalibur.Quests.Step{id: 1, name: "test", trigger: "manual", roster: []}
+    step = %ExCortex.Quests.Step{id: 1, name: "test", trigger: "manual", roster: []}
     step_run = %{id: 1, results: %{}, input: "test input"}
     assert {:ok, []} = LearningLoop.retrospect(step, step_run)
   end
@@ -1107,7 +1107,7 @@ In `quest_runner.ex`, after a step completes successfully, call `LearningLoop.re
 
 ```elixir
 # After StepRunner.run returns, in the step execution block:
-Task.Supervisor.start_child(ExCalibur.AsyncTaskSupervisor, fn ->
+Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
   case resolve_step(step_id) do
     nil -> :ok
     resolved_step ->
@@ -1119,12 +1119,12 @@ end)
 
 **Step 3: Run tests**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/learning_loop_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/learning_loop_test.exs`
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_runner.ex test/ex_calibur/learning_loop_test.exs
+git add lib/ex_cortex/quest_runner.ex test/ex_cortex/learning_loop_test.exs
 git commit -m "feat: wire LearningLoop.retrospect into quest step completion"
 ```
 
@@ -1133,7 +1133,7 @@ git commit -m "feat: wire LearningLoop.retrospect into quest step completion"
 ### Task 7: Expand Dangerous Tools and Worktree Context
 
 **Files:**
-- Modify: `lib/ex_calibur/step_runner.ex`
+- Modify: `lib/ex_cortex/step_runner.ex`
 
 **Step 1: Expand dangerous tools list**
 
@@ -1151,7 +1151,7 @@ Modify `resolve_member_tools/1` to accept and bind a `working_dir`:
 
 ```elixir
 defp resolve_member_tools(names, working_dir) when is_list(names) do
-  ExCalibur.Tools.Registry.resolve_tools(names)
+  ExCortex.Tools.Registry.resolve_tools(names)
   |> Enum.map(fn tool ->
     if working_dir do
       %{tool | callback: fn params -> tool.callback.(Map.put(params, "working_dir", working_dir)) end}
@@ -1164,12 +1164,12 @@ end
 
 **Step 3: Run full test suite**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test`
+Run: `cd /home/andrew/projects/ex_cortex && mix test`
 
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/step_runner.ex
+git add lib/ex_cortex/step_runner.ex
 git commit -m "feat: expand dangerous tools list and add worktree context injection"
 ```
 
@@ -1178,9 +1178,9 @@ git commit -m "feat: expand dangerous tools list and add worktree context inject
 ### Task 8: Dev Team Charter
 
 **Files:**
-- Create: `lib/ex_calibur/charters/dev_team.ex`
-- Modify: `lib/ex_calibur/evaluator.ex` (register charter)
-- Create: `test/ex_calibur/charters/dev_team_test.exs`
+- Create: `lib/ex_cortex/charters/dev_team.ex`
+- Modify: `lib/ex_cortex/evaluator.ex` (register charter)
+- Create: `test/ex_cortex/charters/dev_team_test.exs`
 
 This task creates the charter definition that the guild installs from. The charter defines the 6 members (PM, Product Analyst, Code Writer, Code Reviewer, QA/Test Writer, UX Designer) with their system prompts, tool assignments, and model configs.
 
@@ -1203,16 +1203,16 @@ The charter should define metadata and roles matching the design doc. Each membe
 Add to `@charters` map in `evaluator.ex`:
 
 ```elixir
-"Dev Team" => ExCalibur.Charters.DevTeam,
+"Dev Team" => ExCortex.Charters.DevTeam,
 ```
 
 **Step 4: Write test verifying charter metadata**
 
 ```elixir
-defmodule ExCalibur.Charters.DevTeamTest do
+defmodule ExCortex.Charters.DevTeamTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.Charters.DevTeam
+  alias ExCortex.Charters.DevTeam
 
   test "metadata returns expected members" do
     meta = DevTeam.metadata()
@@ -1229,13 +1229,13 @@ end
 
 **Step 5: Run tests**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/charters/dev_team_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/charters/dev_team_test.exs`
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/charters/dev_team.ex lib/ex_calibur/evaluator.ex \
-  test/ex_calibur/charters/dev_team_test.exs
+git add lib/ex_cortex/charters/dev_team.ex lib/ex_cortex/evaluator.ex \
+  test/ex_cortex/charters/dev_team_test.exs
 git commit -m "feat: add Dev Team charter for self-improvement guild"
 ```
 
@@ -1244,7 +1244,7 @@ git commit -m "feat: add Dev Team charter for self-improvement guild"
 ### Task 9: Self-Improvement Quest Seed
 
 **Files:**
-- Create: `lib/ex_calibur/self_improvement/quest_seed.ex`
+- Create: `lib/ex_cortex/self_improvement/quest_seed.ex`
 
 This module creates the quest, steps, and source records needed for the self-improvement cycle when the Dev Team charter is installed. Called from the guild installation flow.
 
@@ -1265,10 +1265,10 @@ Each step has:
 **Step 2: Write test**
 
 ```elixir
-defmodule ExCalibur.SelfImprovement.QuestSeedTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.SelfImprovement.QuestSeedTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.SelfImprovement.QuestSeed
+  alias ExCortex.SelfImprovement.QuestSeed
 
   test "seed creates quest, steps, and source" do
     {:ok, result} = QuestSeed.seed(%{repo: "owner/repo"})
@@ -1285,8 +1285,8 @@ end
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/self_improvement/quest_seed.ex \
-  test/ex_calibur/self_improvement/quest_seed_test.exs
+git add lib/ex_cortex/self_improvement/quest_seed.ex \
+  test/ex_cortex/self_improvement/quest_seed_test.exs
 git commit -m "feat: add quest seed for self-improvement pipeline"
 ```
 
@@ -1295,7 +1295,7 @@ git commit -m "feat: add quest seed for self-improvement pipeline"
 ### Task 10: GitHub Issue Book
 
 **Files:**
-- Modify: `lib/ex_calibur/sources/book.ex`
+- Modify: `lib/ex_cortex/sources/book.ex`
 
 **Step 1: Add a book entry for the GitHub issue watcher**
 
@@ -1319,7 +1319,7 @@ Add to the book catalog in `book.ex`:
 **Step 2: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/book.ex
+git add lib/ex_cortex/sources/book.ex
 git commit -m "feat: add GitHub Issue Watcher book to Library"
 ```
 
@@ -1328,7 +1328,7 @@ git commit -m "feat: add GitHub Issue Watcher book to Library"
 ### Task 11: Boot-Time Restart Confirmation
 
 **Files:**
-- Modify: `lib/ex_calibur/application.ex`
+- Modify: `lib/ex_cortex/application.ex`
 
 **Step 1: Add restart confirmation check on boot**
 
@@ -1338,8 +1338,8 @@ After the supervision tree starts, check for quest runs that were in "restarting
 defp check_restart_status do
   import Ecto.Query
 
-  case ExCalibur.Repo.all(
-         from(qr in ExCalibur.Quests.QuestRun,
+  case ExCortex.Repo.all(
+         from(qr in ExCortex.Quests.QuestRun,
            where: qr.status == "restarting",
            preload: [:quest]
          )
@@ -1350,7 +1350,7 @@ defp check_restart_status do
     runs ->
       Enum.each(runs, fn run ->
         Logger.info("[Boot] Confirming restart for quest run #{run.id} (#{run.quest.name})")
-        ExCalibur.Quests.update_quest_run(run, %{status: "complete"})
+        ExCortex.Quests.update_quest_run(run, %{status: "complete"})
       end)
   end
 rescue
@@ -1371,7 +1371,7 @@ result
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur/application.ex
+git add lib/ex_cortex/application.ex
 git commit -m "feat: confirm pending restart quest runs on boot"
 ```
 
@@ -1380,7 +1380,7 @@ git commit -m "feat: confirm pending restart quest runs on boot"
 ### Task 12: Integration Test — Full Loop
 
 **Files:**
-- Create: `test/ex_calibur/integration/self_improvement_test.exs`
+- Create: `test/ex_cortex/integration/self_improvement_test.exs`
 
 **Step 1: Write an integration test**
 
@@ -1389,10 +1389,10 @@ Test the flow: source creates item → quest runner processes steps → worktree
 This test uses a local git repo (no actual GitHub API calls) to verify the mechanical flow works end-to-end. Mock `gh` commands or skip PR/merge steps.
 
 ```elixir
-defmodule ExCalibur.Integration.SelfImprovementTest do
-  use ExCalibur.DataCase
+defmodule ExCortex.Integration.SelfImprovementTest do
+  use ExCortex.DataCase
 
-  alias ExCalibur.Worktree
+  alias ExCortex.Worktree
 
   @tmp_dir System.tmp_dir!() |> Path.join("self_improve_integration")
 
@@ -1431,12 +1431,12 @@ end
 
 **Step 2: Run integration test**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/integration/self_improvement_test.exs`
+Run: `cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/integration/self_improvement_test.exs`
 
 **Step 3: Commit**
 
 ```bash
-git add test/ex_calibur/integration/self_improvement_test.exs
+git add test/ex_cortex/integration/self_improvement_test.exs
 git commit -m "test: add integration test for self-improvement worktree lifecycle"
 ```
 
@@ -1446,17 +1446,17 @@ git commit -m "test: add integration test for self-improvement worktree lifecycl
 
 **Step 1: Run full compilation**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix compile --warnings-as-errors`
+Run: `cd /home/andrew/projects/ex_cortex && mix compile --warnings-as-errors`
 
 **Step 2: Run full test suite**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix test`
+Run: `cd /home/andrew/projects/ex_cortex && mix test`
 
 **Step 3: Fix any failures**
 
 **Step 4: Run formatter**
 
-Run: `cd /home/andrew/projects/ex_calibur && mix format`
+Run: `cd /home/andrew/projects/ex_cortex && mix format`
 
 **Step 5: Final commit**
 

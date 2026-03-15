@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:executing-plans to implement this plan task-by-task.
 
-**Goal:** Rename ExCalibur → ExCortex with brain/consciousness vocabulary, add OpenViking-style tiered memory, dual web+TUI frontend, and Burrito standalone binary.
+**Goal:** Rename ExCortex → ExCortex with brain/consciousness vocabulary, add OpenViking-style tiered memory, dual web+TUI frontend, and Burrito standalone binary.
 
 **Architecture:** Single Elixir app (`ex_cortex`). In-place rename of the existing repo to preserve git history. One big DB migration renames all tables and adds memory system tables. Core business logic in `ExCortex.*`, web frontend in `ExCortexWeb.*` with WebTUI styling, terminal frontend in `ExCortexTUI.*` with Owl. Burrito wraps the release as a standalone `./ex_cortex` binary.
 
@@ -16,7 +16,7 @@
 
 ### Task 0: Rename Mix Project
 
-Rename the Elixir application from `:ex_calibur` to `:ex_cortex`. This touches mix.exs, config files, and the top-level module names.
+Rename the Elixir application from `:ex_cortex` to `:ex_cortex`. This touches mix.exs, config files, and the top-level module names.
 
 **Files:**
 - Modify: `mix.exs`
@@ -53,7 +53,7 @@ end
 
 **Step 2: Update all config files**
 
-Replace every `ExCalibur` → `ExCortex`, `ex_calibur` → `ex_cortex`:
+Replace every `ExCortex` → `ExCortex`, `ex_cortex` → `ex_cortex`:
 - `config/config.exs`: endpoint, oban, repos, pubsub
 - `config/dev.exs`: database name → `ex_cortex_dev`, endpoint
 - `config/test.exs`: database name → `ex_cortex_test`, endpoint
@@ -63,21 +63,21 @@ Replace every `ExCalibur` → `ExCortex`, `ex_calibur` → `ex_cortex`:
 **Step 3: Rename top-level directories**
 
 ```bash
-mv lib/ex_calibur lib/ex_cortex
-mv lib/ex_calibur_web lib/ex_cortex_web
-mv lib/ex_calibur_web.ex lib/ex_cortex_web.ex
-mv lib/ex_calibur.ex lib/ex_cortex.ex
-mv test/ex_calibur test/ex_cortex
-mv test/ex_calibur_web test/ex_cortex_web
+mv lib/ex_cortex lib/ex_cortex
+mv lib/ex_cortex_web lib/ex_cortex_web
+mv lib/ex_cortex_web.ex lib/ex_cortex_web.ex
+mv lib/ex_cortex.ex lib/ex_cortex.ex
+mv test/ex_cortex test/ex_cortex
+mv test/ex_cortex_web test/ex_cortex_web
 ```
 
 **Step 4: Global find-and-replace module names**
 
 In all `.ex`, `.exs`, `.heex`, `.js` files:
-- `ExCalibur` → `ExCortex` (module names)
-- `ExCaliburWeb` → `ExCortexWeb` (web module names)
-- `ex_calibur` → `ex_cortex` (atoms, strings, paths)
-- `ExCaliburUI` → `ExCortexWeb.Components` (absorbed UI components)
+- `ExCortex` → `ExCortex` (module names)
+- `ExCortexWeb` → `ExCortexWeb` (web module names)
+- `ex_cortex` → `ex_cortex` (atoms, strings, paths)
+- `ExCortexUI` → `ExCortexWeb.Components` (absorbed UI components)
 
 **Step 5: Compile and verify**
 
@@ -89,7 +89,7 @@ mix deps.get && mix compile --warnings-as-errors
 
 ```bash
 git add -A
-git commit -m "refactor: rename ExCalibur → ExCortex"
+git commit -m "refactor: rename ExCortex → ExCortex"
 ```
 
 ---
@@ -300,62 +300,62 @@ Mechanical rename of every schema module — update `defmodule`, table name in `
 4. Find all callers and update references
 
 Key renames:
-- `ExCalibur.GuildCharters.GuildCharter` → `ExCortex.Clusters.Cluster` (table: `clusters`)
-- `ExCalibur.Schemas.Member` → `ExCortex.Neurons.Neuron` (table: `neurons`)
-- `ExCalibur.Quests.Quest` → `ExCortex.Thoughts.Thought` (table: `thoughts`)
-- `ExCalibur.Quests.QuestRun` → `ExCortex.Thoughts.Run` (table: `thought_runs`)
-- `ExCalibur.Quests.StepRun` → `ExCortex.Thoughts.Impulse` (table: `impulses`)
-- `ExCalibur.Lodge.Card` → `ExCortex.Memory.Signal` (table: `signals`)
-- `ExCalibur.Trust.MemberTrustScore` → `ExCortex.Neurons.Trust` (table: `neuron_trust_scores`)
-- `ExCalibur.Members.BuiltinMember` → `ExCortex.Neurons.Builtin`
+- `ExCortex.GuildCharters.GuildCharter` → `ExCortex.Clusters.Cluster` (table: `clusters`)
+- `ExCortex.Schemas.Member` → `ExCortex.Neurons.Neuron` (table: `neurons`)
+- `ExCortex.Quests.Quest` → `ExCortex.Thoughts.Thought` (table: `thoughts`)
+- `ExCortex.Quests.QuestRun` → `ExCortex.Thoughts.Run` (table: `thought_runs`)
+- `ExCortex.Quests.StepRun` → `ExCortex.Thoughts.Impulse` (table: `impulses`)
+- `ExCortex.Lodge.Card` → `ExCortex.Memory.Signal` (table: `signals`)
+- `ExCortex.Trust.MemberTrustScore` → `ExCortex.Neurons.Trust` (table: `neuron_trust_scores`)
+- `ExCortex.Members.BuiltinMember` → `ExCortex.Neurons.Builtin`
 
 **Step 5: Rename context modules**
 
-- `ExCalibur.Quests` → `ExCortex.Thoughts` (context functions)
-- `ExCalibur.GuildCharters` → `ExCortex.Clusters`
-- `ExCalibur.Lore` → `ExCortex.Memory` (if exists as context)
-- `ExCalibur.Lodge` → `ExCortex.Memory.Signals`
+- `ExCortex.Quests` → `ExCortex.Thoughts` (context functions)
+- `ExCortex.GuildCharters` → `ExCortex.Clusters`
+- `ExCortex.Lore` → `ExCortex.Memory` (if exists as context)
+- `ExCortex.Lodge` → `ExCortex.Memory.Signals`
 
 **Step 6: Rename charter modules to pathways**
 
 Move `lib/ex_cortex/charters/*.ex` → `lib/ex_cortex/pathways/*.ex` and rename modules:
-- `ExCalibur.Charters.PlatformGuild` → `ExCortex.Pathways.Platform`
-- `ExCalibur.Charters.DevTeam` → `ExCortex.Pathways.DevTeam`
+- `ExCortex.Charters.PlatformGuild` → `ExCortex.Pathways.Platform`
+- `ExCortex.Charters.DevTeam` → `ExCortex.Pathways.DevTeam`
 - etc. for all ~20 charter modules
 
 **Step 7: Rename self-improvement to neuroplasticity**
 
-- `ExCalibur.SelfImprovement.*` → `ExCortex.Neuroplasticity.*`
-- `ExCalibur.LearningLoop` → `ExCortex.Neuroplasticity.Loop`
+- `ExCortex.SelfImprovement.*` → `ExCortex.Neuroplasticity.*`
+- `ExCortex.LearningLoop` → `ExCortex.Neuroplasticity.Loop`
 
 **Step 8: Rename agent infrastructure**
 
-- `ExCalibur.Agent.Registry` → `ExCortex.Core.Registry`
-- `ExCalibur.Agent.Orchestrator` → `ExCortex.Core.Orchestrator`
-- `ExCalibur.Agent.Verdict` → `ExCortex.Core.Verdict`
-- `ExCalibur.Agent.Consensus` → `ExCortex.Core.Consensus`
-- `ExCalibur.Agent.LLM` → `ExCortex.Core.LLM`
-- `ExCalibur.Agent.Role` → `ExCortex.Core.Role`
-- `ExCalibur.Agent.Actions` → `ExCortex.Core.Actions`
-- `ExCalibur.Evaluator` → `ExCortex.Core.Evaluator`
+- `ExCortex.Agent.Registry` → `ExCortex.Core.Registry`
+- `ExCortex.Agent.Orchestrator` → `ExCortex.Core.Orchestrator`
+- `ExCortex.Agent.Verdict` → `ExCortex.Core.Verdict`
+- `ExCortex.Agent.Consensus` → `ExCortex.Core.Consensus`
+- `ExCortex.Agent.LLM` → `ExCortex.Core.LLM`
+- `ExCortex.Agent.Role` → `ExCortex.Core.Role`
+- `ExCortex.Agent.Actions` → `ExCortex.Core.Actions`
+- `ExCortex.Evaluator` → `ExCortex.Core.Evaluator`
 
 **Step 9: Rename tools**
 
-- `ExCalibur.Tools.QueryLore` → `ExCortex.Tools.QueryMemory`
-- `ExCalibur.Tools.RunQuest` → `ExCortex.Tools.RunThought`
-- All other tools: `ExCalibur.Tools.*` → `ExCortex.Tools.*`
+- `ExCortex.Tools.QueryLore` → `ExCortex.Tools.QueryMemory`
+- `ExCortex.Tools.RunQuest` → `ExCortex.Tools.RunThought`
+- All other tools: `ExCortex.Tools.*` → `ExCortex.Tools.*`
 
 **Step 10: Rename herald modules to impulses**
 
-- `ExCalibur.Heralds.*` → `ExCortex.Impulses.*`
-- `ExCalibur.Heralds.Herald` → `ExCortex.Impulses.Impulse`
+- `ExCortex.Heralds.*` → `ExCortex.Impulses.*`
+- `ExCortex.Heralds.Herald` → `ExCortex.Impulses.Impulse`
 
 **Step 11: Rename source modules to senses**
 
-- `ExCalibur.Sources.*` → `ExCortex.Senses.*`
-- `ExCalibur.Sources.SourceSupervisor` → `ExCortex.Senses.Supervisor`
-- `ExCalibur.Sources.Book` → `ExCortex.Senses.Reflex`
-- `ExCalibur.Sources.Behaviour` → `ExCortex.Senses.Behaviour`
+- `ExCortex.Sources.*` → `ExCortex.Senses.*`
+- `ExCortex.Sources.SourceSupervisor` → `ExCortex.Senses.Supervisor`
+- `ExCortex.Sources.Book` → `ExCortex.Senses.Reflex`
+- `ExCortex.Sources.Behaviour` → `ExCortex.Senses.Behaviour`
 
 **Step 12: Compile and fix**
 
@@ -1753,7 +1753,7 @@ Update all existing tests to use new module names and vocabulary.
 **Step 1: Global rename in test files**
 
 Same find-and-replace as Task 0 but specifically for test files:
-- `ExCalibur` → `ExCortex`
+- `ExCortex` → `ExCortex`
 - Schema references to new names
 - Route paths to new routes
 

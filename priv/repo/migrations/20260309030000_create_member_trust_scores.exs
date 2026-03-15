@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.CreateMemberTrustScores do
+defmodule ExCortex.Repo.Migrations.CreateMemberTrustScores do
   use Ecto.Migration
 
   def change do

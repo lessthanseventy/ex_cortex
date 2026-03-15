@@ -91,16 +91,16 @@ Before committing, auto-format staged files:
 
 This ensures every commit is Styler-compliant. Models cannot create formatting-only commits that Styler would revert.
 
-**Location:** `ExCalibur.Tools.GitCommit.call/1`, before the `System.cmd("git", ["commit", ...])` call.
+**Location:** `ExCortex.Tools.GitCommit.call/1`, before the `System.cmd("git", ["commit", ...])` call.
 
 ## Files Affected
 
 | File | Change |
 |------|--------|
-| `lib/ex_calibur/quest_runner.ex` | Verdict gate logic in step iteration loop |
-| `lib/ex_calibur/step_runner.ex` | Rollback wrapper, pass dangerous_tool_mode to LLM |
-| `lib/ex_calibur/llm/ollama.ex` | Circuit breaker, dangerous tool interception in agent loop |
-| `lib/ex_calibur/llm/claude.ex` | Circuit breaker, dangerous tool interception in agent loop |
-| `lib/ex_calibur/tools/git_commit.ex` | Styler guard pre-commit formatting |
-| `lib/ex_calibur/self_improvement/quest_seed.ex` | Add gate flags, dangerous_tool_mode to step configs |
-| `lib/ex_calibur/quests/step.ex` | Add max_tool_iterations, dangerous_tool_mode fields |
+| `lib/ex_cortex/quest_runner.ex` | Verdict gate logic in step iteration loop |
+| `lib/ex_cortex/step_runner.ex` | Rollback wrapper, pass dangerous_tool_mode to LLM |
+| `lib/ex_cortex/llm/ollama.ex` | Circuit breaker, dangerous tool interception in agent loop |
+| `lib/ex_cortex/llm/claude.ex` | Circuit breaker, dangerous tool interception in agent loop |
+| `lib/ex_cortex/tools/git_commit.ex` | Styler guard pre-commit formatting |
+| `lib/ex_cortex/self_improvement/quest_seed.ex` | Add gate flags, dangerous_tool_mode to step configs |
+| `lib/ex_cortex/quests/step.ex` | Add max_tool_iterations, dangerous_tool_mode fields |

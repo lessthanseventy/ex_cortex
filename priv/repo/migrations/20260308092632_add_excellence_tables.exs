@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddExcellenceTables do
+defmodule ExCortex.Repo.Migrations.AddExcellenceTables do
   use Ecto.Migration
 
   def change do

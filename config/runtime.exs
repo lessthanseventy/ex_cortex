@@ -12,18 +12,18 @@ import Config
 # If you use `mix release`, you need to explicitly enable the server
 # by passing the PHX_SERVER=true when you start it:
 #
-#     PHX_SERVER=true bin/ex_calibur start
+#     PHX_SERVER=true bin/ex_cortex start
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
-  config :ex_calibur, ExCaliburWeb.Endpoint, server: true
+  config :ex_cortex, ExCortexWeb.Endpoint, server: true
 end
 
-config :ex_calibur, ExCaliburWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4001"))]
+config :ex_cortex, ExCortexWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4001"))]
 
 # Ollama URL (Docker: http://ollama:11434, local: http://127.0.0.1:11434)
-config :ex_calibur,
+config :ex_cortex,
   ollama_url: System.get_env("OLLAMA_URL") || "http://127.0.0.1:11434",
   ollama_api_key: System.get_env("OLLAMA_API_KEY"),
   anthropic_api_key: System.get_env("ANTHROPIC_API_KEY")
@@ -32,7 +32,7 @@ config :ex_calibur,
 # Skip in test so DATABASE_URL doesn't override the test database config
 if config_env() != :test do
   if database_url = System.get_env("DATABASE_URL") do
-    config :ex_calibur, ExCalibur.Repo, url: database_url
+    config :ex_cortex, ExCortex.Repo, url: database_url
   end
 end
 
@@ -60,7 +60,7 @@ if config_env() == :prod do
 
   host = System.get_env("PHX_HOST") || "example.com"
 
-  config :ex_calibur, ExCalibur.Repo,
+  config :ex_cortex, ExCortex.Repo,
     # ssl: true,
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
@@ -68,7 +68,7 @@ if config_env() == :prod do
     # pool_count: 4,
     socket_options: maybe_ipv6
 
-  config :ex_calibur, ExCaliburWeb.Endpoint,
+  config :ex_cortex, ExCortexWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],
     http: [
       # Enable IPv6 and bind on all interfaces.
@@ -79,14 +79,14 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
-  config :ex_calibur, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  config :ex_cortex, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key
   # to your endpoint configuration:
   #
-  #     config :ex_calibur, ExCaliburWeb.Endpoint,
+  #     config :ex_cortex, ExCortexWeb.Endpoint,
   #       https: [
   #         ...,
   #         port: 443,
@@ -108,7 +108,7 @@ if config_env() == :prod do
   # We also recommend setting `force_ssl` in your config/prod.exs,
   # ensuring no data is ever sent via http, always redirecting to https:
   #
-  #     config :ex_calibur, ExCaliburWeb.Endpoint,
+  #     config :ex_cortex, ExCortexWeb.Endpoint,
   #       force_ssl: [hsts: true]
   #
   # Check `Plug.SSL` for all available options in `force_ssl`.

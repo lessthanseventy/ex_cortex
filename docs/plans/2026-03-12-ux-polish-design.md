@@ -2,7 +2,7 @@
 
 ## Overview
 
-Make ExCalibur's UI feel more connected and discoverable. Four areas of work:
+Make ExCortex's UI feel more connected and discoverable. Four areas of work:
 nav improvements, standardized headers/empty states, cross-page contextual links,
 and page-level context summaries.
 

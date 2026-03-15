@@ -1,6 +1,6 @@
 import Ecto.Query
-alias ExCalibur.Repo
-alias ExCalibur.Quests.Quest
+alias ExCortex.Repo
+alias ExCortex.Quests.Quest
 
 quests = Repo.all(from q in Quest)
 

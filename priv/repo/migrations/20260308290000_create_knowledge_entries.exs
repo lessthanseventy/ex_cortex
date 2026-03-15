@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.CreateLoreEntries do
+defmodule ExCortex.Repo.Migrations.CreateLoreEntries do
   use Ecto.Migration
 
   def change do

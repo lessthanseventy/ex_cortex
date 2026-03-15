@@ -47,7 +47,7 @@ updated_at      utc_datetime
 ## Source Behaviour
 
 ```elixir
-defmodule ExCalibur.Sources.Behaviour do
+defmodule ExCortex.Sources.Behaviour do
   @callback init(config :: map()) :: {:ok, state :: map()}
   @callback fetch(state :: map(), config :: map()) :: {:ok, [SourceItem.t()], new_state :: map()} | {:error, term()}
   @callback stop(state :: map()) :: :ok
@@ -118,7 +118,7 @@ Add a `/sources` page (or tab on guild hall):
 
 ## What Stays Internal
 
-- Source types are Elixir modules in `lib/ex_calibur/sources/`
+- Source types are Elixir modules in `lib/ex_cortex/sources/`
 - SourceItem is an in-memory struct, not persisted (Decisions capture the result)
 - Source state (cursors, last_seen) persisted in the sources table jsonb column
 - Webhook auth is simple bearer token comparison

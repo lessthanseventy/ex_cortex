@@ -6,7 +6,7 @@
 
 **Architecture:** Merge `Member.all()` (built-in structs) with `ResourceDefinition` DB rows at query time. Built-ins get a DB record (source: "code", config["member_id"] = slug) when first toggled/edited. Custom members are source: "db" with no member_id. The LiveView manages per-card expand/collapse state client-side via assigns.
 
-**Tech Stack:** Phoenix LiveView, SaladUI (Card, Badge, Button, Input, Textarea), Tailwind CSS, Ecto/ResourceDefinition schema, ExCalibur.Members.Member built-in catalog
+**Tech Stack:** Phoenix LiveView, SaladUI (Card, Badge, Button, Input, Textarea), Tailwind CSS, Ecto/ResourceDefinition schema, ExCortex.Members.Member built-in catalog
 
 **Worktree:** `.worktrees/members-overhaul` on branch `feature/members-overhaul`
 
@@ -14,7 +14,7 @@
 
 ## Background: Key Files and Schemas
 
-### Built-in members — `lib/ex_calibur/members/member.ex`
+### Built-in members — `lib/ex_cortex/members/member.ex`
 `Member.all()` returns a list of `%Member{}` structs with fields:
 - `id` (string slug, e.g. "grammar-editor")
 - `name`, `description`, `category` (atom: :editor/:analyst/:specialist/:advisor)
@@ -85,29 +85,29 @@ When a built-in is toggled on or edited, upsert a `ResourceDefinition` with:
 ```
 
 ### Current test file
-`test/ex_calibur_web/live/members_live_test.exs` — currently has one trivial test. You will rewrite it.
+`test/ex_cortex_web/live/members_live_test.exs` — currently has one trivial test. You will rewrite it.
 
 ---
 
 ## Task 1: Add merge helper to members_live.ex
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/members_live.ex`
+- Modify: `lib/ex_cortex_web/live/members_live.ex`
 
 This task adds a private `list_members/0` function that returns a sorted list of unified member maps. No UI changes yet.
 
 **Step 1: Write the failing test**
 
-Replace contents of `test/ex_calibur_web/live/members_live_test.exs`:
+Replace contents of `test/ex_cortex_web/live/members_live_test.exs`:
 
 ```elixir
-defmodule ExCaliburWeb.MembersLiveTest do
-  use ExCaliburWeb.ConnCase, async: true
+defmodule ExCortexWeb.MembersLiveTest do
+  use ExCortexWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
 
   alias Excellence.Schemas.ResourceDefinition
-  alias ExCalibur.Repo
+  alias ExCortex.Repo
 
   describe "list_members merge" do
     test "renders built-in members on the page", %{conn: conn} do
@@ -175,21 +175,21 @@ end
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test test/ex_calibur_web/live/members_live_test.exs 2>&1 | tail -20
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test test/ex_cortex_web/live/members_live_test.exs 2>&1 | tail -20
 ```
 
 Expected: failures — "Grammar Editor" not found (built-ins not rendered yet).
 
 **Step 3: Add `list_members/0` to members_live.ex**
 
-Add these private functions to `lib/ex_calibur_web/live/members_live.ex`, replacing the existing `list_roles/0` and `get_role/1`:
+Add these private functions to `lib/ex_cortex_web/live/members_live.ex`, replacing the existing `list_roles/0` and `get_role/1`:
 
 ```elixir
 defp list_members do
   import Ecto.Query
 
   db_roles =
-    ExCalibur.Repo.all(from(r in ResourceDefinition, where: r.type == "role"))
+    ExCortex.Repo.all(from(r in ResourceDefinition, where: r.type == "role"))
 
   db_by_member_id =
     db_roles
@@ -200,7 +200,7 @@ defp list_members do
     Enum.filter(db_roles, &(&1.config["member_id"] == nil))
 
   builtins =
-    ExCalibur.Members.Member.all()
+    ExCortex.Members.Member.all()
     |> Enum.map(fn m ->
       db = Map.get(db_by_member_id, m.id)
       to_unified(m, db)
@@ -213,7 +213,7 @@ defp list_members do
   |> Enum.sort_by(fn m -> {if(m.active, do: 0, else: 1), if(m.builtin, do: 0, else: 1), m.name} end)
 end
 
-defp to_unified(%ExCalibur.Members.Member{} = m, nil) do
+defp to_unified(%ExCortex.Members.Member{} = m, nil) do
   %{
     id: m.id,
     name: m.name,
@@ -231,7 +231,7 @@ defp to_unified(%ExCalibur.Members.Member{} = m, nil) do
   }
 end
 
-defp to_unified(%ExCalibur.Members.Member{} = m, db) do
+defp to_unified(%ExCortex.Members.Member{} = m, db) do
   %{
     id: m.id,
     name: m.name,
@@ -283,7 +283,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test test/ex_calibur_web/live/members_live_test.exs 2>&1 | tail -20
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test test/ex_cortex_web/live/members_live_test.exs 2>&1 | tail -20
 ```
 
 Expected: tests pass (built-ins are now in `@members` assign and will be rendered in next task).
@@ -291,8 +291,8 @@ Expected: tests pass (built-ins are now in `@members` assign and will be rendere
 **Step 5: Commit**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul
-git add lib/ex_calibur_web/live/members_live.ex test/ex_calibur_web/live/members_live_test.exs
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul
+git add lib/ex_cortex_web/live/members_live.ex test/ex_cortex_web/live/members_live_test.exs
 git commit -m "feat: add list_members merge of built-ins and DB roles"
 ```
 
@@ -301,13 +301,13 @@ git commit -m "feat: add list_members merge of built-ins and DB roles"
 ## Task 2: Rewrite the render/1 with collapsible card UI
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/members_live.ex`
+- Modify: `lib/ex_cortex_web/live/members_live.ex`
 
 Replace the entire `render/1` function and add a new `member_card/1` component. Remove the old `role_form` import and `@editing` assign references.
 
 **Step 1: Write failing test for UI structure**
 
-Add to `test/ex_calibur_web/live/members_live_test.exs`:
+Add to `test/ex_cortex_web/live/members_live_test.exs`:
 
 ```elixir
 describe "card UI" do
@@ -335,14 +335,14 @@ end
 **Step 2: Run test to verify it fails**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test test/ex_calibur_web/live/members_live_test.exs 2>&1 | tail -20
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test test/ex_cortex_web/live/members_live_test.exs 2>&1 | tail -20
 ```
 
 Expected: fail — elements not found.
 
 **Step 3: Rewrite render/1 and add member_card/1**
 
-Replace the `render/1` function in `lib/ex_calibur_web/live/members_live.ex`:
+Replace the `render/1` function in `lib/ex_cortex_web/live/members_live.ex`:
 
 ```elixir
 @impl true
@@ -554,7 +554,7 @@ Remove: `import ExCellenceUI.Components.RoleForm`
 **Step 4: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test test/ex_calibur_web/live/members_live_test.exs 2>&1 | tail -30
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test test/ex_cortex_web/live/members_live_test.exs 2>&1 | tail -30
 ```
 
 Expected: all tests pass.
@@ -562,7 +562,7 @@ Expected: all tests pass.
 **Step 5: Compile check**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix compile --warnings-as-errors 2>&1 | tail -20
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix compile --warnings-as-errors 2>&1 | tail -20
 ```
 
 Expected: no warnings, no errors.
@@ -570,8 +570,8 @@ Expected: no warnings, no errors.
 **Step 6: Commit**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul
-git add lib/ex_calibur_web/live/members_live.ex test/ex_calibur_web/live/members_live_test.exs
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul
+git add lib/ex_cortex_web/live/members_live.ex test/ex_cortex_web/live/members_live_test.exs
 git commit -m "feat: rewrite members UI with collapsible rank cards"
 ```
 
@@ -580,13 +580,13 @@ git commit -m "feat: rewrite members UI with collapsible rank cards"
 ## Task 3: Wire up all LiveView events
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/members_live.ex`
+- Modify: `lib/ex_cortex_web/live/members_live.ex`
 
 Replace all existing `handle_event` callbacks and update `handle_params`/`apply_action` to remove the old `:new`/`:edit` live actions (navigation-based editing is gone — everything is inline now).
 
 **Step 1: Write failing tests for events**
 
-Add to `test/ex_calibur_web/live/members_live_test.exs`:
+Add to `test/ex_cortex_web/live/members_live_test.exs`:
 
 ```elixir
 describe "events" do
@@ -612,7 +612,7 @@ describe "events" do
 
     # Verify DB record was created
     import Ecto.Query
-    db = ExCalibur.Repo.one(
+    db = ExCortex.Repo.one(
       from r in ResourceDefinition,
       where: r.type == "role" and r.source == "code"
     )
@@ -659,7 +659,7 @@ describe "events" do
   test "save_member updates an existing built-in", %{conn: conn} do
     # First activate it so there's a DB record
     {:ok, rddef} =
-      ExCalibur.Repo.insert(%ResourceDefinition{
+      ExCortex.Repo.insert(%ResourceDefinition{
         type: "role",
         name: "Grammar Editor",
         source: "code",
@@ -692,13 +692,13 @@ describe "events" do
     })
     |> render_submit()
 
-    updated = ExCalibur.Repo.get!(ResourceDefinition, rddef.id)
+    updated = ExCortex.Repo.get!(ResourceDefinition, rddef.id)
     assert updated.config["system_prompt"] == "Updated prompt."
   end
 
   test "delete_member removes a custom member", %{conn: conn} do
     {:ok, _} =
-      ExCalibur.Repo.insert(%ResourceDefinition{
+      ExCortex.Repo.insert(%ResourceDefinition{
         type: "role",
         name: "Deletable Role",
         source: "db",
@@ -720,7 +720,7 @@ describe "events" do
     # trigger delete via JS confirm bypass
     view
     |> element("[phx-click=\"delete_member\"]")
-    |> render_click(%{"id" => to_string(ExCalibur.Repo.get_by!(ResourceDefinition, name: "Deletable Role").id)})
+    |> render_click(%{"id" => to_string(ExCortex.Repo.get_by!(ResourceDefinition, name: "Deletable Role").id)})
 
     refute render(view) =~ "Deletable Role"
   end
@@ -730,14 +730,14 @@ end
 **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test test/ex_calibur_web/live/members_live_test.exs 2>&1 | tail -30
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test test/ex_cortex_web/live/members_live_test.exs 2>&1 | tail -30
 ```
 
 Expected: most event tests fail — handlers don't exist yet.
 
 **Step 3: Replace all handle_event callbacks and update mount/handle_params**
 
-Replace ALL existing `handle_event` implementations and update `mount/3` and `apply_action/3` in `lib/ex_calibur_web/live/members_live.ex`:
+Replace ALL existing `handle_event` implementations and update `mount/3` and `apply_action/3` in `lib/ex_cortex_web/live/members_live.ex`:
 
 ```elixir
 @impl true
@@ -794,7 +794,7 @@ def handle_event("create_member", %{"member" => params}, socket) do
     }
   }
 
-  case %ResourceDefinition{} |> ResourceDefinition.changeset(attrs) |> ExCalibur.Repo.insert() do
+  case %ResourceDefinition{} |> ResourceDefinition.changeset(attrs) |> ExCortex.Repo.insert() do
     {:ok, _} ->
       {:noreply, assign(socket, members: list_members(), adding_new: false)}
 
@@ -826,12 +826,12 @@ end
 
 @impl true
 def handle_event("delete_member", %{"id" => id}, socket) do
-  case ExCalibur.Repo.get(ResourceDefinition, id) do
+  case ExCortex.Repo.get(ResourceDefinition, id) do
     nil ->
       {:noreply, socket}
 
     resource ->
-      ExCalibur.Repo.delete(resource)
+      ExCortex.Repo.delete(resource)
       {:noreply, assign(socket, members: list_members())}
   end
 end
@@ -843,9 +843,9 @@ defp upsert_member_active(id, new_active, members) do
   member = Enum.find(members, &(&1.id == id))
 
   if member && member.builtin do
-    builtin = ExCalibur.Members.Member.get(id)
+    builtin = ExCortex.Members.Member.get(id)
 
-    case member.db_id && ExCalibur.Repo.get(ResourceDefinition, member.db_id) do
+    case member.db_id && ExCortex.Repo.get(ResourceDefinition, member.db_id) do
       nil ->
         %ResourceDefinition{}
         |> ResourceDefinition.changeset(%{
@@ -859,23 +859,23 @@ defp upsert_member_active(id, new_active, members) do
             "ranks" => ranks_to_config(builtin.ranks)
           }
         })
-        |> ExCalibur.Repo.insert()
+        |> ExCortex.Repo.insert()
 
       db ->
         db
         |> ResourceDefinition.changeset(%{status: status})
-        |> ExCalibur.Repo.update()
+        |> ExCortex.Repo.update()
     end
   else
-    case ExCalibur.Repo.get(ResourceDefinition, id) do
+    case ExCortex.Repo.get(ResourceDefinition, id) do
       nil -> {:ok, nil}
-      db -> db |> ResourceDefinition.changeset(%{status: status}) |> ExCalibur.Repo.update()
+      db -> db |> ResourceDefinition.changeset(%{status: status}) |> ExCortex.Repo.update()
     end
   end
 end
 
 defp save_builtin_member(slug, params, members) do
-  builtin = ExCalibur.Members.Member.get(slug)
+  builtin = ExCortex.Members.Member.get(slug)
   member = Enum.find(members, &(&1.id == slug))
 
   config = %{
@@ -884,7 +884,7 @@ defp save_builtin_member(slug, params, members) do
     "ranks" => parse_ranks(params["ranks"])
   }
 
-  case member && member.db_id && ExCalibur.Repo.get(ResourceDefinition, member.db_id) do
+  case member && member.db_id && ExCortex.Repo.get(ResourceDefinition, member.db_id) do
     nil ->
       %ResourceDefinition{}
       |> ResourceDefinition.changeset(%{
@@ -894,17 +894,17 @@ defp save_builtin_member(slug, params, members) do
         status: "active",
         config: config
       })
-      |> ExCalibur.Repo.insert()
+      |> ExCortex.Repo.insert()
 
     db ->
       db
       |> ResourceDefinition.changeset(%{config: config})
-      |> ExCalibur.Repo.update()
+      |> ExCortex.Repo.update()
   end
 end
 
 defp save_custom_member(id, params) do
-  case ExCalibur.Repo.get(ResourceDefinition, id) do
+  case ExCortex.Repo.get(ResourceDefinition, id) do
     nil ->
       {:error, :not_found}
 
@@ -916,7 +916,7 @@ defp save_custom_member(id, params) do
 
       db
       |> ResourceDefinition.changeset(%{name: params["name"] || db.name, config: config})
-      |> ExCalibur.Repo.update()
+      |> ExCortex.Repo.update()
   end
 end
 
@@ -940,7 +940,7 @@ Remove the old private helpers: `list_roles/0`, `get_role/1`, `parse_perspective
 **Step 4: Run tests**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test test/ex_calibur_web/live/members_live_test.exs 2>&1 | tail -40
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test test/ex_cortex_web/live/members_live_test.exs 2>&1 | tail -40
 ```
 
 Expected: all tests pass.
@@ -948,7 +948,7 @@ Expected: all tests pass.
 **Step 5: Compile and format**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix compile --warnings-as-errors 2>&1 | tail -10 && mix format
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix compile --warnings-as-errors 2>&1 | tail -10 && mix format
 ```
 
 Expected: no warnings.
@@ -956,7 +956,7 @@ Expected: no warnings.
 **Step 6: Full test suite**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test 2>&1 | tail -20
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -964,8 +964,8 @@ Expected: all tests pass.
 **Step 7: Commit**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul
-git add lib/ex_calibur_web/live/members_live.ex test/ex_calibur_web/live/members_live_test.exs
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul
+git add lib/ex_cortex_web/live/members_live.ex test/ex_cortex_web/live/members_live_test.exs
 git commit -m "feat: wire up member toggle, save, create, delete events"
 ```
 
@@ -974,14 +974,14 @@ git commit -m "feat: wire up member toggle, save, create, delete events"
 ## Task 4: Remove stale routes and clean up
 
 **Files:**
-- Modify: `lib/ex_calibur_web/router.ex`
+- Modify: `lib/ex_cortex_web/router.ex`
 
 The old `/members/new` and `/members/:id/edit` routes (`:new` and `:edit` live actions) are no longer used. Everything is inline now.
 
 **Step 1: Find and check the routes**
 
 ```bash
-grep -n "members" /home/andrew/projects/ex_calibur/.worktrees/members-overhaul/lib/ex_calibur_web/router.ex
+grep -n "members" /home/andrew/projects/ex_cortex/.worktrees/members-overhaul/lib/ex_cortex_web/router.ex
 ```
 
 **Step 2: Remove the :new and :edit live routes for members**
@@ -1003,7 +1003,7 @@ live "/members", MembersLive, :index
 **Step 3: Run full test suite**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul && mix test 2>&1 | tail -20
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul && mix test 2>&1 | tail -20
 ```
 
 Expected: all tests pass.
@@ -1011,8 +1011,8 @@ Expected: all tests pass.
 **Step 4: Commit**
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul
-git add lib/ex_calibur_web/router.ex
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul
+git add lib/ex_cortex_web/router.ex
 git commit -m "chore: remove stale /members/new and /members/:id/edit routes"
 ```
 
@@ -1023,7 +1023,7 @@ git commit -m "chore: remove stale /members/new and /members/:id/edit routes"
 After all tasks complete:
 
 ```bash
-cd /home/andrew/projects/ex_calibur/.worktrees/members-overhaul
+cd /home/andrew/projects/ex_cortex/.worktrees/members-overhaul
 mix compile --warnings-as-errors && mix format --check-formatted && mix test
 ```
 

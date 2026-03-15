@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.RenameResourceDefinitionsToMembers do
+defmodule ExCortex.Repo.Migrations.RenameResourceDefinitionsToMembers do
   use Ecto.Migration
 
   def change do

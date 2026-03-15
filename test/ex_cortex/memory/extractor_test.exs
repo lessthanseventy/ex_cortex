@@ -1,0 +1,70 @@
+defmodule ExCortex.Memory.ExtractorTest do
+  use ExCortex.DataCase, async: true
+
+  alias ExCortex.Memory.Extractor
+  alias ExCortex.Thoughts
+
+  setup do
+    {:ok, thought} =
+      Thoughts.create_thought(%{name: "SI Analyst Sweep", trigger: "manual", steps: []})
+
+    {:ok, daydream} =
+      Thoughts.create_daydream(%{thought_id: thought.id, status: "complete"})
+
+    %{thought: thought, daydream: daydream}
+  end
+
+  describe "extract/1" do
+    test "creates episodic engram from thought run", %{daydream: daydream} do
+      thought_run = %{
+        id: daydream.id,
+        thought_name: "SI Analyst Sweep",
+        cluster_name: "Dev Team",
+        status: "complete",
+        results: %{"summary" => "Found 2 credo issues"},
+        impulses: [
+          %{step: 1, input: "scan codebase", results: %{"output" => "2 issues"}},
+          %{step: 2, input: "file issues", results: %{"output" => "filed #89 #90"}}
+        ]
+      }
+
+      {:ok, engrams} = Extractor.extract(thought_run)
+
+      episodic = Enum.find(engrams, &(&1.category == "episodic"))
+      assert episodic
+      assert episodic.title =~ "SI Analyst Sweep"
+      assert episodic.source == "extraction"
+      assert episodic.daydream_id == daydream.id
+    end
+
+    test "includes impulse summaries in body", %{daydream: daydream} do
+      thought_run = %{
+        id: daydream.id,
+        thought_name: "Code Review",
+        status: "complete",
+        results: %{},
+        impulses: [
+          %{step: 0, input: "review", results: %{"output" => "looks good"}}
+        ]
+      }
+
+      {:ok, [engram]} = Extractor.extract(thought_run)
+      assert engram.body =~ "Code Review"
+      assert engram.body =~ "looks good"
+    end
+
+    test "tags include thought name slug", %{daydream: daydream} do
+      thought_run = %{
+        id: daydream.id,
+        thought_name: "Market Signals",
+        status: "complete",
+        results: %{},
+        impulses: []
+      }
+
+      {:ok, [engram]} = Extractor.extract(thought_run)
+      assert "thought-run" in engram.tags
+      assert "market-signals" in engram.tags
+    end
+  end
+end

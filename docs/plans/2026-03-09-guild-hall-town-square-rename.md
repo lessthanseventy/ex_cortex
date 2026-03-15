@@ -13,21 +13,21 @@
 ## Task 1: Rename charter-browser LiveView — `GuildHallLive` → `TownSquareLive`
 
 **Files:**
-- Rename (copy+delete): `lib/ex_calibur_web/live/guild_hall_live.ex` → `lib/ex_calibur_web/live/town_square_live.ex`
-- Replace: `lib/ex_calibur_web/live/town_square_live.ex` (old recruitment page — will be overwritten)
+- Rename (copy+delete): `lib/ex_cortex_web/live/guild_hall_live.ex` → `lib/ex_cortex_web/live/town_square_live.ex`
+- Replace: `lib/ex_cortex_web/live/town_square_live.ex` (old recruitment page — will be overwritten)
 
 The old `TownSquareLive` (recruitment) will be completely replaced. The charter-browser content moves to `town_square_live.ex`.
 
 **Step 1: Read the full current `guild_hall_live.ex`**
 
 ```bash
-cat lib/ex_calibur_web/live/guild_hall_live.ex
+cat lib/ex_cortex_web/live/guild_hall_live.ex
 ```
 
 **Step 2: Create new `town_square_live.ex` from `guild_hall_live.ex`**
 
-Copy the entire file to `lib/ex_calibur_web/live/town_square_live.ex`, then make these changes:
-- Module name: `ExCaliburWeb.GuildHallLive` → `ExCaliburWeb.TownSquareLive`
+Copy the entire file to `lib/ex_cortex_web/live/town_square_live.ex`, then make these changes:
+- Module name: `ExCortexWeb.GuildHallLive` → `ExCortexWeb.TownSquareLive`
 - `page_title: "Guild Hall"` → `page_title: "Town Square"`
 - The heading in `render/1` (look for `"Guild Hall"` string): change to `"Town Square"`
 - Internal link `/members` (in `push_navigate` after `build_own_guild`): change to `/guild-hall`
@@ -36,7 +36,7 @@ Copy the entire file to `lib/ex_calibur_web/live/town_square_live.ex`, then make
 **Step 3: Delete the old `guild_hall_live.ex`**
 
 ```bash
-rm lib/ex_calibur_web/live/guild_hall_live.ex
+rm lib/ex_cortex_web/live/guild_hall_live.ex
 ```
 
 **Step 4: Verify compilation**
@@ -52,7 +52,7 @@ Expected: no errors (there will be a router warning since GuildHallLive is refer
 ## Task 2: Update router — swap routes and remove `/town-square` standalone route
 
 **Files:**
-- Modify: `lib/ex_calibur_web/router.ex`
+- Modify: `lib/ex_cortex_web/router.ex`
 
 **Step 1: Update the router**
 
@@ -76,10 +76,10 @@ live "/guild-hall", GuildHallLive, :index
 Full updated routes block:
 
 ```elixir
-scope "/", ExCaliburWeb do
+scope "/", ExCortexWeb do
   pipe_through :browser
 
-  live_session :default, layout: {ExCaliburWeb.Layouts, :app} do
+  live_session :default, layout: {ExCortexWeb.Layouts, :app} do
     live "/", LodgeLive, :index
     live "/town-square", TownSquareLive, :index
     live "/guild-hall", GuildHallLive, :index
@@ -104,8 +104,8 @@ Expected: error about `GuildHallLive` not defined (the new one doesn't exist yet
 **Step 3: Commit tasks 1 and 2 together**
 
 ```bash
-git add lib/ex_calibur_web/live/town_square_live.ex lib/ex_calibur_web/router.ex
-git rm lib/ex_calibur_web/live/guild_hall_live.ex
+git add lib/ex_cortex_web/live/town_square_live.ex lib/ex_cortex_web/router.ex
+git rm lib/ex_cortex_web/live/guild_hall_live.ex
 git commit -m "feat: rename GuildHallLive→TownSquareLive (charter browser), update routes"
 ```
 
@@ -114,19 +114,19 @@ git commit -m "feat: rename GuildHallLive→TownSquareLive (charter browser), up
 ## Task 3: Create new `GuildHallLive` — Members + Recruitment merged
 
 **Files:**
-- Rename: `lib/ex_calibur_web/live/members_live.ex` → `lib/ex_calibur_web/live/guild_hall_live.ex`
-- Delete: `lib/ex_calibur_web/live/members_live.ex` (after copy)
+- Rename: `lib/ex_cortex_web/live/members_live.ex` → `lib/ex_cortex_web/live/guild_hall_live.ex`
+- Delete: `lib/ex_cortex_web/live/members_live.ex` (after copy)
 
 **Step 1: Copy `members_live.ex` to `guild_hall_live.ex`**
 
 ```bash
-cp lib/ex_calibur_web/live/members_live.ex lib/ex_calibur_web/live/guild_hall_live.ex
+cp lib/ex_cortex_web/live/members_live.ex lib/ex_cortex_web/live/guild_hall_live.ex
 ```
 
 **Step 2: Update module name and page title**
 
 In `guild_hall_live.ex`:
-- `defmodule ExCaliburWeb.MembersLive` → `defmodule ExCaliburWeb.GuildHallLive`
+- `defmodule ExCortexWeb.MembersLive` → `defmodule ExCortexWeb.GuildHallLive`
 - `page_title: "Members"` → `page_title: "Guild Hall"`
 - Any render heading `"Members"` → `"Guild Hall"`
 
@@ -137,7 +137,7 @@ At the top of the module, add the imports that TownSquareLive used:
 ```elixir
 import SaladUI.Badge
 
-alias ExCalibur.Members.BuiltinMember
+alias ExCortex.Members.BuiltinMember
 ```
 
 (Check if `SaladUI.Badge` is already imported — `members_live.ex` likely imports it for rank badges. Add only what's missing.)
@@ -179,7 +179,7 @@ def handle_event("recruit", %{"member-id" => member_id, "rank" => rank}, socket)
 
   %Excellence.Schemas.Member{}
   |> Excellence.Schemas.Member.changeset(attrs)
-  |> ExCalibur.Repo.insert(on_conflict: :nothing)
+  |> ExCortex.Repo.insert(on_conflict: :nothing)
 
   {:noreply,
    socket
@@ -259,7 +259,7 @@ end
 **Step 6: Delete `members_live.ex`**
 
 ```bash
-rm lib/ex_calibur_web/live/members_live.ex
+rm lib/ex_cortex_web/live/members_live.ex
 ```
 
 **Step 7: Verify compilation**
@@ -273,8 +273,8 @@ Expected: no errors.
 **Step 8: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guild_hall_live.ex
-git rm lib/ex_calibur_web/live/members_live.ex
+git add lib/ex_cortex_web/live/guild_hall_live.ex
+git rm lib/ex_cortex_web/live/members_live.ex
 git commit -m "feat: create GuildHallLive — members roster + recruitment merged from TownSquare"
 ```
 
@@ -283,8 +283,8 @@ git commit -m "feat: create GuildHallLive — members roster + recruitment merge
 ## Task 4: Fix all internal links
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
-- Modify: `lib/ex_calibur_web/live/town_square_live.ex` (the new one — charter browser)
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
+- Modify: `lib/ex_cortex_web/live/town_square_live.ex` (the new one — charter browser)
 - Check: any remaining `/members` or `/guild-hall` (old meaning) references
 
 **Step 1: Update `lodge_live.ex`**
@@ -308,7 +308,7 @@ The old `guild_hall_live.ex` had:
 Verify and fix:
 
 ```bash
-grep -n "/members\|/guild-hall\|/town-square" lib/ex_calibur_web/live/town_square_live.ex
+grep -n "/members\|/guild-hall\|/town-square" lib/ex_cortex_web/live/town_square_live.ex
 ```
 
 Update any `/members` reference to `/guild-hall`.
@@ -342,7 +342,7 @@ git commit -m "fix: update all internal links after Guild Hall / Town Square ren
 ## Task 5: Update navigation
 
 **Files:**
-- Modify: `lib/ex_calibur_web/components/layouts/root.html.heex`
+- Modify: `lib/ex_cortex_web/components/layouts/root.html.heex`
 
 **Step 1: Update the nav links list**
 
@@ -376,7 +376,7 @@ mix compile 2>&1 | grep "error"
 **Step 3: Commit**
 
 ```bash
-git add lib/ex_calibur_web/components/layouts/root.html.heex
+git add lib/ex_cortex_web/components/layouts/root.html.heex
 git commit -m "feat: update nav — Guild Hall replaces Members, Town Square is charter browser"
 ```
 
@@ -385,19 +385,19 @@ git commit -m "feat: update nav — Guild Hall replaces Members, Town Square is 
 ## Task 6: Update and rename test files
 
 **Files:**
-- Rename: `test/ex_calibur_web/live/members_live_test.exs` → `test/ex_calibur_web/live/guild_hall_live_test.exs`
-- Rename: `test/ex_calibur_web/live/guild_hall_live_test.exs` → `test/ex_calibur_web/live/town_square_live_test.exs`
-- Delete: `test/ex_calibur_web/live/town_square_live_test.exs` (after merging key tests into guild_hall_live_test.exs)
+- Rename: `test/ex_cortex_web/live/members_live_test.exs` → `test/ex_cortex_web/live/guild_hall_live_test.exs`
+- Rename: `test/ex_cortex_web/live/guild_hall_live_test.exs` → `test/ex_cortex_web/live/town_square_live_test.exs`
+- Delete: `test/ex_cortex_web/live/town_square_live_test.exs` (after merging key tests into guild_hall_live_test.exs)
 
 **Step 1: Rename and update `members_live_test.exs` → `guild_hall_live_test.exs`**
 
 ```bash
-cp test/ex_calibur_web/live/members_live_test.exs test/ex_calibur_web/live/guild_hall_live_test.exs
-rm test/ex_calibur_web/live/members_live_test.exs
+cp test/ex_cortex_web/live/members_live_test.exs test/ex_cortex_web/live/guild_hall_live_test.exs
+rm test/ex_cortex_web/live/members_live_test.exs
 ```
 
 In `guild_hall_live_test.exs`:
-- `defmodule ExCaliburWeb.MembersLiveTest` → `defmodule ExCaliburWeb.GuildHallLiveTest`
+- `defmodule ExCortexWeb.MembersLiveTest` → `defmodule ExCortexWeb.GuildHallLiveTest`
 - All `live(conn, "/members")` → `live(conn, "/guild-hall")`
 - `assert html =~ "Members"` → `assert html =~ "Guild Hall"`
 
@@ -415,10 +415,10 @@ describe "recruitment" do
   test "recruit button creates a member and stays on guild hall", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/guild-hall")
     # Click recruit for the first builtin member at apprentice rank
-    first = hd(ExCalibur.Members.BuiltinMember.editors())
+    first = hd(ExCortex.Members.BuiltinMember.editors())
     html = render_click(view, "recruit", %{"member-id" => first.id, "rank" => "apprentice"})
     # Flash appears and member is in DB
-    assert ExCalibur.Repo.get_by(Excellence.Schemas.Member, name: first.name)
+    assert ExCortex.Repo.get_by(Excellence.Schemas.Member, name: first.name)
   end
 end
 ```
@@ -426,25 +426,25 @@ end
 **Step 2: Rename and update `guild_hall_live_test.exs` → `town_square_live_test.exs`**
 
 ```bash
-cp test/ex_calibur_web/live/guild_hall_live_test.exs test/ex_calibur_web/live/town_square_live_test.exs
+cp test/ex_cortex_web/live/guild_hall_live_test.exs test/ex_cortex_web/live/town_square_live_test.exs
 ```
 
 In `town_square_live_test.exs`:
-- `defmodule ExCaliburWeb.GuildHallLiveTest` → `defmodule ExCaliburWeb.TownSquareLiveTest`
+- `defmodule ExCortexWeb.GuildHallLiveTest` → `defmodule ExCortexWeb.TownSquareLiveTest`
 - `live(conn, "/guild-hall")` → `live(conn, "/town-square")`
 - `assert html =~ "Guild Hall"` → `assert html =~ "Town Square"`
 
 **Step 3: Delete the old `guild_hall_live_test.exs` and old `town_square_live_test.exs`**
 
 ```bash
-rm test/ex_calibur_web/live/guild_hall_live_test.exs
-rm test/ex_calibur_web/live/town_square_live_test.exs
+rm test/ex_cortex_web/live/guild_hall_live_test.exs
+rm test/ex_cortex_web/live/town_square_live_test.exs
 ```
 
 Wait — step 2 already created the new `town_square_live_test.exs`. The file to delete here is only the OLD one (from before step 2). Since step 2 overwrites it, just delete `guild_hall_live_test.exs`:
 
 ```bash
-rm test/ex_calibur_web/live/guild_hall_live_test.exs
+rm test/ex_cortex_web/live/guild_hall_live_test.exs
 ```
 
 **Step 4: Run the full test suite**
@@ -458,8 +458,8 @@ Expected: all tests pass (or only the 3 pre-existing lore/grimoire failures whic
 **Step 5: Commit**
 
 ```bash
-git add test/ex_calibur_web/live/guild_hall_live_test.exs test/ex_calibur_web/live/town_square_live_test.exs
-git rm test/ex_calibur_web/live/members_live_test.exs
+git add test/ex_cortex_web/live/guild_hall_live_test.exs test/ex_cortex_web/live/town_square_live_test.exs
+git rm test/ex_cortex_web/live/members_live_test.exs
 git commit -m "test: rename and update tests for Guild Hall / Town Square rename"
 ```
 

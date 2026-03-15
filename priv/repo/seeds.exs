@@ -5,7 +5,7 @@
 # Inside the script, you can read and write to any of your
 # repositories directly:
 #
-#     ExCalibur.Repo.insert!(%ExCalibur.SomeSchema{})
+#     ExCortex.Repo.insert!(%ExCortex.SomeSchema{})
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
@@ -26,11 +26,11 @@ if File.exists?(local_seeds), do: Code.eval_file(local_seeds)
 for path <- Path.wildcard("priv/dictionaries/*.csv") do
   name = Path.basename(path, ".csv")
 
-  if !ExCalibur.Library.get_dictionary_by_name(name) do
+  if !ExCortex.Library.get_dictionary_by_name(name) do
     content = File.read!(path)
 
     {:ok, _} =
-      ExCalibur.Library.create_dictionary(%{
+      ExCortex.Library.create_dictionary(%{
         name: name,
         content: content,
         content_type: "csv",

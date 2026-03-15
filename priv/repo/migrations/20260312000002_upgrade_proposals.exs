@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.UpgradeProposals do
+defmodule ExCortex.Repo.Migrations.UpgradeProposals do
   use Ecto.Migration
 
   def change do

@@ -15,23 +15,23 @@
 ## Task 1: Model Fallback Chains
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_runner.ex:184-194`
+- Modify: `lib/ex_cortex/quest_runner.ex:184-194`
 - Modify: `config/config.exs`
-- Test: `test/ex_calibur/quest_runner_test.exs`
+- Test: `test/ex_cortex/quest_runner_test.exs`
 
 **Background:** When Ollama fails for the assigned model, `call_member` currently returns `%{verdict: "abstain"}` immediately. We want it to retry with fallback models before giving up.
 
 **Step 1: Add config**
 
-In `config/config.exs`, add after existing ex_calibur config:
+In `config/config.exs`, add after existing ex_cortex config:
 
 ```elixir
-config :ex_calibur, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
+config :ex_cortex, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
 ```
 
 **Step 2: Write the failing test**
 
-In `test/ex_calibur/quest_runner_test.exs`, add a describe block:
+In `test/ex_cortex/quest_runner_test.exs`, add a describe block:
 
 ```elixir
 describe "model fallback chains" do
@@ -41,14 +41,14 @@ describe "model fallback chains" do
     # Direct unit test: verify fallback_models_for/1 returns correct order.
     assigned = "missing-model"
     chain = ["phi4-mini", "gemma3:4b"]
-    result = ExCalibur.QuestRunner.fallback_models_for(assigned, chain)
+    result = ExCortex.QuestRunner.fallback_models_for(assigned, chain)
     assert result == ["missing-model", "phi4-mini", "gemma3:4b"]
   end
 
   test "fallback_models_for/2 deduplicates when assigned model is in chain" do
     assigned = "phi4-mini"
     chain = ["phi4-mini", "gemma3:4b"]
-    result = ExCalibur.QuestRunner.fallback_models_for(assigned, chain)
+    result = ExCortex.QuestRunner.fallback_models_for(assigned, chain)
     assert result == ["phi4-mini", "gemma3:4b"]
   end
 end
@@ -57,14 +57,14 @@ end
 **Step 3: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
-Expected: `function ExCalibur.QuestRunner.fallback_models_for/2 is undefined`
+Expected: `function ExCortex.QuestRunner.fallback_models_for/2 is undefined`
 
 **Step 4: Implement**
 
-In `lib/ex_calibur/quest_runner.ex`, add this public function after the module attributes:
+In `lib/ex_cortex/quest_runner.ex`, add this public function after the module attributes:
 
 ```elixir
 @doc "Build the ordered list of models to try: assigned model first, then fallback chain (deduped)."
@@ -77,7 +77,7 @@ Replace the existing `call_member` for Ollama (lines 184-195):
 
 ```elixir
 defp call_member(%{type: :ollama, model: model, system_prompt: system_prompt}, input_text, ollama) do
-  chain = Application.get_env(:ex_calibur, :model_fallback_chain, [])
+  chain = Application.get_env(:ex_cortex, :model_fallback_chain, [])
   models = fallback_models_for(model, chain)
 
   messages = [
@@ -98,7 +98,7 @@ end
 **Step 5: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -106,7 +106,7 @@ Expected: All tests pass.
 **Step 6: Commit**
 
 ```bash
-git add config/config.exs lib/ex_calibur/quest_runner.ex test/ex_calibur/quest_runner_test.exs
+git add config/config.exs lib/ex_cortex/quest_runner.ex test/ex_cortex/quest_runner_test.exs
 git commit -m "feat: model fallback chains — retry with configured models on Ollama failure"
 ```
 
@@ -115,22 +115,22 @@ git commit -m "feat: model fallback chains — retry with configured models on O
 ## Task 2: Reality Checker Builtin Member
 
 **Files:**
-- Modify: `lib/ex_calibur/members/member.ex`
-- Modify: `lib/ex_calibur/quest_runner.ex`
-- Test: `test/ex_calibur/quest_runner_test.exs`
+- Modify: `lib/ex_cortex/members/member.ex`
+- Modify: `lib/ex_cortex/quest_runner.ex`
+- Test: `test/ex_cortex/quest_runner_test.exs`
 
 **Background:** Add a "Challenger" builtin member in a new `validators()` category. Resolves via `"who": "challenger"` in any roster step. Defaults to skepticism and demands evidence.
 
 **Step 1: Write the failing test**
 
-In `test/ex_calibur/quest_runner_test.exs`, add:
+In `test/ex_cortex/quest_runner_test.exs`, add:
 
 ```elixir
 describe "challenger member" do
   test "resolve_members returns a single challenger spec" do
     # Call the private function via the module's behavior:
     # We test that BuiltinMember.get("challenger") returns a member
-    member = ExCalibur.Members.BuiltinMember.get("challenger")
+    member = ExCortex.Members.BuiltinMember.get("challenger")
     assert member != nil
     assert member.id == "challenger"
     assert member.category == :validator
@@ -142,14 +142,14 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: assertion fails because `get("challenger")` returns `nil`.
 
 **Step 3: Add validators() to BuiltinMember**
 
-In `lib/ex_calibur/members/member.ex`:
+In `lib/ex_cortex/members/member.ex`:
 
 1. Update `def all`:
 
@@ -189,11 +189,11 @@ end
 
 **Step 4: Add resolver clause in QuestRunner**
 
-In `lib/ex_calibur/quest_runner.ex`, add after `resolve_members("master")` (around line 124):
+In `lib/ex_cortex/quest_runner.ex`, add after `resolve_members("master")` (around line 124):
 
 ```elixir
 defp resolve_members("challenger") do
-  case ExCalibur.Members.BuiltinMember.get("challenger") do
+  case ExCortex.Members.BuiltinMember.get("challenger") do
     nil ->
       []
 
@@ -214,7 +214,7 @@ end
 **Step 5: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -222,7 +222,7 @@ Expected: All tests pass.
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/members/member.ex lib/ex_calibur/quest_runner.ex test/ex_calibur/quest_runner_test.exs
+git add lib/ex_cortex/members/member.ex lib/ex_cortex/quest_runner.ex test/ex_cortex/quest_runner_test.exs
 git commit -m "feat: add Challenger builtin member — evidence-demanding skeptic for roster validation steps"
 ```
 
@@ -232,9 +232,9 @@ git commit -m "feat: add Challenger builtin member — evidence-demanding skepti
 
 **Files:**
 - Create: `priv/repo/migrations/20260309010000_add_min_rank_to_quests.exs`
-- Modify: `lib/ex_calibur/quests/quest.ex`
-- Modify: `lib/ex_calibur/quest_runner.ex`
-- Test: `test/ex_calibur/quest_runner_test.exs`
+- Modify: `lib/ex_cortex/quests/quest.ex`
+- Modify: `lib/ex_cortex/quest_runner.ex`
+- Test: `test/ex_cortex/quest_runner_test.exs`
 
 **Background:** Quests can declare a `min_rank` requirement (`"apprentice"` / `"journeyman"` / `"master"`). If set, `QuestRunner` checks that at least one active member meets or exceeds that rank before running. Returns `{:error, {:rank_insufficient, reason}}` if not.
 
@@ -242,7 +242,7 @@ git commit -m "feat: add Challenger builtin member — evidence-demanding skepti
 
 ```elixir
 # priv/repo/migrations/20260309010000_add_min_rank_to_quests.exs
-defmodule ExCalibur.Repo.Migrations.AddMinRankToQuests do
+defmodule ExCortex.Repo.Migrations.AddMinRankToQuests do
   use Ecto.Migration
 
   def change do
@@ -256,14 +256,14 @@ end
 **Step 2: Run migration**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix ecto.migrate 2>&1' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix ecto.migrate 2>&1' --pane=main:1.3
 ```
 
 Expected: `== Running 20260309010000 AddMinRankToQuests`
 
 **Step 3: Add field to Quest schema**
 
-In `lib/ex_calibur/quests/quest.ex`, add after the `herald_name` field:
+In `lib/ex_cortex/quests/quest.ex`, add after the `herald_name` field:
 
 ```elixir
 field :min_rank, :string
@@ -278,13 +278,13 @@ Also add to the changeset's cast and validate_inclusion (find the changeset func
 
 **Step 4: Write the failing test**
 
-In `test/ex_calibur/quest_runner_test.exs`, add:
+In `test/ex_cortex/quest_runner_test.exs`, add:
 
 ```elixir
 describe "rank-gated eligibility" do
   test "run/2 returns rank_insufficient when no members meet min_rank" do
     # No members in test DB, so any rank gate will fail
-    quest = %ExCalibur.Quests.Quest{
+    quest = %ExCortex.Quests.Quest{
       id: 1,
       name: "Gated Quest",
       min_rank: "master",
@@ -293,11 +293,11 @@ describe "rank-gated eligibility" do
       output_type: "verdict"
     }
 
-    assert {:error, {:rank_insufficient, _reason}} = ExCalibur.QuestRunner.run(quest, "input")
+    assert {:error, {:rank_insufficient, _reason}} = ExCortex.QuestRunner.run(quest, "input")
   end
 
   test "run/2 proceeds normally when min_rank is nil" do
-    quest = %ExCalibur.Quests.Quest{
+    quest = %ExCortex.Quests.Quest{
       id: 2,
       name: "Open Quest",
       min_rank: nil,
@@ -307,7 +307,7 @@ describe "rank-gated eligibility" do
     }
 
     # Empty roster returns an error but NOT rank_insufficient
-    result = ExCalibur.QuestRunner.run(quest, "input")
+    result = ExCortex.QuestRunner.run(quest, "input")
     assert result != {:error, {:rank_insufficient, "Quest requires master or higher — no eligible members found"}}
   end
 end
@@ -316,14 +316,14 @@ end
 **Step 5: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: First test fails — quest runs instead of returning rank_insufficient.
 
 **Step 6: Implement rank gate**
 
-In `lib/ex_calibur/quest_runner.ex`, add a new `run/2` clause for quest structs with `min_rank`. Add this BEFORE the existing `def run(quest, input_text) when is_struct(quest)` clause:
+In `lib/ex_cortex/quest_runner.ex`, add a new `run/2` clause for quest structs with `min_rank`. Add this BEFORE the existing `def run(quest, input_text) when is_struct(quest)` clause:
 
 ```elixir
 @rank_order %{"apprentice" => 0, "journeyman" => 1, "master" => 2}
@@ -358,7 +358,7 @@ end
 **Step 7: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -366,7 +366,7 @@ Expected: All tests pass.
 **Step 8: Run full test suite**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -374,7 +374,7 @@ Expected: All tests pass.
 **Step 9: Commit**
 
 ```bash
-git add priv/repo/migrations/20260309010000_add_min_rank_to_quests.exs lib/ex_calibur/quests/quest.ex lib/ex_calibur/quest_runner.ex test/ex_calibur/quest_runner_test.exs
+git add priv/repo/migrations/20260309010000_add_min_rank_to_quests.exs lib/ex_cortex/quests/quest.ex lib/ex_cortex/quest_runner.ex test/ex_cortex/quest_runner_test.exs
 git commit -m "feat: rank-gated quest eligibility — min_rank blocks run if no eligible members exist"
 ```
 
@@ -382,17 +382,17 @@ git commit -m "feat: rank-gated quest eligibility — min_rank blocks run if no 
 
 ## Task 4: Structured Handoff Context in CampaignRunner
 
-**PREREQUISITE:** Complete `docs/plans/2026-03-09-behavioral-campaigns.md` first. `CampaignRunner` must exist at `lib/ex_calibur/campaign_runner.ex`.
+**PREREQUISITE:** Complete `docs/plans/2026-03-09-behavioral-campaigns.md` first. `CampaignRunner` must exist at `lib/ex_cortex/campaign_runner.ex`.
 
 **Files:**
-- Modify: `lib/ex_calibur/campaign_runner.ex`
-- Test: `test/ex_calibur/campaign_runner_test.exs`
+- Modify: `lib/ex_cortex/campaign_runner.ex`
+- Test: `test/ex_cortex/campaign_runner_test.exs`
 
 **Background:** Replace free-text context threading with a structured handoff block that tells each subsequent member: what was checked, what the verdict was, and what question to focus on. The next quest's name drives the "open question" line.
 
 **Step 1: Write the failing test**
 
-In `test/ex_calibur/campaign_runner_test.exs`, add:
+In `test/ex_cortex/campaign_runner_test.exs`, add:
 
 ```elixir
 describe "structured handoff" do
@@ -400,7 +400,7 @@ describe "structured handoff" do
     result = {:ok, %{verdict: "pass", steps: [
       %{who: "all", verdict: "pass", results: [%{member: "Analyst", verdict: "pass", reason: "Evidence found"}]}
     ]}}
-    text = ExCalibur.CampaignRunner.result_to_text(result, "Accuracy Check", "Tone Review")
+    text = ExCortex.CampaignRunner.result_to_text(result, "Accuracy Check", "Tone Review")
     assert String.contains?(text, "## Prior Step: Accuracy Check")
     assert String.contains?(text, "**Verdict:** pass")
     assert String.contains?(text, "Analyst")
@@ -409,7 +409,7 @@ describe "structured handoff" do
 
   test "result_to_text/3 formats artifact handoff" do
     result = {:ok, %{artifact: %{title: "Report", body: "Body text"}}}
-    text = ExCalibur.CampaignRunner.result_to_text(result, "Draft Step", "Review Step")
+    text = ExCortex.CampaignRunner.result_to_text(result, "Draft Step", "Review Step")
     assert String.contains?(text, "## Prior Step: Draft Step")
     assert String.contains?(text, "Report")
     assert String.contains?(text, "Review Step")
@@ -417,7 +417,7 @@ describe "structured handoff" do
 
   test "result_to_text/3 with nil next_quest_name omits question line" do
     result = {:ok, %{verdict: "pass", steps: []}}
-    text = ExCalibur.CampaignRunner.result_to_text(result, "Final Step", nil)
+    text = ExCortex.CampaignRunner.result_to_text(result, "Final Step", nil)
     refute String.contains?(text, "Open question")
   end
 end
@@ -426,14 +426,14 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: `result_to_text/3 is undefined` (only `result_to_text/1` exists).
 
 **Step 3: Update CampaignRunner**
 
-In `lib/ex_calibur/campaign_runner.ex`, replace the `run/2` implementation and `result_to_text/1` functions with:
+In `lib/ex_cortex/campaign_runner.ex`, replace the `run/2` implementation and `result_to_text/1` functions with:
 
 ```elixir
 def run(%{steps: steps} = campaign, input) when steps == [] do
@@ -538,7 +538,7 @@ defp resolve_quest_name(_), do: nil
 **Step 4: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -546,7 +546,7 @@ Expected: All tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/campaign_runner.ex test/ex_calibur/campaign_runner_test.exs
+git add lib/ex_cortex/campaign_runner.ex test/ex_cortex/campaign_runner_test.exs
 git commit -m "feat: structured handoff context between campaign steps — verdict, findings, open question"
 ```
 
@@ -557,8 +557,8 @@ git commit -m "feat: structured handoff context between campaign steps — verdi
 **PREREQUISITE:** Task 4 must be complete.
 
 **Files:**
-- Modify: `lib/ex_calibur/campaign_runner.ex`
-- Test: `test/ex_calibur/campaign_runner_test.exs`
+- Modify: `lib/ex_cortex/campaign_runner.ex`
+- Test: `test/ex_cortex/campaign_runner_test.exs`
 
 **Background:** Campaign steps gain an optional `"type": "branch"` field. Branch steps run multiple quests in parallel and feed all results to a synthesizer quest. Sequential steps are unchanged.
 
@@ -574,7 +574,7 @@ A branch step looks like:
 
 **Step 1: Write the failing test**
 
-In `test/ex_calibur/campaign_runner_test.exs`, add:
+In `test/ex_cortex/campaign_runner_test.exs`, add:
 
 ```elixir
 describe "branch steps" do
@@ -599,7 +599,7 @@ describe "branch steps" do
       ]
     })
 
-    result = ExCalibur.CampaignRunner.run(campaign, "test input")
+    result = ExCortex.CampaignRunner.run(campaign, "test input")
     assert match?({:ok, _} | {:error, _}, result)
   end
 
@@ -608,7 +608,7 @@ describe "branch steps" do
       {{:ok, %{verdict: "pass", steps: []}}, "Quest Alpha"},
       {{:ok, %{verdict: "fail", steps: []}}, "Quest Beta"}
     ]
-    combined = ExCalibur.CampaignRunner.combine_branch_results(results, "input")
+    combined = ExCortex.CampaignRunner.combine_branch_results(results, "input")
     assert String.contains?(combined, "Quest Alpha")
     assert String.contains?(combined, "Quest Beta")
     assert String.contains?(combined, "pass")
@@ -620,14 +620,14 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: `combine_branch_results/2 is undefined`
 
 **Step 3: Implement branch step handling**
 
-In `lib/ex_calibur/campaign_runner.ex`, update the step dispatch in `run/2`. Replace the step-processing reduce body:
+In `lib/ex_cortex/campaign_runner.ex`, update the step dispatch in `run/2`. Replace the step-processing reduce body:
 
 The `steps_with_next` reduce currently handles one step type. Add branch detection:
 
@@ -743,7 +743,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/campaign_runner_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -751,13 +751,13 @@ Expected: All tests pass.
 **Step 5: Run full suite**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur/campaign_runner.ex test/ex_calibur/campaign_runner_test.exs
+git add lib/ex_cortex/campaign_runner.ex test/ex_cortex/campaign_runner_test.exs
 git commit -m "feat: parallel campaign workstreams — branch steps run quests concurrently and synthesize"
 ```
 
@@ -767,12 +767,12 @@ git commit -m "feat: parallel campaign workstreams — branch steps run quests c
 
 **Files:**
 - Create: `priv/repo/migrations/20260309020000_create_guild_charters.exs`
-- Create: `lib/ex_calibur/guild_charters/guild_charter.ex`
-- Create: `lib/ex_calibur/guild_charters.ex`
-- Create: `lib/ex_calibur/context_providers/guild_charter.ex`
-- Modify: `lib/ex_calibur/context_providers/context_provider.ex`
-- Modify: `lib/ex_calibur_web/live/guild_hall_live.ex`
-- Test: `test/ex_calibur/guild_charters_test.exs`
+- Create: `lib/ex_cortex/guild_charters/guild_charter.ex`
+- Create: `lib/ex_cortex/guild_charters.ex`
+- Create: `lib/ex_cortex/context_providers/guild_charter.ex`
+- Modify: `lib/ex_cortex/context_providers/context_provider.ex`
+- Modify: `lib/ex_cortex_web/live/guild_hall_live.ex`
+- Test: `test/ex_cortex/guild_charters_test.exs`
 
 **Background:** Each guild (identified by name) can have a charter document — shared values, domain rules, output format expectations. It's stored in `guild_charters` and prepended to member inputs via a new `"guild_charter"` context provider type. Editable in Guild Hall.
 
@@ -780,7 +780,7 @@ git commit -m "feat: parallel campaign workstreams — branch steps run quests c
 
 ```elixir
 # priv/repo/migrations/20260309020000_create_guild_charters.exs
-defmodule ExCalibur.Repo.Migrations.CreateGuildCharters do
+defmodule ExCortex.Repo.Migrations.CreateGuildCharters do
   use Ecto.Migration
 
   def change do
@@ -798,17 +798,17 @@ end
 **Step 2: Run migration**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix ecto.migrate 2>&1' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix ecto.migrate 2>&1' --pane=main:1.3
 ```
 
 **Step 3: Write the failing test**
 
 ```elixir
-# test/ex_calibur/guild_charters_test.exs
-defmodule ExCalibur.GuildChartersTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/guild_charters_test.exs
+defmodule ExCortex.GuildChartersTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.GuildCharters
+  alias ExCortex.GuildCharters
 
   test "upsert_charter/2 creates a charter for a guild" do
     assert {:ok, charter} = GuildCharters.upsert_charter("TestGuild", "Our values: honesty.")
@@ -836,16 +836,16 @@ end
 **Step 4: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/guild_charters_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/guild_charters_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
-Expected: `ExCalibur.GuildCharters is not loaded`
+Expected: `ExCortex.GuildCharters is not loaded`
 
 **Step 5: Create schema**
 
 ```elixir
-# lib/ex_calibur/guild_charters/guild_charter.ex
-defmodule ExCalibur.GuildCharters.GuildCharter do
+# lib/ex_cortex/guild_charters/guild_charter.ex
+defmodule ExCortex.GuildCharters.GuildCharter do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -866,11 +866,11 @@ end
 **Step 6: Create context module**
 
 ```elixir
-# lib/ex_calibur/guild_charters.ex
-defmodule ExCalibur.GuildCharters do
+# lib/ex_cortex/guild_charters.ex
+defmodule ExCortex.GuildCharters do
   import Ecto.Query
-  alias ExCalibur.GuildCharters.GuildCharter
-  alias ExCalibur.Repo
+  alias ExCortex.GuildCharters.GuildCharter
+  alias ExCortex.Repo
 
   def get_charter(guild_name) do
     case Repo.get_by(GuildCharter, guild_name: guild_name) do
@@ -898,15 +898,15 @@ end
 **Step 7: Create context provider**
 
 ```elixir
-# lib/ex_calibur/context_providers/guild_charter.ex
-defmodule ExCalibur.ContextProviders.GuildCharter do
+# lib/ex_cortex/context_providers/guild_charter.ex
+defmodule ExCortex.ContextProviders.GuildCharter do
   @moduledoc """
   Prepends the guild's charter document to the evaluation input.
   Config: %{"guild_name" => "MyGuild"}
   """
 
   def call(%{"guild_name" => guild_name}, _quest, _input) when is_binary(guild_name) do
-    case ExCalibur.GuildCharters.get_charter(guild_name) do
+    case ExCortex.GuildCharters.get_charter(guild_name) do
       nil -> ""
       "" -> ""
       text -> "## Guild Charter: #{guild_name}\n#{text}"
@@ -919,23 +919,23 @@ end
 
 **Step 8: Register provider**
 
-In `lib/ex_calibur/context_providers/context_provider.ex`, add to `module_for/1`:
+In `lib/ex_cortex/context_providers/context_provider.ex`, add to `module_for/1`:
 
 ```elixir
-defp module_for("guild_charter"), do: Module.concat([ExCalibur, ContextProviders, GuildCharter])
+defp module_for("guild_charter"), do: Module.concat([ExCortex, ContextProviders, GuildCharter])
 ```
 
 **Step 9: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/guild_charters_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/guild_charters_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 **Step 10: Add Charter UI to Guild Hall**
 
-In `lib/ex_calibur_web/live/guild_hall_live.ex`:
+In `lib/ex_cortex_web/live/guild_hall_live.ex`:
 
-1. Add `alias ExCalibur.GuildCharters` near the top.
+1. Add `alias ExCortex.GuildCharters` near the top.
 
 2. In `mount/3`, load charters:
 ```elixir
@@ -989,13 +989,13 @@ end
 **Step 11: Run full test suite**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 **Step 12: Commit**
 
 ```bash
-git add priv/repo/migrations/20260309020000_create_guild_charters.exs lib/ex_calibur/guild_charters/ lib/ex_calibur/guild_charters.ex lib/ex_calibur/context_providers/guild_charter.ex lib/ex_calibur/context_providers/context_provider.ex lib/ex_calibur_web/live/guild_hall_live.ex test/ex_calibur/guild_charters_test.exs
+git add priv/repo/migrations/20260309020000_create_guild_charters.exs lib/ex_cortex/guild_charters/ lib/ex_cortex/guild_charters.ex lib/ex_cortex/context_providers/guild_charter.ex lib/ex_cortex/context_providers/context_provider.ex lib/ex_cortex_web/live/guild_hall_live.ex test/ex_cortex/guild_charters_test.exs
 git commit -m "feat: guild charter document — per-guild context injected into all member evaluations"
 ```
 
@@ -1005,11 +1005,11 @@ git commit -m "feat: guild charter document — per-guild context injected into 
 
 **Files:**
 - Create: `priv/repo/migrations/20260309030000_create_member_trust_scores.exs`
-- Create: `lib/ex_calibur/trust/member_trust_score.ex`
-- Create: `lib/ex_calibur/trust_scorer.ex`
-- Modify: `lib/ex_calibur/quest_runner.ex`
-- Modify: `lib/ex_calibur_web/live/lodge_live.ex`
-- Test: `test/ex_calibur/trust_scorer_test.exs`
+- Create: `lib/ex_cortex/trust/member_trust_score.ex`
+- Create: `lib/ex_cortex/trust_scorer.ex`
+- Modify: `lib/ex_cortex/quest_runner.ex`
+- Modify: `lib/ex_cortex_web/live/lodge_live.ex`
+- Test: `test/ex_cortex/trust_scorer_test.exs`
 
 **Background:** Each member (by name) gets a trust score starting at 1.0. When a member's individual verdict contradicts the aggregated step verdict, their score decays by ×0.97. Scores surface in Lodge as a sortable "Member Trust" panel.
 
@@ -1017,7 +1017,7 @@ git commit -m "feat: guild charter document — per-guild context injected into 
 
 ```elixir
 # priv/repo/migrations/20260309030000_create_member_trust_scores.exs
-defmodule ExCalibur.Repo.Migrations.CreateMemberTrustScores do
+defmodule ExCortex.Repo.Migrations.CreateMemberTrustScores do
   use Ecto.Migration
 
   def change do
@@ -1036,17 +1036,17 @@ end
 **Step 2: Run migration**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix ecto.migrate 2>&1' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix ecto.migrate 2>&1' --pane=main:1.3
 ```
 
 **Step 3: Write the failing test**
 
 ```elixir
-# test/ex_calibur/trust_scorer_test.exs
-defmodule ExCalibur.TrustScorerTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/trust_scorer_test.exs
+defmodule ExCortex.TrustScorerTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.TrustScorer
+  alias ExCortex.TrustScorer
 
   test "list_scores/0 returns empty list initially" do
     assert TrustScorer.list_scores() == []
@@ -1099,16 +1099,16 @@ end
 **Step 4: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/trust_scorer_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/trust_scorer_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
-Expected: `ExCalibur.TrustScorer is not loaded`
+Expected: `ExCortex.TrustScorer is not loaded`
 
 **Step 5: Create schema**
 
 ```elixir
-# lib/ex_calibur/trust/member_trust_score.ex
-defmodule ExCalibur.Trust.MemberTrustScore do
+# lib/ex_cortex/trust/member_trust_score.ex
+defmodule ExCortex.Trust.MemberTrustScore do
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -1130,8 +1130,8 @@ end
 **Step 6: Create TrustScorer module**
 
 ```elixir
-# lib/ex_calibur/trust_scorer.ex
-defmodule ExCalibur.TrustScorer do
+# lib/ex_cortex/trust_scorer.ex
+defmodule ExCortex.TrustScorer do
   @moduledoc """
   Records member trust scores based on verdict consistency.
   When a member's individual verdict contradicts the aggregated step verdict,
@@ -1139,8 +1139,8 @@ defmodule ExCalibur.TrustScorer do
   """
 
   import Ecto.Query
-  alias ExCalibur.Repo
-  alias ExCalibur.Trust.MemberTrustScore
+  alias ExCortex.Repo
+  alias ExCortex.Trust.MemberTrustScore
 
   require Logger
 
@@ -1189,29 +1189,29 @@ end
 
 **Step 7: Hook TrustScorer into QuestRunner**
 
-In `lib/ex_calibur/quest_runner.ex`, update the `run/2` clause for plain rosters. After `{:ok, %{verdict: final_verdict || "pass", steps: steps}}` is assembled, call TrustScorer:
+In `lib/ex_cortex/quest_runner.ex`, update the `run/2` clause for plain rosters. After `{:ok, %{verdict: final_verdict || "pass", steps: steps}}` is assembled, call TrustScorer:
 
 Find the `run(roster, input_text) when is_list(roster)` function. At the end, replace the return:
 
 ```elixir
 result = {:ok, %{verdict: final_verdict || "pass", steps: steps}}
-ExCalibur.TrustScorer.record_run(steps)
+ExCortex.TrustScorer.record_run(steps)
 result
 ```
 
 **Step 8: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/trust_scorer_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/trust_scorer_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
 
 **Step 9: Add Trust panel to Lodge**
 
-In `lib/ex_calibur_web/live/lodge_live.ex`:
+In `lib/ex_cortex_web/live/lodge_live.ex`:
 
-1. Add `alias ExCalibur.TrustScorer` near the top.
+1. Add `alias ExCortex.TrustScorer` near the top.
 
 2. In `mount/3`, add:
 ```elixir
@@ -1259,13 +1259,13 @@ socket = assign(socket, ..., trust_scores: trust_scores)
 **Step 10: Run full test suite**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 **Step 11: Commit**
 
 ```bash
-git add priv/repo/migrations/20260309030000_create_member_trust_scores.exs lib/ex_calibur/trust/ lib/ex_calibur/trust_scorer.ex lib/ex_calibur/quest_runner.ex lib/ex_calibur_web/live/lodge_live.ex test/ex_calibur/trust_scorer_test.exs
+git add priv/repo/migrations/20260309030000_create_member_trust_scores.exs lib/ex_cortex/trust/ lib/ex_cortex/trust_scorer.ex lib/ex_cortex/quest_runner.ex lib/ex_cortex_web/live/lodge_live.ex test/ex_cortex/trust_scorer_test.exs
 git commit -m "feat: member trust scoring — decays on verdict contradictions, surfaces in Lodge"
 ```
 
@@ -1274,19 +1274,19 @@ git commit -m "feat: member trust scoring — decays on verdict contradictions, 
 ## Task 8: Guide Page
 
 **Files:**
-- Create: `lib/ex_calibur_web/live/guide_live.ex`
-- Modify: `lib/ex_calibur_web/router.ex`
-- Modify: `lib/ex_calibur_web/components/layouts/root.html.heex`
-- Test: `test/ex_calibur_web/live/guide_live_test.exs`
+- Create: `lib/ex_cortex_web/live/guide_live.ex`
+- Modify: `lib/ex_cortex_web/router.ex`
+- Modify: `lib/ex_cortex_web/components/layouts/root.html.heex`
+- Test: `test/ex_cortex_web/live/guide_live_test.exs`
 
 **Background:** A read-only `/guide` LiveView documenting how to use campaigns, branch steps, charter documents, the challenger member, rank gates, model fallback, and trust scoring. Static content — no DB, no assigns beyond what LiveView needs.
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur_web/live/guide_live_test.exs
-defmodule ExCaliburWeb.GuideLiveTest do
-  use ExCaliburWeb.ConnCase
+# test/ex_cortex_web/live/guide_live_test.exs
+defmodule ExCortexWeb.GuideLiveTest do
+  use ExCortexWeb.ConnCase
 
   import Phoenix.LiveViewTest
 
@@ -1304,14 +1304,14 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/guide_live_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/guide_live_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: route not found.
 
 **Step 3: Add route**
 
-In `lib/ex_calibur_web/router.ex`, inside the `live_session :default` block, add:
+In `lib/ex_cortex_web/router.ex`, inside the `live_session :default` block, add:
 
 ```elixir
 live "/guide", GuideLive, :index
@@ -1320,9 +1320,9 @@ live "/guide", GuideLive, :index
 **Step 4: Create LiveView**
 
 ```elixir
-# lib/ex_calibur_web/live/guide_live.ex
-defmodule ExCaliburWeb.GuideLive do
-  use ExCaliburWeb, :live_view
+# lib/ex_cortex_web/live/guide_live.ex
+defmodule ExCortexWeb.GuideLive do
+  use ExCortexWeb, :live_view
 
   def mount(_params, _session, socket) do
     {:ok, socket}
@@ -1332,7 +1332,7 @@ defmodule ExCaliburWeb.GuideLive do
     ~H"""
     <div class="max-w-3xl mx-auto py-8 px-4 space-y-10">
       <div>
-        <h1 class="text-3xl font-bold mb-1">ExCalibur Guide</h1>
+        <h1 class="text-3xl font-bold mb-1">ExCortex Guide</h1>
         <p class="text-muted-foreground">How to get the most out of quests, campaigns, and guild features.</p>
       </div>
 
@@ -1420,11 +1420,11 @@ defmodule ExCaliburWeb.GuideLive do
       <section>
         <h2 class="text-xl font-semibold mb-3">Model Fallback Chains</h2>
         <p class="text-sm text-muted-foreground mb-3">
-          When Ollama fails for a member's assigned model, ExCalibur automatically retries with models
+          When Ollama fails for a member's assigned model, ExCortex automatically retries with models
           from the configured fallback chain. Configure in <code class="bg-muted px-1 rounded">config/config.exs</code>:
         </p>
         <div class="bg-muted rounded p-4 text-xs font-mono whitespace-pre">
-    config :ex_calibur, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
+    config :ex_cortex, :model_fallback_chain, ["phi4-mini", "gemma3:4b", "llama3:8b"]
         </div>
         <p class="text-sm text-muted-foreground mt-2">
           The assigned model is tried first. If it fails, models from the chain are tried in order.
@@ -1452,7 +1452,7 @@ end
 
 **Step 5: Add nav link**
 
-In `lib/ex_calibur_web/components/layouts/root.html.heex`, find the nav links list and add `"Guide"`:
+In `lib/ex_cortex_web/components/layouts/root.html.heex`, find the nav links list and add `"Guide"`:
 
 ```elixir
 {"Guide", ~p"/guide"},
@@ -1463,7 +1463,7 @@ Place it after `{"Quest Board", ~p"/quest-board"}`.
 **Step 6: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/guide_live_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/guide_live_test.exs --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -1471,13 +1471,13 @@ Expected: All tests pass.
 **Step 7: Run full suite**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0 2>&1 | tail -20' --pane=main:1.3
 ```
 
 **Step 8: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/guide_live.ex lib/ex_calibur_web/router.ex lib/ex_calibur_web/components/layouts/root.html.heex test/ex_calibur_web/live/guide_live_test.exs
+git add lib/ex_cortex_web/live/guide_live.ex lib/ex_cortex_web/router.ex lib/ex_cortex_web/components/layouts/root.html.heex test/ex_cortex_web/live/guide_live_test.exs
 git commit -m "feat: add /guide page — how-to documentation for campaigns, branch steps, trust scoring, and more"
 ```
 
@@ -1499,7 +1499,7 @@ git commit -m "feat: add /guide page — how-to documentation for campaigns, bra
 After all tasks, run:
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0 2>&1 | tail -5' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0 2>&1 | tail -5' --pane=main:1.3
 ```
 
 Expected: All tests pass with no warnings.

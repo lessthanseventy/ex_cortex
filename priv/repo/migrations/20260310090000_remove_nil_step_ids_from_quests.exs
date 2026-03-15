@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.RemoveNilStepIdsFromQuests do
+defmodule ExCortex.Repo.Migrations.RemoveNilStepIdsFromQuests do
   use Ecto.Migration
 
   def up do

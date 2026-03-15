@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddArtifactFieldsToQuests do
+defmodule ExCortex.Repo.Migrations.AddArtifactFieldsToQuests do
   use Ecto.Migration
 
   def change do

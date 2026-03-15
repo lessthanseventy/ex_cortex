@@ -13,17 +13,17 @@
 ## Task 1: ClaudeClient — Anthropic API wrapper
 
 **Files:**
-- Create: `lib/ex_calibur/claude_client.ex`
-- Create: `test/ex_calibur/claude_client_test.exs`
+- Create: `lib/ex_cortex/claude_client.ex`
+- Create: `test/ex_cortex/claude_client_test.exs`
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/claude_client_test.exs
-defmodule ExCalibur.ClaudeClientTest do
+# test/ex_cortex/claude_client_test.exs
+defmodule ExCortex.ClaudeClientTest do
   use ExUnit.Case, async: true
 
-  alias ExCalibur.ClaudeClient
+  alias ExCortex.ClaudeClient
 
   describe "parse_response/1" do
     test "extracts action, confidence, reason from text" do
@@ -68,7 +68,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/claude_client_test.exs
+cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/claude_client_test.exs
 ```
 
 Expected: error — module not found.
@@ -76,8 +76,8 @@ Expected: error — module not found.
 **Step 3: Implement ClaudeClient**
 
 ```elixir
-# lib/ex_calibur/claude_client.ex
-defmodule ExCalibur.ClaudeClient do
+# lib/ex_cortex/claude_client.ex
+defmodule ExCortex.ClaudeClient do
   @moduledoc """
   Thin wrapper around the Anthropic Messages API.
   Sends a system prompt + user message, parses ACTION/CONFIDENCE/REASON response format.
@@ -96,7 +96,7 @@ defmodule ExCalibur.ClaudeClient do
   Returns {:ok, %{action, confidence, reason}} or {:error, reason}.
   """
   def call(tier, system_prompt, user_message) do
-    api_key = Application.get_env(:ex_calibur, :anthropic_api_key) ||
+    api_key = Application.get_env(:ex_cortex, :anthropic_api_key) ||
               System.get_env("ANTHROPIC_API_KEY")
 
     if is_nil(api_key) do
@@ -168,7 +168,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur/claude_client_test.exs
+mix test test/ex_cortex/claude_client_test.exs
 ```
 
 Expected: all passing.
@@ -176,7 +176,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/claude_client.ex test/ex_calibur/claude_client_test.exs
+git add lib/ex_cortex/claude_client.ex test/ex_cortex/claude_client_test.exs
 git commit -m "feat: add ClaudeClient for Anthropic API"
 ```
 
@@ -185,17 +185,17 @@ git commit -m "feat: add ClaudeClient for Anthropic API"
 ## Task 2: QuestRunner — roster-driven multi-step evaluation
 
 **Files:**
-- Create: `lib/ex_calibur/quest_runner.ex`
-- Create: `test/ex_calibur/quest_runner_test.exs`
+- Create: `lib/ex_cortex/quest_runner.ex`
+- Create: `test/ex_cortex/quest_runner_test.exs`
 
 **Step 1: Write the failing tests**
 
 ```elixir
-# test/ex_calibur/quest_runner_test.exs
-defmodule ExCalibur.QuestRunnerTest do
-  use ExCalibur.DataCase, async: true
+# test/ex_cortex/quest_runner_test.exs
+defmodule ExCortex.QuestRunnerTest do
+  use ExCortex.DataCase, async: true
 
-  alias ExCalibur.QuestRunner
+  alias ExCortex.QuestRunner
 
   describe "resolve_members/2" do
     test "returns empty list for unknown who" do
@@ -291,7 +291,7 @@ end
 **Step 2: Run to confirm failure**
 
 ```bash
-mix test test/ex_calibur/quest_runner_test.exs
+mix test test/ex_cortex/quest_runner_test.exs
 ```
 
 Expected: error — module not found.
@@ -299,8 +299,8 @@ Expected: error — module not found.
 **Step 3: Implement QuestRunner**
 
 ```elixir
-# lib/ex_calibur/quest_runner.ex
-defmodule ExCalibur.QuestRunner do
+# lib/ex_cortex/quest_runner.ex
+defmodule ExCortex.QuestRunner do
   @moduledoc """
   Executes a quest roster step by step, handling escalation between steps.
   Each step filters DB members by tier, calls their models, aggregates verdicts,
@@ -312,8 +312,8 @@ defmodule ExCalibur.QuestRunner do
 
   alias Excellence.LLM.Ollama
   alias Excellence.Schemas.Member
-  alias ExCalibur.ClaudeClient
-  alias ExCalibur.Repo
+  alias ExCortex.ClaudeClient
+  alias ExCortex.Repo
 
   @claude_tiers ~w(claude_haiku claude_sonnet claude_opus)
 
@@ -323,7 +323,7 @@ defmodule ExCalibur.QuestRunner do
   trace is a list of step results showing the escalation path.
   """
   def run(quest, input, opts \\ []) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    ollama_url = Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
     ollama = Keyword.get(opts, :ollama, Ollama.new(base_url: ollama_url))
 
     all_members = Repo.all(from(m in Member, where: m.type == "role" and m.status == "active"))
@@ -515,7 +515,7 @@ end
 **Step 4: Run tests**
 
 ```bash
-mix test test/ex_calibur/quest_runner_test.exs
+mix test test/ex_cortex/quest_runner_test.exs
 ```
 
 Expected: all passing.
@@ -523,7 +523,7 @@ Expected: all passing.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_runner.ex test/ex_calibur/quest_runner_test.exs
+git add lib/ex_cortex/quest_runner.ex test/ex_cortex/quest_runner_test.exs
 git commit -m "feat: add QuestRunner with multi-step roster evaluation and escalation"
 ```
 
@@ -532,7 +532,7 @@ git commit -m "feat: add QuestRunner with multi-step roster evaluation and escal
 ## Task 3: Wire QuestsLive to use QuestRunner
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Replace Evaluator.evaluate call with QuestRunner.run**
 
@@ -540,7 +540,7 @@ In `QuestsLive.handle_event("run_quest", ...)`, update the `Task.start` block:
 
 ```elixir
 Task.start(fn ->
-  result = ExCalibur.QuestRunner.run(quest, input)
+  result = ExCortex.QuestRunner.run(quest, input)
   send(self(), {:quest_run_complete, run_id, quest_run.id, result})
 end)
 ```
@@ -550,7 +550,7 @@ Also send `self()` correctly — the task needs the parent PID:
 ```elixir
 parent = self()
 Task.start(fn ->
-  result = ExCalibur.QuestRunner.run(quest, input)
+  result = ExCortex.QuestRunner.run(quest, input)
   send(parent, {:quest_run_complete, run_id, quest_run.id, result})
 end)
 ```
@@ -590,7 +590,7 @@ In `quest_card` component, update the run result display block:
 **Step 3: Compile and run tests**
 
 ```bash
-mix compile --warnings-as-errors && mix test test/ex_calibur_web/live/quests_live_test.exs
+mix compile --warnings-as-errors && mix test test/ex_cortex_web/live/quests_live_test.exs
 ```
 
 Expected: all passing.
@@ -598,7 +598,7 @@ Expected: all passing.
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: wire QuestsLive to QuestRunner, show escalation trace"
 ```
 
@@ -607,7 +607,7 @@ git commit -m "feat: wire QuestsLive to QuestRunner, show escalation trace"
 ## Task 4: Add escalation config to quest roster UI
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Add Claude tier options to the "Who runs it" dropdown in new_quest_form**
 
@@ -665,7 +665,7 @@ Expected: all passing.
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: add Claude tier options and escalate_on to quest roster UI"
 ```
 
@@ -680,14 +680,14 @@ git commit -m "feat: add Claude tier options and escalate_on to quest roster UI"
 **Step 1: Add to runtime.exs**
 
 ```elixir
-config :ex_calibur, :anthropic_api_key,
+config :ex_cortex, :anthropic_api_key,
   System.get_env("ANTHROPIC_API_KEY")
 ```
 
 **Step 2: Add to dev.exs (optional, with comment)**
 
 ```elixir
-# config :ex_calibur, :anthropic_api_key, "sk-ant-..."
+# config :ex_cortex, :anthropic_api_key, "sk-ant-..."
 ```
 
 **Step 3: Update docker-compose.yml** — add env var pass-through:

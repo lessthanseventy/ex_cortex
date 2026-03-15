@@ -13,12 +13,12 @@
 ## Task 1: `Quests.list_campaigns_for_source/1`
 
 **Files:**
-- Modify: `lib/ex_calibur/quests.ex`
-- Test: `test/ex_calibur/quests_test.exs`
+- Modify: `lib/ex_cortex/quests.ex`
+- Test: `test/ex_cortex/quests_test.exs`
 
 **Step 1: Write the failing test**
 
-In `test/ex_calibur/quests_test.exs`, add to the `campaigns` describe block:
+In `test/ex_cortex/quests_test.exs`, add to the `campaigns` describe block:
 
 ```elixir
 test "list_campaigns_for_source returns active source-triggered campaigns" do
@@ -56,14 +56,14 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quests_test.exs --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quests_test.exs --seed 0' --pane=main:1.3
 ```
 
-Expected: `** (UndefinedFunctionError) function ExCalibur.Quests.list_campaigns_for_source/1 is undefined`
+Expected: `** (UndefinedFunctionError) function ExCortex.Quests.list_campaigns_for_source/1 is undefined`
 
 **Step 3: Implement**
 
-In `lib/ex_calibur/quests.ex`, add after `list_quests_for_source/1`:
+In `lib/ex_cortex/quests.ex`, add after `list_quests_for_source/1`:
 
 ```elixir
 def list_campaigns_for_source(source_id) do
@@ -80,7 +80,7 @@ end
 **Step 4: Run tests to verify pass**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quests_test.exs --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quests_test.exs --seed 0' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -88,7 +88,7 @@ Expected: All tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quests.ex test/ex_calibur/quests_test.exs
+git add lib/ex_cortex/quests.ex test/ex_cortex/quests_test.exs
 git commit -m "feat: add Quests.list_campaigns_for_source/1"
 ```
 
@@ -97,20 +97,20 @@ git commit -m "feat: add Quests.list_campaigns_for_source/1"
 ## Task 2: `CampaignRunner`
 
 **Files:**
-- Create: `lib/ex_calibur/campaign_runner.ex`
-- Create: `test/ex_calibur/campaign_runner_test.exs`
+- Create: `lib/ex_cortex/campaign_runner.ex`
+- Create: `test/ex_cortex/campaign_runner_test.exs`
 
 **Background:** `QuestRunner.run/2` returns `{:ok, %{artifact: attrs}}` for artifact quests or `{:ok, %{verdict:, steps:}}` for verdict quests. `CampaignRunner` resolves steps in order, runs each quest, then formats the result as text to inject into the next step's input.
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/campaign_runner_test.exs
-defmodule ExCalibur.CampaignRunnerTest do
-  use ExCalibur.DataCase, async: false
+# test/ex_cortex/campaign_runner_test.exs
+defmodule ExCortex.CampaignRunnerTest do
+  use ExCortex.DataCase, async: false
 
-  alias ExCalibur.CampaignRunner
-  alias ExCalibur.Quests
+  alias ExCortex.CampaignRunner
+  alias ExCortex.Quests
 
   test "run/2 executes each step quest in order and returns final result" do
     # Create two quests
@@ -171,16 +171,16 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/campaign_runner_test.exs --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/campaign_runner_test.exs --seed 0' --pane=main:1.3
 ```
 
-Expected: `module ExCalibur.CampaignRunner is not loaded and could not be found`
+Expected: `module ExCortex.CampaignRunner is not loaded and could not be found`
 
 **Step 3: Implement**
 
 ```elixir
-# lib/ex_calibur/campaign_runner.ex
-defmodule ExCalibur.CampaignRunner do
+# lib/ex_cortex/campaign_runner.ex
+defmodule ExCortex.CampaignRunner do
   @moduledoc """
   Runs a Campaign's ordered quest steps in sequence.
 
@@ -190,8 +190,8 @@ defmodule ExCalibur.CampaignRunner do
   Steps are maps: %{"quest_id" => "123", "order" => 1}
   """
 
-  alias ExCalibur.QuestRunner
-  alias ExCalibur.Quests
+  alias ExCortex.QuestRunner
+  alias ExCortex.Quests
 
   require Logger
 
@@ -278,7 +278,7 @@ end
 **Step 4: Run tests to verify pass**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/campaign_runner_test.exs --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/campaign_runner_test.exs --seed 0' --pane=main:1.3
 ```
 
 Expected: All 4 tests pass.
@@ -286,7 +286,7 @@ Expected: All 4 tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/campaign_runner.ex test/ex_calibur/campaign_runner_test.exs
+git add lib/ex_cortex/campaign_runner.ex test/ex_cortex/campaign_runner_test.exs
 git commit -m "feat: add CampaignRunner — sequential quest step execution"
 ```
 
@@ -295,20 +295,20 @@ git commit -m "feat: add CampaignRunner — sequential quest step execution"
 ## Task 3: `QuestDebouncer` — support campaigns
 
 **Files:**
-- Modify: `lib/ex_calibur/quest_debouncer.ex`
-- Test: `test/ex_calibur/quest_debouncer_test.exs` (create if not exists)
+- Modify: `lib/ex_cortex/quest_debouncer.ex`
+- Test: `test/ex_cortex/quest_debouncer_test.exs` (create if not exists)
 
 **Background:** The debouncer currently keys state by `quest.id` (an integer). To support campaigns alongside quests without conflict, use tagged tuples as keys: `{:quest, id}` and `{:campaign, id}`. The `handle_info({:fire, key}, state)` handler pattern-matches on the key to dispatch to either `QuestRunner` or `CampaignRunner`.
 
 **Step 1: Write the failing test**
 
 ```elixir
-# test/ex_calibur/quest_debouncer_test.exs
-defmodule ExCalibur.QuestDebouncerTest do
-  use ExCalibur.DataCase, async: false
+# test/ex_cortex/quest_debouncer_test.exs
+defmodule ExCortex.QuestDebouncerTest do
+  use ExCortex.DataCase, async: false
 
-  alias ExCalibur.QuestDebouncer
-  alias ExCalibur.Quests
+  alias ExCortex.QuestDebouncer
+  alias ExCortex.Quests
 
   test "enqueue_campaign/3 accepts a campaign without crashing" do
     {:ok, campaign} =
@@ -318,7 +318,7 @@ defmodule ExCalibur.QuestDebouncerTest do
         source_ids: ["src-test"]
       })
 
-    items = [%ExCalibur.Sources.SourceItem{content: "test item", source_id: "src-test"}]
+    items = [%ExCortex.Sources.SourceItem{content: "test item", source_id: "src-test"}]
 
     # Should not crash
     assert :ok = QuestDebouncer.enqueue_campaign(campaign, "test-source", items)
@@ -329,15 +329,15 @@ end
 **Step 2: Run to verify it fails**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_debouncer_test.exs --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_debouncer_test.exs --seed 0' --pane=main:1.3
 ```
 
-Expected: `function ExCalibur.QuestDebouncer.enqueue_campaign/3 is undefined`
+Expected: `function ExCortex.QuestDebouncer.enqueue_campaign/3 is undefined`
 
 **Step 3: Implement changes to QuestDebouncer**
 
 The diff is:
-1. Add `alias ExCalibur.CampaignRunner` at the top
+1. Add `alias ExCortex.CampaignRunner` at the top
 2. Add public `enqueue_campaign/3` function
 3. Change state keys from bare `quest.id` to `{:quest, quest.id}` / `{:campaign, campaign.id}`
 4. Update `handle_cast` to use the new key format
@@ -346,7 +346,7 @@ The diff is:
 Full updated file:
 
 ```elixir
-defmodule ExCalibur.QuestDebouncer do
+defmodule ExCortex.QuestDebouncer do
   @moduledoc """
   Coalesces items from multiple sources into a single quest or campaign run.
 
@@ -359,8 +359,8 @@ defmodule ExCalibur.QuestDebouncer do
   """
   use GenServer
 
-  alias ExCalibur.CampaignRunner
-  alias ExCalibur.QuestRunner
+  alias ExCortex.CampaignRunner
+  alias ExCortex.QuestRunner
   alias Excellence.LLM.Ollama
 
   require Logger
@@ -412,12 +412,12 @@ defmodule ExCalibur.QuestDebouncer do
         entity_name = entity.name
 
         Phoenix.PubSub.broadcast(
-          ExCalibur.PubSub,
+          ExCortex.PubSub,
           "source_activity",
           {:quest_started, entity_name, total_items}
         )
 
-        Task.Supervisor.start_child(ExCalibur.SourceTaskSupervisor, fn ->
+        Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
           try do
             Logger.info(
               "[QuestDebouncer] Summarising #{map_size(batches)} source(s) for #{inspect(key)} (#{entity_name}), #{total_items} total items"
@@ -435,7 +435,7 @@ defmodule ExCalibur.QuestDebouncer do
               Logger.error("Quest/Campaign failed: #{Exception.message(e)}")
 
               Phoenix.PubSub.broadcast(
-                ExCalibur.PubSub,
+                ExCortex.PubSub,
                 "source_activity",
                 {:quest_error, entity_name, Exception.message(e)}
               )
@@ -449,7 +449,7 @@ defmodule ExCalibur.QuestDebouncer do
   # ── Per-source summarisation ───────────────────────────────────────────────
 
   defp summarise_batches(batches) do
-    ollama_url = Application.get_env(:ex_calibur, :ollama_url, "http://127.0.0.1:11434")
+    ollama_url = Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
     ollama = Ollama.new(base_url: ollama_url)
 
     batches
@@ -499,7 +499,7 @@ end
 **Step 4: Run tests to verify pass**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/quest_debouncer_test.exs test/ex_calibur/quests_test.exs --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/quest_debouncer_test.exs test/ex_cortex/quests_test.exs --seed 0' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -507,7 +507,7 @@ Expected: All tests pass.
 **Step 5: Commit**
 
 ```bash
-git add lib/ex_calibur/quest_debouncer.ex test/ex_calibur/quest_debouncer_test.exs
+git add lib/ex_cortex/quest_debouncer.ex test/ex_cortex/quest_debouncer_test.exs
 git commit -m "feat: QuestDebouncer supports campaigns via enqueue_campaign/3"
 ```
 
@@ -516,7 +516,7 @@ git commit -m "feat: QuestDebouncer supports campaigns via enqueue_campaign/3"
 ## Task 4: `SourceWorker` — also enqueue campaigns
 
 **Files:**
-- Modify: `lib/ex_calibur/sources/source_worker.ex`
+- Modify: `lib/ex_cortex/sources/source_worker.ex`
 
 **Background:** After fetching items, `SourceWorker` currently looks up quests and enqueues them. It needs to also look up campaigns for the source and enqueue each to `QuestDebouncer.enqueue_campaign/3`.
 
@@ -527,14 +527,14 @@ There is no clean unit test for SourceWorker (it's a GenServer with I/O). The in
 Instead, confirm the current test suite is green before we touch this file:
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0' --pane=main:1.3
 ```
 
 Expected: All tests pass.
 
 **Step 2: Implement the change**
 
-In `lib/ex_calibur/sources/source_worker.ex`, modify the `{:ok, items, new_worker_state}` clause and `evaluate_items/3` section:
+In `lib/ex_cortex/sources/source_worker.ex`, modify the `{:ok, items, new_worker_state}` clause and `evaluate_items/3` section:
 
 Current code at line 57-63:
 ```elixir
@@ -575,12 +575,12 @@ defp enqueue_campaigns(items, source, campaigns) do
 end
 ```
 
-Also add `alias ExCalibur.QuestDebouncer` near the top if not already present (it's already aliased — check line 6).
+Also add `alias ExCortex.QuestDebouncer` near the top if not already present (it's already aliased — check line 6).
 
 **Step 3: Run full test suite to verify**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0' --pane=main:1.3
 ```
 
 Expected: All tests pass (no new failures).
@@ -588,7 +588,7 @@ Expected: All tests pass (no new failures).
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/sources/source_worker.ex
+git add lib/ex_cortex/sources/source_worker.ex
 git commit -m "feat: SourceWorker enqueues campaigns for source-triggered items"
 ```
 
@@ -597,14 +597,14 @@ git commit -m "feat: SourceWorker enqueues campaigns for source-triggered items"
 ## Task 5: `ScheduledQuestRunner` — also run due campaigns
 
 **Files:**
-- Modify: `lib/ex_calibur/scheduled_quest_runner.ex`
+- Modify: `lib/ex_cortex/scheduled_quest_runner.ex`
 
 **Background:** The scheduled runner wakes every minute and runs quests whose cron matches. It needs to also check campaigns with `trigger: "scheduled"` and `status: "active"` and run due ones via `CampaignRunner.run/2`.
 
 **Step 1: Verify tests pass before changing**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0' --pane=main:1.3
 ```
 
 **Step 2: Implement the change**
@@ -628,7 +628,7 @@ def handle_info(:tick, state) do
 end
 ```
 
-Add `alias ExCalibur.CampaignRunner` near the top, then add the new private functions:
+Add `alias ExCortex.CampaignRunner` near the top, then add the new private functions:
 
 ```elixir
 defp run_due_campaigns do
@@ -665,7 +665,7 @@ end
 **Step 3: Run full test suite**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0' --pane=main:1.3
 ```
 
 Expected: All tests pass.
@@ -673,7 +673,7 @@ Expected: All tests pass.
 **Step 4: Commit**
 
 ```bash
-git add lib/ex_calibur/scheduled_quest_runner.ex
+git add lib/ex_cortex/scheduled_quest_runner.ex
 git commit -m "feat: ScheduledQuestRunner runs due campaigns alongside quests"
 ```
 
@@ -682,16 +682,16 @@ git commit -m "feat: ScheduledQuestRunner runs due campaigns alongside quests"
 ## Task 6: `QuestsLive` — campaigns as primary cards
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Background:** QuestsLive is 1814 lines. Currently it shows both quests and campaigns but without strong visual hierarchy. The goal is: campaigns appear as primary cards at the top showing their ordered steps (with quest names); standalone quests (those not referenced by any campaign step) appear in a separate "Standalone Quests" section.
 
 **Step 1: Understand current structure**
 
-Read the top ~80 lines of `lib/ex_calibur_web/live/quests_live.ex` to see mount/assigns:
+Read the top ~80 lines of `lib/ex_cortex_web/live/quests_live.ex` to see mount/assigns:
 
 ```bash
-tmux-cli send 'grep -n "def mount\|def handle_event\|assigns\|campaigns\|quests" /home/andrew/projects/ex_calibur/lib/ex_calibur_web/live/quests_live.ex | head -60' --pane=main:1.3
+tmux-cli send 'grep -n "def mount\|def handle_event\|assigns\|campaigns\|quests" /home/andrew/projects/ex_cortex/lib/ex_cortex_web/live/quests_live.ex | head -60' --pane=main:1.3
 ```
 
 **Step 2: Gather referenced quest IDs from campaigns**
@@ -747,7 +747,7 @@ end
 **Step 5: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test --seed 0' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test --seed 0' --pane=main:1.3
 ```
 
 Expected: All tests pass. Then visually verify in browser at `/quests`.
@@ -755,7 +755,7 @@ Expected: All tests pass. Then visually verify in browser at `/quests`.
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: QuestsLive shows campaigns as primary cards with standalone quests below"
 ```
 
@@ -773,9 +773,9 @@ git commit -m "feat: QuestsLive shows campaigns as primary cards with standalone
 
 ```elixir
 # /tmp/setup_btc_campaigns.exs
-alias ExCalibur.Quests
-alias ExCalibur.Quests.Quest
-alias ExCalibur.Repo
+alias ExCortex.Quests
+alias ExCortex.Quests.Quest
+alias ExCortex.Repo
 import Ecto.Query
 
 # Find quests by name
@@ -814,7 +814,7 @@ IO.puts("Done. Pause the standalone quests if they should only run via campaigns
 **Step 2: Run the script**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix run /tmp/setup_btc_campaigns.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix run /tmp/setup_btc_campaigns.exs' --pane=main:1.3
 ```
 
 Expected:
@@ -840,7 +840,7 @@ tmux-cli send 'iex -S mix' --pane=main:1.3
 
 ```elixir
 import Ecto.Query
-alias ExCalibur.{Quests, Quests.Quest, Repo}
+alias ExCortex.{Quests, Quests.Quest, Repo}
 
 ["BTC Price Prediction", "Prediction Accuracy Retrospective"]
 |> Enum.each(fn name ->

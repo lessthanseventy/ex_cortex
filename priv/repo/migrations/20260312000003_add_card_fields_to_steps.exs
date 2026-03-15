@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.AddCardFieldsToSteps do
+defmodule ExCortex.Repo.Migrations.AddCardFieldsToSteps do
   use Ecto.Migration
 
   def change do

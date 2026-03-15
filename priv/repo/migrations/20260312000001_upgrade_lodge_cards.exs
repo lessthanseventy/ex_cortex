@@ -1,4 +1,4 @@
-defmodule ExCalibur.Repo.Migrations.UpgradeLodgeCards do
+defmodule ExCortex.Repo.Migrations.UpgradeLodgeCards do
   use Ecto.Migration
 
   def change do

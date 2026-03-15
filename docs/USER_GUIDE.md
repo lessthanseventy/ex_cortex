@@ -1,6 +1,6 @@
 # User Guide
 
-Welcome to ExCalibur! This guide will help you get started with setting up and using the application.
+Welcome to ExCortex! This guide will help you get started with setting up and using the application.
 
 ## Setup
 
@@ -15,8 +15,8 @@ Welcome to ExCalibur! This guide will help you get started with setting up and u
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-org/ex_calibur.git
-   cd ex_calibur
+   git clone https://github.com/your-org/ex_cortex.git
+   cd ex_cortex
    ```
 
 2. Install dependencies:
@@ -42,7 +42,7 @@ Welcome to ExCalibur! This guide will help you get started with setting up and u
 Create a `.env` file in the root directory with the following variables:
 
 ```bash
-DATABASE_URL=postgres://user:password@localhost/ex_calibur
+DATABASE_URL=postgres://user:password@localhost/ex_cortex
 OLLAMA_URL=http://localhost:11434
 CLAUDE_API_KEY=your-claude-api-key
 ```

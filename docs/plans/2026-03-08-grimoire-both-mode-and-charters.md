@@ -14,7 +14,7 @@
 - Campaign flows: `always`, `on_flag`, `on_pass`, memory synthesis as final step
 - Roster strategies: solo apprentice, solo master, consensus all (all demonstrated)
 
-**Tech Stack:** Ecto migrations, Phoenix LiveView, ExCalibur.Lore, Excellence.Charters.*
+**Tech Stack:** Ecto migrations, Phoenix LiveView, ExCortex.Lore, Excellence.Charters.*
 
 ---
 
@@ -22,15 +22,15 @@
 
 **Files:**
 - Create: `priv/repo/migrations/20260308300000_add_log_title_template_to_quests.exs`
-- Modify: `lib/ex_calibur/quests/quest.ex`
-- Modify: `lib/ex_calibur/lore.ex`
-- Modify: `test/ex_calibur/lore_test.exs`
+- Modify: `lib/ex_cortex/quests/quest.ex`
+- Modify: `lib/ex_cortex/lore.ex`
+- Modify: `test/ex_cortex/lore_test.exs`
 
 **Step 1: Write the migration**
 
 ```elixir
 # priv/repo/migrations/20260308300000_add_log_title_template_to_quests.exs
-defmodule ExCalibur.Repo.Migrations.AddLogTitleTemplateToQuests do
+defmodule ExCortex.Repo.Migrations.AddLogTitleTemplateToQuests do
   use Ecto.Migration
 
   def change do
@@ -44,17 +44,17 @@ end
 **Step 2: Run migration**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix ecto.migrate' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix ecto.migrate' --pane=main:1.3
 ```
 
 Wait 15s. Expected: migration ran successfully.
 
 **Step 3: Update Quest schema**
 
-Replace `lib/ex_calibur/quests/quest.ex` with:
+Replace `lib/ex_cortex/quests/quest.ex` with:
 
 ```elixir
-defmodule ExCalibur.Quests.Quest do
+defmodule ExCortex.Quests.Quest do
   @moduledoc false
   use Ecto.Schema
 
@@ -105,7 +105,7 @@ end
 
 **Step 4: Update Lore.write_artifact/2**
 
-Replace `write_artifact/2` in `lib/ex_calibur/lore.ex` with:
+Replace `write_artifact/2` in `lib/ex_cortex/lore.ex` with:
 
 ```elixir
 @doc """
@@ -145,7 +145,7 @@ end
 
 **Step 5: Add tests for "both" mode**
 
-Add to `test/ex_calibur/lore_test.exs`:
+Add to `test/ex_cortex/lore_test.exs`:
 
 ```elixir
 test "write_artifact both mode creates pinned summary and appends log" do
@@ -170,7 +170,7 @@ end
 **Step 6: Run lore tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur/lore_test.exs 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/lore_test.exs 2>&1 | tail -10' --pane=main:1.3
 ```
 
 Wait 30s. Expected: all tests pass.
@@ -178,8 +178,8 @@ Wait 30s. Expected: all tests pass.
 **Step 7: Commit**
 
 ```bash
-cd /home/andrew/projects/ex_calibur
-git add priv/repo/migrations/20260308300000_add_log_title_template_to_quests.exs lib/ex_calibur/quests/quest.ex lib/ex_calibur/lore.ex test/ex_calibur/lore_test.exs
+cd /home/andrew/projects/ex_cortex
+git add priv/repo/migrations/20260308300000_add_log_title_template_to_quests.exs lib/ex_cortex/quests/quest.ex lib/ex_cortex/lore.ex test/ex_cortex/lore_test.exs
 git commit -m "feat: write_mode 'both' — update pinned summary and append log"
 ```
 
@@ -188,11 +188,11 @@ git commit -m "feat: write_mode 'both' — update pinned summary and append log"
 ## Task 2: Quest Form — "Both" write_mode UI
 
 **Files:**
-- Modify: `lib/ex_calibur_web/live/quests_live.ex`
+- Modify: `lib/ex_cortex_web/live/quests_live.ex`
 
 **Step 1: Read the file**
 
-Read the full `lib/ex_calibur_web/live/quests_live.ex`. Find the `write_mode` select in `new_quest_form` and `quest_card`, and how `write_mode`/`entry_title_template` are extracted in create/update handlers.
+Read the full `lib/ex_cortex_web/live/quests_live.ex`. Find the `write_mode` select in `new_quest_form` and `quest_card`, and how `write_mode`/`entry_title_template` are extracted in create/update handlers.
 
 **Step 2: Add "both" option to write_mode selects**
 
@@ -236,7 +236,7 @@ Add `log_title_template: log_title_template` to attrs.
 **Step 5: Run tests**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix test test/ex_calibur_web/live/quests_live_test.exs 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/quests_live_test.exs 2>&1 | tail -10' --pane=main:1.3
 ```
 
 Wait 30s. Expected: 7 tests, 0 failures.
@@ -244,7 +244,7 @@ Wait 30s. Expected: 7 tests, 0 failures.
 **Step 6: Commit**
 
 ```bash
-git add lib/ex_calibur_web/live/quests_live.ex
+git add lib/ex_cortex_web/live/quests_live.ex
 git commit -m "feat: 'both' write mode option in quest form with log title template"
 ```
 
@@ -684,10 +684,10 @@ tmux-cli send 'cd /home/andrew/projects/ex_cellence && mix compile 2>&1 | tail -
 
 Wait 30s. Expected: no errors.
 
-**Step: Verify ex_calibur compiles**
+**Step: Verify ex_cortex compiles**
 
 ```bash
-tmux-cli send 'cd /home/andrew/projects/ex_calibur && mix compile 2>&1 | tail -10' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix compile 2>&1 | tail -10' --pane=main:1.3
 ```
 
 Wait 30s. Expected: no errors.
