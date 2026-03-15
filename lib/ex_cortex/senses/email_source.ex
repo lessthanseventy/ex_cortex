@@ -10,7 +10,7 @@ defmodule ExCortex.Senses.EmailSense do
   def init(_config) do
     case System.cmd("notmuch", ["--version"], stderr_to_stdout: true) do
       {_output, 0} ->
-        {:ok, %{last_timestamp: 0}}
+        {:ok, %{last_timestamp: -1}}
 
       {_output, _code} ->
         {:error, "notmuch binary not found or not working"}
