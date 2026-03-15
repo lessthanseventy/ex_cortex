@@ -37,7 +37,7 @@ defmodule ExCortex.Application do
         {DNSCluster, query: Application.get_env(:ex_cortex, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ExCortex.PubSub},
         {Registry, keys: :unique, name: ExCortex.SourceRegistry},
-        {Task.Supervisor, name: ExCortex.SourceTaskSupervisor, max_children: 4},
+        {Task.Supervisor, name: ExCortex.SourceTaskSupervisor, max_children: 10},
         {Task.Supervisor, name: ExCortex.AsyncTaskSupervisor},
         ExCortex.AppTelemetry,
         ExCortex.Ruminations.Debouncer,
