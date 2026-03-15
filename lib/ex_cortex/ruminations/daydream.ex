@@ -15,6 +15,6 @@ defmodule ExCortex.Ruminations.Daydream do
     run
     |> cast(attrs, [:rumination_id, :status, :synapse_results])
     |> validate_required([:rumination_id])
-    |> validate_inclusion(:status, ["pending", "running", "complete", "failed"])
+    |> validate_inclusion(:status, ["pending", "running", "complete", "failed", "dry_run", "gated"])
   end
 end
