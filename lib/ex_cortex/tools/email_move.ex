@@ -41,12 +41,34 @@ defmodule ExCortex.Tools.EmailMove do
   end
 
   defp mail_root do
+    # notmuch's database.mail_root is the top-level mail dir (e.g. ~/mail)
+    # but Maildir folders live inside the account subdir (e.g. ~/mail/zoho/)
+    # Use the first subdirectory that contains an Inbox as the actual root
     case System.cmd("notmuch", ["config", "get", "database.mail_root"], stderr_to_stdout: true) do
-      {path, 0} -> String.trim(path)
-      _ -> @mail_root
+      {path, 0} ->
+        base = String.trim(path)
+        find_account_root(base)
+
+      _ ->
+        @mail_root
     end
   rescue
     _ -> @mail_root
+  end
+
+  defp find_account_root(base) do
+    case File.ls(base) do
+      {:ok, entries} ->
+        account =
+          Enum.find(entries, fn entry ->
+            Path.join([base, entry, "Inbox"]) |> File.dir?()
+          end)
+
+        if account, do: Path.join(base, account), else: base
+
+      _ ->
+        base
+    end
   end
 
   defp ensure_maildir(mail_root, folder) do
