@@ -22,7 +22,15 @@ defmodule ExCortexWeb.CortexLive do
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
     end
 
-    {:ok, load_data(assign(socket, page_title: "Cortex"))}
+    {:ok,
+     load_data(
+       assign(socket,
+         page_title: "Cortex",
+         muse_input: "",
+         muse_answer: nil,
+         muse_loading: false
+       )
+     )}
   end
 
   @impl true
@@ -30,6 +38,21 @@ defmodule ExCortexWeb.CortexLive do
   def handle_info({:daydream_started, _}, socket), do: {:noreply, load_ruminations(socket)}
   def handle_info({:signal_posted, _}, socket), do: {:noreply, load_signals(socket)}
   def handle_info({:engram_updated, _}, socket), do: {:noreply, load_engrams(socket)}
+
+  def handle_info({ref, {:ok, thought}}, socket) when is_reference(ref) do
+    Process.demonitor(ref, [:flush])
+    {:noreply, assign(socket, muse_answer: thought.answer, muse_loading: false)}
+  end
+
+  def handle_info({ref, {:error, _reason}}, socket) when is_reference(ref) do
+    Process.demonitor(ref, [:flush])
+    {:noreply, assign(socket, muse_answer: "Something went wrong — try again.", muse_loading: false)}
+  end
+
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    {:noreply, assign(socket, muse_answer: "Something went wrong — try again.", muse_loading: false)}
+  end
+
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   @impl true
@@ -41,6 +64,15 @@ defmodule ExCortexWeb.CortexLive do
     {:noreply, socket}
   end
 
+  def handle_event("quick_muse", %{"question" => q}, socket) when q != "" do
+    Task.async(fn -> ExCortex.Muse.ask(q, scope: "muse") end)
+    {:noreply, assign(socket, muse_input: q, muse_loading: true, muse_answer: nil)}
+  end
+
+  def handle_event("quick_muse", _params, socket) do
+    {:noreply, socket}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -49,6 +81,38 @@ defmodule ExCortexWeb.CortexLive do
       phx-window-keydown="navigate"
       phx-value-key=""
     >
+      <%!-- Quick Muse Input --%>
+      <div class="mb-4">
+        <form phx-submit="quick_muse" class="flex items-center gap-2">
+          <input
+            type="text"
+            name="question"
+            value={@muse_input}
+            placeholder="Ask your knowledge base..."
+            class="flex-1 bg-muted border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground"
+            autocomplete="off"
+            disabled={@muse_loading}
+          />
+          <button
+            type="submit"
+            class="px-4 py-2 text-sm font-medium rounded bg-foreground text-background hover:opacity-90 disabled:opacity-50"
+            disabled={@muse_loading}
+          >
+            <%= if @muse_loading, do: "Thinking...", else: "Muse" %>
+          </button>
+        </form>
+        <%= if @muse_answer do %>
+          <div class="mt-2 p-3 bg-muted rounded border border-border text-sm text-foreground">
+            {@muse_answer}
+            <div class="mt-2">
+              <.link navigate={~p"/muse"} class="text-xs t-cyan hover:underline">
+                Open in Muse &rarr;
+              </.link>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
       <div class="tui-grid-2x2">
         <%!-- Panel 1: Active Ruminations --%>
         <.panel title="Active Ruminations">

@@ -18,6 +18,55 @@ defmodule ExCortexWeb.GuideLive do
       </div>
 
       <section class="space-y-3">
+        <h2 class="text-xl font-semibold">Wonder — Quick questions, no context</h2>
+        <p class="text-base text-muted-foreground">
+          <.link navigate={~p"/wonder"} class="underline text-foreground">Wonder</.link> is
+          the simplest way to ask a question. Type something, get an answer — no data lookup,
+          no knowledge-base search. It's a direct conversation with the underlying AI model.
+        </p>
+        <p class="text-base text-muted-foreground">
+          Use Wonder when you want a quick opinion, a definition, help drafting text, or
+          anything where your stored knowledge isn't relevant. Every question and answer is
+          saved as a Thought so you can find it later.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold">Muse — Data-grounded Q&amp;A</h2>
+        <p class="text-base text-muted-foreground">
+          <.link navigate={~p"/muse"} class="underline text-foreground">Muse</.link> works
+          like Wonder but smarter — before answering, it searches your
+          <.link navigate={~p"/memory"} class="underline text-foreground">Memory</.link>
+          for relevant engrams and uses them as context. This means answers are grounded in
+          what your system actually knows, not just general AI knowledge.
+        </p>
+        <p class="text-base text-muted-foreground">
+          Ask Muse when you want answers that reference your own data — project notes,
+          past analyses, reports your team has produced. The more engrams you have stored,
+          the more useful Muse becomes.
+        </p>
+        <p class="text-base text-muted-foreground">
+          There's also a quick-muse bar on the
+          <.link navigate={~p"/cortex"} class="underline text-foreground">Cortex</.link>
+          dashboard so you can ask a grounded question without leaving home base.
+        </p>
+      </section>
+
+      <section class="space-y-3">
+        <h2 class="text-xl font-semibold">Thoughts — Your question history</h2>
+        <p class="text-base text-muted-foreground">
+          Every question you ask through Wonder or Muse is saved as a
+          <strong>Thought</strong>. The
+          <.link navigate={~p"/thoughts"} class="underline text-foreground">Thoughts</.link>
+          screen lets you browse, search, and revisit past questions and answers.
+        </p>
+        <p class="text-base text-muted-foreground">
+          Think of it as a search history that actually keeps the answers. Useful when you
+          remember asking something last week but can't recall the details.
+        </p>
+      </section>
+
+      <section class="space-y-3">
         <h2 class="text-xl font-semibold">Ruminations — Asking your team a question</h2>
         <p class="text-base text-muted-foreground">
           A <strong>Rumination</strong> is a job you give to your AI helpers. You describe what you want
