@@ -220,6 +220,147 @@ defmodule ExCortexWeb.RuminationsLive do
     {:noreply, assign(socket, rumination_form: form)}
   end
 
+  def handle_event("expand_step", %{"idx" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    expanded = if socket.assigns.expanded_step == idx, do: nil, else: idx
+    {:noreply, assign(socket, expanded_step: expanded)}
+  end
+
+  def handle_event("move_step_up", %{"idx" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    steps = socket.assigns.pipeline_steps
+
+    if idx > 0 do
+      {item, rest} = List.pop_at(steps, idx)
+
+      steps =
+        rest
+        |> List.insert_at(idx - 1, item)
+        |> Enum.with_index()
+        |> Enum.map(fn {s, i} -> Map.put(s, "idx", i) end)
+
+      {:noreply, assign(socket, pipeline_steps: steps, expanded_step: idx - 1)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("move_step_down", %{"idx" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    steps = socket.assigns.pipeline_steps
+
+    if idx < length(steps) - 1 do
+      {item, rest} = List.pop_at(steps, idx)
+
+      steps =
+        rest
+        |> List.insert_at(idx, item)
+        |> Enum.with_index()
+        |> Enum.map(fn {s, i} -> Map.put(s, "idx", i) end)
+
+      {:noreply, assign(socket, pipeline_steps: steps, expanded_step: idx + 1)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_step", %{"idx" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+
+    steps =
+      socket.assigns.pipeline_steps
+      |> List.delete_at(idx)
+      |> Enum.with_index()
+      |> Enum.map(fn {s, i} -> Map.put(s, "idx", i) end)
+
+    expanded = if socket.assigns.expanded_step == idx, do: nil, else: socket.assigns.expanded_step
+    {:noreply, assign(socket, pipeline_steps: steps, expanded_step: expanded)}
+  end
+
+  def handle_event("toggle_step_option", %{"idx" => idx_str, "option" => option}, socket) do
+    idx = String.to_integer(idx_str)
+    steps = socket.assigns.pipeline_steps
+    step = Enum.at(steps, idx)
+
+    updated_step =
+      case option do
+        "gate" ->
+          Map.update(step, "gate", true, &(!&1))
+
+        "branch" ->
+          Map.update(step, "type", "branch", fn
+            "branch" -> "linear"
+            _ -> "branch"
+          end)
+
+        _ ->
+          step
+      end
+
+    steps = List.replace_at(steps, idx, updated_step)
+    {:noreply, assign(socket, pipeline_steps: steps)}
+  end
+
+  def handle_event("add_roster_entry", %{"step-idx" => idx_str}, socket) do
+    idx = String.to_integer(idx_str)
+    steps = socket.assigns.pipeline_steps
+    step = Enum.at(steps, idx)
+    synapse = step["synapse"]
+
+    if synapse do
+      new_entry = %{"who" => "all", "when" => "sequential", "how" => "solo"}
+      updated_roster = (synapse.roster || []) ++ [new_entry]
+      updated_synapse = %{synapse | roster: updated_roster}
+      updated_step = Map.put(step, "synapse", updated_synapse)
+      steps = List.replace_at(steps, idx, updated_step)
+      {:noreply, assign(socket, pipeline_steps: steps)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("remove_roster_entry", %{"step-idx" => sidx, "roster-idx" => ridx}, socket) do
+    sidx = String.to_integer(sidx)
+    ridx = String.to_integer(ridx)
+    steps = socket.assigns.pipeline_steps
+    step = Enum.at(steps, sidx)
+    synapse = step["synapse"]
+
+    if synapse do
+      updated_roster = List.delete_at(synapse.roster || [], ridx)
+      updated_synapse = %{synapse | roster: updated_roster}
+      updated_step = Map.put(step, "synapse", updated_synapse)
+      steps = List.replace_at(steps, sidx, updated_step)
+      {:noreply, assign(socket, pipeline_steps: steps)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event(
+        "update_roster_entry",
+        %{"step-idx" => sidx, "roster-idx" => ridx, "field" => field, "value" => value},
+        socket
+      ) do
+    sidx = String.to_integer(sidx)
+    ridx = String.to_integer(ridx)
+    steps = socket.assigns.pipeline_steps
+    step = Enum.at(steps, sidx)
+    synapse = step["synapse"]
+
+    if synapse do
+      roster = synapse.roster || []
+      entry = roster |> Enum.at(ridx) |> Map.put(field, value)
+      updated_roster = List.replace_at(roster, ridx, entry)
+      updated_synapse = %{synapse | roster: updated_roster}
+      updated_step = Map.put(step, "synapse", updated_synapse)
+      steps = List.replace_at(steps, sidx, updated_step)
+      {:noreply, assign(socket, pipeline_steps: steps)}
+    else
+      {:noreply, socket}
+    end
+  end
+
   # Helpers
 
   defp load_rumination(socket, rumination_id) do
@@ -397,23 +538,15 @@ defmodule ExCortexWeb.RuminationsLive do
                   </div>
                 </div>
 
-                <%!-- Step chain placeholder --%>
+                <%!-- Step chain --%>
                 <div class="border-t pt-3">
                   <p class="text-xs t-dim uppercase tracking-wide mb-2">synapse chain</p>
-                  <%= if @pipeline_steps == [] do %>
-                    <p class="text-xs t-dim italic py-2 pl-4">no steps yet</p>
-                  <% else %>
-                    <div class="space-y-1">
-                      <%= for {step, idx} <- Enum.with_index(@pipeline_steps) do %>
-                        <div class="flex items-center gap-2 text-sm border border-input rounded px-3 py-2">
-                          <span class="t-dim font-mono text-xs w-4 shrink-0">{idx + 1}.</span>
-                          <span class="flex-1 truncate">
-                            {if step["synapse"], do: step["synapse"].name, else: "unknown"}
-                          </span>
-                        </div>
-                      <% end %>
-                    </div>
-                  <% end %>
+                  <.step_chain
+                    steps={@pipeline_steps}
+                    expanded={@expanded_step}
+                    focused={@focused_step}
+                    synapses={@synapses}
+                  />
                 </div>
 
                 <%!-- Action bar --%>
@@ -560,6 +693,195 @@ defmodule ExCortexWeb.RuminationsLive do
           <% end %>
         </div>
       </div>
+    </div>
+    """
+  end
+
+  attr :steps, :list, required: true
+  attr :expanded, :any, default: nil
+  attr :focused, :integer, default: 0
+  attr :synapses, :list, required: true
+
+  defp step_chain(assigns) do
+    ~H"""
+    <div class="font-mono text-sm">
+      <%= if @steps == [] do %>
+        <p class="text-xs t-dim italic py-2 pl-4">no steps — click [+] to add a synapse</p>
+      <% else %>
+        <%= for {step, idx} <- Enum.with_index(@steps) do %>
+          <.step_card
+            step={step}
+            idx={idx}
+            total={length(@steps)}
+            expanded={@expanded == idx}
+            focused={@focused == idx}
+          />
+          <%= if idx < length(@steps) - 1 do %>
+            <div class="flex justify-center py-0.5">
+              <span class="t-dim">│</span>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :step, :map, required: true
+  attr :idx, :integer, required: true
+  attr :total, :integer, required: true
+  attr :expanded, :boolean, default: false
+  attr :focused, :boolean, default: false
+
+  defp step_card(assigns) do
+    synapse = assigns.step["synapse"]
+    neuron_count = if synapse, do: length(synapse.roster || []), else: 0
+    assigns = assign(assigns, synapse: synapse, neuron_count: neuron_count)
+
+    ~H"""
+    <div class={
+      "border rounded px-3 py-2 " <>
+        cond do
+          @expanded -> "border-primary bg-muted/20"
+          @focused -> "border-cyan"
+          true -> "border-input"
+        end
+    }>
+      <%!-- Compact header --%>
+      <div class="flex items-center gap-2">
+        <span class="t-dim font-mono text-xs w-4 shrink-0">{@idx + 1}.</span>
+        <button class="flex-1 text-left truncate" phx-click="expand_step" phx-value-idx={@idx}>
+          {if @synapse, do: @synapse.name, else: "unknown synapse"}
+        </button>
+        <span class="text-xs t-dim">◆ {@neuron_count}</span>
+        <%= if @step["gate"] do %>
+          <span class="text-xs t-red">▣ gate</span>
+        <% end %>
+        <%= if @step["type"] == "branch" do %>
+          <span class="text-xs t-amber">⑂ branch</span>
+        <% end %>
+        <span class="flex gap-1">
+          <button
+            phx-click="move_step_up"
+            phx-value-idx={@idx}
+            disabled={@idx == 0}
+            class={"text-xs px-1 " <> if(@idx == 0, do: "t-dim", else: "hover:bg-muted")}
+            title="Move up"
+          >
+            ▲
+          </button>
+          <button
+            phx-click="move_step_down"
+            phx-value-idx={@idx}
+            disabled={@idx == @total - 1}
+            class={
+              "text-xs px-1 " <> if(@idx == @total - 1, do: "t-dim", else: "hover:bg-muted")
+            }
+            title="Move down"
+          >
+            ▼
+          </button>
+          <button
+            phx-click="remove_step"
+            phx-value-idx={@idx}
+            class="text-xs px-1 text-destructive hover:bg-muted"
+            title="Remove"
+          >
+            −
+          </button>
+        </span>
+      </div>
+      <%!-- Expanded detail --%>
+      <%= if @expanded do %>
+        <div class="mt-3 pt-3 border-t border-dashed space-y-3">
+          <%!-- Roster display --%>
+          <div>
+            <p class="text-xs t-dim uppercase tracking-wide mb-1">roster</p>
+            <%= if @synapse && is_list(@synapse.roster) do %>
+              <%= for {entry, ridx} <- Enum.with_index(@synapse.roster) do %>
+                <div class="flex items-center gap-2 text-sm py-1">
+                  <span class="text-xs t-dim w-8">who:</span>
+                  <input
+                    type="text"
+                    value={Map.get(entry, "who", "")}
+                    phx-blur="update_roster_entry"
+                    phx-value-step-idx={@idx}
+                    phx-value-roster-idx={ridx}
+                    phx-value-field="who"
+                    class="flex-1 h-7 text-xs border border-input rounded px-2 bg-background"
+                    placeholder="all | master | team:Name | neuron_id"
+                  />
+                  <span class="text-xs t-dim w-10">when:</span>
+                  <select
+                    phx-change="update_roster_entry"
+                    name="value"
+                    phx-value-step-idx={@idx}
+                    phx-value-roster-idx={ridx}
+                    phx-value-field="when"
+                    class="h-7 text-xs border border-input rounded px-1 bg-background"
+                  >
+                    <option value="sequential" selected={Map.get(entry, "when") == "sequential"}>
+                      seq
+                    </option>
+                    <option value="parallel" selected={Map.get(entry, "when") == "parallel"}>
+                      par
+                    </option>
+                  </select>
+                  <span class="text-xs t-dim w-8">how:</span>
+                  <select
+                    phx-change="update_roster_entry"
+                    name="value"
+                    phx-value-step-idx={@idx}
+                    phx-value-roster-idx={ridx}
+                    phx-value-field="how"
+                    class="h-7 text-xs border border-input rounded px-1 bg-background"
+                  >
+                    <%= for h <- ~w(solo consensus majority) do %>
+                      <option value={h} selected={Map.get(entry, "how") == h}>{h}</option>
+                    <% end %>
+                  </select>
+                  <button
+                    phx-click="remove_roster_entry"
+                    phx-value-step-idx={@idx}
+                    phx-value-roster-idx={ridx}
+                    class="text-xs text-destructive px-1"
+                  >
+                    −
+                  </button>
+                </div>
+              <% end %>
+            <% end %>
+            <button
+              phx-click="add_roster_entry"
+              phx-value-step-idx={@idx}
+              class="text-xs t-cyan hover:underline mt-1"
+            >
+              + add roster entry
+            </button>
+          </div>
+          <%!-- Step options --%>
+          <div class="flex gap-4 text-xs">
+            <label class="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={@step["gate"]}
+                phx-click="toggle_step_option"
+                phx-value-idx={@idx}
+                phx-value-option="gate"
+              /> gate
+            </label>
+            <label class="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={@step["type"] == "branch"}
+                phx-click="toggle_step_option"
+                phx-value-idx={@idx}
+                phx-value-option="branch"
+              /> branch
+            </label>
+          </div>
+        </div>
+      <% end %>
     </div>
     """
   end
