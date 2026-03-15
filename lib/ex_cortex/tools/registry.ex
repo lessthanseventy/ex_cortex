@@ -29,6 +29,7 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.DescribeImage
   alias ExCortex.Tools.DownloadMedia
   alias ExCortex.Tools.EditFile
+  alias ExCortex.Tools.EmailTag
   alias ExCortex.Tools.ExtractAudio
   alias ExCortex.Tools.ExtractFrames
   alias ExCortex.Tools.FetchUrl
@@ -125,7 +126,8 @@ defmodule ExCortex.Tools.Registry do
     GitPull,
     RestartApp,
     CloseIssue,
-    NextcloudTalk
+    NextcloudTalk,
+    EmailTag
   ]
 
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())

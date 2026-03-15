@@ -103,19 +103,49 @@ defmodule ExCortex.Senses.Worker do
 
   defp enqueue_ruminations(items, source, ruminations) do
     label = source.config["label"] || source.source_type
-    Logger.info("[SourceWorker] Firing #{length(items)} item(s) from '#{label}' for #{length(ruminations)} rumination(s)")
+    batch? = source.config["batch_mode"] == true
+
+    Logger.info(
+      "[SourceWorker] Firing #{length(items)} item(s) from '#{label}' " <>
+        "for #{length(ruminations)} rumination(s)#{if batch?, do: " (batch mode)"}"
+    )
 
     Enum.each(ruminations, fn rumination ->
-      Enum.each(items, fn item ->
+      if batch? do
+        batched_input = batch_items(items)
+
         Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
           try do
-            Runner.run(rumination, item.content)
+            Runner.run(rumination, batched_input)
           rescue
             e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
           end
         end)
-      end)
+      else
+        Enum.each(items, fn item ->
+          Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
+            try do
+              Runner.run(rumination, item.content)
+            rescue
+              e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
+            end
+          end)
+        end)
+      end
     end)
+  end
+
+  defp batch_items(items) do
+    header = "## Batch: #{length(items)} items\n\n"
+
+    body =
+      items
+      |> Enum.with_index(1)
+      |> Enum.map_join("\n\n---\n\n", fn {item, idx} ->
+        "### Item #{idx}\n#{item.content}"
+      end)
+
+    header <> body
   end
 
   # If the source has "write_to_memory: true" in config, write each item directly
