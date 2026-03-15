@@ -65,7 +65,17 @@ defmodule ExCortex.Senses.Worker do
         evaluate_items(items, state.source, steps)
         enqueue_ruminations(items, state.source, ruminations)
         source = update_source_state(state.source, new_worker_state)
-        timer = Process.send_after(self(), :fetch, state.interval)
+
+        # If we got a full batch, there's probably more — fetch again soon instead of waiting
+        max_results = state.source.config["max_results"] || 50
+        has_more = length(items) >= max_results
+        delay = if has_more, do: 5_000, else: state.interval
+
+        if has_more do
+          Logger.info("[SourceWorker] Batch full (#{length(items)}/#{max_results}) — fetching next batch in 5s")
+        end
+
+        timer = Process.send_after(self(), :fetch, delay)
         {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer}}
 
       {:error, reason} ->
