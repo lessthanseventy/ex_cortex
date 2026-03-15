@@ -23,6 +23,9 @@ defmodule ExCortex.Application do
       TwMerge.Cache.insert(:class_tree, TwMerge.ClassTree.generate())
     end
 
+    # Auto-migrate on boot (safe for releases — no-ops if already up)
+    ExCortex.Release.migrate()
+
     sandbox? = Application.get_env(:ex_cortex, :sql_sandbox, false)
 
     children =
