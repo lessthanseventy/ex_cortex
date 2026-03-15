@@ -21,7 +21,7 @@ defmodule ExCortex.Evaluator do
 
   def pathways, do: @pathways
 
-  def current_guild do
+  def current_cluster do
     import Ecto.Query
 
     alias ExCortex.Neurons.Neuron
@@ -29,23 +29,23 @@ defmodule ExCortex.Evaluator do
     names =
       ExCortex.Repo.all(from(r in Neuron, where: r.type == "role", select: r.name))
 
-    Enum.find_value(@pathways, fn {guild_name, mod} ->
+    Enum.find_value(@pathways, fn {cluster_name, mod} ->
       meta = mod.metadata()
       role_names = Enum.map(meta.roles, & &1.name)
 
       if Enum.all?(role_names, &(&1 in names)) do
-        {guild_name, mod}
+        {cluster_name, mod}
       end
     end)
   end
 
   def evaluate(input_text, opts \\ []) do
-    case current_guild() do
+    case current_cluster() do
       nil ->
-        {:error, :no_guild_installed}
+        {:error, :no_cluster_installed}
 
-      {_name, charter_mod} ->
-        meta = charter_mod.metadata()
+      {_name, pathway_mod} ->
+        meta = pathway_mod.metadata()
 
         ollama_url =
           Application.get_env(:ex_cortex, :ollama_url, "http://127.0.0.1:11434")
@@ -54,8 +54,8 @@ defmodule ExCortex.Evaluator do
 
         provider = Keyword.get(opts, :provider, Ollama.new(base_url: ollama_url, api_key: ollama_api_key))
 
-        roles = build_roles_from_charter(meta)
-        actions_mod = build_actions_from_charter(meta)
+        roles = build_roles_from_pathway(meta)
+        actions_mod = build_actions_from_pathway(meta)
 
         case Orchestrator.evaluate(
                %{subject: input_text},
@@ -76,7 +76,7 @@ defmodule ExCortex.Evaluator do
     end
   end
 
-  defp build_roles_from_charter(meta) do
+  defp build_roles_from_pathway(meta) do
     Enum.map(meta.roles, fn role_def ->
       mod_name = Module.concat([ExCortex, Roles, Macro.camelize(role_def.name)])
 
@@ -138,7 +138,7 @@ defmodule ExCortex.Evaluator do
     end)
   end
 
-  defp build_actions_from_charter(meta) do
+  defp build_actions_from_pathway(meta) do
     mod_name = Module.concat([ExCortex, DynamicActions, :Template])
 
     if !Code.ensure_loaded?(mod_name) do

@@ -1,4 +1,4 @@
-defmodule ExCortex.Thoughts.QuestTest do
+defmodule ExCortex.Thoughts.ThoughtTest do
   use ExCortex.DataCase, async: true
 
   alias ExCortex.Thoughts.Thought

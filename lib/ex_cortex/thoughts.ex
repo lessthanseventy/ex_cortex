@@ -81,7 +81,7 @@ defmodule ExCortex.Thoughts do
 
   defp maybe_schedule_once_job(%Thought{trigger: "once", run_at: run_at, id: id}) when not is_nil(run_at) do
     %{thought_id: id}
-    |> ExCortex.Workers.QuestWorker.new(scheduled_at: run_at)
+    |> ExCortex.Workers.ThoughtWorker.new(scheduled_at: run_at)
     |> Oban.insert()
   end
 

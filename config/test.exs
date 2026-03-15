@@ -29,7 +29,7 @@ config :ex_cortex, :sql_sandbox, true
 
 config :excessibility,
   endpoint: ExCortexWeb.Endpoint,
-  head_render_path: "/guild-hall",
+  head_render_path: "/neurons",
   browser_mod: Wallaby.Browser,
   live_view_mod: Excessibility.LiveView,
   system_mod: Excessibility.System

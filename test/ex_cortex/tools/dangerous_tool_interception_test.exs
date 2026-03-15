@@ -6,13 +6,13 @@ defmodule ExCortex.DangerousToolInterceptionTest do
 
   describe "ImpulseRunner.dangerous?/1" do
     test "returns true for dangerous tools" do
-      for tool <- ~w(send_email create_github_issue comment_github run_quest merge_pr git_pull restart_app close_issue) do
+      for tool <- ~w(send_email create_github_issue comment_github run_thought merge_pr git_pull restart_app close_issue) do
         assert ImpulseRunner.dangerous?(tool), "expected #{tool} to be dangerous"
       end
     end
 
     test "returns false for safe tools" do
-      for tool <- ~w(query_lore list_files read_file query_dictionary) do
+      for tool <- ~w(query_memory list_files read_file query_axiom) do
         refute ImpulseRunner.dangerous?(tool), "expected #{tool} to be safe"
       end
     end
@@ -42,7 +42,7 @@ defmodule ExCortex.DangerousToolInterceptionTest do
 
   describe "non-dangerous tools bypass interception" do
     test "safe tools are not flagged as dangerous" do
-      refute ImpulseRunner.dangerous?("query_lore")
+      refute ImpulseRunner.dangerous?("query_memory")
       refute ImpulseRunner.dangerous?("list_files")
       refute ImpulseRunner.dangerous?("read_file")
       refute ImpulseRunner.dangerous?("write_file")
@@ -116,9 +116,9 @@ defmodule ExCortex.DangerousToolInterceptionTest do
   end
 
   describe "intercept message format" do
-    test "produces expected format with quest_id" do
-      quest_id = 42
-      expected = "Tool call queued for human approval. Proposal ID: #{quest_id}. Continue without this result."
+    test "produces expected format with thought_id" do
+      thought_id = 42
+      expected = "Tool call queued for human approval. Proposal ID: #{thought_id}. Continue without this result."
       assert String.contains?(expected, "queued for human approval")
       assert String.contains?(expected, "42")
     end

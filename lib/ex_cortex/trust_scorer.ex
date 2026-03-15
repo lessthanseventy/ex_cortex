@@ -23,17 +23,17 @@ defmodule ExCortex.TrustScorer do
     step_verdict = step.verdict
 
     Enum.each(step.results || [], fn result ->
-      member_name = result[:neuron] || result.neuron
-      if member_name && result.verdict != step_verdict, do: decay(member_name)
+      neuron_name = result[:neuron] || result.neuron
+      if neuron_name && result.verdict != step_verdict, do: decay(neuron_name)
     end)
   end
 
   @doc "Decay a single neuron's trust score."
-  def decay(member_name) do
-    case Repo.get_by(TrustScore, member_name: member_name) do
+  def decay(neuron_name) do
+    case Repo.get_by(TrustScore, neuron_name: neuron_name) do
       nil ->
         Repo.insert(%TrustScore{
-          member_name: member_name,
+          neuron_name: neuron_name,
           score: @decay_factor,
           decay_count: 1
         })

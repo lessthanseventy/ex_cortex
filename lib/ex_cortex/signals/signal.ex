@@ -20,7 +20,7 @@ defmodule ExCortex.Signals.Signal do
     field :card_type, :string, default: "briefing"
     field :pin_slug, :string
     field :pin_order, :integer, default: 0
-    field :guild_name, :string
+    field :cluster_name, :string
 
     timestamps()
   end
@@ -40,7 +40,7 @@ defmodule ExCortex.Signals.Signal do
       :card_type,
       :pin_slug,
       :pin_order,
-      :guild_name
+      :cluster_name
     ])
     |> validate_required([:type, :title, :source, :status])
     |> validate_inclusion(:type, @valid_types)

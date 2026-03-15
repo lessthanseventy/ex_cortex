@@ -13,9 +13,9 @@ defmodule ExCortex.Thoughts.Thought do
     field :run_at, :utc_datetime
     field :steps, {:array, :map}, default: []
     field :source_ids, {:array, :string}, default: []
-    field :lore_trigger_tags, {:array, :string}, default: []
-    field :lodge_trigger_types, {:array, :string}, default: []
-    field :lodge_trigger_tags, {:array, :string}, default: []
+    field :engram_trigger_tags, {:array, :string}, default: []
+    field :signal_trigger_types, {:array, :string}, default: []
+    field :signal_trigger_tags, {:array, :string}, default: []
     timestamps()
   end
 
@@ -27,9 +27,9 @@ defmodule ExCortex.Thoughts.Thought do
     :run_at,
     :steps,
     :source_ids,
-    :lore_trigger_tags,
-    :lodge_trigger_types,
-    :lodge_trigger_tags
+    :engram_trigger_tags,
+    :signal_trigger_types,
+    :signal_trigger_tags
   ]
 
   def changeset(thought, attrs) do

@@ -59,7 +59,7 @@ defmodule ExCortex.LLM.Claude do
       ])
 
     dangerous_tool_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
-    quest_id = Keyword.get(opts, :thought_id)
+    thought_id = Keyword.get(opts, :thought_id)
 
     Tracer.with_span "llm.complete_with_tools", %{
       attributes: %{
@@ -71,7 +71,7 @@ defmodule ExCortex.LLM.Claude do
     } do
       run_agent_loop(model_spec, context, tools, 0, [], %{}, max_iter,
         dangerous_tool_mode: dangerous_tool_mode,
-        quest_id: quest_id
+        thought_id: thought_id
       )
     end
   end
@@ -131,46 +131,46 @@ defmodule ExCortex.LLM.Claude do
 
   defp execute_tools_with_log(context, calls, tools, breaker_state, opts) do
     dangerous_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
-    quest_id = Keyword.get(opts, :thought_id)
+    thought_id = Keyword.get(opts, :thought_id)
 
     Enum.reduce(calls, {context, [], breaker_state}, fn call, {ctx, log, bs} ->
       {name, id} = extract_call_info(call)
       args = extract_call_args(call)
-      {output, result_content, new_bs} = execute_single_call(name, args, tools, bs, dangerous_mode, quest_id)
+      {output, result_content, new_bs} = execute_single_call(name, args, tools, bs, dangerous_mode, thought_id)
       msg = ReqLLM.Context.tool_result(id, name, result_content)
       next_ctx = ReqLLM.Context.append(ctx, msg)
       {next_ctx, log ++ [%{tool: name, input: args, output: output}], new_bs}
     end)
   end
 
-  defp execute_single_call(name, args, tools, bs, dangerous_mode, quest_id) do
+  defp execute_single_call(name, args, tools, bs, dangerous_mode, thought_id) do
     prior_count = Map.get(bs, name, 0)
-    do_execute_call(name, args, tools, bs, dangerous_mode, quest_id, prior_count)
+    do_execute_call(name, args, tools, bs, dangerous_mode, thought_id, prior_count)
   end
 
-  defp do_execute_call(name, _args, _tools, bs, _mode, _quest_id, prior_count) when prior_count >= 3 do
+  defp do_execute_call(name, _args, _tools, bs, _mode, _thought_id, prior_count) when prior_count >= 3 do
     out = "Tool #{name} returned empty results #{prior_count} times. Skipping — proceed with available information."
     Logger.debug("[Claude] circuit breaker: skipping #{name}")
     {out, out, bs}
   end
 
-  defp do_execute_call(name, args, tools, bs, dangerous_mode, quest_id, _prior_count) do
+  defp do_execute_call(name, args, tools, bs, dangerous_mode, thought_id, _prior_count) do
     if ImpulseRunner.dangerous?(name) and dangerous_mode != "execute" do
-      execute_dangerous_call(name, args, bs, dangerous_mode, quest_id)
+      execute_dangerous_call(name, args, bs, dangerous_mode, thought_id)
     else
       execute_safe_call(name, args, tools, bs)
     end
   end
 
-  defp execute_dangerous_call(name, args, bs, "dry_run", _quest_id) do
+  defp execute_dangerous_call(name, args, bs, "dry_run", _thought_id) do
     out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
     Logger.info("[Claude] dry_run: #{name}")
     {out, out, bs}
   end
 
-  defp execute_dangerous_call(name, args, bs, "intercept", quest_id) do
-    ImpulseRunner.intercept_dangerous_tool(name, args, quest_id)
-    out = "Tool call queued for human approval. Proposal ID: #{quest_id}. Continue without this result."
+  defp execute_dangerous_call(name, args, bs, "intercept", thought_id) do
+    ImpulseRunner.intercept_dangerous_tool(name, args, thought_id)
+    out = "Tool call queued for human approval. Proposal ID: #{thought_id}. Continue without this result."
     Logger.info("[Claude] intercepted: #{name}")
     {out, out, bs}
   end

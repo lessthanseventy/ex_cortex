@@ -35,7 +35,7 @@ defmodule ExCortexWeb.GuideLive do
         <p class="text-base text-muted-foreground">
           Some thoughts produce a verdict (pass / warn / fail). Others produce a written output — a
           summary, a report, an analysis — which gets saved automatically to the
-          <.link navigate={~p"/grimoire"} class="underline text-foreground">Grimoire</.link>
+          <.link navigate={~p"/memory"} class="underline text-foreground">Memory</.link>
           for your whole team to see and build on later.
         </p>
       </section>
@@ -88,10 +88,14 @@ defmodule ExCortexWeb.GuideLive do
           list, just as you wouldn't send an Apprentice to review a legal contract.
         </p>
         <p class="text-base text-muted-foreground">
-          You manage your neurons in the <.link
-            navigate={~p"/cluster-hall"}
+          You manage your neurons in the
+          <.link
+            navigate={~p"/neurons"}
             class="underline text-foreground"
-          >Cluster Hall</.link>.
+          >
+            Neurons
+          </.link>
+          page.
         </p>
       </section>
 
@@ -102,7 +106,7 @@ defmodule ExCortexWeb.GuideLive do
           If another helper says "looks good", the Challenger asks "but what's your proof?"
         </p>
         <p class="text-base text-muted-foreground">
-          It's useful as a final check in a Campaign — after everyone else has weighed in, the
+          It's useful as a final check in a Thought — after everyone else has weighed in, the
           Challenger reviews all the findings and will only agree if it sees real, specific evidence.
           Vague reassurances don't satisfy it.
         </p>
@@ -124,16 +128,16 @@ defmodule ExCortexWeb.GuideLive do
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-xl font-semibold">Cluster Pathways — Your house rules</h2>
+        <h2 class="text-xl font-semibold">Pathways — Your house rules</h2>
         <p class="text-base text-muted-foreground">
-          A <strong>Cluster Pathway</strong> is a set of standing instructions that every helper reads
+          A <strong>Pathway</strong> is a set of standing instructions that every helper reads
           before they start any job. Think of it as pinning a note to the break room wall: "In this
           cluster, we always respond formally" or "Never recommend a product we don't carry."
         </p>
         <p class="text-base text-muted-foreground">
           You write the pathway once, and every helper automatically sees it on every job — no need
           to repeat yourself. Edit or add pathways at the bottom of the
-          <.link navigate={~p"/cluster-hall"} class="underline text-foreground">Cluster Hall</.link>
+          <.link navigate={~p"/neurons"} class="underline text-foreground">Neurons</.link>
           page.
         </p>
       </section>
@@ -173,16 +177,16 @@ defmodule ExCortexWeb.GuideLive do
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-xl font-semibold">The Grimoire — Your cluster's shared notebook</h2>
+        <h2 class="text-xl font-semibold">Memory — Your cluster's shared notebook</h2>
         <p class="text-base text-muted-foreground">
-          The <.link navigate={~p"/grimoire"} class="underline text-foreground">Grimoire</.link> is
+          The <.link navigate={~p"/memory"} class="underline text-foreground">Memory</.link> is
           where your cluster's knowledge accumulates. Every time a thought produces a written output, it
-          lands here as an entry. Over time it becomes a living record of everything your helpers
+          lands here as an engram. Over time it becomes a living record of everything your helpers
           have figured out — reports, summaries, analyses, decisions.
         </p>
         <p class="text-base text-muted-foreground">
-          You can also write entries yourself, the same way you'd jot a note in a shared notebook.
-          Each entry can have tags (like sticky-note labels) and an importance rating from 1 to 5,
+          You can also write engrams yourself, the same way you'd jot a note in a shared notebook.
+          Each engram can have tags (like sticky-note labels) and an importance rating from 1 to 5,
           so the most critical findings don't get buried under routine updates.
         </p>
         <p class="text-base text-muted-foreground">
@@ -192,8 +196,8 @@ defmodule ExCortexWeb.GuideLive do
           your latest thinking without needing you to update it by hand.
         </p>
         <p class="text-base text-muted-foreground">
-          The really useful part: your helpers can <em>read</em> the Grimoire before they start
-          working. You can configure any thought to pull in recent entries first, so your helpers
+          The really useful part: your helpers can <em>read</em> from Memory before they start
+          working. You can configure any thought to pull in recent engrams first, so your helpers
           arrive already briefed on what the cluster has learned. It's the difference between asking
           a new temp and asking someone who's been on the team for months.
         </p>
@@ -222,14 +226,14 @@ defmodule ExCortexWeb.GuideLive do
         </div>
 
         <div class="space-y-2">
-          <h3 class="font-semibold text-sm">Thoughts &amp; QuestRunner</h3>
+          <h3 class="font-semibold text-sm">Thoughts &amp; ThoughtRunner</h3>
           <p class="text-sm text-muted-foreground">
             Thoughts are Ecto-backed records with a <code class="bg-muted px-1 rounded">steps</code>
-            jsonb array. <code class="bg-muted px-1 rounded">QuestRunner.run/2</code>
+            jsonb array. <code class="bg-muted px-1 rounded">ThoughtRunner.run/2</code>
             resolves each <code class="bg-muted px-1 rounded">step_id</code>, and threads output as a structured
             handoff block into the next step's input. The final step's result is returned.
-            Source-triggered thoughts go through <code class="bg-muted px-1 rounded">QuestDebouncer.enqueue_quest/3</code>;
-            scheduled ones are picked up each minute by <code class="bg-muted px-1 rounded">ScheduledQuestRunner</code>.
+            Source-triggered thoughts go through <code class="bg-muted px-1 rounded">ThoughtDebouncer.enqueue_thought/3</code>;
+            scheduled ones are picked up each minute by <code class="bg-muted px-1 rounded">ScheduledThoughtRunner</code>.
           </p>
         </div>
 
@@ -251,10 +255,10 @@ defmodule ExCortexWeb.GuideLive do
           <h3 class="font-semibold text-sm">Model Fallback Chains</h3>
           <p class="text-sm text-muted-foreground">
             Configured via <code class="bg-muted px-1 rounded">config :ex_cortex, :model_fallback_chain, [...]</code>.
-            <code class="bg-muted px-1 rounded">QuestRunner.fallback_models_for/2</code>
+            <code class="bg-muted px-1 rounded">ThoughtRunner.fallback_models_for/2</code>
             prepends the
             neuron's assigned model and deduplicates.
-            <code class="bg-muted px-1 rounded">call_member/3</code>
+            <code class="bg-muted px-1 rounded">call_neuron/3</code>
             uses <code class="bg-muted px-1 rounded">Enum.reduce_while/3</code>
             to halt on the first
             successful Ollama response.
@@ -279,13 +283,13 @@ defmodule ExCortexWeb.GuideLive do
         </div>
 
         <div class="space-y-2">
-          <h3 class="font-semibold text-sm">Cluster Pathway Context Provider</h3>
+          <h3 class="font-semibold text-sm">Pathway Context Provider</h3>
           <p class="text-sm text-muted-foreground">
-            Pathways are stored in the <code class="bg-muted px-1 rounded">guild_charters</code>
-            table (unique on <code class="bg-muted px-1 rounded">guild_name</code>).
+            Pathways are stored in the <code class="bg-muted px-1 rounded">pathways</code>
+            table (unique on <code class="bg-muted px-1 rounded">cluster_name</code>).
             Add
             <code class="bg-muted px-1 rounded">
-              %&lbrace;"type" =&gt; "guild_charter", "guild_name" =&gt; "..."&rbrace;
+              %&lbrace;"type" =&gt; "pathway", "cluster_name" =&gt; "..."&rbrace;
             </code>
             to a thought's <code class="bg-muted px-1 rounded">context_providers</code>
             array and it
@@ -309,9 +313,9 @@ defmodule ExCortexWeb.GuideLive do
         </div>
 
         <div class="space-y-2">
-          <h3 class="font-semibold text-sm">Grimoire &amp; Memory Context Provider</h3>
+          <h3 class="font-semibold text-sm">Memory Context Provider</h3>
           <p class="text-sm text-muted-foreground">
-            Artifact thoughts write to <code class="bg-muted px-1 rounded">lore_entries</code>
+            Artifact thoughts write to <code class="bg-muted px-1 rounded">engrams</code>
             via <code class="bg-muted px-1 rounded">Memory.write_artifact/2</code>. Write mode controls
             behaviour: <code class="bg-muted px-1 rounded">append</code>
             always inserts, <code class="bg-muted px-1 rounded">replace</code>
@@ -323,8 +327,8 @@ defmodule ExCortexWeb.GuideLive do
             insert via a word-repetition regex.
             The Augury is the first entry tagged <code class="bg-muted px-1 rounded">augury</code>,
             sorted by newest. PubSub broadcasts
-            <code class="bg-muted px-1 rounded">&lbrace;:lore_updated, title&rbrace;</code>
-            on write so GrimoireLive updates live.
+            <code class="bg-muted px-1 rounded">&lbrace;:engram_updated, title&rbrace;</code>
+            on write so MemoryLive updates live.
             The <code class="bg-muted px-1 rounded">memory</code>
             context provider pulls entries by
             tag + sort into the prompt preamble (1 500-char total cap). Sort
@@ -339,9 +343,9 @@ defmodule ExCortexWeb.GuideLive do
         <div class="space-y-2">
           <h3 class="font-semibold text-sm">The Challenger Builtin Neuron</h3>
           <p class="text-sm text-muted-foreground">
-            Resolved by <code class="bg-muted px-1 rounded">resolve_members("challenger")</code>
+            Resolved by <code class="bg-muted px-1 rounded">resolve_neurons("challenger")</code>
             in
-            QuestRunner. Backed by <code class="bg-muted px-1 rounded">Builtin.validators/0</code>
+            ThoughtRunner. Backed by <code class="bg-muted px-1 rounded">Builtin.validators/0</code>
             — category <code class="bg-muted px-1 rounded">:validator</code>, uses the journeyman
             model from <code class="bg-muted px-1 rounded">@default_ranks</code>. Prompt is hardcoded
             to demand specific evidence and default to fail.

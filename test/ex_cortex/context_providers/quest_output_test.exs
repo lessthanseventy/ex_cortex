@@ -5,12 +5,12 @@ defmodule ExCortex.ContextProviders.ThoughtOutputTest do
   alias ExCortex.Thoughts
 
   test "returns empty string when thought name not in config" do
-    result = ThoughtOutput.build(%{"type" => "quest_output"}, %{}, "")
+    result = ThoughtOutput.build(%{"type" => "thought_output"}, %{}, "")
     assert result == ""
   end
 
   test "returns empty string when thought does not exist" do
-    result = ThoughtOutput.build(%{"type" => "quest_output", "thought" => "Nonexistent Thought"}, %{}, "")
+    result = ThoughtOutput.build(%{"type" => "thought_output", "thought" => "Nonexistent Thought"}, %{}, "")
     assert result == ""
   end
 
@@ -18,7 +18,7 @@ defmodule ExCortex.ContextProviders.ThoughtOutputTest do
     {:ok, thought} =
       Thoughts.create_thought(%{name: "Test Thought #{System.unique_integer()}", trigger: "manual", steps: []})
 
-    result = ThoughtOutput.build(%{"type" => "quest_output", "thought" => thought.name}, %{}, "")
+    result = ThoughtOutput.build(%{"type" => "thought_output", "thought" => thought.name}, %{}, "")
     assert result == ""
   end
 
@@ -33,7 +33,7 @@ defmodule ExCortex.ContextProviders.ThoughtOutputTest do
         synapse_results: %{"0" => %{"data" => "Health scan findings here", "status" => "ok"}}
       })
 
-    result = ThoughtOutput.build(%{"type" => "quest_output", "thought" => thought.name}, %{}, "")
+    result = ThoughtOutput.build(%{"type" => "thought_output", "thought" => thought.name}, %{}, "")
     assert result =~ thought.name
     assert result =~ "Health scan findings here"
     assert result =~ "Synapse 0"
@@ -53,7 +53,7 @@ defmodule ExCortex.ContextProviders.ThoughtOutputTest do
         }
       })
 
-    result = ThoughtOutput.build(%{"type" => "quest_output", "thought" => thought.name, "steps" => [1]}, %{}, "")
+    result = ThoughtOutput.build(%{"type" => "thought_output", "thought" => thought.name, "steps" => [1]}, %{}, "")
     refute result =~ "Step zero output"
     assert result =~ "Step one output"
   end
@@ -72,7 +72,7 @@ defmodule ExCortex.ContextProviders.ThoughtOutputTest do
       })
 
     result =
-      ThoughtOutput.build(%{"type" => "quest_output", "thought" => thought.name, "max_bytes_per_step" => 100}, %{}, "")
+      ThoughtOutput.build(%{"type" => "thought_output", "thought" => thought.name, "max_bytes_per_step" => 100}, %{}, "")
 
     assert result =~ "(truncated)"
   end

@@ -37,8 +37,8 @@ defmodule ExCortex.Pathways.MarketSignals do
       {"hype-detector", :apprentice}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, rank} ->
-      builtin = Builtin.get(member_id)
+    Enum.flat_map(neurons, fn {neuron_id, rank} ->
+      builtin = Builtin.get(neuron_id)
 
       [
         %{
@@ -47,7 +47,7 @@ defmodule ExCortex.Pathways.MarketSignals do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -61,7 +61,7 @@ defmodule ExCortex.Pathways.MarketSignals do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
@@ -73,7 +73,7 @@ defmodule ExCortex.Pathways.MarketSignals do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Daily Market Brief",
@@ -94,7 +94,7 @@ defmodule ExCortex.Pathways.MarketSignals do
         write_mode: "append",
         entry_title_template: "Market Brief — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch"]
+        loop_tools: ["query_memory", "web_search", "web_fetch"]
       },
       %{
         name: "Weekly Market Roundup",
@@ -114,7 +114,7 @@ defmodule ExCortex.Pathways.MarketSignals do
         context_providers: [%{"type" => "memory", "limit" => 10}],
         entry_title_template: "Market Roundup — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch"]
+        loop_tools: ["query_memory", "web_search", "web_fetch"]
       },
       %{
         name: "Risk Check",
@@ -137,7 +137,7 @@ defmodule ExCortex.Pathways.MarketSignals do
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Market Digest Loop",

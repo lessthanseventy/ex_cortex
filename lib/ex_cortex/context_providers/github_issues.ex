@@ -18,7 +18,7 @@ defmodule ExCortex.ContextProviders.GithubIssues do
   require Logger
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     label = Map.get(config, "label", "self-improvement")
     limit = Map.get(config, "limit", 20)
     header = Map.get(config, "header", "## Open GitHub Issues (label: #{label})")

@@ -3,7 +3,7 @@ defmodule ExCortex.Thoughts.Debouncer do
   Coalesces items from multiple sources into a single step or daydream.
 
   When multiple sources fire (e.g. Sync All), each calls `enqueue/3` (for steps)
-  or `enqueue_quest/3` (for thoughts) with their items. The debouncer waits
+  or `enqueue_thought/3` (for thoughts) with their items. The debouncer waits
   for a collection window, then summarises each source's batch with a quick LLM
   call, combines the summaries, and runs the step or thought exactly once.
 
@@ -26,7 +26,7 @@ defmodule ExCortex.Thoughts.Debouncer do
   end
 
   @doc "Enqueue items from a named source for a thought."
-  def enqueue_quest(thought, source_label, items) when is_list(items) and items != [] do
+  def enqueue_thought(thought, source_label, items) when is_list(items) and items != [] do
     GenServer.cast(__MODULE__, {:enqueue, {:thought, thought.id}, thought, source_label, items})
   end
 
@@ -65,17 +65,17 @@ defmodule ExCortex.Thoughts.Debouncer do
         Phoenix.PubSub.broadcast(
           ExCortex.PubSub,
           "source_activity",
-          {:quest_started, entity_name, total_items}
+          {:thought_started, entity_name, total_items}
         )
 
         Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
           try do
             Logger.info(
-              "[QuestDebouncer] Summarising #{map_size(batches)} source(s) for #{inspect(key)} (#{entity_name}), #{total_items} total items"
+              "[ThoughtDebouncer] Summarising #{map_size(batches)} source(s) for #{inspect(key)} (#{entity_name}), #{total_items} total items"
             )
 
             combined = summarise_batches(batches)
-            Logger.info("[QuestDebouncer] Running #{inspect(key)} (#{entity_name})")
+            Logger.info("[ThoughtDebouncer] Running #{inspect(key)} (#{entity_name})")
 
             case key do
               {:step, _} -> ImpulseRunner.run(entity, combined)
@@ -88,7 +88,7 @@ defmodule ExCortex.Thoughts.Debouncer do
               Phoenix.PubSub.broadcast(
                 ExCortex.PubSub,
                 "source_activity",
-                {:quest_error, entity_name, Exception.message(e)}
+                {:thought_error, entity_name, Exception.message(e)}
               )
           end
         end)

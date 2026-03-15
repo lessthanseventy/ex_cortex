@@ -5,7 +5,7 @@ defmodule ExCortex.Tools.RunThought do
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
-      name: "run_quest",
+      name: "run_thought",
       description: "Run a named thought with the given input text. Returns the thought result.",
       parameter_schema: %{
         "type" => "object",

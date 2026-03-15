@@ -25,7 +25,7 @@ defmodule ExCortex.Board.Review do
       suggested_team: "Code Review cluster is ideal.",
       requires: [
         {:source_type, "webhook"},
-        {:herald_type, "github_pr"}
+        {:expression_type, "github_pr"}
       ],
       step_definitions: [
         %{
@@ -55,10 +55,10 @@ defmodule ExCortex.Board.Review do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "github_pr",
-          herald_name: "github_pr:default"
+          expression_name: "github_pr:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "PR Review Pipeline Thought",
         description: "Webhook-triggered PR review with GitHub comment for flagged PRs.",
         status: "active",
@@ -85,7 +85,7 @@ defmodule ExCortex.Board.Review do
       suggested_team: "Any cluster with content or risk awareness.",
       requires: [
         {:source_type, "url"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -115,10 +115,10 @@ defmodule ExCortex.Board.Review do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "URL Change Monitor Thought",
         description: "URL change detection with Slack alert for significant changes.",
         status: "active",
@@ -145,7 +145,7 @@ defmodule ExCortex.Board.Review do
       suggested_team: "Content Moderation cluster is ideal.",
       requires: [
         {:source_type, "webhook"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -175,10 +175,10 @@ defmodule ExCortex.Board.Review do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Content Safety Thought",
         description: "Webhook-triggered content safety review with Slack escalation.",
         status: "active",
@@ -247,7 +247,7 @@ defmodule ExCortex.Board.Review do
           source_ids: []
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Accessibility Audit Thought",
         description: "Source-triggered a11y audit with evidence check for flagged issues.",
         status: "active",
@@ -339,7 +339,7 @@ defmodule ExCortex.Board.Review do
           source_ids: []
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Proposal Review Thought",
         description: "Manual proposal gauntlet — challenge, scope, future perspective, evidence.",
         status: "active",
@@ -367,7 +367,7 @@ defmodule ExCortex.Board.Review do
       suggested_team: "Risk Assessment or Contract Review cluster.",
       requires: [
         {:source_type, "feed"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -405,10 +405,10 @@ defmodule ExCortex.Board.Review do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Compliance Monitor Thought",
         description: "Feed-triggered compliance monitoring with Slack alerts.",
         status: "active",

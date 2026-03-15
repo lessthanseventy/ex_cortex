@@ -36,8 +36,8 @@ defmodule ExCortex.Pathways.Platform do
       {"security-skeptic", "Security Skeptic"}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, _name} ->
-      builtin = Builtin.get(member_id)
+    Enum.flat_map(neurons, fn {neuron_id, _name} ->
+      builtin = Builtin.get(neuron_id)
 
       [
         %{
@@ -46,7 +46,7 @@ defmodule ExCortex.Pathways.Platform do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -60,7 +60,7 @@ defmodule ExCortex.Pathways.Platform do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "journeyman",
             "model" => builtin.ranks.journeyman.model,
@@ -72,7 +72,7 @@ defmodule ExCortex.Pathways.Platform do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Platform Quick Scan",
@@ -112,12 +112,12 @@ defmodule ExCortex.Pathways.Platform do
           %{"type" => "memory", "tags" => ["platform", "security", "performance"], "limit" => 5, "sort" => "top"}
         ],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_github"]
+        loop_tools: ["query_memory", "search_github"]
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Platform Review Campaign",

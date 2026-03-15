@@ -4,7 +4,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
 
   ## Roster step format
     %{
-      "who"         => "all" | "apprentice" | "journeyman" | "master" | "team:X" | member_id | "claude_haiku" | "claude_sonnet" | "claude_opus",
+      "who"         => "all" | "apprentice" | "journeyman" | "master" | "team:X" | neuron_id | "claude_haiku" | "claude_sonnet" | "claude_opus",
       "when"        => "parallel" | "sequential",
       "how"         => "consensus" | "solo" | "majority",
       "escalate_on" => "never" | "always" | %{"type" => "verdict", "values" => [...]} | %{"type" => "confidence", "threshold" => float}
@@ -26,9 +26,9 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
   @rank_order %{"apprentice" => 0, "journeyman" => 1, "master" => 2}
 
-  @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
+  @expression_types ~w(slack webhook github_issue github_pr email pagerduty)
 
-  @dangerous_tools ~w(send_email create_github_issue comment_github run_quest merge_pr git_pull restart_app close_issue nextcloud_talk)
+  @dangerous_tools ~w(send_email create_github_issue comment_github run_thought merge_pr git_pull restart_app close_issue nextcloud_talk)
   @write_tool_names ~w(write_file edit_file git_commit create_obsidian_note daily_obsidian)
 
   def dangerous?(tool_name), do: tool_name in @dangerous_tools
@@ -40,11 +40,11 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
 
   def has_write_tools?(_), do: false
 
-  def intercept_dangerous_tool(tool_name, tool_args, quest_id, context \\ nil) do
+  def intercept_dangerous_tool(tool_name, tool_args, thought_id, context \\ nil) do
     {description, suggestion} = proposal_content(tool_name, tool_args, context)
 
     ExCortex.Thoughts.create_proposal(%{
-      synapse_id: quest_id,
+      synapse_id: thought_id,
       type: "tool_action",
       description: description,
       details: %{"suggestion" => suggestion},
@@ -132,11 +132,11 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
     end
   end
 
-  def run(%{output_type: type} = thought, input_text) when type in @herald_types do
+  def run(%{output_type: type} = thought, input_text) when type in @expression_types do
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    with {:ok, expression} <- ExCortex.Expressions.get_by_name(thought.herald_name || ""),
+    with {:ok, expression} <- ExCortex.Expressions.get_by_name(thought.expression_name || ""),
          {:ok, attrs} <- run_artifact(thought, augmented),
          :ok <- ExCortex.Expressions.deliver(expression, thought, attrs) do
       {:ok, %{delivered: true, type: type, title: attrs.title}}
@@ -150,7 +150,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
 
     case result do
       {:ok, attrs} ->
-        forced_tags = thought.lore_tags || []
+        forced_tags = thought.engram_tags || []
         attrs = Map.update(attrs, :tags, forced_tags, &Enum.uniq(&1 ++ forced_tags))
         ExCortex.Memory.write_artifact(thought, attrs)
         {:ok, %{artifact: attrs}}
@@ -172,12 +172,12 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
     end
   end
 
-  def run(%{output_type: "lodge_card"} = thought, input_text) do
+  def run(%{output_type: "signal"} = thought, input_text) do
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
     case run_artifact(thought, augmented) do
-      {:ok, attrs} -> post_lodge_cards(thought, attrs)
+      {:ok, attrs} -> post_signal_cards(thought, attrs)
       error -> error
     end
   end
@@ -191,7 +191,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   def run(roster, input_text, opts) when is_list(roster) do
     {steps, final_verdict} =
       Enum.reduce_while(roster, {[], nil}, fn step, {traces, _prev_verdict} ->
-        neurons = resolve_members(step)
+        neurons = resolve_neurons(step)
 
         synapse_results = run_step(neurons, step["how"], input_text, opts)
 
@@ -225,7 +225,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   # When preferred_who is combined with a rank-based "who", filter by both name AND rank.
   # This ensures "who: journeyman, preferred_who: Product Analyst" returns only the
   # journeyman-ranked Product Analyst, not all perspectives of that role.
-  defp resolve_members(%{"preferred_who" => name, "who" => rank} = step)
+  defp resolve_neurons(%{"preferred_who" => name, "who" => rank} = step)
        when is_binary(name) and name != "" and rank in @rank_values do
     case from(m in Neuron,
            where:
@@ -233,39 +233,39 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
                fragment("config->>'rank' = ?", ^rank)
          )
          |> Repo.all()
-         |> Enum.map(&member_to_runner_spec/1) do
-      [] -> resolve_members(%{step | "preferred_who" => nil})
+         |> Enum.map(&neuron_to_runner_spec/1) do
+      [] -> resolve_neurons(%{step | "preferred_who" => nil})
       neurons -> neurons
     end
   end
 
-  defp resolve_members(%{"preferred_who" => name} = step) when is_binary(name) and name != "" do
+  defp resolve_neurons(%{"preferred_who" => name} = step) when is_binary(name) and name != "" do
     case from(m in Neuron,
            where: m.type == "role" and m.status == "active" and m.name == ^name
          )
          |> Repo.all()
-         |> Enum.map(&member_to_runner_spec/1) do
-      [] -> resolve_members(%{step | "preferred_who" => nil})
+         |> Enum.map(&neuron_to_runner_spec/1) do
+      [] -> resolve_neurons(%{step | "preferred_who" => nil})
       neurons -> neurons
     end
   end
 
-  defp resolve_members(%{"who" => who}), do: resolve_members(who)
-  defp resolve_members(step) when is_map(step), do: resolve_members(Map.get(step, "who", "all"))
+  defp resolve_neurons(%{"who" => who}), do: resolve_neurons(who)
+  defp resolve_neurons(step) when is_map(step), do: resolve_neurons(Map.get(step, "who", "all"))
 
-  defp resolve_members("all") do
+  defp resolve_neurons("all") do
     from(m in Neuron, where: m.type == "role" and m.status == "active")
     |> Repo.all()
-    |> Enum.map(&member_to_runner_spec/1)
+    |> Enum.map(&neuron_to_runner_spec/1)
   end
 
-  defp resolve_members("apprentice"), do: resolve_by_rank("apprentice")
+  defp resolve_neurons("apprentice"), do: resolve_by_rank("apprentice")
 
-  defp resolve_members("journeyman"), do: resolve_by_rank("journeyman")
+  defp resolve_neurons("journeyman"), do: resolve_by_rank("journeyman")
 
-  defp resolve_members("master"), do: resolve_by_rank("master")
+  defp resolve_neurons("master"), do: resolve_by_rank("master")
 
-  defp resolve_members("challenger") do
+  defp resolve_neurons("challenger") do
     case ExCortex.Neurons.Builtin.get("challenger") do
       nil ->
         []
@@ -285,22 +285,22 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
     end
   end
 
-  defp resolve_members("team:" <> team) do
+  defp resolve_neurons("team:" <> team) do
     from(m in Neuron,
       where: m.type == "role" and m.status == "active" and m.team == ^team
     )
     |> Repo.all()
-    |> Enum.map(&member_to_runner_spec/1)
+    |> Enum.map(&neuron_to_runner_spec/1)
   end
 
-  defp resolve_members(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
+  defp resolve_neurons(claude_tier) when claude_tier in ["claude_haiku", "claude_sonnet", "claude_opus"] do
     [%{provider: "claude", model: claude_tier, name: claude_tier, system_prompt: nil, tools: []}]
   end
 
-  defp resolve_members(member_id) when is_binary(member_id) do
-    case Repo.get(Neuron, member_id) do
+  defp resolve_neurons(neuron_id) when is_binary(neuron_id) do
+    case Repo.get(Neuron, neuron_id) do
       nil -> []
-      m -> [member_to_runner_spec(m)]
+      m -> [neuron_to_runner_spec(m)]
     end
   end
 
@@ -311,10 +311,10 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
           fragment("config->>'rank' = ?", ^rank)
     )
     |> Repo.all()
-    |> Enum.map(&member_to_runner_spec/1)
+    |> Enum.map(&neuron_to_runner_spec/1)
   end
 
-  defp member_to_runner_spec(db) do
+  defp neuron_to_runner_spec(db) do
     %{
       provider: db.config["provider"] || "ollama",
       model: db.config["model"] || "phi4-mini",
@@ -541,17 +541,17 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   end
 
   defp gather_reflect_context(tools, verdict) do
-    lore_tool = Enum.find(tools, &(&1.name == "query_lore"))
+    memory_tool = Enum.find(tools, &(&1.name == "query_memory"))
 
-    if lore_tool do
-      gather_lore_context(lore_tool, verdict)
+    if memory_tool do
+      gather_memory_context(memory_tool, verdict)
     else
       gather_tool_context(tools)
     end
   end
 
-  defp gather_lore_context(lore_tool, verdict) do
-    case ReqLLM.Tool.execute(lore_tool, %{"tags" => [], "limit" => 3}) do
+  defp gather_memory_context(memory_tool, verdict) do
+    case ReqLLM.Tool.execute(memory_tool, %{"tags" => [], "limit" => 3}) do
       {:ok, content} -> "Prior memory context (verdict was #{verdict}):\n#{content}"
       _ -> ""
     end
@@ -597,7 +597,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   end
 
   defp try_escalate_rank(rank, thought, augmented, threshold, escalate_on) do
-    neurons = resolve_members(rank)
+    neurons = resolve_neurons(rank)
 
     if neurons == [] do
       {:cont, nil}
@@ -626,7 +626,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   end
 
   defp run_freeform_step(step, augmented, thought) do
-    case resolve_members(step) do
+    case resolve_neurons(step) do
       [] -> {:error, :no_roster}
       [neuron | _] -> run_freeform_member(neuron, augmented, thought)
     end
@@ -654,17 +654,17 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
     end
   end
 
-  defp post_lodge_cards(thought, attrs) do
+  defp post_signal_cards(thought, attrs) do
     cards_spec = thought[:cards] || []
 
     if cards_spec == [] do
-      post_single_lodge_card(thought, attrs)
+      post_single_signal_card(thought, attrs)
     else
-      post_multi_lodge_cards(thought, attrs, cards_spec)
+      post_multi_signal_cards(thought, attrs, cards_spec)
     end
   end
 
-  defp post_single_lodge_card(thought, attrs) do
+  defp post_single_signal_card(thought, attrs) do
     card_type = attrs[:card_type] || parse_card_type(thought.description) || "note"
 
     card_attrs = %{
@@ -679,14 +679,14 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
       pin_slug: thought[:pin_slug],
       pinned: thought[:pinned] || false,
       pin_order: thought[:pin_order] || 0,
-      guild_name: thought[:guild_name]
+      cluster_name: thought[:cluster_name]
     }
 
     ExCortex.Signals.post_signal(card_attrs)
-    {:ok, %{lodge_card: card_attrs}}
+    {:ok, %{signal: card_attrs}}
   end
 
-  defp post_multi_lodge_cards(thought, attrs, cards_spec) do
+  defp post_multi_signal_cards(thought, attrs, cards_spec) do
     posted =
       Enum.map(cards_spec, fn spec ->
         card_attrs = %{
@@ -701,13 +701,13 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
           pin_slug: spec["pin_slug"],
           pinned: spec["pinned"] || false,
           pin_order: spec["pin_order"] || 0,
-          guild_name: thought[:guild_name]
+          cluster_name: thought[:cluster_name]
         }
 
         ExCortex.Signals.post_signal(card_attrs)
       end)
 
-    {:ok, %{lodge_cards: posted}}
+    {:ok, %{signals: posted}}
   end
 
   defp default_claude_prompt do
@@ -746,7 +746,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   end
 
   defp run_artifact_step(step, input_text, thought) do
-    neurons = resolve_members(step)
+    neurons = resolve_neurons(step)
     neuron = List.first(neurons)
 
     if is_nil(neuron) do
@@ -780,7 +780,7 @@ defmodule ExCortex.Thoughts.ImpulseRunner do
   end
 
   defp build_step_member_outputs(step, input_text) do
-    neurons = resolve_members(step)
+    neurons = resolve_neurons(step)
 
     Enum.map_join(neurons, "\n\n", fn neuron ->
       reasoning_prompt = reasoning_system_prompt(neuron, step)

@@ -8,7 +8,7 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   ## Provider config map format (stored on Thought)
     %{"type" => "static", "content" => "Always consider..."}
-    %{"type" => "quest_history", "limit" => 5}
+    %{"type" => "thought_history", "limit" => 5}
     %{"type" => "neuron_stats"}
   """
 
@@ -45,15 +45,15 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   defp module_for("static"), do: Module.concat([ExCortex, ContextProviders, Static])
 
-  defp module_for("quest_history"), do: Module.concat([ExCortex, ContextProviders, QuestHistory])
+  defp module_for("thought_history"), do: Module.concat([ExCortex, ContextProviders, ThoughtHistory])
 
-  defp module_for("member_stats"), do: Module.concat([ExCortex, ContextProviders, MemberStats])
+  defp module_for("neuron_stats"), do: Module.concat([ExCortex, ContextProviders, NeuronStats])
 
   defp module_for("memory"), do: Module.concat([ExCortex, ContextProviders, Memory])
 
-  defp module_for("guild_charter"), do: Module.concat([ExCortex, ContextProviders, Cluster])
+  defp module_for("cluster_pathway"), do: Module.concat([ExCortex, ContextProviders, ClusterPathway])
 
-  defp module_for("dictionary"), do: Module.concat([ExCortex, ContextProviders, Dictionary])
+  defp module_for("axiom"), do: Module.concat([ExCortex, ContextProviders, Axiom])
 
   defp module_for("sandbox"), do: Module.concat([ExCortex, ContextProviders, Sandbox])
 
@@ -67,11 +67,11 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   defp module_for("git_log"), do: Module.concat([ExCortex, ContextProviders, GitLog])
 
-  defp module_for("quest_output"), do: Module.concat([ExCortex, ContextProviders, QuestOutput])
+  defp module_for("thought_output"), do: Module.concat([ExCortex, ContextProviders, ThoughtOutput])
 
   defp module_for("test_failures"), do: Module.concat([ExCortex, ContextProviders, TestFailures])
 
-  defp module_for("member_roster"), do: Module.concat([ExCortex, ContextProviders, MemberRoster])
+  defp module_for("neuron_roster"), do: Module.concat([ExCortex, ContextProviders, NeuronRoster])
 
   defp module_for(_), do: nil
 end

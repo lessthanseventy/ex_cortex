@@ -3,7 +3,7 @@
 #
 # These settings are written to the DB on every `mix run priv/repo/seeds.exs`.
 
-alias ExCalibur.Settings
+alias ExCortex.Settings
 
 settings = [
   # GitHub
@@ -24,7 +24,7 @@ settings = [
   # ollama_vision_model: "llava",
 
   # Media
-  # media_dir: "/tmp/ex_calibur/media",
+  # media_dir: "/tmp/ex_cortex/media",
 
   # Web search
   # ddgr_num_results: "10"

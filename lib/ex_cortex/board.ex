@@ -24,9 +24,9 @@ defmodule ExCortex.Board do
     :suggested_team,
     :requires,
     :step_definitions,
-    :quest_definition,
+    :thought_definition,
     source_definitions: [],
-    extra_quests: []
+    extra_thoughts: []
   ]
 
   @categories [:triage, :reporting, :generation, :review, :onboarding, :lifestyle]
@@ -61,7 +61,7 @@ defmodule ExCortex.Board do
 
         {met, "#{humanize(type)} source"}
 
-      {:herald_type, type} ->
+      {:expression_type, type} ->
         met = Repo.exists?(from(h in Expression, where: h.type == ^type))
         {met, "#{humanize(type)} expression"}
 
@@ -72,13 +72,13 @@ defmodule ExCortex.Board do
         {met, "Active neurons"}
 
       {:not_installed, template_id} ->
-        quest_prefix = template_id_to_quest_prefix(template_id)
+        thought_prefix = template_id_to_thought_prefix(template_id)
 
         installed =
           Repo.exists?(
             from(q in Thought,
               where: q.status in ["active", "paused"],
-              where: like(q.name, ^"%#{quest_prefix}%")
+              where: like(q.name, ^"%#{thought_prefix}%")
             )
           )
 
@@ -114,12 +114,12 @@ defmodule ExCortex.Board do
     templates = all()
 
     source_types = flat_requirements(templates, :source_type)
-    herald_types = flat_requirements(templates, :herald_type)
+    expression_types = flat_requirements(templates, :expression_type)
     not_installed_ids = flat_requirements(templates, :not_installed)
     needs_members = Enum.any?(templates, &(:any_members in (&1.requires || [])))
 
     present_source_types = fetch_present_source_types(source_types)
-    present_herald_types = fetch_present_herald_types(herald_types)
+    present_expression_types = fetch_present_expression_types(expression_types)
 
     has_active_members =
       needs_members && Repo.exists?(from(m in Neuron, where: m.type == "role" and m.status == "active"))
@@ -131,7 +131,7 @@ defmodule ExCortex.Board do
         check_requirements_batched(
           template,
           present_source_types,
-          present_herald_types,
+          present_expression_types,
           has_active_members,
           installed_prefixes
         )
@@ -150,10 +150,10 @@ defmodule ExCortex.Board do
     |> MapSet.new()
   end
 
-  defp fetch_present_herald_types([]), do: MapSet.new()
+  defp fetch_present_expression_types([]), do: MapSet.new()
 
-  defp fetch_present_herald_types(herald_types) do
-    from(h in Expression, where: h.type in ^herald_types, select: h.type)
+  defp fetch_present_expression_types(expression_types) do
+    from(h in Expression, where: h.type in ^expression_types, select: h.type)
     |> Repo.all()
     |> MapSet.new()
   end
@@ -161,18 +161,18 @@ defmodule ExCortex.Board do
   defp fetch_installed_prefixes([]), do: MapSet.new()
 
   defp fetch_installed_prefixes(not_installed_ids) do
-    prefixes = Enum.map(not_installed_ids, &template_id_to_quest_prefix/1)
-    quest_names = Repo.all(from(q in Thought, where: q.status in ["active", "paused"], select: q.name))
+    prefixes = Enum.map(not_installed_ids, &template_id_to_thought_prefix/1)
+    thought_names = Repo.all(from(q in Thought, where: q.status in ["active", "paused"], select: q.name))
 
     prefixes
-    |> Enum.filter(fn prefix -> Enum.any?(quest_names, &String.contains?(&1, prefix)) end)
+    |> Enum.filter(fn prefix -> Enum.any?(thought_names, &String.contains?(&1, prefix)) end)
     |> MapSet.new()
   end
 
   defp check_requirements_batched(
          template,
          present_source_types,
-         present_herald_types,
+         present_expression_types,
          has_active_members,
          installed_prefixes
        ) do
@@ -180,14 +180,14 @@ defmodule ExCortex.Board do
       {:source_type, type} ->
         {MapSet.member?(present_source_types, type), "#{humanize(type)} source"}
 
-      {:herald_type, type} ->
-        {MapSet.member?(present_herald_types, type), "#{humanize(type)} expression"}
+      {:expression_type, type} ->
+        {MapSet.member?(present_expression_types, type), "#{humanize(type)} expression"}
 
       :any_members ->
         {has_active_members, "Active neurons"}
 
       {:not_installed, id} ->
-        {!MapSet.member?(installed_prefixes, template_id_to_quest_prefix(id)), "Not included in #{humanize(id)}"}
+        {!MapSet.member?(installed_prefixes, template_id_to_thought_prefix(id)), "Not included in #{humanize(id)}"}
     end)
   end
 
@@ -218,9 +218,9 @@ defmodule ExCortex.Board do
 
     step_by_name = Map.new(ExCortex.Thoughts.list_synapses(), &{&1.name, &1.id})
 
-    result = install_main_quest(template, step_by_name)
+    result = install_main_thought(template, step_by_name)
 
-    Enum.each(template.extra_quests || [], &install_extra_quest(&1, step_by_name))
+    Enum.each(template.extra_thoughts || [], &install_extra_thought(&1, step_by_name))
     Enum.each(template.source_definitions || [], &install_source/1)
 
     result
@@ -244,9 +244,9 @@ defmodule ExCortex.Board do
     end
   end
 
-  defp install_main_quest(%{quest_definition: nil}, _step_by_name), do: {:ok, nil}
+  defp install_main_thought(%{thought_definition: nil}, _step_by_name), do: {:ok, nil}
 
-  defp install_main_quest(%{quest_definition: thought_def, id: template_id} = _template, step_by_name) do
+  defp install_main_thought(%{thought_definition: thought_def, id: template_id} = _template, step_by_name) do
     require Logger
 
     steps =
@@ -267,7 +267,7 @@ defmodule ExCortex.Board do
     ExCortex.Thoughts.create_thought(Map.put(thought_def, :steps, steps))
   end
 
-  defp install_extra_quest(thought_def, step_by_name) do
+  defp install_extra_thought(thought_def, step_by_name) do
     require Logger
 
     thought_synapses =
@@ -300,7 +300,7 @@ defmodule ExCortex.Board do
         source_type: source_def.source_type,
         config: source_def.config,
         status: "active",
-        book_id: source_def[:book_id]
+        reflex_id: source_def[:reflex_id]
       })
     end
   end
@@ -318,18 +318,18 @@ defmodule ExCortex.Board do
   def recruit_and_go(%__MODULE__{} = template) do
     case install(template) do
       {:ok, thought} ->
-        recruited = auto_recruit_members(template)
-        {:ok, %{thought: thought, steps_created: template.step_definitions || [], members_recruited: recruited}}
+        recruited = auto_recruit_neurons(template)
+        {:ok, %{thought: thought, steps_created: template.step_definitions || [], neurons_recruited: recruited}}
 
       error ->
         error
     end
   end
 
-  defp auto_recruit_members(%{suggested_team: nil}), do: []
-  defp auto_recruit_members(%{suggested_team: ""}), do: []
+  defp auto_recruit_neurons(%{suggested_team: nil}), do: []
+  defp auto_recruit_neurons(%{suggested_team: ""}), do: []
 
-  defp auto_recruit_members(%{suggested_team: team_desc}) do
+  defp auto_recruit_neurons(%{suggested_team: team_desc}) do
     existing = from(n in Neuron, where: n.type == "role") |> Repo.all() |> Enum.map(& &1.name)
     team_lower = String.downcase(team_desc)
 
@@ -347,7 +347,7 @@ defmodule ExCortex.Board do
                status: "active",
                source: "db",
                config: %{
-                 "member_id" => neuron.id,
+                 "neuron_id" => neuron.id,
                  "system_prompt" => neuron.system_prompt,
                  "rank" => "journeyman",
                  "model" => rank_config[:model] || "llama3.2",
@@ -374,8 +374,8 @@ defmodule ExCortex.Board do
 
   defp humanize(str), do: str |> String.replace("_", " ") |> String.capitalize()
 
-  defp template_id_to_quest_prefix("everyday_council"), do: "Everyday Council"
-  defp template_id_to_quest_prefix(id), do: humanize(id)
+  defp template_id_to_thought_prefix("everyday_council"), do: "Everyday Council"
+  defp template_id_to_thought_prefix(id), do: humanize(id)
 
   # ---------------------------------------------------------------------------
   # Template definitions — loaded by all/0

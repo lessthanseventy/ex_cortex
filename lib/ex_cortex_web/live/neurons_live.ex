@@ -30,16 +30,16 @@ defmodule ExCortexWeb.NeuronsLive do
   end
 
   @impl true
-  def handle_event("select_cluster", %{"cluster" => guild_name}, socket) do
+  def handle_event("select_cluster", %{"cluster" => cluster_name}, socket) do
     expanded =
-      if MapSet.member?(socket.assigns.expanded_clusters, guild_name),
-        do: MapSet.delete(socket.assigns.expanded_clusters, guild_name),
-        else: MapSet.put(socket.assigns.expanded_clusters, guild_name)
+      if MapSet.member?(socket.assigns.expanded_clusters, cluster_name),
+        do: MapSet.delete(socket.assigns.expanded_clusters, cluster_name),
+        else: MapSet.put(socket.assigns.expanded_clusters, cluster_name)
 
     {:noreply,
      assign(socket,
        expanded_clusters: expanded,
-       selected_cluster: guild_name,
+       selected_cluster: cluster_name,
        selected_neuron: nil
      )}
   end
@@ -68,27 +68,27 @@ defmodule ExCortexWeb.NeuronsLive do
               <p class="t-dim text-sm py-2">No clusters configured.</p>
             <% end %>
             <%= for cluster <- @clusters do %>
-              <% cluster_neurons = neurons_for_cluster(@neurons, cluster.guild_name) %>
-              <% expanded = MapSet.member?(@expanded_clusters, cluster.guild_name) %>
+              <% cluster_neurons = neurons_for_cluster(@neurons, cluster.cluster_name) %>
+              <% expanded = MapSet.member?(@expanded_clusters, cluster.cluster_name) %>
               <div>
                 <button
                   type="button"
                   class={[
                     "w-full text-left px-2 py-1.5 text-sm flex items-center justify-between gap-2 rounded transition-colors",
                     "hover:bg-muted/40",
-                    if(@selected_cluster == cluster.guild_name,
+                    if(@selected_cluster == cluster.cluster_name,
                       do: "t-cyan font-medium",
                       else: "t-bright"
                     )
                   ]}
                   phx-click="select_cluster"
-                  phx-value-cluster={cluster.guild_name}
+                  phx-value-cluster={cluster.cluster_name}
                 >
                   <span class="flex items-center gap-1.5 min-w-0">
                     <span class={["transition-transform text-xs t-dim", if(expanded, do: "rotate-90")]}>
                       ▶
                     </span>
-                    <span class="truncate">{cluster.guild_name}</span>
+                    <span class="truncate">{cluster.cluster_name}</span>
                   </span>
                   <span class="shrink-0 text-xs t-dim">{length(cluster_neurons)}</span>
                 </button>
@@ -211,19 +211,19 @@ defmodule ExCortexWeb.NeuronsLive do
   end
 
   defp load_clusters do
-    Clusters.list_charters()
+    Clusters.list_pathways()
   end
 
   defp load_neurons do
     Repo.all(from(n in Neuron, order_by: [asc: n.team, asc: n.name]))
   end
 
-  defp neurons_for_cluster(neurons, guild_name) do
-    Enum.filter(neurons, fn n -> n.team == guild_name end)
+  defp neurons_for_cluster(neurons, cluster_name) do
+    Enum.filter(neurons, fn n -> n.team == cluster_name end)
   end
 
   defp unclustered_neurons(neurons, clusters) do
-    cluster_names = MapSet.new(clusters, & &1.guild_name)
+    cluster_names = MapSet.new(clusters, & &1.cluster_name)
     Enum.filter(neurons, fn n -> is_nil(n.team) or not MapSet.member?(cluster_names, n.team) end)
   end
 

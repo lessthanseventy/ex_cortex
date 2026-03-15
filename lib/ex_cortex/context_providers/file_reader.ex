@@ -12,7 +12,7 @@ defmodule ExCortex.ContextProviders.FileReader do
   Example:
     %{
       "type" => "file_reader",
-      "files" => ["lib/ex_cortex/quest_runner.ex", "lib/ex_cortex/step_runner.ex"]
+      "files" => ["lib/ex_cortex/thoughts/runner.ex", "lib/ex_cortex/thoughts/impulse_runner.ex"]
     }
   """
 
@@ -23,7 +23,7 @@ defmodule ExCortex.ContextProviders.FileReader do
   @default_max_bytes 4_000
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     files = Map.get(config, "files", [])
     label = Map.get(config, "label", "## Codebase Files")
     max_bytes = Map.get(config, "max_bytes_per_file", @default_max_bytes)

@@ -52,7 +52,7 @@ defmodule ExCortexWeb.MemoryLive do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_info({:lore_updated, _entry}, socket) do
+  def handle_info({:engram_updated, _entry}, socket) do
     {:noreply, reload_engrams(socket)}
   end
 

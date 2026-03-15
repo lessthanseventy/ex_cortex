@@ -35,8 +35,8 @@ defmodule ExCortex.Pathways.CultureDesk do
       {"brand-guardian", :apprentice}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, rank} ->
-      builtin = Builtin.get(member_id)
+    Enum.flat_map(neurons, fn {neuron_id, rank} ->
+      builtin = Builtin.get(neuron_id)
 
       [
         %{
@@ -45,7 +45,7 @@ defmodule ExCortex.Pathways.CultureDesk do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -59,7 +59,7 @@ defmodule ExCortex.Pathways.CultureDesk do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
@@ -71,7 +71,7 @@ defmodule ExCortex.Pathways.CultureDesk do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Culture Brief",
@@ -90,7 +90,7 @@ defmodule ExCortex.Pathways.CultureDesk do
         source_ids: [],
         output_type: "freeform",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image", "analyze_video"]
+        loop_tools: ["query_memory", "web_search", "web_fetch", "describe_image", "analyze_video"]
       },
       %{
         name: "Weekly Arts Roundup",
@@ -111,7 +111,7 @@ defmodule ExCortex.Pathways.CultureDesk do
         entry_title_template: "Arts Roundup — {date}",
         context_providers: [%{"type" => "memory", "limit" => 10}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image", "analyze_video"]
+        loop_tools: ["query_memory", "web_search", "web_fetch", "describe_image", "analyze_video"]
       },
       %{
         name: "Deep Cut",
@@ -130,12 +130,12 @@ defmodule ExCortex.Pathways.CultureDesk do
         source_ids: [],
         output_type: "freeform",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch", "describe_image", "analyze_video"]
+        loop_tools: ["query_memory", "web_search", "web_fetch", "describe_image", "analyze_video"]
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Culture Digest Loop",

@@ -37,8 +37,8 @@ defmodule ExCortex.Pathways.ScienceWatch do
       {"the-historian", :apprentice}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, rank} ->
-      builtin = Builtin.get(member_id)
+    Enum.flat_map(neurons, fn {neuron_id, rank} ->
+      builtin = Builtin.get(neuron_id)
 
       [
         %{
@@ -47,7 +47,7 @@ defmodule ExCortex.Pathways.ScienceWatch do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -61,7 +61,7 @@ defmodule ExCortex.Pathways.ScienceWatch do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
@@ -73,7 +73,7 @@ defmodule ExCortex.Pathways.ScienceWatch do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Daily Science Brief",
@@ -94,7 +94,7 @@ defmodule ExCortex.Pathways.ScienceWatch do
         write_mode: "append",
         entry_title_template: "Science Brief — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch", "read_pdf"]
+        loop_tools: ["query_memory", "web_search", "web_fetch", "read_pdf"]
       },
       %{
         name: "Hype Check",
@@ -133,12 +133,12 @@ defmodule ExCortex.Pathways.ScienceWatch do
         entry_title_template: "Research Roundup — {date}",
         context_providers: [%{"type" => "memory", "limit" => 20}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch", "read_pdf"]
+        loop_tools: ["query_memory", "web_search", "web_fetch", "read_pdf"]
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Science Digest Loop",

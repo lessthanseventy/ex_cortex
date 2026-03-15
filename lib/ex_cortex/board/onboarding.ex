@@ -55,7 +55,7 @@ defmodule ExCortex.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Team Health Check",
         description: "On-demand team capability assessment and gap analysis.",
         status: "active",
@@ -115,7 +115,7 @@ defmodule ExCortex.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Codebase First Look",
         description: "On-demand initial codebase audit and architectural summary.",
         status: "active",
@@ -141,7 +141,7 @@ defmodule ExCortex.Board.Onboarding do
       suggested_team: "Risk Assessment or Dependency Audit cluster.",
       requires: [
         {:source_type, "git"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -187,10 +187,10 @@ defmodule ExCortex.Board.Onboarding do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Security Baseline",
         description: "On-demand security baseline with Slack alert for critical findings.",
         status: "active",
@@ -254,7 +254,7 @@ defmodule ExCortex.Board.Onboarding do
           log_title_template: nil
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Knowledge Base Bootstrap",
         description: "On-demand knowledge base seeding from codebase — architecture + domain glossary.",
         status: "active",

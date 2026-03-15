@@ -3,7 +3,7 @@ defmodule ExCortex.BannerTagsTest do
 
   describe "pathway banners" do
     test "all pathways have a banner tag" do
-      for {_name, mod} <- ExCortexWeb.TownSquareLive.pathways() do
+      for {_name, mod} <- ExCortex.Evaluator.pathways() do
         meta = mod.metadata()
 
         assert meta[:banner] in [:tech, :lifestyle, :business],

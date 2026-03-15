@@ -29,7 +29,7 @@ defmodule ExCortex.Thoughts.Scheduler do
 
   @impl true
   def handle_info(:tick, state) do
-    run_due_quests()
+    run_due_thoughts()
     schedule_tick()
     {:noreply, state}
   end
@@ -38,15 +38,15 @@ defmodule ExCortex.Thoughts.Scheduler do
     Process.send_after(self(), :tick, @tick_ms)
   end
 
-  defp run_due_quests do
+  defp run_due_thoughts do
     now = DateTime.utc_now()
 
     Thoughts.list_thoughts()
-    |> Enum.filter(&quest_scheduled_and_due?(&1, now))
-    |> Enum.each(&run_quest/1)
+    |> Enum.filter(&thought_scheduled_and_due?(&1, now))
+    |> Enum.each(&run_thought/1)
   end
 
-  defp quest_scheduled_and_due?(thought, now) do
+  defp thought_scheduled_and_due?(thought, now) do
     thought.trigger == "scheduled" and
       thought.status == "active" and
       is_binary(thought.schedule) and
@@ -65,12 +65,12 @@ defmodule ExCortex.Thoughts.Scheduler do
     end
   end
 
-  defp run_quest(thought) do
-    Logger.info("[ScheduledQuestRunner] Running thought #{thought.id} (#{thought.name})")
+  defp run_thought(thought) do
+    Logger.info("[ScheduledThoughtRunner] Running thought #{thought.id} (#{thought.name})")
 
     Task.start(fn ->
       {:ok, result} = Runner.run(thought, "")
-      Logger.info("[ScheduledQuestRunner] Thought #{thought.id} complete: #{inspect(result)}")
+      Logger.info("[ScheduledThoughtRunner] Thought #{thought.id} complete: #{inspect(result)}")
     end)
   end
 end

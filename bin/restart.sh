@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
-PID_FILE="$PROJECT_DIR/.ex_calibur.pid"
+PID_FILE="$PROJECT_DIR/.ex_cortex.pid"
 PORT="${PORT:-4000}"
 LOG_FILE="$PROJECT_DIR/log/restart.log"
 

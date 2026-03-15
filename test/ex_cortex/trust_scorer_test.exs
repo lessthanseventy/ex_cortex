@@ -12,7 +12,7 @@ defmodule ExCortex.TrustScorerTest do
     scores = TrustScorer.list_scores()
     assert length(scores) == 1
     [score] = scores
-    assert score.member_name == "Alice"
+    assert score.neuron_name == "Alice"
     assert score.score < 1.0
     assert score.decay_count == 1
   end
@@ -41,8 +41,8 @@ defmodule ExCortex.TrustScorerTest do
     Process.sleep(50)
 
     scores = TrustScorer.list_scores()
-    alice = Enum.find(scores, &(&1.member_name == "Alice"))
-    bob = Enum.find(scores, &(&1.member_name == "Bob"))
+    alice = Enum.find(scores, &(&1.neuron_name == "Alice"))
+    bob = Enum.find(scores, &(&1.neuron_name == "Bob"))
 
     assert alice
     assert alice.decay_count == 1

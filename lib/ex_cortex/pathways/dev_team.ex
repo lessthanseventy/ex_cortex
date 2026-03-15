@@ -160,7 +160,7 @@ defmodule ExCortex.Pathways.DevTeam do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Triage Issues",
@@ -171,11 +171,11 @@ defmodule ExCortex.Pathways.DevTeam do
         schedule: "0 9 * * *",
         roster: [%{"who" => "journeyman", "preferred_who" => "Project Manager", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "dev-triage",
         pinned: true,
         loop_mode: "reflect",
-        loop_tools: ["search_github", "comment_github", "close_issue", "query_lore"]
+        loop_tools: ["search_github", "comment_github", "close_issue", "query_memory"]
       },
       %{
         name: "Analyze Usage",
@@ -186,7 +186,7 @@ defmodule ExCortex.Pathways.DevTeam do
         schedule: "0 */4 * * *",
         roster: [%{"who" => "journeyman", "preferred_who" => "Product Analyst", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: [
           "list_files",
@@ -194,7 +194,7 @@ defmodule ExCortex.Pathways.DevTeam do
           "run_sandbox",
           "query_jaeger",
           "search_obsidian",
-          "query_lore",
+          "query_memory",
           "search_github",
           "create_github_issue"
         ]
@@ -207,7 +207,7 @@ defmodule ExCortex.Pathways.DevTeam do
         trigger: "manual",
         roster: [%{"who" => "journeyman", "preferred_who" => "Code Writer", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: [
           "read_file",
@@ -228,7 +228,7 @@ defmodule ExCortex.Pathways.DevTeam do
         trigger: "manual",
         roster: [%{"who" => "journeyman", "preferred_who" => "Code Reviewer", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: ["read_file", "list_files", "search_github", "comment_github"]
       },
@@ -240,7 +240,7 @@ defmodule ExCortex.Pathways.DevTeam do
         trigger: "manual",
         roster: [%{"who" => "journeyman", "preferred_who" => "QA / Test Writer", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: ["read_file", "list_files", "write_file", "edit_file", "run_sandbox", "comment_github"]
       },
@@ -252,7 +252,7 @@ defmodule ExCortex.Pathways.DevTeam do
         trigger: "manual",
         roster: [%{"who" => "journeyman", "preferred_who" => "UX Designer", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: ["read_file", "list_files", "run_sandbox", "comment_github"]
       },
@@ -264,14 +264,14 @@ defmodule ExCortex.Pathways.DevTeam do
         trigger: "manual",
         roster: [%{"who" => "journeyman", "preferred_who" => "Project Manager", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: ["search_github", "merge_pr", "comment_github", "git_pull", "restart_app"]
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Daily Dev Triage",

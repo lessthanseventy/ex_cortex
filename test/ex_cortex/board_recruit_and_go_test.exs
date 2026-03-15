@@ -16,7 +16,7 @@ defmodule ExCortex.Board.RecruitAndGoTest do
     test "returns ok even for templates with no suggested_team" do
       template = Board.get("incident_postmortem")
       {:ok, result} = Board.recruit_and_go(template)
-      assert result.members_recruited == []
+      assert result.neurons_recruited == []
     end
   end
 end

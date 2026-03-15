@@ -1,7 +1,7 @@
 defmodule ExCortex.Signals.TriggerRunner do
   @moduledoc """
   Listens for new cortex signal cards and fires any thoughts with trigger: "cortex"
-  whose lodge_trigger_types/lodge_trigger_tags overlap the card's type/tags.
+  whose signal_trigger_types/signal_trigger_tags overlap the card's type/tags.
   """
   use GenServer
 
@@ -19,13 +19,13 @@ defmodule ExCortex.Signals.TriggerRunner do
   end
 
   @impl true
-  def handle_info({:lodge_card_posted, card}, state) do
+  def handle_info({:signal_posted, card}, state) do
     try do
       Thoughts.list_thoughts()
       |> Enum.filter(fn q ->
         q.trigger == "cortex" && q.status == "active" &&
-          types_match?(q.lodge_trigger_types, card.type) &&
-          tags_match?(q.lodge_trigger_tags, card.tags || [])
+          types_match?(q.signal_trigger_types, card.type) &&
+          tags_match?(q.signal_trigger_tags, card.tags || [])
       end)
       |> Enum.each(fn thought ->
         Logger.info("[SignalTriggerRunner] Firing thought #{thought.id} (#{thought.name}) on signal card #{card.id}")

@@ -70,7 +70,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
     }
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Incident Quick Triage",
@@ -81,7 +81,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
         roster: [%{"who" => "apprentice", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         context_providers: [
-          %{"type" => "quest_history", "limit" => 5},
+          %{"type" => "thought_history", "limit" => 5},
           %{"type" => "memory", "tags" => ["incidents"], "limit" => 3, "sort" => "newest"}
         ],
         escalate: true,
@@ -117,7 +117,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
         log_title_template: nil,
         context_providers: [%{"type" => "memory", "tags" => ["incidents"], "limit" => 10, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_github", "search_email"]
+        loop_tools: ["query_memory", "search_github", "search_email"]
       },
       %{
         name: "Page On-Call",
@@ -128,7 +128,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "pagerduty",
-        herald_name: "pagerduty:default"
+        expression_name: "pagerduty:default"
       },
       %{
         name: "Post Incident Summary",
@@ -139,12 +139,12 @@ defmodule ExCortex.Pathways.IncidentTriage do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "slack",
-        herald_name: "slack:default"
+        expression_name: "slack:default"
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Incident Response Campaign",

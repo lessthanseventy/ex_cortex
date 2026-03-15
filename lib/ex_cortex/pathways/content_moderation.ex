@@ -69,7 +69,7 @@ defmodule ExCortex.Pathways.ContentModeration do
     }
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Content Safety Scan",
@@ -120,7 +120,7 @@ defmodule ExCortex.Pathways.ContentModeration do
         log_title_template: "Moderation Log — {date}",
         context_providers: [%{"type" => "memory", "tags" => ["moderation"], "limit" => 5, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore"]
+        loop_tools: ["query_memory"]
       },
       %{
         name: "Escalate Moderation Alert",
@@ -131,12 +131,12 @@ defmodule ExCortex.Pathways.ContentModeration do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "slack",
-        herald_name: "slack:default"
+        expression_name: "slack:default"
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Continuous Moderation Campaign",

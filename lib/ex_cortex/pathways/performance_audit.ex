@@ -69,7 +69,7 @@ defmodule ExCortex.Pathways.PerformanceAudit do
     }
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Performance Quick Scan",
@@ -114,7 +114,7 @@ defmodule ExCortex.Pathways.PerformanceAudit do
         log_title_template: nil,
         context_providers: [%{"type" => "memory", "tags" => ["performance"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_github"]
+        loop_tools: ["query_memory", "search_github"]
       },
       %{
         name: "File Performance Regression",
@@ -125,7 +125,7 @@ defmodule ExCortex.Pathways.PerformanceAudit do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "github_issue",
-        herald_name: "github_issue:default"
+        expression_name: "github_issue:default"
       },
       %{
         name: "Post Performance Alert",
@@ -136,12 +136,12 @@ defmodule ExCortex.Pathways.PerformanceAudit do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "slack",
-        herald_name: "slack:default"
+        expression_name: "slack:default"
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Performance Audit Campaign",

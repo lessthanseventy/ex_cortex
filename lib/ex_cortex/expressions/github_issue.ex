@@ -1,7 +1,7 @@
 defmodule ExCortex.Expressions.GithubIssue do
   @moduledoc "Opens a GitHub issue with thought output as body."
 
-  def deliver(%{config: config}, _quest, body) do
+  def deliver(%{config: config}, _thought, body) do
     token = config["token"] || raise "GitHub expression missing token"
     owner = config["owner"] || raise "GitHub expression missing owner"
     repo = config["repo"] || raise "GitHub expression missing repo"

@@ -30,7 +30,7 @@ defmodule ExCortex.Senses.SignalWatcher do
       Enum.map(cards, fn card ->
         %Item{
           source_id: config["source_id"],
-          type: "lodge_card",
+          type: "signal",
           content: card.body || "",
           metadata: %{
             card_type: card.type,

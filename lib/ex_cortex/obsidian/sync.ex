@@ -24,11 +24,11 @@ defmodule ExCortex.Obsidian.Sync do
   Called synchronously from the creating process (which has DB access).
   Spawns a background task only if sync is enabled; the task does no DB queries.
   """
-  def sync_lore_entry(entry) do
+  def sync_engram(entry) do
     with true <- sync_enabled?(),
          path when not is_nil(path) <- vault_path() do
       Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-        do_sync_lore(entry, path)
+        do_sync_engram(entry, path)
       end)
     else
       _ -> :skipped
@@ -39,18 +39,18 @@ defmodule ExCortex.Obsidian.Sync do
   Called synchronously from the creating process (which has DB access).
   Spawns a background task only if sync is enabled; the task does no DB queries.
   """
-  def sync_lodge_card(card) do
+  def sync_signal(card) do
     with true <- sync_enabled?(),
          path when not is_nil(path) <- vault_path() do
       Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-        do_sync_lodge(card, path)
+        do_sync_signal(card, path)
       end)
     else
       _ -> :skipped
     end
   end
 
-  defp do_sync_lore(entry, vault_path) do
+  defp do_sync_engram(entry, vault_path) do
     dir = Path.join([vault_path, "ExCortex", "Memory"])
     File.mkdir_p!(dir)
     slug = slugify(entry.title || "entry", entry.inserted_at)
@@ -60,11 +60,11 @@ defmodule ExCortex.Obsidian.Sync do
 
     content = """
     ---
-    type: lore_entry
+    type: engram
     thought_id: #{entry.thought_id}
     tags: [#{tags}]
     importance: #{entry.importance || 0}
-    created: #{DateTime.to_iso8601(entry.inserted_at)}
+    created: #{to_iso8601(entry.inserted_at)}
     ---
 
     # #{entry.title || "engram"}
@@ -79,7 +79,7 @@ defmodule ExCortex.Obsidian.Sync do
     e -> Logger.warning("[Obsidian.Sync] Failed to sync engram: #{Exception.message(e)}")
   end
 
-  defp do_sync_lodge(card, vault_path) do
+  defp do_sync_signal(card, vault_path) do
     dir = Path.join([vault_path, "ExCortex", "Cortex"])
     File.mkdir_p!(dir)
     slug = slugify(card.title || "card", card.inserted_at)
@@ -87,9 +87,9 @@ defmodule ExCortex.Obsidian.Sync do
 
     content = """
     ---
-    type: lodge_card
+    type: signal
     card_type: #{card.type || "note"}
-    created: #{DateTime.to_iso8601(card.inserted_at)}
+    created: #{to_iso8601(card.inserted_at)}
     ---
 
     # #{card.title || "signal card"}
@@ -104,7 +104,7 @@ defmodule ExCortex.Obsidian.Sync do
     e -> Logger.warning("[Obsidian.Sync] Failed to sync signal card: #{Exception.message(e)}")
   end
 
-  defp slugify(title, datetime) do
+  defp slugify(title, %DateTime{} = datetime) do
     date = datetime |> DateTime.to_date() |> Date.to_iso8601()
 
     slug =
@@ -116,4 +116,34 @@ defmodule ExCortex.Obsidian.Sync do
 
     "#{date}-#{slug}"
   end
+
+  defp slugify(title, %NaiveDateTime{} = datetime) do
+    date = datetime |> NaiveDateTime.to_date() |> Date.to_iso8601()
+
+    slug =
+      title
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9]+/, "-")
+      |> String.trim("-")
+      |> String.slice(0, 50)
+
+    "#{date}-#{slug}"
+  end
+
+  defp slugify(title, nil) do
+    date = Date.to_iso8601(Date.utc_today())
+
+    slug =
+      title
+      |> String.downcase()
+      |> String.replace(~r/[^a-z0-9]+/, "-")
+      |> String.trim("-")
+      |> String.slice(0, 50)
+
+    "#{date}-#{slug}"
+  end
+
+  defp to_iso8601(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
+  defp to_iso8601(%NaiveDateTime{} = dt), do: NaiveDateTime.to_iso8601(dt)
+  defp to_iso8601(nil), do: ""
 end

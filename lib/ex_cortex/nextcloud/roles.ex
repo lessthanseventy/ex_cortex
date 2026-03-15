@@ -35,11 +35,12 @@ defmodule ExCortex.Nextcloud.Roles do
 
   defp check_permission(:super_admin, _action), do: true
 
-  defp check_permission(:admin, action) when action in [:manage_guilds, :run_quests, :view_all, :manage_sources], do: true
+  defp check_permission(:admin, action) when action in [:manage_clusters, :run_thoughts, :view_all, :manage_sources],
+    do: true
 
   defp check_permission(:admin, :manage_system), do: false
 
-  defp check_permission(:user, action) when action in [:view_all, :run_quests], do: true
+  defp check_permission(:user, action) when action in [:view_all, :run_thoughts], do: true
 
   defp check_permission(_role, _action), do: false
 end

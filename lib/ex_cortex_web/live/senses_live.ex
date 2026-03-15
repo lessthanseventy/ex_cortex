@@ -46,7 +46,7 @@ defmodule ExCortexWeb.SensesLive do
     import Ecto.Query
 
     senses = Repo.all(from(s in Sense, order_by: [desc: s.inserted_at]))
-    installed_ids = MapSet.new(senses, & &1.book_id)
+    installed_ids = MapSet.new(senses, & &1.reflex_id)
 
     reflexes = Enum.reject(Reflex.reflexes(), &MapSet.member?(installed_ids, &1.id))
 
@@ -62,9 +62,9 @@ defmodule ExCortexWeb.SensesLive do
     )
   end
 
-  defp sense_display_name(%Sense{book_id: book_id}) when is_binary(book_id) do
-    case Reflex.get(book_id) do
-      nil -> book_id
+  defp sense_display_name(%Sense{reflex_id: reflex_id}) when is_binary(reflex_id) do
+    case Reflex.get(reflex_id) do
+      nil -> reflex_id
       reflex -> reflex.name
     end
   end
@@ -170,7 +170,7 @@ defmodule ExCortexWeb.SensesLive do
       |> Sense.changeset(%{
         source_type: reflex.source_type,
         config: reflex.default_config,
-        book_id: reflex.id,
+        reflex_id: reflex.id,
         status: "paused"
       })
       |> Repo.insert()
@@ -546,8 +546,8 @@ defmodule ExCortexWeb.SensesLive do
         <div class="flex items-center gap-2 flex-wrap">
           <span class="font-medium text-sm">{@reflex.name}</span>
           <.badge variant="outline" class="text-xs">{@reflex.source_type}</.badge>
-          <.badge :if={@reflex.suggested_guild} variant="secondary" class="text-xs">
-            {@reflex.suggested_guild}
+          <.badge :if={@reflex.suggested_cluster} variant="secondary" class="text-xs">
+            {@reflex.suggested_cluster}
           </.badge>
         </div>
         <p class="text-xs t-muted">{@reflex.description}</p>

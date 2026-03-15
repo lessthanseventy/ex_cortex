@@ -70,7 +70,7 @@ defmodule ExCortex.Pathways.DependencyAudit do
     }
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Dependency Quick Scan",
@@ -114,7 +114,7 @@ defmodule ExCortex.Pathways.DependencyAudit do
         log_title_template: "Dependency Audit Log — {date}",
         context_providers: [%{"type" => "memory", "tags" => ["deps"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_github", "web_search"]
+        loop_tools: ["query_memory", "search_github", "web_search"]
       },
       %{
         name: "File Vulnerability Issue",
@@ -125,12 +125,12 @@ defmodule ExCortex.Pathways.DependencyAudit do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "github_issue",
-        herald_name: "github_issue:default"
+        expression_name: "github_issue:default"
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Weekly Dependency Audit Campaign",

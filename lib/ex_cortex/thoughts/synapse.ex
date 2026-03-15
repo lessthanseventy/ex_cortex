@@ -17,9 +17,9 @@ defmodule ExCortex.Thoughts.Synapse do
     field :write_mode, :string, default: "append"
     field :entry_title_template, :string
     field :log_title_template, :string
-    field :herald_name, :string
+    field :expression_name, :string
     field :min_rank, :string
-    field :lore_tags, {:array, :string}, default: []
+    field :engram_tags, {:array, :string}, default: []
     # Escalate mode — rank ladder retry
     field :escalate, :boolean, default: false
     field :escalate_threshold, :float, default: 0.6
@@ -33,7 +33,7 @@ defmodule ExCortex.Thoughts.Synapse do
     field :pin_slug, :string
     field :pin_order, :integer, default: 0
     field :cards, :map, default: %{}
-    field :guild_name, :string
+    field :cluster_name, :string
     field :dangerous_tool_mode, :string, default: "execute"
     field :max_tool_iterations, :integer, default: 15
     timestamps()
@@ -51,9 +51,9 @@ defmodule ExCortex.Thoughts.Synapse do
     :write_mode,
     :entry_title_template,
     :log_title_template,
-    :herald_name,
+    :expression_name,
     :min_rank,
-    :lore_tags,
+    :engram_tags,
     :escalate,
     :escalate_threshold,
     :escalate_on_verdict,
@@ -65,7 +65,7 @@ defmodule ExCortex.Thoughts.Synapse do
     :pin_slug,
     :pin_order,
     :cards,
-    :guild_name,
+    :cluster_name,
     :dangerous_tool_mode,
     :max_tool_iterations
   ]
@@ -80,7 +80,7 @@ defmodule ExCortex.Thoughts.Synapse do
       "verdict",
       "artifact",
       "freeform",
-      "lodge_card",
+      "signal",
       "slack",
       "webhook",
       "github_issue",

@@ -3,7 +3,7 @@ defmodule ExCortex.Tools.QueryMemory do
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
-      name: "query_lore",
+      name: "query_memory",
       description: "Search the memory store for entries matching the given tags. Returns recent matching entries.",
       parameter_schema: %{
         "type" => "object",

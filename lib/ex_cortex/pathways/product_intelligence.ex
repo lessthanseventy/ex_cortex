@@ -36,8 +36,8 @@ defmodule ExCortex.Pathways.ProductIntelligence do
       {"competitive-analyst", "Competitive Analyst"}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, _name} ->
-      builtin = Builtin.get(member_id)
+    Enum.flat_map(neurons, fn {neuron_id, _name} ->
+      builtin = Builtin.get(neuron_id)
 
       [
         %{
@@ -46,7 +46,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -60,7 +60,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "journeyman",
             "model" => builtin.ranks.journeyman.model,
@@ -72,7 +72,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Feedback Quick Scan",
@@ -101,7 +101,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
           %{"type" => "memory", "tags" => ["product", "feedback", "market"], "limit" => 5, "sort" => "top"}
         ],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "search_email"]
+        loop_tools: ["query_memory", "web_search", "search_email"]
       },
       %{
         name: "Full Intelligence Review",
@@ -117,7 +117,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Weekly Product Intelligence",

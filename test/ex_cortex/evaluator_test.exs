@@ -22,7 +22,7 @@ defmodule ExCortex.EvaluatorTest do
 
   describe "evaluate/2" do
     test "returns error when no cluster is installed" do
-      assert {:error, :no_guild_installed} = Evaluator.evaluate("some input text")
+      assert {:error, :no_cluster_installed} = Evaluator.evaluate("some input text")
     end
   end
 end

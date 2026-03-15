@@ -6,15 +6,15 @@ defmodule ExCortex.Tools.Registry do
   `ReqLLM.generate_text(model, context, tools: tools)`.
 
   Tiers:
-  - safe      — read-only, low risk (query_lore, query_dictionary, fetch_url, obsidian read, email read, github read, jq, pdf, document conversion)
+  - safe      — read-only, low risk (query_memory, query_axiom, fetch_url, obsidian read, email read, github read, jq, pdf, document conversion)
   - write     — write or mutate data (create_obsidian_note, daily_obsidian)
-  - dangerous — execute code/pipelines or send data externally (run_quest, send_email, create_github_issue, comment_github)
+  - dangerous — execute code/pipelines or send data externally (run_thought, send_email, create_github_issue, comment_github)
 
   Usage:
     Registry.list_safe()              # safe tools only
     Registry.list_write()             # safe + write tools
     Registry.list_dangerous()         # all tools
-    Registry.get("query_lore")        # single tool by name
+    Registry.get("query_memory")      # single tool by name
     Registry.resolve_tools(:all_safe) # from step/neuron config
   """
 
@@ -42,7 +42,7 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.NextcloudCalendar
   alias ExCortex.Tools.NextcloudTalk
   alias ExCortex.Tools.OpenPR
-  alias ExCortex.Tools.QueryDictionary
+  alias ExCortex.Tools.QueryAxiom
   alias ExCortex.Tools.QueryJaeger
   alias ExCortex.Tools.QueryMemory
   alias ExCortex.Tools.ReadEmail
@@ -72,7 +72,7 @@ defmodule ExCortex.Tools.Registry do
 
   @safe [
     QueryMemory,
-    QueryDictionary,
+    QueryAxiom,
     QueryJaeger,
     FetchUrl,
     SearchObsidian,

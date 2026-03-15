@@ -10,14 +10,14 @@ defmodule ExCortex.Integration.EverydayCouncilFlowTest do
 
     Enum.each(defs, fn d ->
       assert d.type == "role"
-      assert is_binary(d.config["member_id"])
-      assert d.config["tools"] in ["all_safe", "write", "dangerous"]
+      assert is_binary(d.config["neuron_id"]), "config should have neuron_id"
+      assert d.config["tools"] in ~w(all_safe write dangerous)
     end)
   end
 
   test "journal-keeper gets write tool tier" do
     defs = EverydayCouncil.resource_definitions()
-    journal_keepers = Enum.filter(defs, &(&1.config["member_id"] == "journal-keeper"))
+    journal_keepers = Enum.filter(defs, &(&1.config["neuron_id"] == "journal-keeper"))
     assert journal_keepers != []
 
     Enum.each(journal_keepers, fn d ->
@@ -25,32 +25,32 @@ defmodule ExCortex.Integration.EverydayCouncilFlowTest do
     end)
   end
 
-  test "quest_definitions includes source-triggered Smart Intake" do
-    thoughts = EverydayCouncil.quest_definitions()
-    intake = Enum.find(thoughts, &(&1.name == "Smart Intake"))
+  test "synapse_definitions includes source-triggered Smart Intake" do
+    synapses = EverydayCouncil.synapse_definitions()
+    intake = Enum.find(synapses, &(&1.name == "Smart Intake"))
     assert intake
     assert intake.trigger == "source"
-    assert "query_lore" in intake.loop_tools
+    assert "query_memory" in intake.loop_tools
     assert "search_obsidian" in intake.loop_tools
   end
 
-  test "quest_definitions includes scheduled Morning Briefing" do
-    thoughts = EverydayCouncil.quest_definitions()
-    briefing = Enum.find(thoughts, &(&1.name == "Morning Briefing"))
+  test "synapse_definitions includes scheduled Morning Briefing" do
+    synapses = EverydayCouncil.synapse_definitions()
+    briefing = Enum.find(synapses, &(&1.name == "Morning Briefing"))
     assert briefing
     assert briefing.trigger == "scheduled"
     assert briefing.output_type == "artifact"
   end
 
-  test "campaign_definitions includes Intake Loop" do
-    campaigns = EverydayCouncil.campaign_definitions()
+  test "thought_definitions includes Intake Loop" do
+    campaigns = EverydayCouncil.thought_definitions()
     intake_loop = Enum.find(campaigns, &(&1.name == "Intake Loop"))
     assert intake_loop
     assert intake_loop.trigger == "source"
   end
 
-  test "Books includes Everyday Council entries" do
-    reflexes = Reflex.for_guild("Everyday Council")
+  test "Reflexes includes Everyday Council entries" do
+    reflexes = Reflex.for_cluster("Everyday Council")
     assert reflexes != []
   end
 
@@ -59,7 +59,7 @@ defmodule ExCortex.Integration.EverydayCouncilFlowTest do
     names = Enum.map(tools, & &1.name)
     assert "create_obsidian_note" in names
     assert "daily_obsidian" in names
-    assert "query_lore" in names
+    assert "query_memory" in names
   end
 
   test "Registry resolve_tools(:all_safe) includes search tools" do

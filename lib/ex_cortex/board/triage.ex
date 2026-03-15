@@ -25,7 +25,7 @@ defmodule ExCortex.Board.Triage do
         "Works with any cluster. The Incident Triage cluster (ImpactAssessor + RootCauseAnalyst + EscalationRouter) is a natural fit.",
       requires: [
         {:source_type, "webhook"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -71,10 +71,10 @@ defmodule ExCortex.Board.Triage do
           ],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Jira Ticket Triage Thought",
         description: "Source-triggered triage that escalates high-severity Jira tickets to Slack.",
         status: "active",
@@ -101,7 +101,7 @@ defmodule ExCortex.Board.Triage do
       suggested_team: "Code Review cluster works well. Any cluster with code-aware neurons will do.",
       requires: [
         {:source_type, "webhook"},
-        {:herald_type, "github_issue"}
+        {:expression_type, "github_issue"}
       ],
       step_definitions: [
         %{
@@ -131,10 +131,10 @@ defmodule ExCortex.Board.Triage do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "github_issue",
-          herald_name: "github_issue:default"
+          expression_name: "github_issue:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "GitHub Issue Triage Thought",
         description: "Webhook-triggered triage that files tracked responses for confirmed bugs.",
         status: "active",
@@ -161,7 +161,7 @@ defmodule ExCortex.Board.Triage do
       suggested_team: "Incident Triage cluster (ImpactAssessor + RootCauseAnalyst + EscalationRouter) is the ideal fit.",
       requires: [
         {:source_type, "websocket"},
-        {:herald_type, "pagerduty"}
+        {:expression_type, "pagerduty"}
       ],
       step_definitions: [
         %{
@@ -205,10 +205,10 @@ defmodule ExCortex.Board.Triage do
           ],
           source_ids: [],
           output_type: "pagerduty",
-          herald_name: "pagerduty:default"
+          expression_name: "pagerduty:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Error Monitor Thought",
         description: "Real-time error stream triage with PagerDuty escalation for critical issues.",
         status: "active",
@@ -235,7 +235,7 @@ defmodule ExCortex.Board.Triage do
       suggested_team: "Product Intelligence cluster. Any cluster with analyst neurons works.",
       requires: [
         {:source_type, "webhook"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -276,10 +276,10 @@ defmodule ExCortex.Board.Triage do
           ],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Feedback Triage Thought",
         description: "Source-triggered feedback triage with Slack alert for high-signal items.",
         status: "active",
@@ -306,7 +306,7 @@ defmodule ExCortex.Board.Triage do
       suggested_team: "Risk Assessment cluster (RiskScorer + ComplianceChecker + FraudDetector) is ideal.",
       requires: [
         {:source_type, "feed"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -336,10 +336,10 @@ defmodule ExCortex.Board.Triage do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Threat Feed Monitor Thought",
         description: "Feed-triggered threat intelligence triage with Slack escalation.",
         status: "active",

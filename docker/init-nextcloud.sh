@@ -12,7 +12,7 @@ su -s /bin/bash www-data -c "php occ app:enable notes"
 su -s /bin/bash www-data -c "php occ app:enable calendar"
 su -s /bin/bash www-data -c "php occ app:enable spreed"  # Talk
 
-# Create ExCalibur folder
+# Create ExCortex folder
 su -s /bin/bash www-data -c "php occ files:scan --all"
 
 echo "Nextcloud init complete."

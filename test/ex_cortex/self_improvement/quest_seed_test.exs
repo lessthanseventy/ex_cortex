@@ -7,7 +7,7 @@ defmodule ExCortex.Neuroplasticity.SeedTest do
     assert {:ok, result} = Seed.seed(%{repo: "owner/repo"})
     assert result.thought
     assert result.source
-    assert result.sweep_quest
+    assert result.sweep_thought
     assert length(result.steps) == 6
   end
 
@@ -27,18 +27,18 @@ defmodule ExCortex.Neuroplasticity.SeedTest do
   test "seed links all 6 steps to the thought in order" do
     assert {:ok, %{thought: thought, steps: steps}} = Seed.seed(%{repo: "owner/repo"})
     step_ids = Enum.map(steps, & &1.id)
-    quest_step_ids = Enum.map(thought.steps, & &1["step_id"])
-    assert Enum.sort(step_ids) == Enum.sort(quest_step_ids)
+    thought_step_ids = Enum.map(thought.steps, & &1["step_id"])
+    assert Enum.sort(step_ids) == Enum.sort(thought_step_ids)
     orders = thought.steps |> Enum.map(& &1["order"]) |> Enum.sort()
     assert orders == [1, 2, 3, 4, 5, 6]
   end
 
   test "seed creates a scheduled sweep thought with 3 steps" do
-    assert {:ok, %{sweep_quest: sweep_quest}} = Seed.seed(%{repo: "owner/repo"})
-    assert sweep_quest.trigger == "scheduled"
-    assert sweep_quest.schedule == "0 */4 * * *"
-    assert length(sweep_quest.steps) == 3
-    orders = sweep_quest.steps |> Enum.map(& &1["order"]) |> Enum.sort()
+    assert {:ok, %{sweep_thought: sweep_thought}} = Seed.seed(%{repo: "owner/repo"})
+    assert sweep_thought.trigger == "scheduled"
+    assert sweep_thought.schedule == "0 */4 * * *"
+    assert length(sweep_thought.steps) == 3
+    orders = sweep_thought.steps |> Enum.map(& &1["order"]) |> Enum.sort()
     assert orders == [1, 2, 3]
   end
 

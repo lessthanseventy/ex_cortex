@@ -32,7 +32,7 @@ defmodule ExCortex.Thoughts.Runner do
 
   @doc "Run all steps of a thought, returning the final step result."
   def run(%{steps: steps} = thought, _input) when steps == [] do
-    Logger.info("[QuestRunner] Thought #{thought.id} (#{thought.name}) has no steps")
+    Logger.info("[ThoughtRunner] Thought #{thought.id} (#{thought.name}) has no steps")
     {:ok, %{steps: []}}
   end
 
@@ -51,7 +51,7 @@ defmodule ExCortex.Thoughts.Runner do
   defp do_run(thought, input) do
     ordered_steps = Enum.sort_by(thought.steps, &Map.get(&1, "order", 0))
 
-    Logger.info("[QuestRunner] Running thought #{thought.id} (#{thought.name}), #{length(ordered_steps)} step(s)")
+    Logger.info("[ThoughtRunner] Running thought #{thought.id} (#{thought.name}), #{length(ordered_steps)} step(s)")
 
     # Create a daydream record
     {:ok, daydream} = Thoughts.create_daydream(%{thought_id: thought.id, status: "running"})
@@ -97,7 +97,7 @@ defmodule ExCortex.Thoughts.Runner do
         ExCortex.Memory.Extractor.extract(%{
           id: daydream.id,
           thought_name: thought.name,
-          cluster_name: Map.get(thought, :guild_name),
+          cluster_name: Map.get(thought, :cluster_name),
           status: final_status,
           results: synapse_results,
           impulses: results |> Enum.with_index() |> Enum.map(fn {r, i} -> %{step: i, results: r} end)
@@ -113,7 +113,7 @@ defmodule ExCortex.Thoughts.Runner do
     end
   end
 
-  defp run_step_entry(%{"type" => "branch"} = step, next_step, current_input, acc_results, _ordered_steps, _quest_run) do
+  defp run_step_entry(%{"type" => "branch"} = step, next_step, current_input, acc_results, _ordered_steps, _daydream) do
     next_step_name =
       if next_step,
         do: resolve_step_name(next_step["step_id"] || next_step["synthesizer"])
@@ -140,8 +140,8 @@ defmodule ExCortex.Thoughts.Runner do
   end
 
   defp run_regular_step(step, next_step, current_input, acc_results, ordered_steps, daydream) do
-    step_id = step["step_id"] || step["quest_id"]
-    next_step_name = if next_step, do: resolve_step_name(next_step["step_id"] || next_step["quest_id"])
+    step_id = step["step_id"] || step["thought_id"]
+    next_step_name = if next_step, do: resolve_step_name(next_step["step_id"] || next_step["thought_id"])
 
     case resolve_step(step_id) do
       nil ->
@@ -149,7 +149,7 @@ defmodule ExCortex.Thoughts.Runner do
         {acc_results ++ [{:error, :step_not_found}], current_input}
 
       resolved_step ->
-        Logger.info("[QuestRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
+        Logger.info("[ThoughtRunner] Running step #{resolved_step.id} (#{resolved_step.name})")
         t0 = System.monotonic_time(:millisecond)
 
         result =
@@ -167,7 +167,7 @@ defmodule ExCortex.Thoughts.Runner do
 
         ms = System.monotonic_time(:millisecond) - t0
 
-        Logger.info("[QuestRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
+        Logger.info("[ThoughtRunner] Step #{resolved_step.name} done in #{ms}ms: #{inspect_result(result)["status"]}")
 
         # Async learning loop — runs retrospect without blocking the thought
         step_run_data = %{id: daydream.id, results: inspect_result(result), input: current_input}
@@ -181,17 +181,17 @@ defmodule ExCortex.Thoughts.Runner do
   end
 
   defp log_missing_step(nil) do
-    Logger.warning("[QuestRunner] Thought has a step with nil step_id — remove it via the Thoughts UI")
+    Logger.warning("[ThoughtRunner] Thought has a step with nil step_id — remove it via the Thoughts UI")
   end
 
   defp log_missing_step(step_id) do
-    Logger.warning("[QuestRunner] Step #{step_id} not found, skipping")
+    Logger.warning("[ThoughtRunner] Step #{step_id} not found, skipping")
   end
 
   defp handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ordered_steps) do
     case check_gate(step, result) do
       {:gated, reason} ->
-        Logger.info("[QuestRunner] GATED at #{resolved_step.name}: #{reason}")
+        Logger.info("[ThoughtRunner] GATED at #{resolved_step.name}: #{reason}")
 
         blocked_text =
           "## BLOCKED\n**Gated step:** #{resolved_step.name}\n**Verdict:** fail\n**Reason:** #{reason}\n\nThe thought was halted because this gate step returned a fail verdict."
@@ -199,7 +199,7 @@ defmodule ExCortex.Thoughts.Runner do
         blocked_input = "#{current_input}\n\n#{blocked_text}"
 
         last_entry = List.last(ordered_steps)
-        last_id = last_entry["step_id"] || last_entry["quest_id"]
+        last_id = last_entry["step_id"] || last_entry["thought_id"]
 
         last_result =
           case resolve_step(last_id) do
@@ -224,7 +224,7 @@ defmodule ExCortex.Thoughts.Runner do
   def result_to_text(result, current_step_name, next_step_name)
 
   def result_to_text({:ok, %{verdict: verdict, steps: steps}}, step_name, next_step_name) do
-    member_lines =
+    neuron_lines =
       steps
       |> Enum.flat_map(& &1.results)
       |> Enum.map_join("\n", fn r ->
@@ -240,7 +240,7 @@ defmodule ExCortex.Thoughts.Runner do
     ## Prior Step: #{step_name}
     **Verdict:** #{verdict}
     **Neuron findings:**
-    #{member_lines}#{question}
+    #{neuron_lines}#{question}
     """
   end
 
@@ -258,10 +258,10 @@ defmodule ExCortex.Thoughts.Runner do
   end
 
   def result_to_text({:ok, %{delivered: true, type: type}}, step_name, _next) do
-    "## Prior Step: #{step_name}\nHerald delivered (#{type})\n"
+    "## Prior Step: #{step_name}\nExpression delivered (#{type})\n"
   end
 
-  def result_to_text({:ok, %{lodge_card: %{title: title, body: body}}}, step_name, next_step_name) do
+  def result_to_text({:ok, %{signal: %{title: title, body: body}}}, step_name, next_step_name) do
     question =
       if next_step_name,
         do: "\n**Open question for #{next_step_name}:** How does this card inform your evaluation?",
@@ -274,7 +274,7 @@ defmodule ExCortex.Thoughts.Runner do
     """
   end
 
-  def result_to_text({:ok, %{lodge_cards: _cards}}, step_name, _next) do
+  def result_to_text({:ok, %{signals: _cards}}, step_name, _next) do
     "## Prior Step: #{step_name}\nMultiple signal cards posted.\n"
   end
 
@@ -311,7 +311,7 @@ defmodule ExCortex.Thoughts.Runner do
     step_ids = step["steps"] || step["thoughts"] || []
     synthesizer_id = step["synthesizer"]
 
-    Logger.info("[QuestRunner] Running branch step: #{length(step_ids)} parallel step(s) + synthesizer")
+    Logger.info("[ThoughtRunner] Running branch step: #{length(step_ids)} parallel step(s) + synthesizer")
 
     branch_results =
       step_ids
@@ -322,7 +322,7 @@ defmodule ExCortex.Thoughts.Runner do
               {step_id, {:error, :step_not_found}}
 
             resolved_step ->
-              Logger.info("[QuestRunner] Branch: running #{resolved_step.name}")
+              Logger.info("[ThoughtRunner] Branch: running #{resolved_step.name}")
               {resolved_step.name, ImpulseRunner.run(resolved_step, input)}
           end
         end,
@@ -338,11 +338,11 @@ defmodule ExCortex.Thoughts.Runner do
 
     case resolve_step(synthesizer_id) do
       nil ->
-        Logger.warning("[QuestRunner] Branch synthesizer #{synthesizer_id} not found")
+        Logger.warning("[ThoughtRunner] Branch synthesizer #{synthesizer_id} not found")
         {:error, :synthesizer_not_found}
 
       synth ->
-        Logger.info("[QuestRunner] Branch: running synthesizer #{synth.name}")
+        Logger.info("[ThoughtRunner] Branch: running synthesizer #{synth.name}")
         ImpulseRunner.run(synth, combined_input)
     end
   end
@@ -398,11 +398,11 @@ defmodule ExCortex.Thoughts.Runner do
              body: output,
              source: "thought:#{thought.name}",
              tags: ["self-improvement", type_tag],
-             metadata: %{"url" => url, "quest_run_id" => daydream.id},
+             metadata: %{"url" => url, "daydream_id" => daydream.id},
              status: "active"
            }) do
-        {:ok, _} -> Logger.info("[QuestRunner] Posted artifact card: #{title}")
-        {:error, e} -> Logger.warning("[QuestRunner] Failed to post artifact card: #{inspect(e)}")
+        {:ok, _} -> Logger.info("[ThoughtRunner] Posted artifact card: #{title}")
+        {:error, e} -> Logger.warning("[ThoughtRunner] Failed to post artifact card: #{inspect(e)}")
       end
     end)
   end

@@ -35,13 +35,13 @@ defmodule ExCortex.Board.Lifestyle do
           name: "Hacker News",
           source_type: "feed",
           config: %{"url" => "https://news.ycombinator.com/rss", "interval" => 1_800_000},
-          book_id: "hacker_news_rss"
+          reflex_id: "hacker_news_rss"
         },
         %{
           name: "The Verge",
           source_type: "feed",
           config: %{"url" => "https://www.theverge.com/rss/index.xml", "interval" => 1_800_000},
-          book_id: "the_verge_rss"
+          reflex_id: "the_verge_rss"
         },
         %{
           name: "Ars Technica",
@@ -50,7 +50,7 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://feeds.arstechnica.com/arstechnica/index",
             "interval" => 1_800_000
           },
-          book_id: "ars_technica_rss"
+          reflex_id: "ars_technica_rss"
         },
         %{
           name: "Reuters Business",
@@ -59,19 +59,19 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://feeds.reuters.com/reuters/businessNews",
             "interval" => 1_800_000
           },
-          book_id: "reuters_business_rss"
+          reflex_id: "reuters_business_rss"
         },
         %{
           name: "Financial Times",
           source_type: "feed",
           config: %{"url" => "https://www.ft.com/rss/home", "interval" => 1_800_000},
-          book_id: "ft_rss"
+          reflex_id: "ft_rss"
         },
         %{
           name: "ESPN",
           source_type: "feed",
           config: %{"url" => "https://www.espn.com/espn/rss/news", "interval" => 1_800_000},
-          book_id: "espn_rss"
+          reflex_id: "espn_rss"
         },
         %{
           name: "BBC Sport",
@@ -80,19 +80,19 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "http://feeds.bbci.co.uk/sport/rss.xml",
             "interval" => 1_800_000
           },
-          book_id: "bbc_sport_rss"
+          reflex_id: "bbc_sport_rss"
         },
         %{
           name: "Pitchfork",
           source_type: "feed",
           config: %{"url" => "https://pitchfork.com/rss/news/", "interval" => 3_600_000},
-          book_id: "pitchfork_rss"
+          reflex_id: "pitchfork_rss"
         },
         %{
           name: "AV Club",
           source_type: "feed",
           config: %{"url" => "https://www.avclub.com/rss", "interval" => 3_600_000},
-          book_id: "av_club_rss"
+          reflex_id: "av_club_rss"
         },
         %{
           name: "Science Daily",
@@ -101,13 +101,13 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://www.sciencedaily.com/rss/all.xml",
             "interval" => 3_600_000
           },
-          book_id: "science_daily_rss"
+          reflex_id: "science_daily_rss"
         },
         %{
           name: "Nature News",
           source_type: "feed",
           config: %{"url" => "https://www.nature.com/nature.rss", "interval" => 3_600_000},
-          book_id: "nature_news_rss"
+          reflex_id: "nature_news_rss"
         }
       ],
       step_definitions: [
@@ -127,8 +127,8 @@ defmodule ExCortex.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "lodge_card",
-          lore_tags: ["journal", "intake"]
+          output_type: "signal",
+          engram_tags: ["journal", "intake"]
         },
         %{
           name: "News Digest Step",
@@ -149,7 +149,7 @@ defmodule ExCortex.Board.Lifestyle do
           output_type: "artifact",
           write_mode: "append",
           entry_title_template: "News Digest — {date}",
-          lore_tags: ["news", "digest"]
+          engram_tags: ["news", "digest"]
         },
         %{
           name: "Morning Briefing Step",
@@ -167,12 +167,12 @@ defmodule ExCortex.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "lodge_card",
+          output_type: "signal",
           context_providers: [
             %{"type" => "memory", "tags" => ["news", "digest"], "limit" => 20, "sort" => "newest"},
             %{"type" => "memory", "tags" => ["journal"], "limit" => 5, "sort" => "newest"}
           ],
-          lore_tags: ["briefing", "morning"]
+          engram_tags: ["briefing", "morning"]
         },
         %{
           name: "Midday Pulse Step",
@@ -190,12 +190,12 @@ defmodule ExCortex.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "lodge_card",
+          output_type: "signal",
           context_providers: [
             %{"type" => "memory", "tags" => ["news"], "limit" => 10, "sort" => "newest"},
             %{"type" => "memory", "tags" => ["journal"], "limit" => 3, "sort" => "newest"}
           ],
-          lore_tags: ["briefing", "midday"]
+          engram_tags: ["briefing", "midday"]
         },
         %{
           name: "Evening Debrief Step",
@@ -213,18 +213,18 @@ defmodule ExCortex.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "lodge_card",
+          output_type: "signal",
           context_providers: [
             %{"type" => "memory", "tags" => ["briefing"], "limit" => 3, "sort" => "newest"},
             %{"type" => "memory", "tags" => ["news"], "limit" => 15, "sort" => "newest"},
             %{"type" => "memory", "tags" => ["journal"], "limit" => 5, "sort" => "newest"}
           ],
-          lore_tags: ["briefing", "evening"]
+          engram_tags: ["briefing", "evening"]
         },
         %{
           name: "Todo Processor Step",
           description:
-            "When a todo card appears on the cortex, break it into actionable sub-steps. Add context from prior memory if relevant. Output as a structured grimoire entry with the tag 'actionable'.",
+            "When a todo card appears on the cortex, break it into actionable sub-steps. Add context from prior memory if relevant. Output as a structured memory entry with the tag 'actionable'.",
           status: "active",
           trigger: "manual",
           schedule: nil,
@@ -243,7 +243,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [
             %{"type" => "memory", "limit" => 5, "sort" => "newest"}
           ],
-          lore_tags: ["actionable", "todo"]
+          engram_tags: ["actionable", "todo"]
         },
         %{
           name: "Weekly Reflection Step",
@@ -261,11 +261,11 @@ defmodule ExCortex.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "lodge_card",
+          output_type: "signal",
           context_providers: [
             %{"type" => "memory", "limit" => 40, "sort" => "newest"}
           ],
-          lore_tags: ["reflection", "weekly"]
+          engram_tags: ["reflection", "weekly"]
         },
         %{
           name: "Monthly Review Step",
@@ -283,7 +283,7 @@ defmodule ExCortex.Board.Lifestyle do
             }
           ],
           source_ids: [],
-          output_type: "lodge_card",
+          output_type: "signal",
           context_providers: [
             %{
               "type" => "memory",
@@ -293,10 +293,10 @@ defmodule ExCortex.Board.Lifestyle do
             },
             %{"type" => "memory", "limit" => 20, "sort" => "top"}
           ],
-          lore_tags: ["review", "monthly"]
+          engram_tags: ["review", "monthly"]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Everyday Council Thought",
         description: "Life OS intake loop. Processes incoming webhook drops and news feeds.",
         status: "active",
@@ -308,7 +308,7 @@ defmodule ExCortex.Board.Lifestyle do
         ],
         source_ids: []
       },
-      extra_quests: [
+      extra_thoughts: [
         %{
           name: "Daily Briefings Thought",
           description: "Morning, midday, and evening briefings posted to the Cortex.",
@@ -326,7 +326,7 @@ defmodule ExCortex.Board.Lifestyle do
           description: "Automatically processes new todo cards into actionable plans.",
           status: "active",
           trigger: "cortex",
-          lodge_trigger_types: ["todo"],
+          signal_trigger_types: ["todo"],
           steps: [
             %{"step_name" => "Todo Processor Step", "flow" => "always"}
           ]
@@ -369,7 +369,7 @@ defmodule ExCortex.Board.Lifestyle do
           name: "Hacker News",
           source_type: "feed",
           config: %{"url" => "https://news.ycombinator.com/rss", "interval" => 1_800_000},
-          book_id: "hacker_news_rss"
+          reflex_id: "hacker_news_rss"
         },
         %{
           name: "The Verge",
@@ -378,7 +378,7 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://www.theverge.com/rss/index.xml",
             "interval" => 1_800_000
           },
-          book_id: "the_verge_rss"
+          reflex_id: "the_verge_rss"
         },
         %{
           name: "Ars Technica",
@@ -387,7 +387,7 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://feeds.arstechnica.com/arstechnica/index",
             "interval" => 1_800_000
           },
-          book_id: "ars_technica_rss"
+          reflex_id: "ars_technica_rss"
         }
       ],
       step_definitions: [
@@ -431,7 +431,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 30, "sort" => "newest"}]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Tech Digest Loop Thought",
         description: "Continuous tech news intake and weekly trend synthesis.",
         status: "active",
@@ -460,7 +460,7 @@ defmodule ExCortex.Board.Lifestyle do
           name: "ESPN",
           source_type: "feed",
           config: %{"url" => "https://www.espn.com/espn/rss/news", "interval" => 1_800_000},
-          book_id: "espn_rss"
+          reflex_id: "espn_rss"
         },
         %{
           name: "BBC Sport",
@@ -469,13 +469,13 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "http://feeds.bbci.co.uk/sport/rss.xml",
             "interval" => 1_800_000
           },
-          book_id: "bbc_sport_rss"
+          reflex_id: "bbc_sport_rss"
         },
         %{
           name: "The Athletic",
           source_type: "feed",
           config: %{"url" => "https://theathletic.com/rss-feed/", "interval" => 1_800_000},
-          book_id: "the_athletic_rss"
+          reflex_id: "the_athletic_rss"
         }
       ],
       step_definitions: [
@@ -518,7 +518,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 10, "sort" => "newest"}]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Sports Digest Loop Thought",
         description: "Continuous sports news intake and weekend narrative synthesis.",
         status: "active",
@@ -551,13 +551,13 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://feeds.reuters.com/reuters/businessNews",
             "interval" => 1_800_000
           },
-          book_id: "reuters_business_rss"
+          reflex_id: "reuters_business_rss"
         },
         %{
           name: "Financial Times",
           source_type: "feed",
           config: %{"url" => "https://www.ft.com/rss/home", "interval" => 1_800_000},
-          book_id: "ft_rss"
+          reflex_id: "ft_rss"
         }
       ],
       step_definitions: [
@@ -599,7 +599,7 @@ defmodule ExCortex.Board.Lifestyle do
           entry_title_template: "Market Roundup — {date}"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Market Digest Loop Thought",
         description: "Continuous market news intake and weekly pattern synthesis.",
         status: "active",
@@ -628,19 +628,19 @@ defmodule ExCortex.Board.Lifestyle do
           name: "Pitchfork",
           source_type: "feed",
           config: %{"url" => "https://pitchfork.com/rss/news/", "interval" => 3_600_000},
-          book_id: "pitchfork_rss"
+          reflex_id: "pitchfork_rss"
         },
         %{
           name: "AV Club",
           source_type: "feed",
           config: %{"url" => "https://www.avclub.com/rss", "interval" => 3_600_000},
-          book_id: "av_club_rss"
+          reflex_id: "av_club_rss"
         },
         %{
           name: "Vulture",
           source_type: "feed",
           config: %{"url" => "https://www.vulture.com/rss/all.xml", "interval" => 3_600_000},
-          book_id: "vulture_rss"
+          reflex_id: "vulture_rss"
         }
       ],
       step_definitions: [
@@ -662,7 +662,7 @@ defmodule ExCortex.Board.Lifestyle do
           output_type: "artifact",
           write_mode: "append",
           entry_title_template: "Culture Brief — {date}",
-          lore_tags: ["culture", "entertainment"]
+          engram_tags: ["culture", "entertainment"]
         },
         %{
           name: "Weekly Arts Roundup Step",
@@ -684,7 +684,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 10, "sort" => "newest"}]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Culture Digest Loop Thought",
         description: "Continuous culture intake and weekly arts synthesis.",
         status: "active",
@@ -717,13 +717,13 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://www.sciencedaily.com/rss/all.xml",
             "interval" => 3_600_000
           },
-          book_id: "science_daily_rss"
+          reflex_id: "science_daily_rss"
         },
         %{
           name: "Nature News",
           source_type: "feed",
           config: %{"url" => "https://www.nature.com/nature.rss", "interval" => 3_600_000},
-          book_id: "nature_news_rss"
+          reflex_id: "nature_news_rss"
         },
         %{
           name: "Ars Technica Science",
@@ -732,7 +732,7 @@ defmodule ExCortex.Board.Lifestyle do
             "url" => "https://feeds.arstechnica.com/arstechnica/science",
             "interval" => 3_600_000
           },
-          book_id: "ars_science_rss"
+          reflex_id: "ars_science_rss"
         }
       ],
       step_definitions: [
@@ -775,7 +775,7 @@ defmodule ExCortex.Board.Lifestyle do
           context_providers: [%{"type" => "memory", "limit" => 20, "sort" => "newest"}]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Science Digest Loop Thought",
         description: "Continuous science news intake and weekly research synthesis.",
         status: "active",

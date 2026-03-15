@@ -5,7 +5,7 @@ defmodule ExCortex.Neurons.TrustScore do
   import Ecto.Changeset
 
   schema "neuron_trust_scores" do
-    field :member_name, :string
+    field :neuron_name, :string
     field :score, :float, default: 1.0
     field :decay_count, :integer, default: 0
     timestamps()
@@ -13,7 +13,7 @@ defmodule ExCortex.Neurons.TrustScore do
 
   def changeset(score, attrs) do
     score
-    |> cast(attrs, [:member_name, :score, :decay_count])
-    |> validate_required([:member_name])
+    |> cast(attrs, [:neuron_name, :score, :decay_count])
+    |> validate_required([:neuron_name])
   end
 end

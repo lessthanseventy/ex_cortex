@@ -21,7 +21,7 @@ defmodule ExCortex.ContextProviders.Engrams do
   @total_cap 6_000
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     tags = Map.get(config, "tags", [])
     limit = Map.get(config, "limit", 5)
     sort = Map.get(config, "sort", "newest")

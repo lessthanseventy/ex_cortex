@@ -1,7 +1,7 @@
 defmodule ExCortex.ContextProviders.ThoughtHistory do
   @moduledoc """
   Injects recent step run results for the same step into the preamble.
-  Config: %{"type" => "quest_history", "limit" => 5}
+  Config: %{"type" => "thought_history", "limit" => 5}
   """
 
   @behaviour ExCortex.ContextProviders.ContextProvider

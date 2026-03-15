@@ -68,7 +68,7 @@ defmodule ExCortexTUI.Screens.Cortex do
   end
 
   defp fetch_clusters do
-    clusters = ExCortex.Clusters.list_charters()
+    clusters = ExCortex.Clusters.list_pathways()
 
     if Enum.empty?(clusters) do
       Status.render(:amber, "No clusters installed")

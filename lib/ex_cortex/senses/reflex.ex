@@ -1,6 +1,6 @@
 defmodule ExCortex.Senses.Reflex do
   @moduledoc false
-  defstruct [:id, :name, :description, :source_type, :default_config, :suggested_guild, :kind, :sandbox, banner: nil]
+  defstruct [:id, :name, :description, :source_type, :default_config, :suggested_cluster, :kind, :sandbox, banner: nil]
 
   def all, do: reflexes() ++ streams()
 
@@ -14,7 +14,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch a local git repository for new commits and generate diffs for review.",
         source_type: "git",
         default_config: %{"repo_path" => "", "branch" => "main", "interval" => 60_000},
-        suggested_guild: "Code Review",
+        suggested_cluster: "Code Review",
         kind: :reflex
       },
       %__MODULE__{
@@ -24,7 +24,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Monitor a directory for new or changed files.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.txt", "*.md"], "interval" => 30_000},
-        suggested_guild: "Content Moderation",
+        suggested_cluster: "Content Moderation",
         kind: :reflex
       },
       %__MODULE__{
@@ -33,7 +33,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Poll an RSS or Atom feed for new entries.",
         source_type: "feed",
         default_config: %{"url" => "", "interval" => 300_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
@@ -42,7 +42,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Expose a POST endpoint that accepts data pushes. Supports optional Bearer token auth.",
         source_type: "webhook",
         default_config: %{},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
@@ -51,7 +51,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Periodically fetch a URL and detect content changes.",
         source_type: "url",
         default_config: %{"url" => "", "interval" => 60_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
@@ -60,7 +60,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Connect to a WebSocket endpoint and process incoming messages.",
         source_type: "websocket",
         default_config: %{"url" => "", "message_path" => "", "interval" => 60_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       # Everyday Council
@@ -72,7 +72,7 @@ defmodule ExCortex.Senses.Reflex do
           "Webhook endpoint for dropping in links, notes, PDFs, or thoughts for the Journal Keeper to process.",
         source_type: "webhook",
         default_config: %{},
-        suggested_guild: "Everyday Council",
+        suggested_cluster: "Everyday Council",
         kind: :reflex
       },
       %__MODULE__{
@@ -82,7 +82,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch an Obsidian vault folder for new or changed notes and process them automatically.",
         source_type: "obsidian",
         default_config: %{"interval" => 60_000},
-        suggested_guild: "Everyday Council",
+        suggested_cluster: "Everyday Council",
         kind: :reflex
       },
       %__MODULE__{
@@ -92,7 +92,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Monitor your notmuch email database for new messages and feed them into the council.",
         source_type: "email",
         default_config: %{"query" => "tag:new", "interval" => 300_000, "limit" => 50},
-        suggested_guild: "Everyday Council",
+        suggested_cluster: "Everyday Council",
         kind: :reflex
       },
       %__MODULE__{
@@ -102,7 +102,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Monitor a YouTube channel or playlist for new videos via yt-dlp.",
         source_type: "media",
         default_config: %{"url" => "", "interval" => 3_600_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       # Code Review
@@ -113,7 +113,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Receive GitHub pull request notifications via webhook for automated review.",
         source_type: "webhook",
         default_config: %{},
-        suggested_guild: "Code Review",
+        suggested_cluster: "Code Review",
         kind: :reflex
       },
       # Dev Team
@@ -125,7 +125,7 @@ defmodule ExCortex.Senses.Reflex do
           "Watches a GitHub repository for open issues with a specific label. Use with the Dev Team cluster to automatically pick up and work self-improvement issues.",
         source_type: "github_issues",
         default_config: %{"repo" => "", "label" => "self-improvement", "interval" => 300_000},
-        suggested_guild: "Dev Team",
+        suggested_cluster: "Dev Team",
         kind: :reflex
       },
       # Content Moderation
@@ -136,7 +136,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch a directory for user-submitted content awaiting moderation review.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*"], "interval" => 15_000},
-        suggested_guild: "Content Moderation",
+        suggested_cluster: "Content Moderation",
         kind: :reflex
       },
       # Accessibility Review
@@ -147,7 +147,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch excessibility snapshot output directory for new accessibility reports.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.json", "*.html"], "interval" => 30_000},
-        suggested_guild: "Accessibility Review",
+        suggested_cluster: "Accessibility Review",
         kind: :reflex
       },
       # Performance Audit
@@ -158,7 +158,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch excessibility timeline JSON output directory for performance data.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.json"], "interval" => 30_000},
-        suggested_guild: "Performance Audit",
+        suggested_cluster: "Performance Audit",
         kind: :reflex
       },
       # Incident Triage
@@ -169,7 +169,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Receive alerts from error trackers (Sentry, Honeybadger, etc.) via webhook.",
         source_type: "webhook",
         default_config: %{},
-        suggested_guild: "Incident Triage",
+        suggested_cluster: "Incident Triage",
         kind: :reflex
       },
       %__MODULE__{
@@ -179,7 +179,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "RSS feed from service status pages — track upstream dependency incidents.",
         source_type: "feed",
         default_config: %{"url" => "", "interval" => 300_000},
-        suggested_guild: "Incident Triage",
+        suggested_cluster: "Incident Triage",
         kind: :reflex
       },
       %__MODULE__{
@@ -189,7 +189,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Connect to a log aggregator WebSocket stream for real-time error monitoring.",
         source_type: "websocket",
         default_config: %{"url" => "", "message_path" => "", "interval" => 60_000},
-        suggested_guild: "Incident Triage",
+        suggested_cluster: "Incident Triage",
         kind: :reflex
       },
       # Contract Review
@@ -204,7 +204,7 @@ defmodule ExCortex.Senses.Reflex do
           "patterns" => ["*.pdf", "*.docx", "*.txt", "*.md"],
           "interval" => 30_000
         },
-        suggested_guild: "Contract Review",
+        suggested_cluster: "Contract Review",
         kind: :reflex
       },
       %__MODULE__{
@@ -214,7 +214,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Receive notifications from document management systems when contracts are uploaded or changed.",
         source_type: "webhook",
         default_config: %{},
-        suggested_guild: "Contract Review",
+        suggested_cluster: "Contract Review",
         kind: :reflex
       },
       # Dependency Audit
@@ -225,7 +225,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch a git repo for changes to mix.lock or package.json — triggers audit on dependency updates.",
         source_type: "git",
         default_config: %{"repo_path" => "", "branch" => "main", "interval" => 60_000},
-        suggested_guild: "Dependency Audit",
+        suggested_cluster: "Dependency Audit",
         kind: :reflex
       },
       # Jira
@@ -236,7 +236,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Receive Jira issue events via webhook — new issues, status changes, priority escalations.",
         source_type: "webhook",
         default_config: %{},
-        suggested_guild: "Incident Triage",
+        suggested_cluster: "Incident Triage",
         kind: :reflex
       },
       %__MODULE__{
@@ -245,7 +245,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Poll a Jira board activity feed for new and updated issues.",
         source_type: "feed",
         default_config: %{"url" => "", "interval" => 300_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       # Sandbox-enabled reflexes
@@ -256,7 +256,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Run excessibility accessibility checks against a Phoenix project.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.ex", "*.heex"], "interval" => 60_000},
-        suggested_guild: "Accessibility Review",
+        suggested_cluster: "Accessibility Review",
         kind: :reflex,
         sandbox: %{cmd: "mix excessibility", timeout: 120_000}
       },
@@ -267,7 +267,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Run Credo static analysis checks against an Elixir project.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.ex", "*.exs"], "interval" => 60_000},
-        suggested_guild: "Code Review",
+        suggested_cluster: "Code Review",
         kind: :reflex,
         sandbox: %{cmd: "mix credo --strict", timeout: 120_000}
       },
@@ -278,7 +278,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Run mix audit to check for known vulnerabilities in dependencies.",
         source_type: "git",
         default_config: %{"repo_path" => "", "branch" => "main", "interval" => 300_000},
-        suggested_guild: "Dependency Audit",
+        suggested_cluster: "Dependency Audit",
         kind: :reflex,
         sandbox: %{cmd: "mix deps.audit", timeout: 120_000}
       },
@@ -289,7 +289,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Run Dialyzer type checking against an Elixir project.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.ex"], "interval" => 120_000},
-        suggested_guild: "Code Review",
+        suggested_cluster: "Code Review",
         kind: :reflex,
         sandbox: %{cmd: "mix dialyzer", timeout: 300_000}
       },
@@ -299,7 +299,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Run the project test suite and feed results to cluster neurons.",
         source_type: "git",
         default_config: %{"repo_path" => "", "branch" => "main", "interval" => 60_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex,
         sandbox: %{cmd: "mix test", timeout: 300_000}
       },
@@ -310,7 +310,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Run Sobelow security-focused static analysis on a Phoenix project.",
         source_type: "directory",
         default_config: %{"path" => "", "patterns" => ["*.ex", "*.heex"], "interval" => 60_000},
-        suggested_guild: "Risk Assessment",
+        suggested_cluster: "Risk Assessment",
         kind: :reflex,
         sandbox: %{cmd: "mix sobelow --config", timeout: 120_000}
       },
@@ -321,7 +321,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch your own project repository for new commits and changes.",
         source_type: "git",
         default_config: %{"repo_path" => "", "branch" => "main", "interval" => 60_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       # Nextcloud
@@ -332,7 +332,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch a Nextcloud folder for new and changed files.",
         source_type: "nextcloud",
         default_config: %{"watch_path" => "/Documents", "interval" => 60_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
@@ -342,7 +342,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Monitor Nextcloud Notes for new entries and changes.",
         source_type: "nextcloud",
         default_config: %{"watch_type" => "notes", "interval" => 120_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
@@ -352,7 +352,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch Nextcloud Calendar for upcoming events and changes.",
         source_type: "nextcloud",
         default_config: %{"watch_type" => "calendar", "interval" => 300_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
@@ -362,17 +362,17 @@ defmodule ExCortex.Senses.Reflex do
         description: "Monitor Nextcloud Talk conversations for new messages.",
         source_type: "nextcloud",
         default_config: %{"watch_type" => "talk", "interval" => 30_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       },
       %__MODULE__{
-        id: "lodge_watcher",
-        name: "signal card Watcher",
+        id: "signal_watcher",
+        name: "Signal Card Watcher",
         description:
           "Watch signal cards for new or changed entries. Filter by card type and/or tags to feed specific cards into thoughts.",
         source_type: "cortex",
         default_config: %{"type_filter" => [], "tag_filter" => [], "interval" => 30_000},
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :reflex
       }
     ]
@@ -388,7 +388,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Elixir Forum discussions — best practices, code patterns, and community solutions.",
         source_type: "feed",
         default_config: %{"url" => "https://elixirforum.com/posts.rss", "interval" => 1_800_000},
-        suggested_guild: "Code Review",
+        suggested_cluster: "Code Review",
         kind: :stream
       },
       %__MODULE__{
@@ -401,7 +401,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://github.com/rrrene/credo/releases.atom",
           "interval" => 86_400_000
         },
-        suggested_guild: "Code Review",
+        suggested_cluster: "Code Review",
         kind: :stream
       },
       # Content Moderation
@@ -412,7 +412,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "OWASP Foundation blog — application security, vulnerability research, and best practices.",
         source_type: "feed",
         default_config: %{"url" => "https://owasp.org/feed.xml", "interval" => 3_600_000},
-        suggested_guild: "Content Moderation",
+        suggested_cluster: "Content Moderation",
         kind: :stream
       },
       # Risk Assessment
@@ -426,7 +426,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://krebsonsecurity.com/feed/",
           "interval" => 3_600_000
         },
-        suggested_guild: "Risk Assessment",
+        suggested_cluster: "Risk Assessment",
         kind: :stream
       },
       %__MODULE__{
@@ -439,7 +439,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://www.cisa.gov/cybersecurity-advisories/all.xml",
           "interval" => 1_800_000
         },
-        suggested_guild: "Risk Assessment",
+        suggested_cluster: "Risk Assessment",
         kind: :stream
       },
       %__MODULE__{
@@ -449,7 +449,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "NIST National Vulnerability Database — CVE entries and severity scoring.",
         source_type: "url",
         default_config: %{"url" => "https://nvd.nist.gov/", "interval" => 3_600_000},
-        suggested_guild: "Risk Assessment",
+        suggested_cluster: "Risk Assessment",
         kind: :stream
       },
       %__MODULE__{
@@ -462,7 +462,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://www.troyhunt.com/rss/",
           "interval" => 3_600_000
         },
-        suggested_guild: "Risk Assessment",
+        suggested_cluster: "Risk Assessment",
         kind: :stream
       },
       # Accessibility Review
@@ -473,7 +473,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "W3C Web Accessibility Initiative blog — guidelines updates, techniques, and best practices.",
         source_type: "feed",
         default_config: %{"url" => "https://www.w3.org/WAI/feed.xml", "interval" => 3_600_000},
-        suggested_guild: "Accessibility Review",
+        suggested_cluster: "Accessibility Review",
         kind: :stream
       },
       %__MODULE__{
@@ -483,7 +483,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "WebAIM blog — practical accessibility articles, WCAG interpretation, and testing techniques.",
         source_type: "feed",
         default_config: %{"url" => "https://webaim.org/blog/feed", "interval" => 3_600_000},
-        suggested_guild: "Accessibility Review",
+        suggested_cluster: "Accessibility Review",
         kind: :stream
       },
       %__MODULE__{
@@ -493,7 +493,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch the WCAG specification page for changes and updates.",
         source_type: "url",
         default_config: %{"url" => "https://www.w3.org/TR/WCAG22/", "interval" => 86_400_000},
-        suggested_guild: "Accessibility Review",
+        suggested_cluster: "Accessibility Review",
         kind: :stream
       },
       # Performance Audit
@@ -504,7 +504,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Fly.io engineering blog — deployment, infrastructure, and performance insights.",
         source_type: "feed",
         default_config: %{"url" => "https://fly.io/blog/feed.xml", "interval" => 3_600_000},
-        suggested_guild: "Performance Audit",
+        suggested_cluster: "Performance Audit",
         kind: :stream
       },
       %__MODULE__{
@@ -514,7 +514,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Dashbit blog — Elixir performance, Phoenix optimization, and ecosystem updates.",
         source_type: "feed",
         default_config: %{"url" => "https://dashbit.co/blog.atom", "interval" => 3_600_000},
-        suggested_guild: "Performance Audit",
+        suggested_cluster: "Performance Audit",
         kind: :stream
       },
       %__MODULE__{
@@ -527,7 +527,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://github.com/phoenixframework/phoenix/blob/main/CHANGELOG.md",
           "interval" => 86_400_000
         },
-        suggested_guild: "Performance Audit",
+        suggested_cluster: "Performance Audit",
         kind: :stream
       },
       # Incident Triage
@@ -541,7 +541,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://hnrss.org/newest?q=outage+OR+incident+OR+postmortem",
           "interval" => 1_800_000
         },
-        suggested_guild: "Incident Triage",
+        suggested_cluster: "Incident Triage",
         kind: :stream
       },
       # Contract Review
@@ -555,7 +555,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://feeds.law.com/law/LegalNews",
           "interval" => 3_600_000
         },
-        suggested_guild: "Contract Review",
+        suggested_cluster: "Contract Review",
         kind: :stream
       },
       # Dependency Audit
@@ -569,7 +569,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://github.com/advisories.atom",
           "interval" => 1_800_000
         },
-        suggested_guild: "Dependency Audit",
+        suggested_cluster: "Dependency Audit",
         kind: :stream
       },
       %__MODULE__{
@@ -582,7 +582,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://elixirforum.com/c/elixir-news/security/55.rss",
           "interval" => 3_600_000
         },
-        suggested_guild: "Dependency Audit",
+        suggested_cluster: "Dependency Audit",
         kind: :stream
       },
       %__MODULE__{
@@ -592,7 +592,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Watch hex.pm for package updates relevant to your project.",
         source_type: "url",
         default_config: %{"url" => "https://hex.pm/packages", "interval" => 3_600_000},
-        suggested_guild: "Dependency Audit",
+        suggested_cluster: "Dependency Audit",
         kind: :stream
       },
       # General — no specific cluster
@@ -605,7 +605,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://elixir-lang.org/blog.atom",
           "interval" => 86_400_000
         },
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :stream
       },
       %__MODULE__{
@@ -617,7 +617,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://github.com/erlang/otp/releases.atom",
           "interval" => 86_400_000
         },
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :stream
       },
       %__MODULE__{
@@ -629,7 +629,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://podcast.thinkingelixir.com/rss",
           "interval" => 86_400_000
         },
-        suggested_guild: nil,
+        suggested_cluster: nil,
         kind: :stream
       },
       # Tech
@@ -640,7 +640,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Top stories from Hacker News",
         source_type: "feed",
         default_config: %{"url" => "https://news.ycombinator.com/rss", "interval" => 1_800_000},
-        suggested_guild: "Tech Dispatch",
+        suggested_cluster: "Tech Dispatch",
         kind: :stream
       },
       %__MODULE__{
@@ -653,7 +653,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://www.theverge.com/rss/index.xml",
           "interval" => 1_800_000
         },
-        suggested_guild: "Tech Dispatch",
+        suggested_cluster: "Tech Dispatch",
         kind: :stream
       },
       %__MODULE__{
@@ -666,7 +666,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://feeds.arstechnica.com/arstechnica/index",
           "interval" => 1_800_000
         },
-        suggested_guild: "Tech Dispatch",
+        suggested_cluster: "Tech Dispatch",
         kind: :stream
       },
       %__MODULE__{
@@ -676,7 +676,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Startup and technology news from TechCrunch.",
         source_type: "feed",
         default_config: %{"url" => "https://techcrunch.com/feed/", "interval" => 1_800_000},
-        suggested_guild: "Tech Dispatch",
+        suggested_cluster: "Tech Dispatch",
         kind: :stream
       },
       # Business
@@ -690,7 +690,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://feeds.reuters.com/reuters/businessNews",
           "interval" => 1_800_000
         },
-        suggested_guild: "Market Signals",
+        suggested_cluster: "Market Signals",
         kind: :stream
       },
       %__MODULE__{
@@ -700,7 +700,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Global business and financial news from the Financial Times.",
         source_type: "feed",
         default_config: %{"url" => "https://www.ft.com/rss/home", "interval" => 1_800_000},
-        suggested_guild: "Market Signals",
+        suggested_cluster: "Market Signals",
         kind: :stream
       },
       # Sports
@@ -714,7 +714,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://www.espn.com/espn/rss/news",
           "interval" => 1_800_000
         },
-        suggested_guild: "Sports Corner",
+        suggested_cluster: "Sports Corner",
         kind: :stream
       },
       %__MODULE__{
@@ -727,7 +727,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "http://feeds.bbci.co.uk/sport/rss.xml",
           "interval" => 1_800_000
         },
-        suggested_guild: "Sports Corner",
+        suggested_cluster: "Sports Corner",
         kind: :stream
       },
       %__MODULE__{
@@ -740,7 +740,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://theathletic.com/rss-feed/",
           "interval" => 1_800_000
         },
-        suggested_guild: "Sports Corner",
+        suggested_cluster: "Sports Corner",
         kind: :stream
       },
       # Culture
@@ -754,7 +754,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://pitchfork.com/rss/news/",
           "interval" => 3_600_000
         },
-        suggested_guild: "Culture Desk",
+        suggested_cluster: "Culture Desk",
         kind: :stream
       },
       %__MODULE__{
@@ -764,7 +764,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Pop culture and entertainment reviews from The AV Club.",
         source_type: "feed",
         default_config: %{"url" => "https://www.avclub.com/rss", "interval" => 3_600_000},
-        suggested_guild: "Culture Desk",
+        suggested_cluster: "Culture Desk",
         kind: :stream
       },
       %__MODULE__{
@@ -777,7 +777,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://www.vulture.com/rss/all.xml",
           "interval" => 3_600_000
         },
-        suggested_guild: "Culture Desk",
+        suggested_cluster: "Culture Desk",
         kind: :stream
       },
       # Science
@@ -791,7 +791,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://www.sciencedaily.com/rss/all.xml",
           "interval" => 3_600_000
         },
-        suggested_guild: "Science Watch",
+        suggested_cluster: "Science Watch",
         kind: :stream
       },
       %__MODULE__{
@@ -801,7 +801,7 @@ defmodule ExCortex.Senses.Reflex do
         description: "Science news and research from Nature.",
         source_type: "feed",
         default_config: %{"url" => "https://www.nature.com/nature.rss", "interval" => 3_600_000},
-        suggested_guild: "Science Watch",
+        suggested_cluster: "Science Watch",
         kind: :stream
       },
       %__MODULE__{
@@ -814,7 +814,7 @@ defmodule ExCortex.Senses.Reflex do
           "url" => "https://feeds.arstechnica.com/arstechnica/science",
           "interval" => 3_600_000
         },
-        suggested_guild: "Science Watch",
+        suggested_cluster: "Science Watch",
         kind: :stream
       }
     ]
@@ -825,7 +825,7 @@ defmodule ExCortex.Senses.Reflex do
   end
 
   def get(id), do: Enum.find(all(), &(&1.id == id))
-  def for_guild(guild_name), do: Enum.filter(all(), &(&1.suggested_guild == guild_name))
+  def for_cluster(cluster_name), do: Enum.filter(all(), &(&1.suggested_cluster == cluster_name))
 
   def for_banner(banner) when is_atom(banner) do
     Enum.filter(streams(), &(&1.banner == banner))

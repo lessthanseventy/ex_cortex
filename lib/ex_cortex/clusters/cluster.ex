@@ -5,14 +5,14 @@ defmodule ExCortex.Clusters.Cluster do
   import Ecto.Changeset
 
   schema "clusters" do
-    field :guild_name, :string
-    field :charter_text, :string, default: ""
+    field :cluster_name, :string
+    field :pathway_text, :string, default: ""
     timestamps()
   end
 
   def changeset(pathway, attrs) do
     pathway
-    |> cast(attrs, [:guild_name, :charter_text])
-    |> validate_required([:guild_name])
+    |> cast(attrs, [:cluster_name, :pathway_text])
+    |> validate_required([:cluster_name])
   end
 end

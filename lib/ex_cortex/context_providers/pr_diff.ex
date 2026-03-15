@@ -19,7 +19,7 @@ defmodule ExCortex.ContextProviders.PrDiff do
   @max_bytes 8_000
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     case Map.get(config, "pr") do
       nil ->
         Logger.warning("[PrDiffCtx] No 'pr' number in config")

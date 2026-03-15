@@ -1,7 +1,7 @@
 defmodule ExCortex.ContextProviders.NeuronStats do
   @moduledoc """
   Injects a summary of active neuron roster (names, ranks, teams) into the preamble.
-  Config: %{"type" => "member_stats"}
+  Config: %{"type" => "neuron_stats"}
   """
 
   @behaviour ExCortex.ContextProviders.ContextProvider
@@ -12,7 +12,7 @@ defmodule ExCortex.ContextProviders.NeuronStats do
   alias ExCortex.Repo
 
   @impl true
-  def build(_config, _quest, _input) do
+  def build(_config, _thought, _input) do
     neurons =
       Repo.all(
         from m in Neuron,

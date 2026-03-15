@@ -5,24 +5,24 @@ defmodule ExCortex.Clusters do
   alias ExCortex.Clusters.Cluster
   alias ExCortex.Repo
 
-  def get_charter(guild_name) do
-    case Repo.get_by(Cluster, guild_name: guild_name) do
+  def get_pathway(cluster_name) do
+    case Repo.get_by(Cluster, cluster_name: cluster_name) do
       nil -> nil
-      pathway -> pathway.charter_text
+      pathway -> pathway.pathway_text
     end
   end
 
-  def upsert_charter(guild_name, charter_text) do
+  def upsert_pathway(cluster_name, pathway_text) do
     %Cluster{}
-    |> Cluster.changeset(%{guild_name: guild_name, charter_text: charter_text})
+    |> Cluster.changeset(%{cluster_name: cluster_name, pathway_text: pathway_text})
     |> Repo.insert(
-      on_conflict: [set: [charter_text: charter_text, updated_at: DateTime.utc_now()]],
-      conflict_target: :guild_name,
+      on_conflict: [set: [pathway_text: pathway_text, updated_at: DateTime.utc_now()]],
+      conflict_target: :cluster_name,
       returning: true
     )
   end
 
-  def list_charters do
-    Repo.all(from c in Cluster, order_by: c.guild_name)
+  def list_pathways do
+    Repo.all(from c in Cluster, order_by: c.cluster_name)
   end
 end

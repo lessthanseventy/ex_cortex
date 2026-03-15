@@ -13,13 +13,13 @@ defmodule ExCortex.Senses.Sense do
     field :status, :string, default: "active"
     field :last_run_at, :utc_datetime
     field :error_message, :string
-    field :book_id, :string
+    field :reflex_id, :string
     timestamps(type: :utc_datetime)
   end
 
   def changeset(source, attrs) do
     source
-    |> cast(attrs, [:name, :source_type, :config, :state, :status, :last_run_at, :error_message, :book_id])
+    |> cast(attrs, [:name, :source_type, :config, :state, :status, :last_run_at, :error_message, :reflex_id])
     |> validate_required([:source_type])
     |> validate_inclusion(
       :source_type,

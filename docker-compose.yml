@@ -4,13 +4,13 @@ services:
     environment:
       POSTGRES_USER: excellence
       POSTGRES_PASSWORD: excellence
-      POSTGRES_DB: ex_calibur
+      POSTGRES_DB: ex_cortex
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U excellence -d ex_calibur"]
+      test: ["CMD-SHELL", "pg_isready -U excellence -d ex_cortex"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -113,7 +113,7 @@ services:
   app:
     build:
       context: ..
-      dockerfile: ex_calibur/Dockerfile.dev
+      dockerfile: ex_cortex/Dockerfile.dev
     depends_on:
       db:
         condition: service_healthy
@@ -124,7 +124,7 @@ services:
     volumes:
       - ..:/app:Z
     environment:
-      DATABASE_URL: ecto://excellence:excellence@db/ex_calibur
+      DATABASE_URL: ecto://excellence:excellence@db/ex_cortex
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318

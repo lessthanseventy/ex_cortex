@@ -48,9 +48,9 @@ defmodule ExCortex.Pathways.EverydayCouncil do
       {"the-historian", :journeyman}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, rank} ->
-      builtin = Builtin.get(member_id)
-      tools = if member_id == "journal-keeper", do: "write", else: "all_safe"
+    Enum.flat_map(neurons, fn {neuron_id, rank} ->
+      builtin = Builtin.get(neuron_id)
+      tools = if neuron_id == "journal-keeper", do: "write", else: "all_safe"
 
       [
         %{
@@ -59,7 +59,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -73,7 +73,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
@@ -85,7 +85,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       # --- Advisory ---
       %{
@@ -196,7 +196,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Intake — {date}",
         loop_mode: "reflect",
         loop_tools: [
-          "query_lore",
+          "query_memory",
           "search_obsidian",
           "web_search",
           "web_fetch",
@@ -222,7 +222,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         write_mode: "append",
         entry_title_template: "Check-in — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       },
 
       # --- Daily Rhythm ---
@@ -242,7 +242,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Morning Briefing — {date}",
         context_providers: [%{"type" => "memory", "limit" => 10, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       },
       %{
         name: "Midday Pulse",
@@ -260,7 +260,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Midday Pulse — {date}",
         context_providers: [%{"type" => "memory", "limit" => 5, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       },
       %{
         name: "Evening Wrap",
@@ -279,7 +279,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Evening Wrap — {date}",
         context_providers: [%{"type" => "memory", "limit" => 8, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       },
 
       # --- News & Briefings ---
@@ -314,7 +314,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Weekly News Digest — {date}",
         context_providers: [%{"type" => "memory", "limit" => 30, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       },
 
       # --- Email & GitHub ---
@@ -329,12 +329,12 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "news-correspondent", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "email-triage",
         pinned: true,
         pin_order: 1,
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_email", "read_email"]
+        loop_tools: ["query_memory", "search_email", "read_email"]
       },
       %{
         name: "Email Cleanup",
@@ -347,11 +347,11 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "scope-realist", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "email-cleanup",
         pinned: true,
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_email", "read_email"]
+        loop_tools: ["query_memory", "search_email", "read_email"]
       },
       %{
         name: "GitHub Pulse",
@@ -364,12 +364,12 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "apprentice", "preferred_who" => "evidence-collector", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "github-pulse",
         pinned: true,
         pin_order: 2,
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_github", "read_github_issue", "list_github_notifications"]
+        loop_tools: ["query_memory", "search_github", "read_github_issue", "list_github_notifications"]
       },
       %{
         name: "GitHub Weekly",
@@ -382,9 +382,9 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "the-historian", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_github", "read_github_issue"]
+        loop_tools: ["query_memory", "search_github", "read_github_issue"]
       },
       %{
         name: "Research Agent",
@@ -397,10 +397,10 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "challenger", "when" => "always", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
         loop_tools: [
-          "query_lore",
+          "query_memory",
           "web_search",
           "web_fetch",
           "search_obsidian",
@@ -421,11 +421,11 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "life-coach", "when" => "always", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "weekly-synthesis",
         pinned: true,
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "read_obsidian", "search_email", "search_github"]
+        loop_tools: ["query_memory", "search_obsidian", "read_obsidian", "search_email", "search_github"]
       },
 
       # --- Multi-Modal Intake ---
@@ -443,7 +443,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         write_mode: "append",
         entry_title_template: "PDF Read — {date}",
         loop_mode: "reflect",
-        loop_tools: ["read_pdf", "query_lore", "web_search", "create_obsidian_note"]
+        loop_tools: ["read_pdf", "query_memory", "web_search", "create_obsidian_note"]
       },
       %{
         name: "Image Analysis",
@@ -458,7 +458,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         write_mode: "append",
         entry_title_template: "Image Analysis — {date}",
         loop_mode: "reflect",
-        loop_tools: ["describe_image", "read_image_text", "query_lore"]
+        loop_tools: ["describe_image", "read_image_text", "query_memory"]
       },
       %{
         name: "Video Breakdown",
@@ -480,7 +480,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           "analyze_video",
           "extract_audio",
           "create_obsidian_note",
-          "query_lore"
+          "query_memory"
         ]
       },
 
@@ -496,13 +496,13 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "life-coach", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "command-brief",
         pinned: true,
         pin_order: 0,
         loop_mode: "reflect",
         loop_tools: [
-          "query_lore",
+          "query_memory",
           "search_email",
           "search_github",
           "list_github_notifications",
@@ -521,11 +521,11 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "the-historian", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "trend-detector",
         pinned: true,
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "search_obsidian"]
+        loop_tools: ["query_memory", "web_search", "search_obsidian"]
       },
       %{
         name: "Obsidian Librarian",
@@ -538,7 +538,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "apprentice", "preferred_who" => "journal-keeper", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         pin_slug: "obsidian-librarian",
         pinned: true,
         loop_mode: "reflect",
@@ -563,9 +563,9 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "apprentice", "preferred_who" => "evidence-collector", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
-        loop_tools: ["search_github", "read_github_issue", "query_lore", "create_github_issue"]
+        loop_tools: ["search_github", "read_github_issue", "query_memory", "create_github_issue"]
       },
       %{
         name: "Email Responder",
@@ -577,9 +577,9 @@ defmodule ExCortex.Pathways.EverydayCouncil do
           %{"who" => "journeyman", "preferred_who" => "news-correspondent", "when" => "on_trigger", "how" => "solo"}
         ],
         source_ids: [],
-        output_type: "lodge_card",
+        output_type: "signal",
         loop_mode: "reflect",
-        loop_tools: ["read_email", "search_email", "query_lore", "web_search", "send_email"]
+        loop_tools: ["read_email", "search_email", "query_memory", "web_search", "send_email"]
       },
 
       # --- Reflection & Synthesis ---
@@ -599,7 +599,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Weekly Reflection — {date}",
         context_providers: [%{"type" => "memory", "limit" => 20}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       },
       %{
         name: "Monthly Review",
@@ -618,12 +618,12 @@ defmodule ExCortex.Pathways.EverydayCouncil do
         entry_title_template: "Monthly Review — {date}",
         context_providers: [%{"type" => "memory", "limit" => 60, "sort" => "newest"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "search_obsidian", "web_search"]
+        loop_tools: ["query_memory", "search_obsidian", "web_search"]
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Intake Loop",

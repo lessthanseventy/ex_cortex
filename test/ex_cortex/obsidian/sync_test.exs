@@ -27,7 +27,7 @@ defmodule ExCortex.Obsidian.SyncTest do
     assert Sync.vault_path() == nil
   end
 
-  test "sync_lore_entry returns :skipped when not enabled" do
+  test "sync_engram returns :skipped when not enabled" do
     fake_entry = %{
       title: "Test",
       body: "Body",
@@ -37,10 +37,10 @@ defmodule ExCortex.Obsidian.SyncTest do
       inserted_at: DateTime.utc_now()
     }
 
-    assert Sync.sync_lore_entry(fake_entry) == :skipped
+    assert Sync.sync_engram(fake_entry) == :skipped
   end
 
-  test "sync_lodge_card returns :skipped when not enabled" do
+  test "sync_signal returns :skipped when not enabled" do
     fake_card = %{
       title: "Test Card",
       body: "Card body",
@@ -48,6 +48,6 @@ defmodule ExCortex.Obsidian.SyncTest do
       inserted_at: DateTime.utc_now()
     }
 
-    assert Sync.sync_lodge_card(fake_card) == :skipped
+    assert Sync.sync_signal(fake_card) == :skipped
   end
 end

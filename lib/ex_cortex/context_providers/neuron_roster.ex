@@ -10,8 +10,8 @@ defmodule ExCortex.ContextProviders.NeuronRoster do
     "label" - section header (default: "## cluster neurons")
 
   Example:
-    %{"type" => "member_roster"}
-    %{"type" => "member_roster", "team" => "dev"}
+    %{"type" => "neuron_roster"}
+    %{"type" => "neuron_roster", "team" => "dev"}
   """
 
   @behaviour ExCortex.ContextProviders.ContextProvider
@@ -22,7 +22,7 @@ defmodule ExCortex.ContextProviders.NeuronRoster do
   alias ExCortex.Repo
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     label = Map.get(config, "label", "## cluster neurons")
     team = Map.get(config, "team")
 

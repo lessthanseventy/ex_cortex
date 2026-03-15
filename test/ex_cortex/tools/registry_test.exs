@@ -7,9 +7,9 @@ defmodule ExCortex.Tools.RegistryTest do
     tools = Registry.resolve_tools(:all_safe)
     assert Enum.all?(tools, &is_struct(&1, ReqLLM.Tool))
     names = Enum.map(tools, & &1.name)
-    assert "query_lore" in names
-    assert "query_dictionary" in names
-    refute "run_quest" in names
+    assert "query_memory" in names
+    assert "query_axiom" in names
+    refute "run_thought" in names
   end
 
   test "resolve_tools(:write) includes safe + write tools" do
@@ -23,7 +23,7 @@ defmodule ExCortex.Tools.RegistryTest do
     dangerous = Registry.resolve_tools(:dangerous)
     assert length(dangerous) >= length(write)
     names = Enum.map(dangerous, & &1.name)
-    assert "run_quest" in names
+    assert "run_thought" in names
   end
 
   test "resolve_tools(:yolo) is alias for :dangerous" do
@@ -35,17 +35,17 @@ defmodule ExCortex.Tools.RegistryTest do
   end
 
   test "resolve_tools(names_list) returns only the named tools" do
-    tools = Registry.resolve_tools(["query_lore", "query_dictionary"])
+    tools = Registry.resolve_tools(["query_memory", "query_axiom"])
     names = Enum.map(tools, & &1.name)
     assert length(tools) == 2
-    assert "query_lore" in names
-    assert "query_dictionary" in names
+    assert "query_memory" in names
+    assert "query_axiom" in names
   end
 
   test "Registry.get/1 returns a ReqLLM.Tool struct for a known tool" do
-    tool = Registry.get("query_lore")
+    tool = Registry.get("query_memory")
     assert is_struct(tool, ReqLLM.Tool)
-    assert tool.name == "query_lore"
+    assert tool.name == "query_memory"
   end
 
   test "Registry.get/1 returns nil for unknown tool" do

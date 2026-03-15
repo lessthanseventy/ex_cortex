@@ -10,7 +10,7 @@
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.
 
-# Seed pre-baked dictionaries from priv/dictionaries/*.csv
+# Seed pre-baked axioms from priv/dictionaries/*.csv
 descriptions = %{
   "sports_teams" => "Sports teams across NFL, NBA, MLB, NHL, and MLS with abbreviations and divisions.",
   "stock_tickers" => "S&P 500 company names, ticker symbols, and sectors.",
@@ -26,17 +26,17 @@ if File.exists?(local_seeds), do: Code.eval_file(local_seeds)
 for path <- Path.wildcard("priv/dictionaries/*.csv") do
   name = Path.basename(path, ".csv")
 
-  if !ExCortex.Library.get_dictionary_by_name(name) do
+  if !ExCortex.Lexicon.get_axiom_by_name(name) do
     content = File.read!(path)
 
     {:ok, _} =
-      ExCortex.Library.create_dictionary(%{
+      ExCortex.Lexicon.create_axiom(%{
         name: name,
         content: content,
         content_type: "csv",
         description: Map.get(descriptions, name, "Pre-baked reference dataset.")
       })
 
-    IO.puts("Seeded dictionary: #{name}")
+    IO.puts("Seeded axiom: #{name}")
   end
 end

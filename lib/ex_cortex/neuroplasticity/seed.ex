@@ -29,7 +29,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
 
   # Note: "SI: Static Analysis" stays in the cleanup list so it's removed if present from old seeds
 
-  @si_quest_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
+  @si_thought_names ["Self-Improvement Loop", "SI: Analyst Sweep"]
 
   def seed(opts \\ %{}) do
     repo = Map.get(opts, :repo, "")
@@ -37,16 +37,16 @@ defmodule ExCortex.Neuroplasticity.Seed do
 
     with {:ok, source} <- create_source(repo),
          {:ok, steps} <- create_steps(),
-         {:ok, thought} <- create_quest(source, steps),
+         {:ok, thought} <- create_thought(source, steps),
          {:ok, sweep_steps} <- create_sweep_steps(),
-         {:ok, sweep_quest} <- create_sweep_quest(sweep_steps) do
-      seed_lore()
-      {:ok, %{source: source, steps: steps, thought: thought, sweep_quest: sweep_quest}}
+         {:ok, sweep_thought} <- create_sweep_thought(sweep_steps) do
+      seed_engrams()
+      {:ok, %{source: source, steps: steps, thought: thought, sweep_thought: sweep_thought}}
     end
   end
 
   defp cleanup do
-    Repo.delete_all(from q in Thought, where: q.name in @si_quest_names)
+    Repo.delete_all(from q in Thought, where: q.name in @si_thought_names)
     Repo.delete_all(from s in Synapse, where: s.name in @si_step_names)
 
     Repo.delete_all(
@@ -312,7 +312,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
     end
   end
 
-  defp create_quest(source, steps) do
+  defp create_thought(source, steps) do
     # Gate flags: Code Reviewer (index 2) and QA (index 3) are verdict gates
     gate_indices = MapSet.new([2, 3])
 
@@ -493,7 +493,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
     })
   end
 
-  @lore_entries [
+  @seed_engrams [
     %{
       title: "ExCortex: What This Project Is",
       tags: ["project", "identity", "domain", "overview"],
@@ -546,11 +546,11 @@ defmodule ExCortex.Neuroplasticity.Seed do
       """
     },
     %{
-      title: "José Valim's Grimoire: Elixir Testing Patterns",
-      tags: ["elixir", "testing", "patterns", "grimoire"],
+      title: "Elixir Testing Patterns Reference",
+      tags: ["elixir", "testing", "patterns", "reference"],
       importance: 5,
       body: """
-      # José Valim's Grimoire: Elixir Testing Patterns
+      # Elixir Testing Patterns Reference
 
       *Authoritative guidance on modern Elixir testing for this codebase.*
 
@@ -766,11 +766,11 @@ defmodule ExCortex.Neuroplasticity.Seed do
     }
   ]
 
-  defp seed_lore do
+  defp seed_engrams do
     existing_titles =
       Repo.all(
         from(e in Engram,
-          where: e.title in ^Enum.map(@lore_entries, & &1.title),
+          where: e.title in ^Enum.map(@seed_engrams, & &1.title),
           select: e.title
         )
       )
@@ -780,12 +780,12 @@ defmodule ExCortex.Neuroplasticity.Seed do
       Repo.delete_all(from(e in Engram, where: e.title in ^existing_titles))
     end
 
-    Enum.each(@lore_entries, fn entry ->
+    Enum.each(@seed_engrams, fn entry ->
       ExCortex.Memory.create_engram(Map.put(entry, :source, "manual"))
     end)
   end
 
-  defp create_sweep_quest(sweep_steps) do
+  defp create_sweep_thought(sweep_steps) do
     step_entries =
       sweep_steps
       |> Enum.with_index(1)

@@ -21,13 +21,13 @@ defmodule Mix.Tasks.DevTeam.Install do
     mod = ExCortex.Pathways.DevTeam
 
     IO.puts("Installing Dev Team neurons...")
-    install_members(mod)
+    install_neurons(mod)
 
-    IO.puts("Installing Dev Team synapses (thoughts)...")
-    install_steps(mod)
+    IO.puts("Installing Dev Team synapses...")
+    install_synapses(mod)
 
-    IO.puts("Installing Dev Team campaigns...")
-    install_campaigns(mod)
+    IO.puts("Installing Dev Team thoughts...")
+    install_thoughts(mod)
 
     IO.puts("Running SI thought seed...")
     seed_si()
@@ -35,7 +35,7 @@ defmodule Mix.Tasks.DevTeam.Install do
     IO.puts("Done.")
   end
 
-  defp install_members(mod) do
+  defp install_neurons(mod) do
     Enum.each(mod.resource_definitions(), fn attrs ->
       result =
         %Neuron{}
@@ -49,30 +49,30 @@ defmodule Mix.Tasks.DevTeam.Install do
     end)
   end
 
-  defp install_steps(mod) do
-    if function_exported?(mod, :quest_definitions, 0) do
-      Enum.each(mod.quest_definitions(), fn attrs ->
+  defp install_synapses(mod) do
+    if function_exported?(mod, :synapse_definitions, 0) do
+      Enum.each(mod.synapse_definitions(), fn attrs ->
         case ExCortex.Thoughts.create_synapse(attrs) do
-          {:ok, s} -> IO.puts("  + step: #{s.name}")
-          {:error, cs} -> IO.puts("  ~ skipped step (#{attrs[:name] || attrs["name"]}): #{inspect(cs.errors)}")
+          {:ok, s} -> IO.puts("  + synapse: #{s.name}")
+          {:error, cs} -> IO.puts("  ~ skipped synapse (#{attrs[:name] || attrs["name"]}): #{inspect(cs.errors)}")
         end
       end)
     end
   end
 
-  defp install_campaigns(mod) do
-    if function_exported?(mod, :campaign_definitions, 0) do
+  defp install_thoughts(mod) do
+    if function_exported?(mod, :thought_definitions, 0) do
       step_by_name = Map.new(ExCortex.Thoughts.list_synapses(), &{&1.name, &1.id})
 
-      Enum.each(mod.campaign_definitions(), fn attrs ->
+      Enum.each(mod.thought_definitions(), fn attrs ->
         steps =
           Enum.map(attrs.steps, fn step ->
             %{"step_id" => Map.get(step_by_name, step["thought_name"] || step["step_name"]), "flow" => step["flow"]}
           end)
 
         case ExCortex.Thoughts.create_thought(Map.put(attrs, :steps, steps)) do
-          {:ok, q} -> IO.puts("  + campaign: #{q.name}")
-          {:error, cs} -> IO.puts("  ~ skipped campaign (#{attrs[:name] || attrs["name"]}): #{inspect(cs.errors)}")
+          {:ok, q} -> IO.puts("  + thought: #{q.name}")
+          {:error, cs} -> IO.puts("  ~ skipped thought (#{attrs[:name] || attrs["name"]}): #{inspect(cs.errors)}")
         end
       end)
     end

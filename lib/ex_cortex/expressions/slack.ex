@@ -1,7 +1,7 @@
 defmodule ExCortex.Expressions.Slack do
   @moduledoc "Delivers thought output to a Slack channel via Incoming Webhook."
 
-  def deliver(%{config: config}, _quest, body) do
+  def deliver(%{config: config}, _thought, body) do
     url = config["webhook_url"] || raise "Slack expression missing webhook_url"
     text = "*#{body.title}*\n\n#{body.body}"
 

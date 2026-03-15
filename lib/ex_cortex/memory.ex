@@ -8,13 +8,13 @@ defmodule ExCortex.Memory do
 
   def list_engrams(opts \\ []) do
     tags = Keyword.get(opts, :tags, [])
-    quest_id = Keyword.get(opts, :thought_id)
+    thought_id = Keyword.get(opts, :thought_id)
     sort = Keyword.get(opts, :sort, "newest")
 
     query =
       from(e in Engram)
       |> filter_tags(tags)
-      |> filter_quest(quest_id)
+      |> filter_thought(thought_id)
       |> apply_sort(sort)
 
     Repo.all(query)
@@ -68,10 +68,10 @@ defmodule ExCortex.Memory do
   end
 
   defp broadcast_and_sync(entry) do
-    Phoenix.PubSub.broadcast(ExCortex.PubSub, "memory", {:lore_updated, entry.title})
-    Phoenix.PubSub.broadcast(ExCortex.PubSub, "lore_triggers", {:lore_entry_created, entry})
+    Phoenix.PubSub.broadcast(ExCortex.PubSub, "memory", {:engram_updated, entry.title})
+    Phoenix.PubSub.broadcast(ExCortex.PubSub, "engram_triggers", {:engram_created, entry})
 
-    ExCortex.Obsidian.Sync.sync_lore_entry(entry)
+    ExCortex.Obsidian.Sync.sync_engram(entry)
   end
 
   defp replace_or_create(thought, attrs) do
@@ -156,10 +156,10 @@ defmodule ExCortex.Memory do
     from e in query, where: fragment("? && ?", e.tags, ^tags)
   end
 
-  defp filter_quest(query, nil), do: query
+  defp filter_thought(query, nil), do: query
 
-  defp filter_quest(query, quest_id) do
-    from e in query, where: e.thought_id == ^quest_id
+  defp filter_thought(query, thought_id) do
+    from e in query, where: e.thought_id == ^thought_id
   end
 
   defp apply_sort(query, "importance") do

@@ -4,7 +4,7 @@ defmodule ExCortex.Expressions.Expression do
 
   import Ecto.Changeset
 
-  @herald_types ~w(slack webhook github_issue github_pr email pagerduty)
+  @expression_types ~w(slack webhook github_issue github_pr email pagerduty)
 
   schema "expressions" do
     field :name, :string
@@ -17,7 +17,7 @@ defmodule ExCortex.Expressions.Expression do
     expression
     |> cast(attrs, [:name, :type, :config])
     |> validate_required([:name, :type])
-    |> validate_inclusion(:type, @herald_types)
+    |> validate_inclusion(:type, @expression_types)
     |> unique_constraint(:name)
   end
 end

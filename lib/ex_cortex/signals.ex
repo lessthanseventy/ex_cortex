@@ -78,9 +78,9 @@ defmodule ExCortex.Signals do
   def post_signal(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" do
     case upsert_signal(attrs) do
       {:ok, card} ->
-        Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:lodge_card_posted, card})
+        Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:signal_posted, card})
 
-        Sync.sync_lodge_card(card)
+        Sync.sync_signal(card)
 
         {:ok, card}
 
@@ -92,9 +92,9 @@ defmodule ExCortex.Signals do
   def post_signal(attrs) do
     case create_signal(attrs) do
       {:ok, card} ->
-        Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:lodge_card_posted, card})
+        Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:signal_posted, card})
 
-        Sync.sync_lodge_card(card)
+        Sync.sync_signal(card)
 
         {:ok, card}
 

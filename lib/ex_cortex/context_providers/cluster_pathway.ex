@@ -1,14 +1,14 @@
 defmodule ExCortex.ContextProviders.ClusterPathway do
   @moduledoc """
   Prepends the cluster's pathway document to the evaluation input.
-  Config: %{"guild_name" => "MyGuild"}
+  Config: %{"cluster_name" => "MyCluster"}
   """
 
-  def build(%{"guild_name" => guild_name}, _quest, _input) when is_binary(guild_name) do
-    case ExCortex.Clusters.get_charter(guild_name) do
+  def build(%{"cluster_name" => cluster_name}, _thought, _input) when is_binary(cluster_name) do
+    case ExCortex.Clusters.get_pathway(cluster_name) do
       nil -> ""
       "" -> ""
-      text -> "## Cluster Pathway: #{guild_name}\n#{text}"
+      text -> "## Cluster Pathway: #{cluster_name}\n#{text}"
     end
   end
 

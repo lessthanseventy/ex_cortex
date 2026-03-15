@@ -26,7 +26,7 @@ defmodule ExCortex.ContextProviders.Sandbox do
   ]
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     commands = Map.get(config, "commands", [])
     label = Map.get(config, "label", "## Codebase Analysis")
     working_dir = File.cwd!()

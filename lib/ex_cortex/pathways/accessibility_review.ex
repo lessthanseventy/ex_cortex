@@ -71,7 +71,7 @@ defmodule ExCortex.Pathways.AccessibilityReview do
     }
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "WCAG Hourly Scan",
@@ -115,7 +115,7 @@ defmodule ExCortex.Pathways.AccessibilityReview do
         log_title_template: "A11y Log — {date}",
         context_providers: [%{"type" => "memory", "tags" => ["a11y"], "limit" => 5, "sort" => "importance"}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "web_fetch"]
+        loop_tools: ["query_memory", "web_search", "web_fetch"]
       },
       %{
         name: "Post A11y Alert",
@@ -126,12 +126,12 @@ defmodule ExCortex.Pathways.AccessibilityReview do
         roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
         source_ids: [],
         output_type: "slack",
-        herald_name: "slack:default"
+        expression_name: "slack:default"
       }
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Monthly Accessibility Review",

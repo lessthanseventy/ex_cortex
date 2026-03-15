@@ -47,12 +47,12 @@ defmodule ExCortex.Board.Generation do
           entry_title_template: "Postmortem — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 10},
+            %{"type" => "thought_history", "limit" => 10},
             %{"type" => "memory", "tags" => ["incidents"], "limit" => 5, "sort" => "newest"}
           ]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Incident Postmortem",
         description: "On-demand postmortem generation from daydream history.",
         status: "active",
@@ -100,7 +100,7 @@ defmodule ExCortex.Board.Generation do
           entry_title_template: "Release Notes — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 20},
+            %{"type" => "thought_history", "limit" => 20},
             %{
               "type" => "memory",
               "tags" => ["code-quality"],
@@ -110,7 +110,7 @@ defmodule ExCortex.Board.Generation do
           ]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Release Notes",
         description: "On-demand release notes from recent commits and review daydream history.",
         status: "active",
@@ -166,7 +166,7 @@ defmodule ExCortex.Board.Generation do
           entry_title_template: "Threat Model — Current",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 10},
+            %{"type" => "thought_history", "limit" => 10},
             %{
               "type" => "memory",
               "tags" => ["security", "risk"],
@@ -176,7 +176,7 @@ defmodule ExCortex.Board.Generation do
           ]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Threat Model",
         description: "On-demand threat model generation — analysis then structured report.",
         status: "active",
@@ -233,12 +233,12 @@ defmodule ExCortex.Board.Generation do
           write_mode: "append",
           entry_title_template: "Weekly Digest — {date}",
           context_providers: [
-            %{"type" => "quest_history", "limit" => 10},
+            %{"type" => "thought_history", "limit" => 10},
             %{"type" => "memory", "tags" => [], "limit" => 5, "sort" => "top"}
           ]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Weekly Intelligence Digest",
         description: "Scheduled weekly trend analysis and digest generation.",
         status: "active",
@@ -295,7 +295,7 @@ defmodule ExCortex.Board.Generation do
           log_title_template: "Platform Log — {date}"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Platform Health Report",
         description: "Scheduled weekly platform assessment and health report.",
         status: "active",
@@ -342,12 +342,12 @@ defmodule ExCortex.Board.Generation do
           entry_title_template: "Onboarding Brief — Current",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 20},
+            %{"type" => "thought_history", "limit" => 20},
             %{"type" => "memory", "tags" => [], "limit" => 10, "sort" => "importance"}
           ]
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Onboarding Brief",
         description: "On-demand onboarding brief from cluster memory and daydream history.",
         status: "active",

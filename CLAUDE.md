@@ -5,30 +5,31 @@ Always use tmux-cli for shell commands. Pane layout:
 - Pane 1 (main:1.1): Claude (this session)
 - Pane 2 (main:1.2): Server
 - Pane 3 (main:1.3): iex/scratch terminal
+- Pane 4 (main:1.4): scratch terminal
 
 ```bash
 # Run all tests
-tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test' --pane=main:1.4
 
 # Run specific test
-tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex_web/live/quests_live_test.exs' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix test test/ex_cortex/signals_test.exs' --pane=main:1.4
 
 # Format
-tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix format' --pane=main:1.3
+tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix format' --pane=main:1.4
 
 # Start server
 tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix phx.server' --pane=main:1.2
 ```
 
 ## Git Workflow
-- Commit directly to `master` — no feature branches
+- Commit directly to `main` — no feature branches
 - Never propose PRs or merges
 
 ## Project Overview
 Standalone Phoenix app — an AI agent orchestration platform with brain/consciousness vocabulary.
 Clusters (agent teams), neurons (agents), thoughts (pipelines), daydreams (runs),
 synapses (steps), impulses (step runs), engrams (memories), signals (dashboard cards),
-senses (data sources), expressions (notification channels).
+senses (data sources), expressions (notification channels), axioms (reference data).
 Turnkey via docker-compose. Has a built-in neuroplasticity loop — the app works on itself.
 
 ## Dependencies
@@ -53,24 +54,25 @@ Turnkey via docker-compose. Has a built-in neuroplasticity loop — the app work
 - `/senses` — Source management, reflexes (templates), streams (feeds), expressions
 - `/instinct` — Configuration and settings (LLM providers, API keys, feature flags)
 - `/guide` — Documentation / onboarding guide
-
-Legacy routes still work: `/lodge`, `/guild-hall`, `/quests`, `/grimoire`, `/library`, `/town-square`, `/evaluate`, `/settings`
+- `/evaluate` — Direct evaluation interface
+- `/settings` — Settings
 
 ## Brain Vocabulary Map
-- Clusters → agent teams (was guilds)
-- Neurons → agents/roles (was members)
-- Thoughts → pipelines (was quests)
-- Daydreams → pipeline runs (was quest runs)
-- Synapses → pipeline steps (was steps)
-- Impulses → step runs (was step runs)
-- Engrams → memories/artifacts (was lore entries) — tiered: L0 impression, L1 recall, L2 full body
-- Signals → dashboard cards (was lodge cards)
-- Senses → data sources (was sources)
-- Reflexes → source templates (was books)
-- Streams → pre-configured feeds (was scrolls)
-- Expressions → notification channels (was heralds)
-- Pathways → agent team definitions (was charters)
-- Neuroplasticity → self-improvement loop (was learning loop)
+- Clusters → agent teams
+- Neurons → agents/roles
+- Thoughts → pipelines
+- Daydreams → pipeline runs
+- Synapses → pipeline steps
+- Impulses → step runs
+- Engrams → memories/artifacts — tiered: L0 impression, L1 recall, L2 full body
+- Signals → dashboard cards
+- Senses → data sources
+- Reflexes → source templates
+- Streams → pre-configured feeds
+- Expressions → notification channels
+- Pathways → agent team definitions
+- Axioms → reference datasets (in the Lexicon)
+- Neuroplasticity → self-improvement loop
 
 ## LLM Providers
 - **Ollama** (local): `ministral-3:8b` (fast), `devstral-small-2:24b` (reliable tool-calling)
@@ -119,12 +121,13 @@ PORT=4001 docker-compose up  # custom port
 - PubSub broadcasts evaluation results for live updates
 - SaladUI.Button is imported globally via html_helpers
 - Senses: DynamicSupervisor-managed workers that poll/push data into clusters for evaluation
-- Sense types: git, directory, feed, webhook, url, websocket, obsidian, nextcloud, email, media, github_issues, lodge
+- Sense types: git, directory, feed, webhook, url, websocket, obsidian, nextcloud, email, media, github_issues, cortex
 - Evaluator module (`ExCortex.Evaluator`) shared between EvaluateLive and Senses
 - Webhook endpoint: `POST /api/webhooks/:sense_id` with optional Bearer auth
 - Reflexes: source blueprints in `ExCortex.Senses.Reflex`
 - Core library uses `Excellence.Charters.*`
 - Engrams (`ExCortex.Memory`) store artifacts, notes, and thought outputs — browsed in Memory screen
+- Axioms (`ExCortex.Lexicon`) store reference datasets — queried via `query_axiom` tool
 - `query_memory` tool searches engrams by tags — agents should query it before writing code/tests
 
 ## Gotchas

@@ -266,7 +266,7 @@ defmodule ExCortexWeb.InstinctLive do
         <div class="space-y-3">
           <p class="text-sm text-muted-foreground">
             Select a lobe to filter the pathway browser to a domain focus.
-            Affects which cluster pathways are surfaced in Town Square.
+            Affects which cluster pathways are surfaced in the Instinct browser.
           </p>
 
           <div class="flex flex-wrap gap-2">

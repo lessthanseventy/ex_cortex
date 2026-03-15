@@ -28,8 +28,8 @@ defmodule ExCortexWeb.CortexLive do
   @impl true
   def handle_info({:daydream_updated, _}, socket), do: {:noreply, load_thoughts(socket)}
   def handle_info({:daydream_started, _}, socket), do: {:noreply, load_thoughts(socket)}
-  def handle_info({:lodge_card_posted, _}, socket), do: {:noreply, load_signals(socket)}
-  def handle_info({:lore_updated, _}, socket), do: {:noreply, load_engrams(socket)}
+  def handle_info({:signal_posted, _}, socket), do: {:noreply, load_signals(socket)}
+  def handle_info({:engram_updated, _}, socket), do: {:noreply, load_engrams(socket)}
   def handle_info(_msg, socket), do: {:noreply, socket}
 
   @impl true
@@ -97,9 +97,9 @@ defmodule ExCortexWeb.CortexLive do
             <div class="space-y-1">
               <%= for cluster <- @clusters do %>
                 <div class="flex items-center gap-2 text-sm">
-                  <.status color="green" label={cluster.guild_name} />
+                  <.status color="green" label={cluster.cluster_name} />
                   <span class="t-dim text-xs">
-                    {neuron_count(@neuron_counts, cluster.guild_name)} neurons
+                    {neuron_count(@neuron_counts, cluster.cluster_name)} neurons
                   </span>
                 </div>
               <% end %>
@@ -168,7 +168,7 @@ defmodule ExCortexWeb.CortexLive do
   end
 
   defp load_clusters(socket) do
-    clusters = Clusters.list_charters()
+    clusters = Clusters.list_pathways()
 
     neuron_counts =
       from(n in Neuron,
@@ -209,7 +209,7 @@ defmodule ExCortexWeb.CortexLive do
   defp signal_color(%{pinned: true}), do: "cyan"
   defp signal_color(_), do: "green"
 
-  defp neuron_count(counts, guild_name), do: Map.get(counts, guild_name, 0)
+  defp neuron_count(counts, cluster_name), do: Map.get(counts, cluster_name, 0)
 
   defp format_relative(nil), do: "never"
 

@@ -11,7 +11,7 @@ defmodule ExCortex.Neuroplasticity.LoopTest do
       roster: [],
       context_providers: [],
       source_ids: [],
-      lore_tags: [],
+      engram_tags: [],
       escalate_on_verdict: [],
       reflect_on_verdict: [],
       loop_tools: []

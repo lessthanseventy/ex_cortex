@@ -36,8 +36,8 @@ defmodule ExCortex.Pathways.TechDispatch do
       {"the-historian", :journeyman}
     ]
 
-    Enum.flat_map(neurons, fn {member_id, rank} ->
-      builtin = Builtin.get(member_id)
+    Enum.flat_map(neurons, fn {neuron_id, rank} ->
+      builtin = Builtin.get(neuron_id)
 
       [
         %{
@@ -46,7 +46,7 @@ defmodule ExCortex.Pathways.TechDispatch do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => "apprentice",
             "model" => builtin.ranks.apprentice.model,
@@ -60,7 +60,7 @@ defmodule ExCortex.Pathways.TechDispatch do
           status: "active",
           source: "db",
           config: %{
-            "member_id" => member_id,
+            "neuron_id" => neuron_id,
             "system_prompt" => builtin.system_prompt,
             "rank" => to_string(rank),
             "model" => builtin.ranks[rank].model,
@@ -72,7 +72,7 @@ defmodule ExCortex.Pathways.TechDispatch do
     end)
   end
 
-  def quest_definitions do
+  def synapse_definitions do
     [
       %{
         name: "Daily Tech Brief",
@@ -93,7 +93,7 @@ defmodule ExCortex.Pathways.TechDispatch do
         write_mode: "append",
         entry_title_template: "Tech Brief — {date}",
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "search_obsidian"]
+        loop_tools: ["query_memory", "web_search", "search_obsidian"]
       },
       %{
         name: "Weekly Tech Trends",
@@ -115,7 +115,7 @@ defmodule ExCortex.Pathways.TechDispatch do
         entry_title_template: "Weekly Tech Trends — {date}",
         context_providers: [%{"type" => "memory", "limit" => 30}],
         loop_mode: "reflect",
-        loop_tools: ["query_lore", "web_search", "search_obsidian"]
+        loop_tools: ["query_memory", "web_search", "search_obsidian"]
       },
       %{
         name: "Hype Check",
@@ -138,7 +138,7 @@ defmodule ExCortex.Pathways.TechDispatch do
     ]
   end
 
-  def campaign_definitions do
+  def thought_definitions do
     [
       %{
         name: "Tech Digest Loop",

@@ -17,7 +17,7 @@ defmodule ExCortex.ContextProviders.GitLog do
   require Logger
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     limit = Map.get(config, "limit", 20)
     format = Map.get(config, "format", "oneline")
     label = Map.get(config, "label", "## Recent Commits")

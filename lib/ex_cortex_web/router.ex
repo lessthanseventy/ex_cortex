@@ -28,7 +28,6 @@ defmodule ExCortexWeb.Router do
     pipe_through :browser
 
     live_session :default, layout: {ExCortexWeb.Layouts, :app} do
-      # Brain vocabulary routes (new TUI screens)
       live "/", CortexLive, :index
       live "/cortex", CortexLive, :index
       live "/neurons", NeuronsLive, :index
@@ -36,17 +35,6 @@ defmodule ExCortexWeb.Router do
       live "/memory", MemoryLive, :index
       live "/senses", SensesLive, :index
       live "/instinct", InstinctLive, :index
-
-      # Legacy routes (kept for backwards compatibility)
-      live "/lodge", LodgeLive, :index
-      live "/quests", QuestsLive, :index
-      live "/quest-board", QuestsLive, :index
-      live "/thought-board", QuestsLive, :index
-      live "/town-square", TownSquareLive, :index
-      live "/guild-hall", GuildHallLive, :index
-      live "/cluster-hall", GuildHallLive, :index
-      live "/grimoire", GrimoireLive, :index
-      live "/library", LibraryLive, :index
       live "/evaluate", EvaluateLive, :index
       live "/guide", GuideLive, :index
       live "/settings", SettingsLive

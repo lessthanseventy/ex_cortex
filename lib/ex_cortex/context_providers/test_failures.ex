@@ -19,7 +19,7 @@ defmodule ExCortex.ContextProviders.TestFailures do
   require Logger
 
   @impl true
-  def build(config, _quest, _input) do
+  def build(config, _thought, _input) do
     label = Map.get(config, "label", "## Test Failures")
     show_pass = Map.get(config, "show_pass", false)
     working_dir = File.cwd!()

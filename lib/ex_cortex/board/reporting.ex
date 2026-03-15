@@ -23,7 +23,7 @@ defmodule ExCortex.Board.Reporting do
       suggested_team: "Risk Assessment or Dependency Audit cluster. Any security-aware neurons will do.",
       requires: [
         {:source_type, "feed"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -46,7 +46,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Security Digest — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 10},
+            %{"type" => "thought_history", "limit" => 10},
             %{
               "type" => "memory",
               "tags" => ["security", "deps", "risk"],
@@ -64,10 +64,10 @@ defmodule ExCortex.Board.Reporting do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Weekly Security Digest",
         description: "Weekly security synthesis posted to Slack every Monday.",
         status: "active",
@@ -92,7 +92,7 @@ defmodule ExCortex.Board.Reporting do
         "Every morning, synthesize yesterday's cluster activity into a concise standup: what ran, what flagged, what needs attention. Posted to Slack.",
       suggested_team: "Works with any cluster — reads from daydream history.",
       requires: [
-        {:herald_type, "slack"},
+        {:expression_type, "slack"},
         :any_members
       ],
       step_definitions: [
@@ -116,7 +116,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Standup — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 20}
+            %{"type" => "thought_history", "limit" => 20}
           ]
         },
         %{
@@ -128,10 +128,10 @@ defmodule ExCortex.Board.Reporting do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Daily AI Standup",
         description: "Daily 8am standup synthesis from daydream history, posted to Slack.",
         status: "active",
@@ -157,7 +157,7 @@ defmodule ExCortex.Board.Reporting do
       suggested_team: "Code Review cluster. Works with any code-aware neurons.",
       requires: [
         {:source_type, "git"},
-        {:herald_type, "slack"}
+        {:expression_type, "slack"}
       ],
       step_definitions: [
         %{
@@ -180,7 +180,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Sprint Quality Report — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 30},
+            %{"type" => "thought_history", "limit" => 30},
             %{
               "type" => "memory",
               "tags" => ["code-quality", "performance"],
@@ -198,10 +198,10 @@ defmodule ExCortex.Board.Reporting do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "slack",
-          herald_name: "slack:default"
+          expression_name: "slack:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Sprint Code Quality",
         description: "Weekly sprint quality synthesis posted to Slack.",
         status: "active",
@@ -226,7 +226,7 @@ defmodule ExCortex.Board.Reporting do
         "Monthly executive-level risk and compliance roll-up. Aggregates risk assessments, compliance flags, and dependency health into a summary emailed to stakeholders.",
       suggested_team: "Risk Assessment cluster. Compliance-aware neurons work well.",
       requires: [
-        {:herald_type, "email"}
+        {:expression_type, "email"}
       ],
       step_definitions: [
         %{
@@ -250,7 +250,7 @@ defmodule ExCortex.Board.Reporting do
           entry_title_template: "Monthly Risk Summary — {date}",
           log_title_template: nil,
           context_providers: [
-            %{"type" => "quest_history", "limit" => 50},
+            %{"type" => "thought_history", "limit" => 50},
             %{
               "type" => "memory",
               "tags" => ["risk", "compliance", "deps"],
@@ -268,10 +268,10 @@ defmodule ExCortex.Board.Reporting do
           roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
           source_ids: [],
           output_type: "email",
-          herald_name: "email:default"
+          expression_name: "email:default"
         }
       ],
-      quest_definition: %{
+      thought_definition: %{
         name: "Monthly Risk Summary",
         description: "First-of-month executive risk summary emailed to stakeholders.",
         status: "active",
