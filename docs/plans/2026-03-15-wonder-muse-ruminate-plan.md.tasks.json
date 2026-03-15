@@ -1,0 +1,20 @@
+{
+  "planPath": "docs/plans/2026-03-15-wonder-muse-ruminate-plan.md",
+  "tasks": [
+    {"id": 0, "subject": "Task 0: DB migration — rename thoughts to ruminations", "status": "pending"},
+    {"id": 1, "subject": "Task 1: Rename Ecto schemas — Thoughts → Ruminations", "status": "pending", "blockedBy": [0]},
+    {"id": 2, "subject": "Task 2: Update all callers Thoughts → Ruminations", "status": "pending", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: Rename test files and update content", "status": "pending", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 4: Update Engram and Signal schemas", "status": "pending", "blockedBy": [2]},
+    {"id": 5, "subject": "Task 5: Update CLAUDE.md and docs", "status": "pending", "blockedBy": [3, 4]},
+    {"id": 6, "subject": "Task 6: Create new Thought schema and context", "status": "pending", "blockedBy": [5]},
+    {"id": 7, "subject": "Task 7: Build ExCortex.Muse — RAG module", "status": "pending", "blockedBy": [6]},
+    {"id": 8, "subject": "Task 8: Build WonderLive — pure LLM chat", "status": "pending", "blockedBy": [7]},
+    {"id": 9, "subject": "Task 9: Build MuseLive — data-grounded chat", "status": "pending", "blockedBy": [7]},
+    {"id": 10, "subject": "Task 10: Build ThoughtsLive — saved templates", "status": "pending", "blockedBy": [7]},
+    {"id": 11, "subject": "Task 11: Add quick-muse to Cortex dashboard", "status": "pending", "blockedBy": [7]},
+    {"id": 12, "subject": "Task 12: Update navigation and docs", "status": "pending", "blockedBy": [8, 9, 10, 11]},
+    {"id": 13, "subject": "Task 13: Final verification", "status": "pending", "blockedBy": [12]}
+  ],
+  "lastUpdated": "2026-03-15T16:20:00Z"
+}
