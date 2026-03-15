@@ -643,6 +643,7 @@ defmodule ExCortex.Seeds do
     seed_memory_maintenance()
     seed_sentinel_sweep()
     seed_devils_review()
+    seed_email_management()
   end
 
   defp seed_morning_briefing do
@@ -927,6 +928,93 @@ defmodule ExCortex.Seeds do
             %{"step_id" => s1.id, "order" => 1},
             %{"step_id" => s2.id, "order" => 2},
             %{"step_id" => s3.id, "order" => 3}
+          ]
+        })
+
+      Logger.info("[Seeds] Rumination seeded: #{name}")
+    end
+  end
+
+  defp seed_email_management do
+    name = "Email Management Pipeline"
+
+    if !Repo.exists?(from(r in Rumination, where: r.name == ^name)) do
+      {:ok, s1} =
+        Ruminations.create_synapse(%{
+          name: "Email: Collect",
+          description: "Read the batch of emails provided. Summarize each one briefly: subject, sender, type (newsletter, personal, transactional, spam, notification), and whether it seems important.",
+          trigger: "manual",
+          output_type: "freeform",
+          cluster_name: "Archivist",
+          loop_tools: ["search_email", "read_email"],
+          roster: [%{"who" => "all", "preferred_who" => "Collector", "how" => "solo", "when" => "sequential"}]
+        })
+
+      {:ok, s2} =
+        Ruminations.create_synapse(%{
+          name: "Email: Classify & Tag",
+          description: "Classify each email by type and apply notmuch tags using the email_tag tool. Tag newsletters with +newsletter, spam with +spam -inbox, transactional with +transactional, personal with +personal.",
+          trigger: "manual",
+          output_type: "freeform",
+          cluster_name: "Triage",
+          loop_tools: ["search_email", "email_tag"],
+          roster: [%{"who" => "all", "preferred_who" => "Classifier", "how" => "solo", "when" => "sequential"}]
+        })
+
+      {:ok, s3} =
+        Ruminations.create_synapse(%{
+          name: "Email: Filter Junk",
+          description: "Review the classified emails. For anything tagged spam or clearly junk, use email_tag to add +deleted -inbox. Be conservative — only tag obvious junk.",
+          trigger: "manual",
+          output_type: "freeform",
+          cluster_name: "Triage",
+          loop_tools: ["email_tag"],
+          roster: [%{"who" => "all", "preferred_who" => "Router", "how" => "solo", "when" => "sequential"}]
+        })
+
+      {:ok, s4} =
+        Ruminations.create_synapse(%{
+          name: "Email: Unsubscribe",
+          description:
+            "For emails tagged as newsletters, use read_email to check for List-Unsubscribe headers. " <>
+              "For mailto: links, use send_email. For https: links, use fetch_url to visit the unsubscribe page. " <>
+              "Tag processed newsletters with +unsubscribed. Report what was found and what action was taken.",
+          trigger: "manual",
+          output_type: "freeform",
+          cluster_name: "Research",
+          loop_tools: ["search_email", "read_email", "send_email", "fetch_url", "email_tag"],
+          dangerous_tool_mode: "intercept",
+          roster: [%{"who" => "all", "preferred_who" => "Gatherer", "how" => "solo", "when" => "sequential"}]
+        })
+
+      {:ok, s5} =
+        Ruminations.create_synapse(%{
+          name: "Email: Summary",
+          description: "Review all actions taken across the pipeline. Produce a final summary signal: how many emails processed, how many tagged, how many marked as junk, how many unsubscribe attempts.",
+          trigger: "manual",
+          output_type: "signal",
+          cluster_name: "Devil's Advocate",
+          loop_tools: ["search_email", "email_tag"],
+          roster: [%{"who" => "all", "preferred_who" => "Critic", "how" => "solo", "when" => "sequential"}]
+        })
+
+      # Wire to email sense if it exists
+      email_sense = Repo.one(from(s in Sense, where: s.source_type == "email"))
+      source_ids = if email_sense, do: [to_string(email_sense.id)], else: []
+
+      {:ok, _} =
+        Ruminations.create_rumination(%{
+          name: name,
+          description: "Process email batch: classify, tag, filter junk, unsubscribe from newsletters, produce summary.",
+          trigger: if(email_sense, do: "source", else: "manual"),
+          source_ids: source_ids,
+          status: "paused",
+          steps: [
+            %{"step_id" => s1.id, "order" => 1},
+            %{"step_id" => s2.id, "order" => 2},
+            %{"step_id" => s3.id, "order" => 3},
+            %{"step_id" => s4.id, "order" => 4},
+            %{"step_id" => s5.id, "order" => 5}
           ]
         })
 
@@ -2203,7 +2291,13 @@ defmodule ExCortex.Seeds do
         name: "Email Inbox",
         source_type: "email",
         status: "paused",
-        config: %{"query" => "tag:inbox AND tag:unread", "interval" => 600_000}
+        config: %{
+          "query" => "tag:inbox",
+          "interval" => 600_000,
+          "max_results" => 10,
+          "batch_mode" => true,
+          "sort" => "oldest-first"
+        }
       },
       %{
         name: "Nextcloud",
