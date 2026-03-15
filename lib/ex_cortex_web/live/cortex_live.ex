@@ -186,7 +186,12 @@ defmodule ExCortexWeb.CortexLive do
           collapsed={MapSet.member?(@collapsed_panels, "clusters")}
           summary={"#{length(@clusters)} clusters, #{Enum.sum(Map.values(@neuron_counts))} neurons"}
         >
-          <.clusters_panel clusters={@clusters} neuron_counts={@neuron_counts} expanded={@expanded_clusters} neurons={@neurons} />
+          <.clusters_panel
+            clusters={@clusters}
+            neuron_counts={@neuron_counts}
+            expanded={@expanded_clusters}
+            neurons={@neurons}
+          />
         </.panel>
 
         <%!-- Panel 4: Recent Memory --%>
@@ -213,16 +218,29 @@ defmodule ExCortexWeb.CortexLive do
   # -- Ruminations --
   attr :ruminations, :list, required: true
   attr :expanded, :any, required: true
-  defp ruminations_panel(%{ruminations: []} = assigns), do: ~H"<p class='t-dim text-xs'>No active ruminations.</p>"
+  defp ruminations_panel(%{ruminations: []} = assigns), do: ~H[<p class="t-dim text-xs">No active ruminations.</p>]
+
   defp ruminations_panel(assigns) do
-    ~H"<div class='space-y-0.5'><.rumination_row :for={r <- @ruminations} rumination={r} expanded={MapSet.member?(@expanded, to_string(r.id))} /></div>"
+    ~H[<div class="space-y-0.5">
+  <.rumination_row
+    :for={r <- @ruminations}
+    rumination={r}
+    expanded={MapSet.member?(@expanded, to_string(r.id))}
+  />
+</div>]
   end
 
   attr :rumination, :map, required: true
   attr :expanded, :boolean, required: true
+
   defp rumination_row(%{expanded: true} = assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1" phx-click="toggle_item" phx-value-panel="ruminations" phx-value-id={@rumination.id}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1"
+      phx-click="toggle_item"
+      phx-value-panel="ruminations"
+      phx-value-id={@rumination.id}
+    >
       <div class="flex items-center gap-2 text-sm">
         <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
         <span class="ml-auto text-xs t-dim">▾</span>
@@ -235,14 +253,22 @@ defmodule ExCortexWeb.CortexLive do
           <span>{@rumination.step_count} step{if @rumination.step_count != 1, do: "s"}</span>
         </div>
         <.rumination_last_run last_run={@rumination.last_run} />
-        <.link navigate={~p"/ruminations"} class="t-cyan hover:underline">open in ruminations →</.link>
+        <.link navigate={~p"/ruminations"} class="t-cyan hover:underline">
+          open in ruminations →
+        </.link>
       </div>
     </div>
     """
   end
+
   defp rumination_row(assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5" phx-click="toggle_item" phx-value-panel="ruminations" phx-value-id={@rumination.id}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+      phx-click="toggle_item"
+      phx-value-panel="ruminations"
+      phx-value-id={@rumination.id}
+    >
       <div class="flex items-center gap-2 text-sm">
         <.status color={rumination_status_color(@rumination)} label={@rumination.name} />
         <span class="t-dim text-xs">{@rumination.trigger}</span>
@@ -254,24 +280,40 @@ defmodule ExCortexWeb.CortexLive do
   end
 
   attr :last_run, :any, required: true
+
   defp rumination_last_run(%{last_run: %{inserted_at: _, status: _}} = assigns) do
-    ~H"<div class='pl-4 text-xs t-dim'>last: {format_relative(@last_run.inserted_at)} · {@last_run.status}</div>"
+    ~H[<div class="pl-4 text-xs t-dim">
+  last: {format_relative(@last_run.inserted_at)} · {@last_run.status}
+</div>]
   end
+
   defp rumination_last_run(assigns), do: ~H""
 
   # -- Signals --
   attr :signals, :list, required: true
   attr :expanded, :any, required: true
-  defp signals_panel(%{signals: []} = assigns), do: ~H"<p class='t-dim text-xs'>No active signals.</p>"
+  defp signals_panel(%{signals: []} = assigns), do: ~H[<p class="t-dim text-xs">No active signals.</p>]
+
   defp signals_panel(assigns) do
-    ~H"<div class='space-y-0.5'><.signal_row :for={signal <- @signals} signal={signal} expanded={MapSet.member?(@expanded, signal.id)} /></div>"
+    ~H[<div class="space-y-0.5">
+  <.signal_row
+    :for={signal <- @signals}
+    signal={signal}
+    expanded={MapSet.member?(@expanded, signal.id)}
+  />
+</div>]
   end
 
   attr :signal, :map, required: true
   attr :expanded, :boolean, required: true
+
   defp signal_row(%{expanded: true} = assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1" phx-click="toggle_signal" phx-value-id={@signal.id}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+      phx-click="toggle_signal"
+      phx-value-id={@signal.id}
+    >
       <div class="flex items-start gap-2 text-sm">
         <.status color={signal_color(@signal)} label={@signal.title} />
         <span class="ml-auto text-xs t-dim">▾</span>
@@ -280,9 +322,14 @@ defmodule ExCortexWeb.CortexLive do
     </div>
     """
   end
+
   defp signal_row(assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1" phx-click="toggle_signal" phx-value-id={@signal.id}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+      phx-click="toggle_signal"
+      phx-value-id={@signal.id}
+    >
       <div class="flex items-start gap-2 text-sm">
         <.status color={signal_color(@signal)} label={@signal.title} />
         <span class="ml-auto text-xs t-dim">▸</span>
@@ -293,9 +340,11 @@ defmodule ExCortexWeb.CortexLive do
   end
 
   attr :signal, :map, required: true
+
   defp signal_preview(%{signal: %{body: body}} = assigns) when is_binary(body) and body != "" do
-    ~H"<div class='pl-4 text-xs t-dim truncate'>{String.slice(@signal.body, 0, 60)}</div>"
+    ~H[<div class="pl-4 text-xs t-dim truncate">{String.slice(@signal.body, 0, 60)}</div>]
   end
+
   defp signal_preview(assigns), do: ~H""
 
   # -- Clusters --
@@ -303,7 +352,8 @@ defmodule ExCortexWeb.CortexLive do
   attr :neuron_counts, :map, required: true
   attr :expanded, :any, required: true
   attr :neurons, :list, required: true
-  defp clusters_panel(%{clusters: []} = assigns), do: ~H"<p class='t-dim text-xs'>No clusters installed.</p>"
+  defp clusters_panel(%{clusters: []} = assigns), do: ~H[<p class="t-dim text-xs">No clusters installed.</p>]
+
   defp clusters_panel(assigns) do
     ~H"""
     <div class="space-y-0.5">
@@ -322,16 +372,24 @@ defmodule ExCortexWeb.CortexLive do
   attr :count, :integer, required: true
   attr :expanded, :boolean, required: true
   attr :neurons, :list, required: true
+
   defp cluster_row(%{expanded: true} = assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1" phx-click="toggle_item" phx-value-panel="clusters" phx-value-id={@cluster.cluster_name}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1"
+      phx-click="toggle_item"
+      phx-value-panel="clusters"
+      phx-value-id={@cluster.cluster_name}
+    >
       <div class="flex items-center gap-2 text-sm">
         <.status color="green" label={@cluster.cluster_name} />
         <span class="t-dim text-xs">{@count} neurons</span>
         <span class="ml-auto text-xs t-dim">▾</span>
       </div>
       <div class="pl-4 mt-1 text-xs t-dim">
-        <p :if={@cluster.pathway_text != ""} class="mb-1">{String.slice(@cluster.pathway_text, 0, 150)}</p>
+        <p :if={@cluster.pathway_text != ""} class="mb-1">
+          {String.slice(@cluster.pathway_text, 0, 150)}
+        </p>
         <div class="space-y-0.5">
           <div :for={neuron <- @neurons} class="flex items-center gap-2">
             <span class="t-cyan">·</span>
@@ -339,14 +397,22 @@ defmodule ExCortexWeb.CortexLive do
             <span class="t-dim">({get_in(neuron.config, ["rank"]) || "—"})</span>
           </div>
         </div>
-        <.link navigate={~p"/neurons"} class="t-cyan hover:underline mt-1 inline-block">manage neurons →</.link>
+        <.link navigate={~p"/neurons"} class="t-cyan hover:underline mt-1 inline-block">
+          manage neurons →
+        </.link>
       </div>
     </div>
     """
   end
+
   defp cluster_row(assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5" phx-click="toggle_item" phx-value-panel="clusters" phx-value-id={@cluster.cluster_name}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+      phx-click="toggle_item"
+      phx-value-panel="clusters"
+      phx-value-id={@cluster.cluster_name}
+    >
       <div class="flex items-center gap-2 text-sm">
         <.status color="green" label={@cluster.cluster_name} />
         <span class="t-dim text-xs">{@count} neurons</span>
@@ -359,16 +425,29 @@ defmodule ExCortexWeb.CortexLive do
   # -- Memory --
   attr :engrams, :list, required: true
   attr :expanded, :any, required: true
-  defp memory_panel(%{engrams: []} = assigns), do: ~H"<p class='t-dim text-xs'>No engrams stored.</p>"
+  defp memory_panel(%{engrams: []} = assigns), do: ~H[<p class="t-dim text-xs">No engrams stored.</p>]
+
   defp memory_panel(assigns) do
-    ~H"<div class='space-y-0.5'><.engram_row :for={engram <- @engrams} engram={engram} expanded={MapSet.member?(@expanded, to_string(engram.id))} /></div>"
+    ~H[<div class="space-y-0.5">
+  <.engram_row
+    :for={engram <- @engrams}
+    engram={engram}
+    expanded={MapSet.member?(@expanded, to_string(engram.id))}
+  />
+</div>]
   end
 
   attr :engram, :map, required: true
   attr :expanded, :boolean, required: true
+
   defp engram_row(%{expanded: true} = assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1" phx-click="toggle_item" phx-value-panel="engrams" phx-value-id={@engram.id}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-1"
+      phx-click="toggle_item"
+      phx-value-panel="engrams"
+      phx-value-id={@engram.id}
+    >
       <div class="flex items-center gap-2 text-sm">
         <span class="t-cyan">▾</span>
         <span class="truncate">{@engram.title}</span>
@@ -378,16 +457,26 @@ defmodule ExCortexWeb.CortexLive do
         <.engram_tier label="L0" content={@engram.impression} />
         <.engram_tier label="L1" content={@engram.recall} />
         <div :if={@engram.tags != []} class="flex gap-1 flex-wrap">
-          <span :for={tag <- @engram.tags} class="px-1.5 py-0.5 rounded bg-muted text-xs t-dim">{tag}</span>
+          <span :for={tag <- @engram.tags} class="px-1.5 py-0.5 rounded bg-muted text-xs t-dim">
+            {tag}
+          </span>
         </div>
-        <.link navigate={~p"/memory"} class="t-cyan hover:underline inline-block">open in memory →</.link>
+        <.link navigate={~p"/memory"} class="t-cyan hover:underline inline-block">
+          open in memory →
+        </.link>
       </div>
     </div>
     """
   end
+
   defp engram_row(assigns) do
     ~H"""
-    <div class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5" phx-click="toggle_item" phx-value-panel="engrams" phx-value-id={@engram.id}>
+    <div
+      class="cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+      phx-click="toggle_item"
+      phx-value-panel="engrams"
+      phx-value-id={@engram.id}
+    >
       <div class="flex items-center gap-2 text-sm">
         <span class="t-cyan">▸</span>
         <span class="truncate">{@engram.title}</span>
@@ -398,16 +487,22 @@ defmodule ExCortexWeb.CortexLive do
   end
 
   attr :impression, :string, default: nil
+
   defp engram_preview(%{impression: impression} = assigns) when is_binary(impression) and impression != "" do
-    ~H"<div class='pl-4 text-xs t-dim truncate'>{String.slice(@impression, 0, 60)}</div>"
+    ~H[<div class="pl-4 text-xs t-dim truncate">{String.slice(@impression, 0, 60)}</div>]
   end
+
   defp engram_preview(assigns), do: ~H""
 
   attr :label, :string, required: true
   attr :content, :string, default: nil
+
   defp engram_tier(%{content: content} = assigns) when is_binary(content) and content != "" do
-    ~H"<div><span class='t-amber font-medium'>{@label}:</span> <span class='t-dim'>{@content}</span></div>"
+    ~H[<div>
+  <span class="t-amber font-medium">{@label}:</span> <span class="t-dim">{@content}</span>
+</div>]
   end
+
   defp engram_tier(assigns), do: ~H""
 
   # --- Data loading ---
@@ -454,9 +549,7 @@ defmodule ExCortexWeb.CortexLive do
   defp load_clusters(socket) do
     clusters = Clusters.list_pathways()
 
-    neurons =
-      from(n in Neuron, where: n.type == "role", order_by: [asc: n.name])
-      |> Repo.all()
+    neurons = Repo.all(from(n in Neuron, where: n.type == "role", order_by: [asc: n.name]))
 
     neuron_counts =
       neurons
