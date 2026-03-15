@@ -160,7 +160,7 @@ defmodule ExCortexWeb.GenesisLive do
   def render(assigns) do
     ~H"""
     <div class="space-y-6">
-      <.panel title="FORGE">
+      <.panel title="SYNAPTOGENESIS">
         <p class="t-muted text-sm">
           Describe what you want in plain language. Synaptogenesis will design a pipeline of clusters and neurons to accomplish it.
         </p>
