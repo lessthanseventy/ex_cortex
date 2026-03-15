@@ -26,6 +26,7 @@ defmodule ExCortex.Seeds do
     seed_axioms()
     seed_signals()
     seed_senses()
+    wire_email_pipeline()
     Logger.info("[Seeds] Done.")
   end
 
@@ -2323,6 +2324,24 @@ defmodule ExCortex.Seeds do
           {:error, cs} -> Logger.warning("[Seeds] Sense #{name} failed: #{inspect(cs.errors)}")
         end
       end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Post-seed wiring (runs after both ruminations and senses exist)
+  # ---------------------------------------------------------------------------
+
+  defp wire_email_pipeline do
+    email_sense = Repo.one(from(s in Sense, where: s.source_type == "email"))
+    pipeline = Repo.one(from(r in Rumination, where: r.name == "Email Management Pipeline"))
+
+    if email_sense && pipeline && pipeline.source_ids == [] do
+      Ruminations.update_rumination(pipeline, %{
+        trigger: "source",
+        source_ids: [to_string(email_sense.id)]
+      })
+
+      Logger.info("[Seeds] Wired Email Inbox sense → Email Management Pipeline")
     end
   end
 end
