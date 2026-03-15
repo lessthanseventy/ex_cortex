@@ -25,6 +25,7 @@ defmodule ExCortexWeb.RuminationsLive do
        running: %{},
        adhoc_input: "",
        output_dest: nil,
+       expanded_daydream: nil,
        editing: false,
        editing_rumination: nil,
        pipeline_steps: [],
@@ -118,6 +119,12 @@ defmodule ExCortexWeb.RuminationsLive do
 
   def handle_event("dry_run_rumination", %{"id" => id}, socket) do
     run_rumination(socket, String.to_integer(id), dry_run: true)
+  end
+
+  def handle_event("toggle_daydream", %{"id" => id}, socket) do
+    run_id = String.to_integer(id)
+    expanded = if socket.assigns.expanded_daydream == run_id, do: nil, else: run_id
+    {:noreply, assign(socket, expanded_daydream: expanded)}
   end
 
   def handle_event("toggle_status", %{"id" => id}, socket) do
@@ -992,7 +999,12 @@ defmodule ExCortexWeb.RuminationsLive do
                 <% else %>
                   <div class="space-y-2">
                     <%= for run <- @daydreams do %>
-                      <.daydream_row run={run} output_dest={@output_dest} />
+                      <.daydream_row
+                        run={run}
+                        output_dest={@output_dest}
+                        expanded={@expanded_daydream == run.id}
+                        synapses={@synapses}
+                      />
                     <% end %>
                   </div>
                 <% end %>
@@ -1411,28 +1423,104 @@ defmodule ExCortexWeb.RuminationsLive do
 
   attr :run, :map, required: true
   attr :output_dest, :any, default: nil
+  attr :expanded, :boolean, default: false
+  attr :synapses, :list, default: []
 
-  defp daydream_row(assigns) do
+  defp daydream_row(%{expanded: true} = assigns) do
     ~H"""
-    <div class="flex items-start gap-3 text-sm py-1.5 border-b last:border-0">
-      <.status color={run_color(@run.status)} label={@run.status} />
-      <span class="t-dim text-xs">{format_time(@run.inserted_at)}</span>
-      <%= if @run.synapse_results != %{} do %>
-        <span class="text-xs t-dim">
+    <div
+      class="cursor-pointer border-b last:border-0"
+      phx-click="toggle_daydream"
+      phx-value-id={@run.id}
+    >
+      <div class="flex items-start gap-3 text-sm py-1.5">
+        <.status color={run_color(@run.status)} label={@run.status} />
+        <span class="t-dim text-xs">{format_time(@run.inserted_at)}</span>
+        <span :if={@run.synapse_results != %{}} class="text-xs t-dim">
           {map_size(@run.synapse_results)} step{if map_size(@run.synapse_results) != 1, do: "s"}
         </span>
-      <% end %>
-      <%= if @run.status == "complete" && @output_dest do %>
-        <.link
-          navigate={output_dest_path(@output_dest)}
-          class="text-xs t-cyan hover:underline ml-auto"
-        >
-          {elem(@output_dest, 1)}
-        </.link>
-      <% end %>
+        <span class="ml-auto text-xs t-dim">▾</span>
+      </div>
+      <div class="pl-4 pb-3 space-y-3">
+        <.step_result
+          :for={{idx, result} <- Enum.sort_by(@run.synapse_results, fn {k, _} -> k end)}
+          index={idx}
+          result={result}
+          synapses={@synapses}
+        />
+      </div>
     </div>
     """
   end
+
+  defp daydream_row(assigns) do
+    ~H"""
+    <div
+      class="flex items-start gap-3 text-sm py-1.5 border-b last:border-0 cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1"
+      phx-click="toggle_daydream"
+      phx-value-id={@run.id}
+    >
+      <.status color={run_color(@run.status)} label={@run.status} />
+      <span class="t-dim text-xs">{format_time(@run.inserted_at)}</span>
+      <span :if={@run.synapse_results != %{}} class="text-xs t-dim">
+        {map_size(@run.synapse_results)} step{if map_size(@run.synapse_results) != 1, do: "s"}
+      </span>
+      <.daydream_output_link run={@run} output_dest={@output_dest} />
+      <span class="ml-auto text-xs t-dim">▸</span>
+    </div>
+    """
+  end
+
+  attr :run, :map, required: true
+  attr :output_dest, :any, default: nil
+
+  defp daydream_output_link(%{run: %{status: "complete"}, output_dest: {_, label} = dest} = assigns) do
+    assigns = assign(assigns, label: label, path: output_dest_path(dest))
+
+    ~H"""
+    <.link navigate={@path} class="text-xs t-cyan hover:underline">{@label}</.link>
+    """
+  end
+
+  defp daydream_output_link(assigns), do: ~H""
+
+  # -- Step result display --
+
+  attr :index, :string, required: true
+  attr :result, :map, required: true
+  attr :synapses, :list, default: []
+
+  defp step_result(assigns) do
+    status = assigns.result["status"]
+    data = assigns.result["data"] || ""
+    # Extract output text from the data string (it's an inspect'd map)
+    output = extract_output(data)
+    assigns = assign(assigns, status: status, output: output)
+
+    ~H"""
+    <div class="border border-border rounded p-2 text-xs">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="t-amber font-mono">Step {@index}</span>
+        <span class={"font-medium " <> if(@status == "ok", do: "t-green", else: "t-red")}>
+          {@status}
+        </span>
+      </div>
+      <pre class="whitespace-pre-wrap break-words t-dim max-h-40 overflow-y-auto">{@output}</pre>
+    </div>
+    """
+  end
+
+  defp extract_output(data) when is_binary(data) do
+    # synapse_results stores data as inspected elixir terms like:
+    # "%{output: \"the actual text\", ...}"
+    # Try to extract the output field
+    case Regex.run(~r/output: "(.*)"(?:,|\})/sU, data) do
+      [_, output] -> output |> String.replace("\\n", "\n") |> String.replace("\\\"", "\"")
+      _ -> String.slice(data, 0, 2000)
+    end
+  end
+
+  defp extract_output(_), do: ""
 
   defp output_dest_path({:cortex, _}), do: ~p"/cortex"
   defp output_dest_path({:memory, _}), do: ~p"/memory"
