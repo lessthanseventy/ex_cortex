@@ -22,5 +22,21 @@ echo "✓ Binaries ready in burrito_out/"
 ls -lh burrito_out/
 """
 
+[tasks.start]
+description = "Run the Burrito binary"
+run = "./burrito_out/ex_cortex_linux_x86 start"
+
+[tasks."start:otel"]
+description = "Run the Burrito binary with OpenTelemetry export"
+run = "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 ./burrito_out/ex_cortex_linux_x86 start"
+
+[tasks.services]
+description = "Start background services (db, ollama, observability)"
+run = "docker compose up -d"
+
+[tasks.stop]
+description = "Stop background services"
+run = "docker compose down"
+
 [tools]
 zig = "0.15.2"

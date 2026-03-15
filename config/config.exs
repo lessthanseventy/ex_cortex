@@ -56,15 +56,19 @@ config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# OpenTelemetry
+# OpenTelemetry — exports only when OTEL_EXPORTER_OTLP_ENDPOINT is set
+otel_endpoint = System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
 config :opentelemetry,
   resource: [service: [name: "ex_cortex", version: "0.1.0"]],
   span_processor: :batch,
-  traces_exporter: :otlp
+  traces_exporter: if(otel_endpoint, do: :otlp, else: :none)
 
-config :opentelemetry_exporter,
-  otlp_protocol: :http_protobuf,
-  otlp_endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+if otel_endpoint do
+  config :opentelemetry_exporter,
+    otlp_protocol: :http_protobuf,
+    otlp_endpoint: otel_endpoint
+end
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
