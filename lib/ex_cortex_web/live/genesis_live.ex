@@ -3,6 +3,7 @@ defmodule ExCortexWeb.GenesisLive do
   use ExCortexWeb, :live_view
 
   alias ExCortex.Genesis
+  alias ExCortex.Lobe
 
   @impl true
   def mount(_params, _session, socket) do
@@ -15,6 +16,7 @@ defmodule ExCortexWeb.GenesisLive do
        description: "",
        selected_model: default && "#{default.provider}:#{default.model}",
        models: models,
+       lobes: Lobe.all(),
        phase: :describe,
        loading: false,
        proposal: nil,
@@ -107,11 +109,26 @@ defmodule ExCortexWeb.GenesisLive do
   end
 
   @impl true
+  def handle_info({:genesis_result, {:ok, rumination, lobe_id}}, socket) do
+    lobe = if is_binary(lobe_id), do: Lobe.get(String.to_existing_atom(lobe_id))
+
+    proposal = %{
+      id: rumination.id,
+      name: rumination.name,
+      description: rumination.description,
+      lobe: lobe,
+      steps: load_steps(rumination)
+    }
+
+    {:noreply, assign(socket, loading: false, phase: :review, proposal: proposal)}
+  end
+
   def handle_info({:genesis_result, {:ok, rumination}}, socket) do
     proposal = %{
       id: rumination.id,
       name: rumination.name,
       description: rumination.description,
+      lobe: nil,
       steps: load_steps(rumination)
     }
 
@@ -165,6 +182,13 @@ defmodule ExCortexWeb.GenesisLive do
           Describe what you want in plain language. Synaptogenesis will design a pipeline of clusters and neurons to accomplish it.
         </p>
       </.panel>
+
+      <%!-- Lobe map — shows which brain regions are available --%>
+      <%= if @phase == :describe do %>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <.lobe_card :for={lobe <- @lobes} lobe={lobe} />
+        </div>
+      <% end %>
 
       <.phase_content
         phase={@phase}
@@ -240,7 +264,12 @@ defmodule ExCortexWeb.GenesisLive do
     <.panel title="PROPOSED PIPELINE">
       <div class="space-y-4">
         <div>
-          <h2 class="text-lg font-semibold t-bright">{@proposal.name}</h2>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-semibold t-bright">{@proposal.name}</h2>
+            <span :if={@proposal.lobe} class="text-xs px-2 py-0.5 rounded bg-muted t-amber">
+              {@proposal.lobe.name}
+            </span>
+          </div>
           <p class="text-sm t-dim mt-1">{@proposal.description}</p>
         </div>
 
@@ -276,7 +305,12 @@ defmodule ExCortexWeb.GenesisLive do
     <.panel title="REFINE PIPELINE">
       <div class="space-y-4">
         <div>
-          <h2 class="text-lg font-semibold t-bright">{@proposal.name}</h2>
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-semibold t-bright">{@proposal.name}</h2>
+            <span :if={@proposal.lobe} class="text-xs px-2 py-0.5 rounded bg-muted t-amber">
+              {@proposal.lobe.name}
+            </span>
+          </div>
           <p class="text-sm t-dim mt-1">{@proposal.description}</p>
         </div>
 
@@ -395,6 +429,27 @@ defmodule ExCortexWeb.GenesisLive do
   defp step_arrow(assigns) do
     ~H"""
     <div class="flex justify-center text-xs t-dim">↓</div>
+    """
+  end
+
+  # -- Lobe card --
+
+  attr :lobe, Lobe, required: true
+
+  defp lobe_card(assigns) do
+    hemisphere_label = if assigns.lobe.laterality.hemisphere == :left, do: "L", else: "R"
+
+    assigns = assign(assigns, :hemisphere_label, hemisphere_label)
+
+    ~H"""
+    <div class="border border-border rounded p-3 space-y-1.5">
+      <div class="flex items-center justify-between">
+        <span class="font-medium text-sm">{@lobe.name}</span>
+        <span class="text-xs t-dim font-mono">{@hemisphere_label}</span>
+      </div>
+      <p class="text-xs t-amber">{@lobe.label}</p>
+      <p class="text-xs t-dim leading-relaxed">{@lobe.description}</p>
+    </div>
     """
   end
 

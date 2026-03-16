@@ -46,7 +46,8 @@ defmodule ExCortex.Genesis do
     with {:ok, parsed} <- call_llm(system_prompt, description, provider, model),
          {:ok, rumination} <- create_pipeline(parsed) do
       Logger.info("Genesis: created rumination #{rumination.id} — #{rumination.name}")
-      {:ok, rumination}
+      lobe = parsed["lobe"]
+      {:ok, rumination, lobe}
     end
   end
 
@@ -103,7 +104,18 @@ defmodule ExCortex.Genesis do
         "- #{c.cluster_name}: #{neuron_names}"
       end)
 
-    Enum.join(cluster_lines, "\n")
+    lobe_lines =
+      Enum.map(ExCortex.Lobe.all(), fn lobe ->
+        "- #{lobe.name} (#{lobe.id}): #{lobe.description} Processing bias: #{lobe.laterality.hemisphere} hemisphere, #{lobe.laterality.consensus_bias} consensus."
+      end)
+
+    """
+    BRAIN LOBES (processing regions — each influences how its clusters think):
+    #{Enum.join(lobe_lines, "\n")}
+
+    CLUSTERS AND NEURONS:
+    #{Enum.join(cluster_lines, "\n")}
+    """
   end
 
   # ---------------------------------------------------------------------------
@@ -119,9 +131,23 @@ defmodule ExCortex.Genesis do
     - Synapse = a single step in a pipeline
     - Cluster = an agent team
     - Neuron = an agent/role within a cluster
+    - Lobe = a brain region that influences processing style
 
-    Available clusters and neurons:
     #{context}
+
+    LOBE SELECTION GUIDE:
+    When designing a pipeline, consider which brain lobe best fits each step:
+    - frontal: planning, risk, code review, security — analytical, step-by-step
+    - temporal: memory, classification, email — pattern-matching, history-aware
+    - parietal: research, synthesis, digests — cross-source integration, big picture
+    - occipital: media, images, video, PDFs — sensory processing first
+    - limbic: social, culture, sentiment — emotionally aware, empathetic
+    - cerebellar: ops, monitoring, incidents — precise, fast, no speculation
+
+    Pick clusters that align with the lobe best suited for each step's task.
+    A research step should use a parietal-aligned cluster.
+    A code review step should use a frontal-aligned cluster.
+    A monitoring step should use a cerebellar-aligned cluster.
 
     Your task: given a user's description of what they want automated, design a pipeline.
     Pick appropriate clusters and neurons for each step.
@@ -131,6 +157,7 @@ defmodule ExCortex.Genesis do
     {
       "name": "Pipeline Name",
       "description": "What this pipeline does",
+      "lobe": "primary_lobe_id",
       "steps": [
         {
           "name": "Step: Action Name",
@@ -152,6 +179,7 @@ defmodule ExCortex.Genesis do
     - signal → appears on the dashboard
     - artifact → saved to memory
 
+    The "lobe" field indicates the primary brain region for this pipeline.
     All forged pipelines use trigger "manual".
     Design 2-6 steps. Each step name should start with "Step: ".
     """
