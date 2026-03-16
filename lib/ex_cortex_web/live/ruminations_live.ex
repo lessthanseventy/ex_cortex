@@ -599,7 +599,9 @@ defmodule ExCortexWeb.RuminationsLive do
       <div class="flex items-center gap-2">
         <span class="t-green">✓</span>
         <span class="font-medium">{@step.step_name}</span>
-        <span class={"font-medium " <> if(@step.status == "ok", do: "t-green", else: "t-red")}>{@step.status}</span>
+        <span class={"font-medium " <> if(@step.status == "ok", do: "t-green", else: "t-red")}>
+          {@step.status}
+        </span>
         <span class="t-dim ml-auto">{@step.duration_ms}ms</span>
         <span :if={@step.dry_run} class="t-cyan text-xs">DRY RUN</span>
       </div>

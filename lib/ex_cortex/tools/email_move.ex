@@ -18,8 +18,7 @@ defmodule ExCortex.Tools.EmailMove do
           "thread_id" => %{"type" => "string", "description" => "The notmuch thread ID"},
           "folder" => %{
             "type" => "string",
-            "description" =>
-              "Target folder name (e.g. 'Newsletter', 'Spam', 'Personal', 'Transactional', 'Jobs')"
+            "description" => "Target folder name (e.g. 'Newsletter', 'Spam', 'Personal', 'Transactional', 'Jobs')"
           }
         },
         "required" => ["thread_id", "folder"]
@@ -61,7 +60,7 @@ defmodule ExCortex.Tools.EmailMove do
       {:ok, entries} ->
         account =
           Enum.find(entries, fn entry ->
-            Path.join([base, entry, "Inbox"]) |> File.dir?()
+            [base, entry, "Inbox"] |> Path.join() |> File.dir?()
           end)
 
         if account, do: Path.join(base, account), else: base

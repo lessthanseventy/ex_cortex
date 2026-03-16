@@ -93,13 +93,14 @@ defmodule ExCortex.Evaluator do
   end
 
   defp build_roles_from_pathway(meta) do
-    role_names = Enum.map(meta.roles, fn role_def ->
-      safe_name = role_def.name |> String.replace(~r/[^a-zA-Z0-9]/, "") |> Macro.camelize()
-      Module.concat([ExCortex, Roles, safe_name])
-    end)
+    role_names =
+      Enum.map(meta.roles, fn role_def ->
+        safe_name = role_def.name |> String.replace(~r/[^a-zA-Z0-9]/, "") |> Macro.camelize()
+        Module.concat([ExCortex, Roles, safe_name])
+      end)
 
     # Check if all modules already exist — fast path, no lock needed
-    unless Enum.all?(role_names, &Code.ensure_loaded?/1) do
+    if !Enum.all?(role_names, &Code.ensure_loaded?/1) do
       ensure_roles_built(meta, role_names)
     end
 
@@ -112,9 +113,10 @@ defmodule ExCortex.Evaluator do
     case :global.register_name(:evaluator_role_builder, self()) do
       :yes ->
         # We won — build all modules
-        Enum.zip(meta.roles, role_names)
+        meta.roles
+        |> Enum.zip(role_names)
         |> Enum.each(fn {role_def, mod_name} ->
-          unless Code.ensure_loaded?(mod_name) do
+          if !Code.ensure_loaded?(mod_name) do
             create_role_module(mod_name, role_def)
           end
         end)
@@ -125,7 +127,7 @@ defmodule ExCortex.Evaluator do
         # Another process is building — wait for it to finish
         Process.sleep(100)
 
-        unless Enum.all?(role_names, &Code.ensure_loaded?/1) do
+        if !Enum.all?(role_names, &Code.ensure_loaded?/1) do
           # Still not done, try again (will either build or wait)
           ensure_roles_built(meta, role_names)
         end
@@ -160,7 +162,7 @@ defmodule ExCortex.Evaluator do
       Module.create(mod_name, contents, Macro.Env.location(__ENV__))
     rescue
       _ ->
-        unless Code.ensure_loaded?(mod_name) do
+        if !Code.ensure_loaded?(mod_name) do
           Logger.warning("Failed to create role module #{inspect(mod_name)} — skipping")
         end
     end
@@ -212,5 +214,4 @@ defmodule ExCortex.Evaluator do
 
     mod_name
   end
-
 end

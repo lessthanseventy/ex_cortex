@@ -131,12 +131,12 @@ defmodule ExCortex.Senses.Worker do
         Logger.info("[SourceWorker] Starting batch run for #{rumination.name} (#{byte_size(batched_input)} bytes)")
 
         case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
-          try do
-            Runner.run(rumination, batched_input)
-          rescue
-            e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
-          end
-        end) do
+               try do
+                 Runner.run(rumination, batched_input)
+               rescue
+                 e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
+               end
+             end) do
           {:ok, _pid} -> :ok
           {:error, reason} -> Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
         end
