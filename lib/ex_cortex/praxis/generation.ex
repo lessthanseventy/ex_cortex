@@ -9,7 +9,7 @@ defmodule ExCortex.Praxis.Generation do
       release_notes(),
       threat_model_report(),
       onboarding_brief(),
-      weekly_digest(),
+      # weekly_digest removed — covered by Morning Briefing seed + digest reflexes
       platform_health()
     ]
   end

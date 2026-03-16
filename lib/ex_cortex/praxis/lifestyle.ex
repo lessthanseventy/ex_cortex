@@ -5,12 +5,10 @@ defmodule ExCortex.Praxis.Lifestyle do
 
   def templates do
     [
-      everyday_council(),
-      tech_dispatch(),
-      sports_corner(),
-      market_signals(),
-      culture_desk(),
-      science_watch()
+      # Only everyday_council remains — the 5 digest-style templates
+      # (tech_dispatch, sports_corner, market_signals, culture_desk, science_watch)
+      # are now handled by digest reflexes with lobe-shaped pipelines.
+      everyday_council()
     ]
   end
 
