@@ -36,6 +36,7 @@ defmodule ExCortexWeb.SensesLive do
          page_title: "Senses",
          tab: :active,
          expanding: nil,
+         expanded_panels: MapSet.new(),
          editing_expression: nil,
          expression_type_preview: "slack"
        )
@@ -123,6 +124,18 @@ defmodule ExCortexWeb.SensesLive do
         else: :active
 
     {:noreply, assign(socket, tab: valid, expanding: nil)}
+  end
+
+  @impl true
+  def handle_event("toggle_panel", %{"panel" => panel}, socket) do
+    panels = socket.assigns.expanded_panels
+
+    panels =
+      if MapSet.member?(panels, panel),
+        do: MapSet.delete(panels, panel),
+        else: MapSet.put(panels, panel)
+
+    {:noreply, assign(socket, expanded_panels: panels)}
   end
 
   @impl true
@@ -474,7 +487,13 @@ defmodule ExCortexWeb.SensesLive do
           </.panel>
         <% else %>
           <%= for {banner, items} <- @reflexes_by_banner do %>
-            <.panel title={String.upcase(banner_label(banner))}>
+            <.panel
+              title={"#{String.upcase(banner_label(banner))} (#{length(items)})"}
+              on_toggle="toggle_panel"
+              toggle_value={"reflex-#{banner}"}
+              collapsed={not MapSet.member?(@expanded_panels, "reflex-#{banner}")}
+              summary={"#{length(items)} reflexes"}
+            >
               <div class="space-y-2">
                 <.reflex_row :for={reflex <- items} reflex={reflex} />
               </div>
@@ -567,7 +586,13 @@ defmodule ExCortexWeb.SensesLive do
           </.panel>
         <% else %>
           <%= for {banner, items} <- @streams_by_banner do %>
-            <.panel title={String.upcase(banner_label(banner))}>
+            <.panel
+              title={"#{String.upcase(banner_label(banner))} (#{length(items)})"}
+              on_toggle="toggle_panel"
+              toggle_value={"stream-#{banner}"}
+              collapsed={not MapSet.member?(@expanded_panels, "stream-#{banner}")}
+              summary={"#{length(items)} streams"}
+            >
               <div class="space-y-2">
                 <.reflex_row :for={feed <- items} reflex={feed} />
               </div>
