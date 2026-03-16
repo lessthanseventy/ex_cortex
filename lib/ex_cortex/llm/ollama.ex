@@ -329,14 +329,13 @@ defmodule ExCortex.LLM.Ollama do
     [model | Enum.reject(chain, &(&1 == model))]
   end
 
-  @doc "Returns true if a tool output is empty, an empty list, or an error."
+  @doc "Returns true if a tool output is empty or an empty list. Tool errors are NOT empty — they mean the tool ran but the specific call failed, which shouldn't trip the breaker."
   def empty_result?(output) when is_binary(output) do
     trimmed = String.trim(output)
 
     trimmed == "" or
       trimmed == "[]" or
       trimmed == "[]\n" or
-      String.starts_with?(trimmed, "Error:") or
       String.contains?(trimmed, "is not available in this step")
   end
 
