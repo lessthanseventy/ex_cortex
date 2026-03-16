@@ -68,20 +68,32 @@ defmodule ExCortex.Senses.Worker do
           evaluate_items(items, state.source, steps)
         end
 
-        enqueue_ruminations(items, state.source, ruminations)
+        tasks_started = enqueue_ruminations(items, state.source, ruminations)
         source = update_source_state(state.source, new_worker_state)
 
-        # If we got a full batch, there's probably more — fetch again soon instead of waiting
+        # If we got a full batch, there's probably more — fetch again soon instead of waiting.
+        # But if the task supervisor is full, back off to avoid a tight retry loop.
         max_results = state.source.config["max_results"] || 50
         has_more = length(items) >= max_results
-        delay = if has_more, do: 5_000, else: state.interval
+        backoff = Map.get(state, :backoff, 0)
 
-        if has_more do
-          Logger.info("[SourceWorker] Batch full (#{length(items)}/#{max_results}) — fetching next batch in 5s")
-        end
+        {delay, new_backoff} =
+          cond do
+            not tasks_started ->
+              next_backoff = min((backoff + 1) * 15_000, 120_000)
+              Logger.warning("[SourceWorker] Task supervisor full — backing off #{div(next_backoff, 1000)}s")
+              {next_backoff, backoff + 1}
+
+            has_more ->
+              Logger.info("[SourceWorker] Batch full (#{length(items)}/#{max_results}) — fetching next batch in 5s")
+              {5_000, 0}
+
+            true ->
+              {state.interval, 0}
+          end
 
         timer = Process.send_after(self(), :fetch, delay)
-        {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer}}
+        {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer, backoff: new_backoff}}
 
       {:error, reason} ->
         mark_source_error(state.source, reason)
@@ -114,7 +126,7 @@ defmodule ExCortex.Senses.Worker do
     end)
   end
 
-  defp enqueue_ruminations(_items, _source, []), do: :ok
+  defp enqueue_ruminations(_items, _source, []), do: true
 
   defp enqueue_ruminations(items, source, ruminations) do
     label = source.config["label"] || source.source_type
@@ -125,33 +137,49 @@ defmodule ExCortex.Senses.Worker do
         "for #{length(ruminations)} rumination(s)#{if batch?, do: " (batch mode)"}"
     )
 
-    Enum.each(ruminations, fn rumination ->
-      if batch? do
-        batched_input = batch_items(items)
-        Logger.info("[SourceWorker] Starting batch run for #{rumination.name} (#{byte_size(batched_input)} bytes)")
+    results =
+      Enum.map(ruminations, fn rumination ->
+        if batch? do
+          batched_input = batch_items(items)
+          Logger.info("[SourceWorker] Starting batch run for #{rumination.name} (#{byte_size(batched_input)} bytes)")
 
-        case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
-               try do
-                 Runner.run(rumination, batched_input)
-               rescue
-                 e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
-               end
-             end) do
-          {:ok, _pid} -> :ok
-          {:error, reason} -> Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
-        end
-      else
-        Enum.each(items, fn item ->
-          Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
-            try do
-              Runner.run(rumination, item.content)
-            rescue
-              e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
+          case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
+                 try do
+                   Runner.run(rumination, batched_input)
+                 rescue
+                   e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
+                 end
+               end) do
+            {:ok, _pid} ->
+              true
+
+            {:error, reason} ->
+              Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
+              false
+          end
+        else
+          items
+          |> Enum.map(fn item ->
+            case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
+                   try do
+                     Runner.run(rumination, item.content)
+                   rescue
+                     e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
+                   end
+                 end) do
+              {:ok, _pid} ->
+                true
+
+              {:error, reason} ->
+                Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
+                false
             end
           end)
-        end)
-      end
-    end)
+          |> Enum.all?()
+        end
+      end)
+
+    Enum.all?(results)
   end
 
   defp batch_items(items) do
