@@ -50,29 +50,56 @@ No cloud. No SaaS. No data leaving your network. Just local LLMs, a Postgres dat
 
 ## Neuroplasticity — Self-Improvement
 
-This is the thing that makes ExCortex different. The platform has two feedback loops that let it work on itself:
+This is the thing that makes ExCortex different. The system improves itself at three levels — not just its code, but its own configuration, prompts, and trust in its agents.
 
-### Analyst Sweep (every 4 hours)
+### Level 1: Feedback — Trust Scoring
 
-A background job reads the entire codebase, runs static analysis, hunts for test gaps, TODO comments, unhandled errors, and complexity hotspots. It cross-references what's already filed in your GitHub backlog and opens new issues for anything worth fixing — labeled `self-improvement`.
+Every time a step runs, each neuron's individual verdict is compared against the team consensus. Neurons that consistently contradict the group have their trust score decayed (`×0.97`, compounding). Over time, this surfaces which agents are reliable and which are drifting — informing roster changes and escalation decisions. This happens automatically, no human input needed.
 
-### The Neuroplasticity Loop
+### Level 2: Configuration — Retrospective Proposals
 
-When those issues land, the Dev Team cluster picks them up:
+After every step completes, an async retrospective runs in the background. A lightweight LLM reviews the step definition alongside the actual run trace — who ran, what they said, how confident they were — and proposes up to 3 concrete tuning changes:
+
+| Proposal Type | What It Tunes |
+|---|---|
+| `roster_change` | Swap neurons, change team composition or consensus strategy |
+| `schedule_change` | Adjust polling intervals or cron schedules |
+| `prompt_change` | Tweak system prompts, instructions, or reasoning strategies |
+| `other` | Timeouts, thresholds, model assignments, escalation rules |
+
+These proposals land on the Cortex dashboard for you to approve or reject. The system suggests; you decide.
+
+Every synapse (step) has its own tunable knobs: escalation thresholds, reflection confidence floors, model selection, tool iteration limits, dangerous tool handling mode, context providers, and scheduling. Neurons carry their own config — rank, model, strategy, system prompt. Senses have polling intervals. All of it is hot-reloadable through the Instinct UI — no restart required.
+
+### Level 3: Code — The Self-Improvement Loop
+
+For changes that go beyond configuration, ExCortex can modify its own source code.
+
+The **Analyst Sweep** runs every 4 hours. Three steps — a Code Auditor runs `mix credo` and `mix test`, a Product Analyst identifies feature opportunities, and a Backlog Manager cross-references existing GitHub issues and files 3–5 new ones labeled `self-improvement`.
+
+The **Self-Improvement Loop** picks up those issues:
 
 ```
 Issue filed → PM Triage → Code Writer → Code Reviewer → QA → UX Review → PM Merge Decision
 ```
 
-Each step is a full multi-agent evaluation. The Code Writer has access to `read_file`, `write_file`, `git_commit`, and `run_sandbox`. The Code Reviewer gets the diff and runs `mix test` and `mix credo`. QA verifies the fix doesn't break anything.
-
-Low-risk changes (formatting, tests, docs) auto-merge. Anything touching core logic creates a **Proposal** in the dashboard for you to approve. You stay in control; the system stays productive.
+The Code Writer works in an isolated git worktree — never touches the main repo directly. It reads files, makes changes, runs `mix test` and `mix credo`, commits, and opens a real PR. The Code Reviewer and QA gate the pipeline — if tests fail, nothing merges. The PM makes the final call: low-risk changes auto-merge, anything touching core logic creates a Proposal for you.
 
 Re-seed the pipeline anytime:
 
 ```elixir
 ExCortex.Neuroplasticity.Seed.seed(%{repo: "owner/repo"})
 ```
+
+### The Full Picture
+
+```
+Automatic:  Trust scores decay on every run → surfaces unreliable neurons
+Suggested:  Retrospective proposals after every step → prompt/roster/schedule tuning
+Applied:    Self-improvement loop every 4h → code changes via PR
+```
+
+All three layers feed the same Cortex dashboard. You see trust trends, pending proposals, and open PRs in one place. The system gets better continuously — you stay in control of what actually changes.
 
 ---
 
