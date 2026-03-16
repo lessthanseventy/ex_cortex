@@ -241,4 +241,25 @@ defmodule ExCortex.Lobe do
       }
     }
   end
+
+  # ---------------------------------------------------------------------------
+  # Lookup helpers
+  # ---------------------------------------------------------------------------
+
+  @doc """
+  Resolve the lobe prompt for a cluster name by looking up its pathway metadata.
+  Returns the prompt string or nil if no pathway/lobe is found.
+  """
+  def prompt_for_cluster(nil), do: nil
+
+  def prompt_for_cluster(cluster_name) do
+    case ExCortex.Evaluator.pathways()[cluster_name] do
+      nil -> nil
+      mod -> mod.metadata() |> Map.get(:lobe) |> prompt_for_lobe()
+    end
+  end
+
+  @doc "Get the prompt string for a lobe id atom."
+  def prompt_for_lobe(nil), do: nil
+  def prompt_for_lobe(lobe_id) when is_atom(lobe_id), do: get(lobe_id) && get(lobe_id).prompt
 end

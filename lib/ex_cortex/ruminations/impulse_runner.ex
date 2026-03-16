@@ -251,12 +251,19 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   end
 
   defp call_member(
-         %{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools},
+         %{provider: provider, model: model, system_prompt: system_prompt, tools: member_tools} = neuron,
          input_text,
          opts
        ) do
     tools = effective_tools(member_tools, opts)
-    base = system_prompt || default_claude_prompt()
+
+    lobe_prefix =
+      case ExCortex.Lobe.prompt_for_cluster(neuron[:team]) do
+        nil -> ""
+        lp -> "[#{lp}]\n\n"
+      end
+
+    base = lobe_prefix <> (system_prompt || default_claude_prompt())
     prompt = ensure_verdict_format(base, tools)
 
     result =
@@ -690,8 +697,14 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     base = neuron.system_prompt || ""
     label = step["label"] || neuron.name
 
+    lobe_prefix =
+      case ExCortex.Lobe.prompt_for_cluster(step["cluster_name"] || neuron.team) do
+        nil -> ""
+        prompt -> "[#{prompt}]\n\n"
+      end
+
     """
-    #{base}
+    #{lobe_prefix}#{base}
 
     You are #{label}. Provide your analysis and perspective on the data below.
     Be direct and opinionated. Your output will be read by a synthesizer.

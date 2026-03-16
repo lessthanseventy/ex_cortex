@@ -93,6 +93,12 @@ defmodule ExCortex.Evaluator do
   end
 
   defp build_roles_from_pathway(meta) do
+    lobe_prompt =
+      case Map.get(meta, :lobe) do
+        nil -> nil
+        lobe_id -> ExCortex.Lobe.get(lobe_id) && ExCortex.Lobe.get(lobe_id).prompt
+      end
+
     role_names =
       Enum.map(meta.roles, fn role_def ->
         safe_name = role_def.name |> String.replace(~r/[^a-zA-Z0-9]/, "") |> Macro.camelize()
@@ -101,7 +107,7 @@ defmodule ExCortex.Evaluator do
 
     # Check if all modules already exist — fast path, no lock needed
     if !Enum.all?(role_names, &Code.ensure_loaded?/1) do
-      ensure_roles_built(meta, role_names)
+      ensure_roles_built(meta, role_names, lobe_prompt)
     end
 
     role_names
@@ -109,7 +115,7 @@ defmodule ExCortex.Evaluator do
 
   # Serialize module creation through a single caller. The first process to
   # register wins and builds; all others block until it's done.
-  defp ensure_roles_built(meta, role_names) do
+  defp ensure_roles_built(meta, role_names, lobe_prompt) do
     case :global.register_name(:evaluator_role_builder, self()) do
       :yes ->
         # We won — build all modules
@@ -117,7 +123,7 @@ defmodule ExCortex.Evaluator do
         |> Enum.zip(role_names)
         |> Enum.each(fn {role_def, mod_name} ->
           if !Code.ensure_loaded?(mod_name) do
-            create_role_module(mod_name, role_def)
+            create_role_module(mod_name, role_def, lobe_prompt)
           end
         end)
 
@@ -129,17 +135,23 @@ defmodule ExCortex.Evaluator do
 
         if !Enum.all?(role_names, &Code.ensure_loaded?/1) do
           # Still not done, try again (will either build or wait)
-          ensure_roles_built(meta, role_names)
+          ensure_roles_built(meta, role_names, lobe_prompt)
         end
     end
   end
 
-  defp create_role_module(mod_name, role_def) do
+  defp create_role_module(mod_name, role_def, lobe_prompt \\ nil) do
+    full_prompt =
+      case lobe_prompt do
+        nil -> role_def.system_prompt
+        prompt -> "[#{prompt}]\n\n#{role_def.system_prompt}"
+      end
+
     contents =
       quote do
         use ExCortex.Core.Role
 
-        system_prompt(unquote(role_def.system_prompt))
+        system_prompt(unquote(full_prompt))
 
         unquote_splicing(
           Enum.map(role_def.perspectives, fn p ->
