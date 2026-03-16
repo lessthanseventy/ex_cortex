@@ -19,13 +19,14 @@ defmodule ExCortex.LLM.Claude do
   }
 
   @impl true
-  def complete(model, system_prompt, user_text, _opts \\ []) do
+  def complete(model, system_prompt, user_text, opts \\ []) do
     model_spec = resolve_model(model)
+    history = opts |> Keyword.get(:history, []) |> normalize_history()
 
-    messages = [
-      %{role: "system", content: system_prompt},
-      %{role: "user", content: user_text}
-    ]
+    messages =
+      [%{role: "system", content: system_prompt}] ++
+        history ++
+        [%{role: "user", content: user_text}]
 
     Tracer.with_span "llm.complete", %{
       attributes: %{
@@ -51,12 +52,23 @@ defmodule ExCortex.LLM.Claude do
   def complete_with_tools(model, system_prompt, user_text, tools, opts \\ []) do
     model_spec = resolve_model(model)
     max_iter = Keyword.get(opts, :max_tool_iterations, @max_tool_iterations)
+    history = opts |> Keyword.get(:history, []) |> normalize_history()
+
+    history_messages =
+      Enum.map(history, fn %{role: role, content: content} ->
+        case role do
+          "user" -> ReqLLM.Context.user(content)
+          "assistant" -> ReqLLM.Context.assistant(content)
+          _ -> ReqLLM.Context.user(content)
+        end
+      end)
 
     context =
-      ReqLLM.Context.new([
-        ReqLLM.Context.system(system_prompt),
-        ReqLLM.Context.user(user_text)
-      ])
+      ReqLLM.Context.new(
+        [ReqLLM.Context.system(system_prompt)] ++
+          history_messages ++
+          [ReqLLM.Context.user(user_text)]
+      )
 
     dangerous_tool_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
     rumination_id = Keyword.get(opts, :rumination_id)
@@ -221,4 +233,12 @@ defmodule ExCortex.LLM.Claude do
   defp extract_call_args(%{arguments: args}) when is_binary(args), do: Jason.decode!(args)
   defp extract_call_args(%{arguments: args}), do: args
   defp extract_call_args(_), do: %{}
+
+  defp normalize_history(history) do
+    Enum.map(history, fn msg ->
+      role = to_string(msg[:role] || msg["role"] || "user")
+      content = msg[:content] || msg["content"] || ""
+      %{role: role, content: content}
+    end)
+  end
 end

@@ -7,6 +7,9 @@ defmodule ExCortexWeb.MuseLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    models = available_models()
+    default = List.first(models, "devstral-small-2:24b")
+
     {:ok,
      assign(socket,
        page_title: "Muse",
@@ -14,7 +17,9 @@ defmodule ExCortexWeb.MuseLive do
        input: "",
        loading: false,
        filters_open: false,
-       tag_filter: ""
+       tag_filter: "",
+       models: models,
+       selected_model: default
      )}
   end
 
@@ -31,8 +36,10 @@ defmodule ExCortexWeb.MuseLive do
       |> Enum.take(length(messages) - 1)
       |> Enum.map(&Map.take(&1, [:role, :content]))
 
+    model = socket.assigns.selected_model
+
     Task.async(fn ->
-      Muse.ask(question, scope: "muse", source_filters: source_filters, history: history)
+      Muse.ask(question, scope: "muse", source_filters: source_filters, history: history, model: model)
     end)
 
     {:noreply, socket}
@@ -42,6 +49,10 @@ defmodule ExCortexWeb.MuseLive do
 
   def handle_event("update_input", %{"question" => value}, socket) do
     {:noreply, assign(socket, input: value)}
+  end
+
+  def handle_event("select_model", %{"model" => model}, socket) do
+    {:noreply, assign(socket, selected_model: model)}
   end
 
   def handle_event("toggle_filters", _, socket) do
@@ -145,6 +156,20 @@ defmodule ExCortexWeb.MuseLive do
       <%!-- Input --%>
       <form phx-submit="ask" class="border-t border-zinc-700 p-4">
         <div class="flex gap-2">
+          <select
+            name="model"
+            phx-change="select_model"
+            aria-label="Select model"
+            class="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+          >
+            <option
+              :for={model <- @models}
+              value={model}
+              selected={model == @selected_model}
+            >
+              {model}
+            </option>
+          </select>
           <input
             type="text"
             name="question"
@@ -176,4 +201,24 @@ defmodule ExCortexWeb.MuseLive do
   end
 
   defp render_markdown(text), do: ExCortexWeb.Markdown.render(text)
+
+  defp available_models do
+    ollama = sort_by_capability(ExCortex.OllamaCache.get_models())
+
+    claude =
+      if ExCortex.ClaudeClient.configured?(),
+        do: ["claude_opus", "claude_sonnet", "claude_haiku"],
+        else: []
+
+    claude ++ ollama
+  end
+
+  defp sort_by_capability(models) do
+    Enum.sort_by(models, fn name ->
+      case Regex.run(~r/(\d+)b/, name) do
+        [_, size] -> -String.to_integer(size)
+        _ -> 0
+      end
+    end)
+  end
 end

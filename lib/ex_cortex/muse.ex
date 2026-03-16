@@ -6,7 +6,7 @@ defmodule ExCortex.Muse do
   Both persist the Q&A to the thoughts table.
   """
 
-  alias ExCortex.LLM.Ollama
+  alias ExCortex.LLM
   alias ExCortex.Memory
   alias ExCortex.Thoughts
   alias ExCortex.Tools.Registry
@@ -45,15 +45,17 @@ defmodule ExCortex.Muse do
 
     user_text = build_user_text(context, question)
 
+    provider = provider_for(model)
+
     result =
       case scope do
         "wonder" ->
-          Ollama.complete(model, system_prompt, user_text, history: history)
+          LLM.complete(provider, model, system_prompt, user_text, history: history)
 
         _ ->
           tools = Registry.list_safe()
 
-          case Ollama.complete_with_tools(model, system_prompt, user_text, tools, history: history) do
+          case LLM.complete_with_tools(provider, model, system_prompt, user_text, tools, history: history) do
             {:ok, answer, _tool_log} -> {:ok, answer}
             {:error, reason, _tool_log} -> {:error, reason}
             {:error, reason} -> {:error, reason}
@@ -181,4 +183,7 @@ defmodule ExCortex.Muse do
       _ -> "devstral-small-2:24b"
     end
   end
+
+  defp provider_for("claude_" <> _), do: "claude"
+  defp provider_for(_), do: "ollama"
 end
