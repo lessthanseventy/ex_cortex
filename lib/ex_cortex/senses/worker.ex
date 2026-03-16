@@ -75,7 +75,7 @@ defmodule ExCortex.Senses.Worker do
         # But if the task supervisor is full, back off to avoid a tight retry loop.
         max_results = state.source.config["max_results"] || 50
         has_more = length(items) >= max_results
-        backoff = Map.get(state, :backoff, 0)
+        backoff = state[:backoff] || 0
 
         {delay, new_backoff} =
           cond do
@@ -93,7 +93,13 @@ defmodule ExCortex.Senses.Worker do
           end
 
         timer = Process.send_after(self(), :fetch, delay)
-        {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer, backoff: new_backoff}}
+
+        new_state =
+          state
+          |> Map.put(:backoff, new_backoff)
+          |> Map.merge(%{source: source, worker_state: new_worker_state, timer: timer})
+
+        {:noreply, new_state}
 
       {:error, reason} ->
         mark_source_error(state.source, reason)
