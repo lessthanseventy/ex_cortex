@@ -2462,7 +2462,30 @@ defmodule ExCortex.Seeds do
             to_string(sense.id)
           end
 
-        # Create 3-step digest rumination
+        # Create lobe-shaped pipeline: prepend + core digest + append
+        pipeline = if lobe, do: lobe.pipeline, else: %{prepend_steps: [], append_steps: []}
+        prepend = Map.get(pipeline, :prepend_steps, [])
+        append = Map.get(pipeline, :append_steps, [])
+
+        prepend_synapses =
+          for step_type <- prepend do
+            step_def = ExCortex.Lobe.pipeline_step_def(step_type, tmpl.cluster, tmpl.gatherer)
+
+            {:ok, s} =
+              Ruminations.create_synapse(%{
+                name: "#{reflex.name}: #{step_def.name_suffix}",
+                description: step_def.description,
+                trigger: "manual",
+                output_type: step_def.output_type,
+                cluster_name: step_def.cluster_name,
+                loop_tools: Map.get(step_def, :loop_tools),
+                max_tool_iterations: lobe_iterations,
+                roster: step_def.roster
+              })
+
+            s
+          end
+
         {:ok, s1} =
           Ruminations.create_synapse(%{
             name: "#{reflex.name}: Gather",
@@ -2505,6 +2528,31 @@ defmodule ExCortex.Seeds do
             roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
           })
 
+        append_synapses =
+          for step_type <- append do
+            step_def = ExCortex.Lobe.pipeline_step_def(step_type, tmpl.cluster, tmpl.analyst)
+
+            {:ok, s} =
+              Ruminations.create_synapse(%{
+                name: "#{reflex.name}: #{step_def.name_suffix}",
+                description: step_def.description,
+                trigger: "manual",
+                output_type: step_def.output_type,
+                cluster_name: step_def.cluster_name,
+                loop_tools: Map.get(step_def, :loop_tools),
+                roster: step_def.roster
+              })
+
+            s
+          end
+
+        all_synapses = prepend_synapses ++ [s1, s2, s3] ++ append_synapses
+
+        steps =
+          all_synapses
+          |> Enum.with_index(1)
+          |> Enum.map(fn {s, order} -> %{"step_id" => s.id, "order" => order} end)
+
         {:ok, _} =
           Ruminations.create_rumination(%{
             name: reflex.name,
@@ -2513,11 +2561,7 @@ defmodule ExCortex.Seeds do
             schedule: tmpl.schedule,
             source_ids: sense_ids,
             status: "paused",
-            steps: [
-              %{"step_id" => s1.id, "order" => 1},
-              %{"step_id" => s2.id, "order" => 2},
-              %{"step_id" => s3.id, "order" => 3}
-            ]
+            steps: steps
           })
 
         Logger.info("[Seeds] Digest installed: #{reflex.name}")
