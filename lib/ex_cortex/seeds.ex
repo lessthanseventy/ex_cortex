@@ -2351,10 +2351,10 @@ defmodule ExCortex.Seeds do
         status: "paused",
         config: %{
           "query" => "tag:inbox",
-          "interval" => 600_000,
-          "max_results" => 10,
+          "interval" => 30_000,
+          "max_results" => 15,
           "batch_mode" => true,
-          "sort" => "oldest-first"
+          "sort" => "newest-first"
         }
       },
       %{
