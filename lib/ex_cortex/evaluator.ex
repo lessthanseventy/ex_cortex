@@ -140,7 +140,7 @@ defmodule ExCortex.Evaluator do
     end
   end
 
-  defp create_role_module(mod_name, role_def, lobe_prompt \\ nil) do
+  defp create_role_module(mod_name, role_def, lobe_prompt) do
     full_prompt =
       case lobe_prompt do
         nil -> role_def.system_prompt

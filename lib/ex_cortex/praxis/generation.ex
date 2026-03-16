@@ -191,68 +191,6 @@ defmodule ExCortex.Praxis.Generation do
     }
   end
 
-  defp weekly_digest do
-    %Praxis{
-      id: "weekly_digest",
-      lobe: :frontal,
-      name: "Weekly Intelligence Digest",
-      category: :generation,
-      description:
-        "Scheduled weekly synthesis of trends, feedback signals, and risks into a memory engram. Pulls from your engram library to build institutional memory.",
-      suggested_team: "Product Intelligence cluster. Any cluster with analyst neurons works.",
-      requires: [:any_members],
-      step_definitions: [
-        %{
-          name: "Trend Analysis",
-          description: "Trend analysis — synthesize market and product signals from the past week.",
-          status: "active",
-          trigger: "manual",
-          schedule: nil,
-          roster: [
-            %{
-              "who" => "master",
-              "preferred_who" => "trend-spotter",
-              "when" => "on_trigger",
-              "how" => "solo"
-            }
-          ],
-          source_ids: [],
-          context_providers: [
-            %{"type" => "memory", "tags" => ["market", "trends"], "limit" => 5, "sort" => "top"}
-          ]
-        },
-        %{
-          name: "Write Weekly Digest",
-          description: "Write the weekly digest artifact — append a new entry to the digest log.",
-          status: "active",
-          trigger: "manual",
-          schedule: nil,
-          roster: [%{"who" => "master", "when" => "on_trigger", "how" => "solo"}],
-          source_ids: [],
-          output_type: "artifact",
-          write_mode: "append",
-          entry_title_template: "Weekly Digest — {date}",
-          context_providers: [
-            %{"type" => "rumination_history", "limit" => 10},
-            %{"type" => "memory", "tags" => [], "limit" => 5, "sort" => "top"}
-          ]
-        }
-      ],
-      rumination_definition: %{
-        name: "Weekly Intelligence Digest",
-        description: "Scheduled weekly trend analysis and digest generation.",
-        status: "active",
-        trigger: "scheduled",
-        schedule: "@weekly",
-        steps: [
-          %{"step_name" => "Trend Analysis", "flow" => "always"},
-          %{"step_name" => "Write Weekly Digest", "flow" => "always"}
-        ],
-        source_ids: []
-      }
-    }
-  end
-
   defp platform_health do
     %Praxis{
       id: "platform_health",
