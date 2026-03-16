@@ -20,6 +20,20 @@ defmodule ExCortex.Memory do
     Repo.all(query)
   end
 
+  def count_engrams(opts \\ []) do
+    tags = Keyword.get(opts, :tags, [])
+    category = Keyword.get(opts, :category)
+    since = Keyword.get(opts, :since)
+
+    query =
+      from(e in Engram)
+      |> filter_tags(tags)
+      |> filter_category(category)
+      |> filter_since(since)
+
+    Repo.aggregate(query, :count)
+  end
+
   def get_engram!(id), do: Repo.get!(Engram, id)
 
   def create_engram(attrs) do
@@ -154,6 +168,18 @@ defmodule ExCortex.Memory do
 
   defp filter_tags(query, tags) do
     from e in query, where: fragment("? && ?", e.tags, ^tags)
+  end
+
+  defp filter_category(query, nil), do: query
+
+  defp filter_category(query, category) do
+    from e in query, where: e.category == ^category
+  end
+
+  defp filter_since(query, nil), do: query
+
+  defp filter_since(query, %NaiveDateTime{} = since) do
+    from e in query, where: e.inserted_at >= ^since
   end
 
   defp filter_rumination(query, nil), do: query
