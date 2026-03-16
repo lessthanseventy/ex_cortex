@@ -196,7 +196,8 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
 
         synapse_results = run_step(neurons, step["how"], input_text, opts)
 
-        step_verdict = aggregate(synapse_results, step["how"])
+        laterality = ExCortex.Lobe.laterality_for_cluster(step["cluster_name"])
+        step_verdict = aggregate(synapse_results, step["how"], laterality)
 
         trace = %{
           who: step["who"],
@@ -363,24 +364,50 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   # Aggregation
   # ---------------------------------------------------------------------------
 
-  defp aggregate([], _), do: "abstain"
+  defp aggregate([], _, _), do: "abstain"
 
-  defp aggregate(results, "solo") do
+  defp aggregate(results, "solo", _laterality) do
     results |> List.first() |> Map.get(:verdict, "abstain")
   end
 
-  defp aggregate(results, "consensus") do
+  # Right hemisphere (divergent): if any neuron has high confidence, their verdict
+  # can pull the group — novel insights win over consensus.
+  defp aggregate(results, "consensus", %{hemisphere: :right, confidence_threshold: threshold}) do
+    verdicts = Enum.map(results, & &1.verdict)
+
+    # Check for a high-confidence outlier
+    high_confidence = Enum.find(results, fn r -> (r[:confidence] || 0.0) >= threshold end)
+
+    cond do
+      Enum.uniq(verdicts) == [hd(verdicts)] -> hd(verdicts)
+      high_confidence -> high_confidence.verdict
+      true -> best_verdict(verdicts)
+    end
+  end
+
+  # Left hemisphere (systematic): unanimous or worst-case — conservative default.
+  defp aggregate(results, "consensus", _laterality) do
     verdicts = Enum.map(results, & &1.verdict)
     if Enum.uniq(verdicts) == [hd(verdicts)], do: hd(verdicts), else: worst_verdict(verdicts)
   end
 
-  defp aggregate(results, _majority) do
+  # Right hemisphere majority: lower bar — any non-abstain verdict with at least one vote wins.
+  defp aggregate(results, _majority, %{hemisphere: :right}) do
+    verdicts = results |> Enum.map(& &1.verdict) |> Enum.reject(&(&1 == "abstain"))
+    if verdicts == [], do: "abstain", else: best_verdict(verdicts)
+  end
+
+  defp aggregate(results, _majority, _laterality) do
     verdicts = Enum.map(results, & &1.verdict)
     verdicts |> Enum.frequencies() |> Enum.max_by(fn {_, count} -> count end) |> elem(0)
   end
 
   defp worst_verdict(verdicts) do
     Enum.min_by(verdicts, &Map.get(@verdict_order, &1, 2))
+  end
+
+  defp best_verdict(verdicts) do
+    Enum.max_by(verdicts, &Map.get(@verdict_order, &1, 2))
   end
 
   # ---------------------------------------------------------------------------

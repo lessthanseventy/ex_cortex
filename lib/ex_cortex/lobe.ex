@@ -262,4 +262,20 @@ defmodule ExCortex.Lobe do
   @doc "Get the prompt string for a lobe id atom."
   def prompt_for_lobe(nil), do: nil
   def prompt_for_lobe(lobe_id) when is_atom(lobe_id), do: get(lobe_id) && get(lobe_id).prompt
+
+  @doc """
+  Resolve the laterality config for a cluster name.
+  Returns the laterality map or nil if no pathway/lobe is found.
+  """
+  def laterality_for_cluster(nil), do: nil
+
+  def laterality_for_cluster(cluster_name) do
+    case ExCortex.Evaluator.pathways()[cluster_name] do
+      nil -> nil
+      mod -> mod.metadata() |> Map.get(:lobe) |> laterality_for_lobe()
+    end
+  end
+
+  defp laterality_for_lobe(nil), do: nil
+  defp laterality_for_lobe(lobe_id), do: get(lobe_id) && get(lobe_id).laterality
 end
