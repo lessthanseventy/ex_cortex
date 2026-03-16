@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.DependencyAudit do
 
   def metadata do
     %{
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Dependency Audit",
       description: "Multi-agent dependency health and supply chain security pipeline",
       roles: [

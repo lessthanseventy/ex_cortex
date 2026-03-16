@@ -18,7 +18,7 @@ defmodule ExCortex.Pathways.MarketSignals do
     ]
 
     %{
-      lobe: :business,
+      lobe: :parietal,
       name: "Market Signals",
       description:
         "Business and financial intelligence. Tracks market signals through daily synthesis and weekly pattern recognition.",

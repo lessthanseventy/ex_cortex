@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.Platform do
     ]
 
     %{
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Platform Cluster",
       description:
         "Backend, infrastructure, and platform reliability review cluster — evaluates architecture, deployment, and performance.",

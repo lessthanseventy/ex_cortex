@@ -17,7 +17,7 @@ defmodule ExCortex.Board.Review do
   defp pr_review_pipeline do
     %Board{
       id: "pr_review_pipeline",
-      lobe: :tech,
+      lobe: :frontal,
       name: "PR Review Pipeline",
       category: :review,
       description:
@@ -77,7 +77,7 @@ defmodule ExCortex.Board.Review do
   defp url_change_review do
     %Board{
       id: "url_change_review",
-      lobe: :tech,
+      lobe: :frontal,
       name: "URL Change Monitor",
       category: :review,
       description:
@@ -137,7 +137,7 @@ defmodule ExCortex.Board.Review do
   defp content_safety_webhook do
     %Board{
       id: "content_safety_webhook",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Content Safety Review",
       category: :review,
       description:
@@ -197,7 +197,7 @@ defmodule ExCortex.Board.Review do
   defp a11y_audit do
     %Board{
       id: "a11y_audit",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Accessibility Audit",
       category: :review,
       description:
@@ -266,7 +266,7 @@ defmodule ExCortex.Board.Review do
   defp proposal_review do
     %Board{
       id: "proposal_review",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Proposal Review",
       category: :review,
       description:
@@ -359,7 +359,7 @@ defmodule ExCortex.Board.Review do
   defp compliance_monitor do
     %Board{
       id: "compliance_monitor",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Compliance Monitor",
       category: :review,
       description:

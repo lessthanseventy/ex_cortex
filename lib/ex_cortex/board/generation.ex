@@ -17,7 +17,7 @@ defmodule ExCortex.Board.Generation do
   defp incident_postmortem do
     %Board{
       id: "incident_postmortem",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Incident Postmortem",
       category: :generation,
       description:
@@ -69,7 +69,7 @@ defmodule ExCortex.Board.Generation do
   defp release_notes do
     %Board{
       id: "release_notes",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Release Notes Generator",
       category: :generation,
       description:
@@ -127,7 +127,7 @@ defmodule ExCortex.Board.Generation do
   defp threat_model_report do
     %Board{
       id: "threat_model_report",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Threat Model Report",
       category: :generation,
       description:
@@ -194,7 +194,7 @@ defmodule ExCortex.Board.Generation do
   defp weekly_digest do
     %Board{
       id: "weekly_digest",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Weekly Intelligence Digest",
       category: :generation,
       description:
@@ -256,7 +256,7 @@ defmodule ExCortex.Board.Generation do
   defp platform_health do
     %Board{
       id: "platform_health",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Platform Health Report",
       category: :generation,
       description:
@@ -313,7 +313,7 @@ defmodule ExCortex.Board.Generation do
   defp onboarding_brief do
     %Board{
       id: "onboarding_brief",
-      lobe: :tech,
+      lobe: :frontal,
       name: "Team Onboarding Brief",
       category: :generation,
       description:

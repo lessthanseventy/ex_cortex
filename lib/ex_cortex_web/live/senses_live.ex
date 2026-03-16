@@ -6,6 +6,7 @@ defmodule ExCortexWeb.SensesLive do
 
   alias ExCortex.Expressions
   alias ExCortex.Expressions.Expression
+  alias ExCortex.Lobe
   alias ExCortex.Repo
   alias ExCortex.Ruminations
   alias ExCortex.Senses.Reflex
@@ -15,12 +16,6 @@ defmodule ExCortexWeb.SensesLive do
 
   # Declare atoms so String.to_existing_atom/1 works at runtime
   @valid_tabs [:active, :reflexes, :streams, :digests, :expressions]
-
-  @lobe_labels %{
-    tech: "Synaptic — Dev & Tech",
-    business: "Cortical — Business & Finance",
-    lifestyle: "Limbic — Life & Culture"
-  }
 
   @impl true
   def mount(_params, _session, socket) do
@@ -100,19 +95,14 @@ defmodule ExCortexWeb.SensesLive do
   end
 
   defp group_by_lobe(items) do
+    lobe_order = %{frontal: 0, temporal: 1, parietal: 2, occipital: 3, limbic: 4, cerebellar: 5}
+
     items
     |> Enum.group_by(fn item -> item.lobe || :other end)
-    |> Enum.sort_by(fn {lobe, _} ->
-      case lobe do
-        :tech -> 0
-        :business -> 1
-        :lifestyle -> 2
-        _ -> 3
-      end
-    end)
+    |> Enum.sort_by(fn {lobe, _} -> Map.get(lobe_order, lobe, 99) end)
   end
 
-  defp lobe_label(lobe), do: Map.get(@lobe_labels, lobe, "Other")
+  defp lobe_label(lobe), do: Lobe.label(lobe)
 
   # ── Events ────────────────────────────────────────────────────────────────
 

@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.QualityCollective do
     ]
 
     %{
-      lobe: :tech,
+      lobe: :frontal,
       name: "Quality Collective",
       description:
         "Frontend quality and accessibility review cluster — audits UI code for WCAG compliance, code quality, and evidence-backed findings.",

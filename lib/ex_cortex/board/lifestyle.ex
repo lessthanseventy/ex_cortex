@@ -17,7 +17,7 @@ defmodule ExCortex.Board.Lifestyle do
   defp everyday_council do
     %Board{
       id: "everyday_council",
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Everyday Council",
       category: :lifestyle,
       description:
@@ -358,7 +358,7 @@ defmodule ExCortex.Board.Lifestyle do
   defp tech_dispatch do
     %Board{
       id: "tech_dispatch",
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Tech Dispatch",
       category: :lifestyle,
       description: "Daily and weekly technology news synthesis. Learns trends over time through accumulated memory.",
@@ -449,7 +449,7 @@ defmodule ExCortex.Board.Lifestyle do
   defp sports_corner do
     %Board{
       id: "sports_corner",
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Sports Corner",
       category: :lifestyle,
       description: "Daily sports digest — scores, storylines, and what it all means. Builds a narrative arc over time.",
@@ -536,7 +536,7 @@ defmodule ExCortex.Board.Lifestyle do
   defp market_signals do
     %Board{
       id: "market_signals",
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Market Signals",
       category: :lifestyle,
       description:
@@ -617,7 +617,7 @@ defmodule ExCortex.Board.Lifestyle do
   defp culture_desk do
     %Board{
       id: "culture_desk",
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Culture Desk",
       category: :lifestyle,
       description: "Entertainment, music, film, culture. The tabloid voice meets the historian's memory.",
@@ -702,7 +702,7 @@ defmodule ExCortex.Board.Lifestyle do
   defp science_watch do
     %Board{
       id: "science_watch",
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Science Watch",
       category: :lifestyle,
       description:

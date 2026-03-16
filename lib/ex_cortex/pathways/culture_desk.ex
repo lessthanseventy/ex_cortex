@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.CultureDesk do
     ]
 
     %{
-      lobe: :lifestyle,
+      lobe: :limbic,
       name: "Culture Desk",
       description: "Entertainment, music, film, culture. The tabloid voice meets the historian's memory.",
       roles: Enum.map(neurons, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),

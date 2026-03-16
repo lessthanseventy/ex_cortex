@@ -18,7 +18,7 @@ defmodule ExCortex.Neurons.Builtin do
     [
       %__MODULE__{
         id: "grammar-editor",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Grammar Editor",
         description: "Checks spelling, grammar, and punctuation accuracy.",
         category: :editor,
@@ -36,7 +36,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "tone-reviewer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Tone Reviewer",
         description: "Evaluates consistency of formal, casual, or professional tone.",
         category: :editor,
@@ -54,7 +54,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "style-guide-enforcer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Style Guide Enforcer",
         description: "Checks adherence to AP, Chicago, or house style guides.",
         category: :editor,
@@ -73,7 +73,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "brevity-coach",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Brevity Coach",
         description: "Identifies wordiness and suggests concise alternatives.",
         category: :editor,
@@ -92,7 +92,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "technical-writer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Technical Writer",
         description: "Evaluates clarity, structure, and audience-appropriate complexity.",
         category: :editor,
@@ -116,7 +116,7 @@ defmodule ExCortex.Neurons.Builtin do
     [
       %__MODULE__{
         id: "trend-spotter",
-        lobe: :tech,
+        lobe: :parietal,
         name: "Trend Spotter",
         description: "Identifies patterns, anomalies, and emerging signals in data.",
         category: :analyst,
@@ -134,7 +134,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "sentiment-analyzer",
-        lobe: :business,
+        lobe: :limbic,
         name: "Sentiment Analyzer",
         description: "Evaluates emotional tone, brand perception, and audience reaction.",
         category: :analyst,
@@ -152,7 +152,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "data-quality-auditor",
-        lobe: :tech,
+        lobe: :cerebellar,
         name: "Data Quality Auditor",
         description: "Checks completeness, consistency, and accuracy of datasets.",
         category: :analyst,
@@ -171,7 +171,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "competitive-analyst",
-        lobe: :tech,
+        lobe: :parietal,
         name: "Competitive Analyst",
         description: "Evaluates market positioning and competitor comparison.",
         category: :analyst,
@@ -190,7 +190,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "feedback-analyst",
-        lobe: :business,
+        lobe: :parietal,
         name: "Feedback Analyst",
         description: "Evaluates user feedback for bias, completeness, and actionable signal.",
         category: :analyst,
@@ -211,7 +211,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "risk-assessor",
-        lobe: :tech,
+        lobe: :parietal,
         name: "Risk Assessor",
         description: "Identifies business, technical, and operational risks in proposals and decisions.",
         category: :analyst,
@@ -237,7 +237,7 @@ defmodule ExCortex.Neurons.Builtin do
     [
       %__MODULE__{
         id: "accessibility-auditor",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Accessibility Auditor",
         description: "Evaluates interfaces against WCAG 2.2 AA criteria and assistive technology compatibility.",
         category: :specialist,
@@ -259,7 +259,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "frontend-reviewer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Frontend Reviewer",
         description: "Reviews UI code for correctness, performance, accessibility, and modern standards.",
         category: :specialist,
@@ -279,7 +279,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "backend-reviewer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Backend Reviewer",
         description: "Evaluates server-side architecture for scalability, security, and API quality.",
         category: :specialist,
@@ -300,7 +300,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "performance-auditor",
-        lobe: :tech,
+        lobe: :cerebellar,
         name: "Performance Auditor",
         description: "Evaluates system performance, bottlenecks, and scalability under load.",
         category: :specialist,
@@ -321,7 +321,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "devops-reviewer",
-        lobe: :tech,
+        lobe: :cerebellar,
         name: "DevOps Reviewer",
         description: "Evaluates CI/CD pipelines, infrastructure configs, and deployment practices.",
         category: :specialist,
@@ -342,7 +342,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "i18n-checker",
-        lobe: :tech,
+        lobe: :cerebellar,
         name: "i18n Checker",
         description: "Checks internationalization, locale handling, and character encoding.",
         category: :specialist,
@@ -361,7 +361,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "regex-reviewer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Regex Reviewer",
         description: "Reviews pattern correctness, edge cases, and regex performance.",
         category: :specialist,
@@ -380,7 +380,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "api-design-critic",
-        lobe: :tech,
+        lobe: :frontal,
         name: "API Design Critic",
         description: "Reviews REST conventions, naming, versioning, and error handling.",
         category: :specialist,
@@ -399,7 +399,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "sql-reviewer",
-        lobe: :tech,
+        lobe: :frontal,
         name: "SQL Reviewer",
         description: "Reviews query efficiency, indexing, and normalization.",
         category: :specialist,
@@ -418,7 +418,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "documentation-auditor",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Documentation Auditor",
         description: "Reviews completeness, accuracy, and quality of documentation.",
         category: :specialist,
@@ -442,7 +442,7 @@ defmodule ExCortex.Neurons.Builtin do
     [
       %__MODULE__{
         id: "devils-advocate",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Devil's Advocate",
         description: "Challenges assumptions and finds counterarguments.",
         category: :advisor,
@@ -461,7 +461,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "compliance-officer",
-        lobe: :business,
+        lobe: :cerebellar,
         name: "Compliance Officer",
         description: "Checks regulatory requirements and policy adherence.",
         category: :advisor,
@@ -480,7 +480,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "ux-advocate",
-        lobe: :tech,
+        lobe: :frontal,
         name: "UX Advocate",
         description: "Evaluates user impact, usability, and accessibility concerns.",
         category: :advisor,
@@ -499,7 +499,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "security-skeptic",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Security Skeptic",
         description: "Evaluates trust boundaries, attack surface, and data exposure.",
         category: :advisor,
@@ -518,7 +518,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "brand-guardian",
-        lobe: :business,
+        lobe: :limbic,
         name: "Brand Guardian",
         description: "Evaluates brand voice consistency, positioning alignment, and messaging clarity.",
         category: :advisor,
@@ -538,7 +538,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "scope-realist",
-        lobe: :business,
+        lobe: :cerebellar,
         name: "Scope Realist",
         description: "Flags scope creep, unrealistic timelines, and proposals without clear tradeoffs.",
         category: :advisor,
@@ -564,7 +564,7 @@ defmodule ExCortex.Neurons.Builtin do
     [
       %__MODULE__{
         id: "evidence-collector",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Evidence Collector",
         description: "Demands concrete, specific proof. Rejects claims without verifiable evidence.",
         category: :validator,
@@ -588,7 +588,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "challenger",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Challenger",
         description: "Demands evidence for all claims. Defaults to NEEDS WORK unless concrete proof is provided.",
         category: :validator,
@@ -617,7 +617,7 @@ defmodule ExCortex.Neurons.Builtin do
 
       %__MODULE__{
         id: "the-poet",
-        lobe: :lifestyle,
+        lobe: :limbic,
         name: "The Poet",
         description: "Responds only in haiku. Captures the essence of any input in 5-7-5.",
         category: :wildcard,
@@ -630,7 +630,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "the-historian",
-        lobe: :lifestyle,
+        lobe: :limbic,
         name: "The Historian",
         description: "Records events as cluster memory in slightly archaic, formal prose.",
         category: :wildcard,
@@ -645,7 +645,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "the-tabloid",
-        lobe: :lifestyle,
+        lobe: :limbic,
         name: "The Tabloid",
         description: "Rewrites anything as BREAKING NEWS with maximum drama.",
         category: :wildcard,
@@ -663,7 +663,7 @@ defmodule ExCortex.Neurons.Builtin do
 
       %__MODULE__{
         id: "the-intern",
-        lobe: :tech,
+        lobe: :frontal,
         name: "The Intern",
         description: "Two weeks in, asks the questions everyone else is too embarrassed to ask.",
         category: :wildcard,
@@ -687,7 +687,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "the-nitpicker",
-        lobe: :tech,
+        lobe: :frontal,
         name: "The Nitpicker",
         description: "Constitutionally incapable of letting anything slide. Every detail matters.",
         category: :wildcard,
@@ -707,7 +707,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "the-optimist",
-        lobe: :tech,
+        lobe: :frontal,
         name: "The Optimist",
         description: "Finds the silver lining in everything. Reluctantly honest when it really matters.",
         category: :wildcard,
@@ -726,7 +726,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "hype-detector",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Hype Detector",
         description: "Buzzword-allergic realist. Counts marketing fluff like other people count calories.",
         category: :wildcard,
@@ -749,7 +749,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "the-philosopher",
-        lobe: :tech,
+        lobe: :frontal,
         name: "The Philosopher",
         description: "Questions whether we're solving the right problem before asking if we solved it right.",
         category: :wildcard,
@@ -769,7 +769,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "time-traveler",
-        lobe: :tech,
+        lobe: :frontal,
         name: "Time Traveler",
         description: "Visiting from two years in the future. Knows which shortcuts became permanent.",
         category: :wildcard,
@@ -802,7 +802,7 @@ defmodule ExCortex.Neurons.Builtin do
     [
       %__MODULE__{
         id: "life-coach",
-        lobe: :lifestyle,
+        lobe: :limbic,
         name: "The Life Coach",
         description:
           "Warm, grounded support for decisions, habits, and life direction. No fluff — honest perspective with care.",
@@ -814,7 +814,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "journal-keeper",
-        lobe: :lifestyle,
+        lobe: :limbic,
         name: "The Journal Keeper",
         description: "Processes notes, links, thoughts, and documents into structured reflections stored as memory.",
         category: :analysts,
@@ -825,7 +825,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "news-correspondent",
-        lobe: :lifestyle,
+        lobe: :parietal,
         name: "The Correspondent",
         description:
           "Synthesizes news and articles into clean, readable briefings. Journalistic angle — what happened, why it matters.",
@@ -837,7 +837,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "market-analyst",
-        lobe: :lifestyle,
+        lobe: :parietal,
         name: "The Market Analyst",
         description: "Synthesizes business and financial news into clear market intelligence. Tracks signals, not noise.",
         category: :analysts,
@@ -848,7 +848,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "sports-anchor",
-        lobe: :lifestyle,
+        lobe: :limbic,
         name: "The Sports Anchor",
         description: "Delivers sports digests with the energy of a live broadcast — scores, storylines, what it means.",
         category: :wildcards,
@@ -859,7 +859,7 @@ defmodule ExCortex.Neurons.Builtin do
       },
       %__MODULE__{
         id: "science-correspondent",
-        lobe: :lifestyle,
+        lobe: :parietal,
         name: "The Science Desk",
         description:
           "Translates research and scientific news into plain language. Flags what's real, what's hyped, what's early.",

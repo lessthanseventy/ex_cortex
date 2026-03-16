@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.PerformanceAudit do
 
   def metadata do
     %{
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Performance Audit",
       description: "Multi-agent performance analysis and resource optimization pipeline",
       roles: [

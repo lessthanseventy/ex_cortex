@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.Skeptics do
     ]
 
     %{
-      lobe: :tech,
+      lobe: :frontal,
       name: "The Skeptics",
       description:
         "Pure skepticism cluster — challenges every claim, demands evidence, and deflates hype before it ships.",

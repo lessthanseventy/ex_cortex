@@ -15,7 +15,7 @@ defmodule ExCortex.Board.Reporting do
   defp weekly_security_digest do
     %Board{
       id: "weekly_security_digest",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Weekly Security Digest",
       category: :reporting,
       description:
@@ -85,7 +85,7 @@ defmodule ExCortex.Board.Reporting do
   defp daily_standup_report do
     %Board{
       id: "daily_standup_report",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Daily AI Standup",
       category: :reporting,
       description:
@@ -149,7 +149,7 @@ defmodule ExCortex.Board.Reporting do
   defp sprint_code_quality_summary do
     %Board{
       id: "sprint_code_quality_summary",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Sprint Code Quality Report",
       category: :reporting,
       description:
@@ -219,7 +219,7 @@ defmodule ExCortex.Board.Reporting do
   defp monthly_risk_summary do
     %Board{
       id: "monthly_risk_summary",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Monthly Risk Executive Summary",
       category: :reporting,
       description:

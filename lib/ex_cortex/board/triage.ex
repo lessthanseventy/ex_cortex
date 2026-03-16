@@ -16,7 +16,7 @@ defmodule ExCortex.Board.Triage do
   defp jira_ticket_triage do
     %Board{
       id: "jira_ticket_triage",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Jira Ticket Triage",
       category: :triage,
       description:
@@ -93,7 +93,7 @@ defmodule ExCortex.Board.Triage do
   defp github_issue_triage do
     %Board{
       id: "github_issue_triage",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "GitHub Issue Triage",
       category: :triage,
       description:
@@ -153,7 +153,7 @@ defmodule ExCortex.Board.Triage do
   defp error_monitor do
     %Board{
       id: "error_monitor",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Error Monitor & Page",
       category: :triage,
       description:
@@ -227,7 +227,7 @@ defmodule ExCortex.Board.Triage do
   defp feedback_triage do
     %Board{
       id: "feedback_triage",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Feedback Triage",
       category: :triage,
       description:
@@ -298,7 +298,7 @@ defmodule ExCortex.Board.Triage do
   defp feed_threat_triage do
     %Board{
       id: "feed_threat_triage",
-      lobe: :tech,
+      lobe: :cerebellar,
       name: "Threat Feed Monitor",
       category: :triage,
       description:

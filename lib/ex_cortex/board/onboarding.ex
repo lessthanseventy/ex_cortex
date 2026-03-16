@@ -15,7 +15,7 @@ defmodule ExCortex.Board.Onboarding do
   defp team_health_check do
     %Board{
       id: "team_health_check",
-      lobe: :business,
+      lobe: :parietal,
       name: "Team Health Check",
       category: :onboarding,
       description:
@@ -73,7 +73,7 @@ defmodule ExCortex.Board.Onboarding do
   defp codebase_first_look do
     %Board{
       id: "codebase_first_look",
-      lobe: :business,
+      lobe: :parietal,
       name: "Codebase First Look",
       category: :onboarding,
       description:
@@ -133,7 +133,7 @@ defmodule ExCortex.Board.Onboarding do
   defp security_baseline_scan do
     %Board{
       id: "security_baseline_scan",
-      lobe: :business,
+      lobe: :parietal,
       name: "Security Baseline Scan",
       category: :onboarding,
       description:
@@ -209,7 +209,7 @@ defmodule ExCortex.Board.Onboarding do
   defp knowledge_base_bootstrap do
     %Board{
       id: "knowledge_base_bootstrap",
-      lobe: :business,
+      lobe: :parietal,
       name: "Knowledge Base Bootstrap",
       category: :onboarding,
       description:

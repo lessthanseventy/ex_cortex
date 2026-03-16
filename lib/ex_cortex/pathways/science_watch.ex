@@ -18,7 +18,7 @@ defmodule ExCortex.Pathways.ScienceWatch do
     ]
 
     %{
-      lobe: :lifestyle,
+      lobe: :parietal,
       name: "Science Watch",
       description:
         "Research and discovery synthesis. Translates science into plain language, separates signal from hype.",
