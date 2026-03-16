@@ -3,7 +3,7 @@ defmodule Mix.Tasks.Email.Archive do
   Archive emails from a given year into an Archive_YYYY Maildir folder.
 
   Finds all emails tagged `archive` (or still in inbox) for the given year,
-  moves them to `~/mail/zoho/Archive_YYYY/cur/`, strips UIDs from filenames,
+  moves them to `<mail_root>/Archive_YYYY/cur/`, strips UIDs from filenames,
   and tags them `+archive -inbox`.
 
   ## Usage
@@ -19,10 +19,10 @@ defmodule Mix.Tasks.Email.Archive do
 
   require Logger
 
-  @mail_root Path.expand("~/mail/zoho")
-
   @impl true
   def run(args) do
+    Mix.Task.run("app.start")
+
     year =
       case args do
         [y | _] -> String.to_integer(y)
@@ -30,11 +30,11 @@ defmodule Mix.Tasks.Email.Archive do
       end
 
     folder = "Archive_#{year}"
-    dest_cur = Path.join([@mail_root, folder, "cur"])
+    dest_cur = Path.join([mail_root(), folder, "cur"])
 
     # Create Maildir structure
     for sub <- ["cur", "new", "tmp"] do
-      File.mkdir_p!(Path.join([@mail_root, folder, sub]))
+      File.mkdir_p!(Path.join([mail_root(), folder, sub]))
     end
 
     # Tag any inbox emails from this year as archive
@@ -80,5 +80,10 @@ defmodule Mix.Tasks.Email.Archive do
 
       Mix.shell().info("Archived #{count} files → #{folder}/")
     end
+  end
+
+  defp mail_root do
+    base = ExCortex.Settings.resolve(:mail_root, env_var: "MAIL_ROOT", default: Path.expand("~/mail"))
+    ExCortex.Tools.EmailMove.find_account_root(base)
   end
 end

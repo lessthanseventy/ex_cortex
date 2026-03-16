@@ -3,8 +3,6 @@ defmodule ExCortex.Tools.EmailMove do
 
   require Logger
 
-  @mail_root "#{System.get_env("HOME")}/mail/zoho"
-
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "email_move",
@@ -43,19 +41,22 @@ defmodule ExCortex.Tools.EmailMove do
     # notmuch's database.mail_root is the top-level mail dir (e.g. ~/mail)
     # but Maildir folders live inside the account subdir (e.g. ~/mail/zoho/)
     # Use the first subdirectory that contains an Inbox as the actual root
+    fallback = ExCortex.Settings.resolve(:mail_root, env_var: "MAIL_ROOT", default: Path.expand("~/mail"))
+
     case System.cmd("notmuch", ["config", "get", "database.mail_root"], stderr_to_stdout: true) do
       {path, 0} ->
         base = String.trim(path)
         find_account_root(base)
 
       _ ->
-        @mail_root
+        fallback
     end
   rescue
-    _ -> @mail_root
+    _ -> Path.expand("~/mail")
   end
 
-  defp find_account_root(base) do
+  @doc "Find the account subdirectory inside a mail root (the one containing an Inbox)."
+  def find_account_root(base) do
     case File.ls(base) do
       {:ok, entries} ->
         account =

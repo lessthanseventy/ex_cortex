@@ -20,8 +20,8 @@ defmodule ExCortex.LLM.CircuitBreakerTest do
       assert Ollama.empty_result?("[]\n")
     end
 
-    test "detects error string" do
-      assert Ollama.empty_result?("Error: something failed")
+    test "errors are NOT empty (tool ran but call-specific failure)" do
+      refute Ollama.empty_result?("Error: something failed")
     end
 
     test "rejects non-empty content" do

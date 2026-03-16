@@ -39,11 +39,12 @@ defmodule ExCortex.Ruminations.Runner.GuardrailsIntegrationTest do
   end
 
   describe "circuit breaker" do
-    test "empty_result? detects empty strings" do
+    test "empty_result? detects empty strings but not errors" do
       assert Ollama.empty_result?("")
       assert Ollama.empty_result?("[]")
       assert Ollama.empty_result?("[]\n")
-      assert Ollama.empty_result?("Error: something went wrong")
+      # Errors are NOT empty — the tool ran but the specific call failed
+      refute Ollama.empty_result?("Error: something went wrong")
       refute Ollama.empty_result?("some actual content")
     end
 

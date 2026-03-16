@@ -14,7 +14,7 @@ defmodule ExCortex.Tools.SearchEmail do
       - "tags": list all available tags (ignores query). Call this first to discover tag names.
       - "folders": list all available mail folders (ignores query). Call this first to discover folder paths.
 
-      IMPORTANT: Folder paths include the account prefix, e.g. folder:zoho/Sent NOT folder:Sent.
+      IMPORTANT: Folder paths include the account prefix (e.g. folder:account/Sent NOT folder:Sent).
       Always use "folders" output first to discover the correct paths before querying by folder.
 
       Query syntax:

@@ -3,7 +3,11 @@ defmodule ExCortex.Tools.EmailArchiveYear do
 
   require Logger
 
-  @mail_root Path.expand("~/mail/zoho")
+  defp mail_root do
+    :mail_root
+    |> ExCortex.Settings.resolve(env_var: "MAIL_ROOT", default: Path.expand("~/mail"))
+    |> ExCortex.Tools.EmailMove.find_account_root()
+  end
 
   def req_llm_tool do
     ReqLLM.Tool.new!(
@@ -27,10 +31,10 @@ defmodule ExCortex.Tools.EmailArchiveYear do
 
   def call(%{"year" => year}) when is_integer(year) do
     folder = "ZZZ_Archive_#{year}"
-    dest_cur = Path.join([@mail_root, folder, "cur"])
+    dest_cur = Path.join([mail_root(), folder, "cur"])
 
     for sub <- ["cur", "new", "tmp"] do
-      File.mkdir_p!(Path.join([@mail_root, folder, sub]))
+      File.mkdir_p!(Path.join([mail_root(), folder, sub]))
     end
 
     # Tag inbox emails from this year as archive

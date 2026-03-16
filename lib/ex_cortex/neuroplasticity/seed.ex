@@ -134,7 +134,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
         ## MANDATORY workflow — follow in order, every step required:
 
         **Step 1 — setup_worktree(issue_id: "<N>")**
-        Do this FIRST. It returns a worktree path like `/home/andrew/projects/ex_cortex/.worktrees/N`.
+        Do this FIRST. It returns a worktree path like `<project_root>/.worktrees/N`.
         Save this path — you MUST pass it as `working_dir` to EVERY subsequent tool call.
         NEVER write, commit, or push without working_dir. NEVER use the main repo path.
 
