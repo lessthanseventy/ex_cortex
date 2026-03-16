@@ -1,27 +1,30 @@
-<p align="center">
-  <img src="priv/static/images/logo.svg" width="128" alt="ExCortex logo" />
+<table width="100%" align="center" cellspacing="0" cellpadding="0">
+<tr><td align="center" bgcolor="#0d0906">
+<br/>
+<img src="priv/static/images/logo.svg" width="148" alt="ExCortex logo" />
+<br/>
+<h1><picture><img src="https://img.shields.io/badge/%20-ExCortex-FFB000?style=flat-square&labelColor=0d0906&color=0d0906" alt="ExCortex" /></picture></h1>
+<p>
+<img src="https://img.shields.io/badge/self--improving_AI_agent_platform-0d0906?style=flat-square&labelColor=0d0906" alt="A self-improving AI agent platform" />
 </p>
-
-<h1 align="center">ExCortex</h1>
-
-<p align="center">
-  <strong>A self-improving AI agent platform that runs entirely on your machine.</strong>
+<p>
+<img src="https://img.shields.io/badge/Elixir-1.15+-FFB000?style=flat-square&logo=elixir&logoColor=FFB000&labelColor=1a1208" alt="Elixir 1.15+" />
+<img src="https://img.shields.io/badge/Phoenix-1.8-FFB000?style=flat-square&logo=phoenixframework&logoColor=FFB000&labelColor=1a1208" alt="Phoenix 1.8" />
+<img src="https://img.shields.io/badge/LiveView-1.1-FFB000?style=flat-square&labelColor=1a1208" alt="LiveView 1.1" />
+<img src="https://img.shields.io/badge/Ollama-local_LLMs-33ff00?style=flat-square&logo=ollama&logoColor=33ff00&labelColor=1a1208" alt="Ollama" />
+<img src="https://img.shields.io/badge/PostgreSQL-16-33ff00?style=flat-square&logo=postgresql&logoColor=33ff00&labelColor=1a1208" alt="PostgreSQL" />
+<img src="https://img.shields.io/badge/License-MIT-FFB000?style=flat-square&labelColor=1a1208" alt="MIT License" />
 </p>
+<br/>
+</td></tr>
+</table>
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Elixir-1.15+-4B275F?logo=elixir&logoColor=white" alt="Elixir 1.15+" />
-  <img src="https://img.shields.io/badge/Phoenix-1.8-FD4F00?logo=phoenixframework&logoColor=white" alt="Phoenix 1.8" />
-  <img src="https://img.shields.io/badge/LiveView-1.1-FD4F00" alt="LiveView 1.1" />
-  <img src="https://img.shields.io/badge/Ollama-local_LLMs-333333?logo=ollama" alt="Ollama" />
-  <img src="https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT License" />
-</p>
+<br/>
 
----
+> **No cloud. No SaaS. No data leaving your network.**
+> Just local LLMs, a Postgres database, and a Phoenix LiveView UI that updates in real time as your agents think.
 
 ExCortex is an AI agent orchestration platform with a biological nervous system metaphor baked into every layer. You define teams of agents (clusters of neurons), wire them to your data sources (senses), and they work autonomously — reviewing code, triaging incidents, summarizing feeds, filing bugs, and then improving the system itself.
-
-No cloud. No SaaS. No data leaving your network. Just local LLMs, a Postgres database, and a Phoenix LiveView UI that updates in real time as your agents think.
 
 **The headline feature:** ExCortex includes a Dev Team that reads its own GitHub issues, writes fixes, reviews its own code, runs the test suite, and merges approved changes. It literally gets better while you sleep.
 
@@ -563,6 +566,10 @@ See [CLAUDE.md](CLAUDE.md) for full contributor conventions.
 
 ---
 
-<p align="center">
-  <sub>Built with Elixir, Phoenix, and an unreasonable amount of brain metaphors.</sub>
-</p>
+<table width="100%" align="center" cellspacing="0" cellpadding="0">
+<tr><td align="center" bgcolor="#0d0906">
+<br/>
+<sub>Built with Elixir, Phoenix, and an unreasonable amount of brain metaphors.</sub>
+<br/><br/>
+</td></tr>
+</table>

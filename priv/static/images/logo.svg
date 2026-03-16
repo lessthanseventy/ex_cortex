@@ -31,6 +31,9 @@
     <!-- Thought-stream animation would go here in CSS -->
   </defs>
 
+  <!-- Background -->
+  <rect width="128" height="128" rx="12" fill="#0d0906"/>
+
   <!-- === LAYER 0: The void it thinks into === -->
   <circle cx="64" cy="62" r="60" fill="url(#void)"/>
   <circle cx="64" cy="62" r="50" fill="url(#awareness)"/>
