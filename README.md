@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="priv/static/images/logo.svg" width="80" alt="ExCortex logo" />
+  <img src="priv/static/images/logo.svg" width="128" alt="ExCortex logo" />
 </p>
 
 <h1 align="center">ExCortex</h1>
