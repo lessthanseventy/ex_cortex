@@ -25,7 +25,16 @@ defmodule ExCortexWeb.MuseLive do
     messages = socket.assigns.messages ++ [%{role: "user", content: question}]
     socket = assign(socket, messages: messages)
 
-    Task.async(fn -> Muse.ask(question, scope: "muse", source_filters: source_filters) end)
+    # Pass prior conversation turns for multi-turn coherence (exclude current question — Muse adds it)
+    history =
+      messages
+      |> Enum.take(length(messages) - 1)
+      |> Enum.map(&Map.take(&1, [:role, :content]))
+
+    Task.async(fn ->
+      Muse.ask(question, scope: "muse", source_filters: source_filters, history: history)
+    end)
+
     {:noreply, socket}
   end
 

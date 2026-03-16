@@ -35,6 +35,7 @@ defmodule ExCortex.Muse do
     scope = Keyword.get(opts, :scope, "muse")
     source_filters = Keyword.get(opts, :source_filters, [])
     model = Keyword.get(opts, :model, resolve_model())
+    history = Keyword.get(opts, :history, [])
 
     {system_prompt, context} =
       case scope do
@@ -47,12 +48,12 @@ defmodule ExCortex.Muse do
     result =
       case scope do
         "wonder" ->
-          Ollama.complete(model, system_prompt, user_text)
+          Ollama.complete(model, system_prompt, user_text, history: history)
 
         _ ->
           tools = Registry.list_safe()
 
-          case Ollama.complete_with_tools(model, system_prompt, user_text, tools) do
+          case Ollama.complete_with_tools(model, system_prompt, user_text, tools, history: history) do
             {:ok, answer, _tool_log} -> {:ok, answer}
             {:error, reason, _tool_log} -> {:error, reason}
             {:error, reason} -> {:error, reason}

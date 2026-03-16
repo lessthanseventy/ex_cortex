@@ -17,11 +17,12 @@ defmodule ExCortex.LLM.Ollama do
     ollama = client(opts)
     chain = Keyword.get(opts, :fallback_chain, Application.get_env(:ex_cortex, :model_fallback_chain, []))
     models = fallback_models_for(model, chain)
+    history = opts |> Keyword.get(:history, []) |> normalize_history(:atom)
 
-    messages = [
-      %{role: :system, content: system_prompt},
-      %{role: :user, content: user_text}
-    ]
+    messages =
+      [%{role: :system, content: system_prompt}] ++
+        history ++
+        [%{role: :user, content: user_text}]
 
     Tracer.with_span "llm.complete", %{
       attributes: %{
@@ -72,11 +73,12 @@ defmodule ExCortex.LLM.Ollama do
     chain = Keyword.get(opts, :fallback_chain, Application.get_env(:ex_cortex, :model_fallback_chain, []))
     models = fallback_models_for(model, chain)
     ollama_tools = Enum.map(tools, &ReqLLM.Schema.to_openai_format/1)
+    history = opts |> Keyword.get(:history, []) |> normalize_history(:string)
 
-    messages = [
-      %{role: "system", content: system_prompt},
-      %{role: "user", content: user_text}
-    ]
+    messages =
+      [%{role: "system", content: system_prompt}] ++
+        history ++
+        [%{role: "user", content: user_text}]
 
     max_iter = Keyword.get(opts, :max_tool_iterations, @max_tool_iterations)
 
@@ -353,6 +355,24 @@ defmodule ExCortex.LLM.Ollama do
     else
       {:ok, Map.put(breaker_state, tool_name, 0)}
     end
+  end
+
+  # Normalize conversation history messages to the role format the caller needs.
+  # `complete` uses atom roles (:user, :assistant), `complete_with_tools` uses string roles.
+  defp normalize_history(history, role_type) do
+    Enum.map(history, fn msg ->
+      role =
+        case {msg[:role] || msg["role"], role_type} do
+          {"user", :atom} -> :user
+          {"assistant", :atom} -> :assistant
+          {role, :atom} when is_atom(role) -> role
+          {role, :string} when is_binary(role) -> role
+          {role, :string} when is_atom(role) -> Atom.to_string(role)
+          {role, :atom} when is_binary(role) -> String.to_existing_atom(role)
+        end
+
+      %{role: role, content: msg[:content] || msg["content"] || ""}
+    end)
   end
 
   defp client(opts) do
