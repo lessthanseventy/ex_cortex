@@ -9,13 +9,15 @@ defmodule ExCortex.Muse do
   alias ExCortex.LLM.Ollama
   alias ExCortex.Memory
   alias ExCortex.Thoughts
+  alias ExCortex.Tools.Registry
 
   require Logger
 
   @system_prompt """
-  You are a helpful assistant with access to the user's personal knowledge base.
-  Answer questions concisely and accurately. If the provided context doesn't help
-  answer the question, say so honestly rather than guessing.
+  You are a helpful assistant with access to the user's personal knowledge base and a set of tools.
+  Answer questions concisely and accurately. Use your tools to look up information the user asks about —
+  search email, query memory, fetch URLs, read files, etc. If neither the provided context nor your
+  tools can answer the question, say so honestly rather than guessing.
   """
 
   @wonder_system_prompt """
@@ -42,7 +44,22 @@ defmodule ExCortex.Muse do
 
     user_text = build_user_text(context, question)
 
-    case Ollama.complete(model, system_prompt, user_text) do
+    result =
+      case scope do
+        "wonder" ->
+          Ollama.complete(model, system_prompt, user_text)
+
+        _ ->
+          tools = Registry.list_safe()
+
+          case Ollama.complete_with_tools(model, system_prompt, user_text, tools) do
+            {:ok, answer, _tool_log} -> {:ok, answer}
+            {:error, reason, _tool_log} -> {:error, reason}
+            {:error, reason} -> {:error, reason}
+          end
+      end
+
+    case result do
       {:ok, answer} ->
         Thoughts.create_thought(%{
           question: question,
@@ -60,12 +77,41 @@ defmodule ExCortex.Muse do
 
   @doc "Gather RAG context from engrams and axioms."
   def gather_context(question, filters \\ []) do
+    source_context = gather_source_context()
     engram_context = gather_engram_context(question, filters)
     axiom_context = gather_axiom_context(question)
 
-    [engram_context, axiom_context]
+    [source_context, engram_context, axiom_context]
     |> Enum.reject(&(&1 == ""))
     |> Enum.join("\n\n---\n\n")
+  end
+
+  defp gather_source_context do
+    import Ecto.Query
+
+    senses =
+      from(s in ExCortex.Senses.Sense, where: s.status == "active", order_by: s.name)
+      |> ExCortex.Repo.all()
+      |> Enum.map(fn s ->
+        last =
+          if s.last_run_at,
+            do: " (last checked #{Calendar.strftime(s.last_run_at, "%Y-%m-%d %H:%M")})",
+            else: ""
+
+        "- #{s.source_type}: \"#{s.name}\"#{last}"
+      end)
+
+    axioms =
+      Enum.map(ExCortex.Lexicon.list_axioms(), fn a -> "- #{a.name}" end)
+
+    engram_count = ExCortex.Repo.aggregate(ExCortex.Memory.Engram, :count)
+
+    sections = ["## Available Data Sources"]
+    sections = if senses == [], do: sections, else: sections ++ ["### Senses\n" <> Enum.join(senses, "\n")]
+    sections = if axioms == [], do: sections, else: sections ++ ["### Axioms\n" <> Enum.join(axioms, "\n")]
+    sections = sections ++ ["### Memory\n- #{engram_count} engrams in store"]
+
+    Enum.join(sections, "\n\n")
   end
 
   defp gather_engram_context(question, filters) do
