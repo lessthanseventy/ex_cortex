@@ -1,7 +1,7 @@
-defmodule ExCortex.Board.Generation do
+defmodule ExCortex.Praxis.Generation do
   @moduledoc "On-demand artifact generation thought templates."
 
-  alias ExCortex.Board
+  alias ExCortex.Praxis
 
   def templates do
     [
@@ -15,7 +15,7 @@ defmodule ExCortex.Board.Generation do
   end
 
   defp incident_postmortem do
-    %Board{
+    %Praxis{
       id: "incident_postmortem",
       lobe: :frontal,
       name: "Incident Postmortem",
@@ -67,7 +67,7 @@ defmodule ExCortex.Board.Generation do
   end
 
   defp release_notes do
-    %Board{
+    %Praxis{
       id: "release_notes",
       lobe: :frontal,
       name: "Release Notes Generator",
@@ -125,7 +125,7 @@ defmodule ExCortex.Board.Generation do
   end
 
   defp threat_model_report do
-    %Board{
+    %Praxis{
       id: "threat_model_report",
       lobe: :frontal,
       name: "Threat Model Report",
@@ -192,7 +192,7 @@ defmodule ExCortex.Board.Generation do
   end
 
   defp weekly_digest do
-    %Board{
+    %Praxis{
       id: "weekly_digest",
       lobe: :frontal,
       name: "Weekly Intelligence Digest",
@@ -254,7 +254,7 @@ defmodule ExCortex.Board.Generation do
   end
 
   defp platform_health do
-    %Board{
+    %Praxis{
       id: "platform_health",
       lobe: :frontal,
       name: "Platform Health Report",
@@ -311,7 +311,7 @@ defmodule ExCortex.Board.Generation do
   end
 
   defp onboarding_brief do
-    %Board{
+    %Praxis{
       id: "onboarding_brief",
       lobe: :frontal,
       name: "Team Onboarding Brief",

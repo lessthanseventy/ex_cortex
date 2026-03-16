@@ -1,7 +1,7 @@
-defmodule ExCortex.Board.Reporting do
+defmodule ExCortex.Praxis.Reporting do
   @moduledoc "Scheduled reporting and digest thought templates."
 
-  alias ExCortex.Board
+  alias ExCortex.Praxis
 
   def templates do
     [
@@ -13,7 +13,7 @@ defmodule ExCortex.Board.Reporting do
   end
 
   defp weekly_security_digest do
-    %Board{
+    %Praxis{
       id: "weekly_security_digest",
       lobe: :cerebellar,
       name: "Weekly Security Digest",
@@ -83,7 +83,7 @@ defmodule ExCortex.Board.Reporting do
   end
 
   defp daily_standup_report do
-    %Board{
+    %Praxis{
       id: "daily_standup_report",
       lobe: :cerebellar,
       name: "Daily AI Standup",
@@ -147,7 +147,7 @@ defmodule ExCortex.Board.Reporting do
   end
 
   defp sprint_code_quality_summary do
-    %Board{
+    %Praxis{
       id: "sprint_code_quality_summary",
       lobe: :cerebellar,
       name: "Sprint Code Quality Report",
@@ -217,7 +217,7 @@ defmodule ExCortex.Board.Reporting do
   end
 
   defp monthly_risk_summary do
-    %Board{
+    %Praxis{
       id: "monthly_risk_summary",
       lobe: :cerebellar,
       name: "Monthly Risk Executive Summary",

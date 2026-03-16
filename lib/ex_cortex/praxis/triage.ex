@@ -1,7 +1,7 @@
-defmodule ExCortex.Board.Triage do
+defmodule ExCortex.Praxis.Triage do
   @moduledoc "Source-triggered triage thought templates."
 
-  alias ExCortex.Board
+  alias ExCortex.Praxis
 
   def templates do
     [
@@ -14,7 +14,7 @@ defmodule ExCortex.Board.Triage do
   end
 
   defp jira_ticket_triage do
-    %Board{
+    %Praxis{
       id: "jira_ticket_triage",
       lobe: :cerebellar,
       name: "Jira Ticket Triage",
@@ -91,7 +91,7 @@ defmodule ExCortex.Board.Triage do
   end
 
   defp github_issue_triage do
-    %Board{
+    %Praxis{
       id: "github_issue_triage",
       lobe: :cerebellar,
       name: "GitHub Issue Triage",
@@ -151,7 +151,7 @@ defmodule ExCortex.Board.Triage do
   end
 
   defp error_monitor do
-    %Board{
+    %Praxis{
       id: "error_monitor",
       lobe: :cerebellar,
       name: "Error Monitor & Page",
@@ -225,7 +225,7 @@ defmodule ExCortex.Board.Triage do
   end
 
   defp feedback_triage do
-    %Board{
+    %Praxis{
       id: "feedback_triage",
       lobe: :cerebellar,
       name: "Feedback Triage",
@@ -296,7 +296,7 @@ defmodule ExCortex.Board.Triage do
   end
 
   defp feed_threat_triage do
-    %Board{
+    %Praxis{
       id: "feed_threat_triage",
       lobe: :cerebellar,
       name: "Threat Feed Monitor",

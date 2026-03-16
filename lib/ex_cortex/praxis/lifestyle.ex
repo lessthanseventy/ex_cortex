@@ -1,7 +1,7 @@
-defmodule ExCortex.Board.Lifestyle do
-  @moduledoc "Life-use cluster board templates for digest-driven and advisory workflows."
+defmodule ExCortex.Praxis.Lifestyle do
+  @moduledoc "Life-use cluster praxis templates for digest-driven and advisory workflows."
 
-  alias ExCortex.Board
+  alias ExCortex.Praxis
 
   def templates do
     [
@@ -15,7 +15,7 @@ defmodule ExCortex.Board.Lifestyle do
   end
 
   defp everyday_council do
-    %Board{
+    %Praxis{
       id: "everyday_council",
       lobe: :limbic,
       name: "Everyday Council",
@@ -356,7 +356,7 @@ defmodule ExCortex.Board.Lifestyle do
   end
 
   defp tech_dispatch do
-    %Board{
+    %Praxis{
       id: "tech_dispatch",
       lobe: :limbic,
       name: "Tech Dispatch",
@@ -447,7 +447,7 @@ defmodule ExCortex.Board.Lifestyle do
   end
 
   defp sports_corner do
-    %Board{
+    %Praxis{
       id: "sports_corner",
       lobe: :limbic,
       name: "Sports Corner",
@@ -534,7 +534,7 @@ defmodule ExCortex.Board.Lifestyle do
   end
 
   defp market_signals do
-    %Board{
+    %Praxis{
       id: "market_signals",
       lobe: :limbic,
       name: "Market Signals",
@@ -615,7 +615,7 @@ defmodule ExCortex.Board.Lifestyle do
   end
 
   defp culture_desk do
-    %Board{
+    %Praxis{
       id: "culture_desk",
       lobe: :limbic,
       name: "Culture Desk",
@@ -700,7 +700,7 @@ defmodule ExCortex.Board.Lifestyle do
   end
 
   defp science_watch do
-    %Board{
+    %Praxis{
       id: "science_watch",
       lobe: :limbic,
       name: "Science Watch",

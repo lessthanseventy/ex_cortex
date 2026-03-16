@@ -1,7 +1,7 @@
-defmodule ExCortex.Board.Onboarding do
+defmodule ExCortex.Praxis.Onboarding do
   @moduledoc "Initial setup and orientation thought templates."
 
-  alias ExCortex.Board
+  alias ExCortex.Praxis
 
   def templates do
     [
@@ -13,7 +13,7 @@ defmodule ExCortex.Board.Onboarding do
   end
 
   defp team_health_check do
-    %Board{
+    %Praxis{
       id: "team_health_check",
       lobe: :parietal,
       name: "Team Health Check",
@@ -71,7 +71,7 @@ defmodule ExCortex.Board.Onboarding do
   end
 
   defp codebase_first_look do
-    %Board{
+    %Praxis{
       id: "codebase_first_look",
       lobe: :parietal,
       name: "Codebase First Look",
@@ -131,7 +131,7 @@ defmodule ExCortex.Board.Onboarding do
   end
 
   defp security_baseline_scan do
-    %Board{
+    %Praxis{
       id: "security_baseline_scan",
       lobe: :parietal,
       name: "Security Baseline Scan",
@@ -207,7 +207,7 @@ defmodule ExCortex.Board.Onboarding do
   end
 
   defp knowledge_base_bootstrap do
-    %Board{
+    %Praxis{
       id: "knowledge_base_bootstrap",
       lobe: :parietal,
       name: "Knowledge Base Bootstrap",

@@ -1,6 +1,6 @@
-defmodule ExCortex.Board do
+defmodule ExCortex.Praxis do
   @moduledoc """
-  Pre-configured rumination templates for the Rumination Board.
+  Pre-configured rumination templates for the Praxis.
 
   Templates are organized by category and declare hard requirements
   (source types and expression types that must be configured) so the UI
@@ -231,14 +231,14 @@ defmodule ExCortex.Board do
 
     case ExCortex.Ruminations.create_synapse(attrs) do
       {:ok, step} ->
-        Logger.debug("[Board] Created step #{step.id} (#{step.name})")
+        Logger.debug("[Praxis] Created step #{step.id} (#{step.name})")
 
       {:error, changeset} ->
         if unique_name_conflict?(changeset) do
-          Logger.debug("[Board] Step already exists: #{attrs[:name] || attrs["name"]}")
+          Logger.debug("[Praxis] Step already exists: #{attrs[:name] || attrs["name"]}")
         else
           Logger.warning(
-            "[Board] Failed to create step #{inspect(attrs[:name] || attrs["name"])}: #{inspect(changeset_errors(changeset))}"
+            "[Praxis] Failed to create step #{inspect(attrs[:name] || attrs["name"])}: #{inspect(changeset_errors(changeset))}"
           )
         end
     end
@@ -256,7 +256,7 @@ defmodule ExCortex.Board do
 
         if !resolved_id do
           Logger.warning(
-            "[Board] Could not resolve step \"#{step["step_name"]}\" for template #{template_id} — step missing from DB"
+            "[Praxis] Could not resolve step \"#{step["step_name"]}\" for template #{template_id} — step missing from DB"
           )
         end
 
@@ -283,10 +283,10 @@ defmodule ExCortex.Board do
 
       {:error, changeset} ->
         if unique_name_conflict?(changeset) do
-          Logger.debug("[Board] Rumination already exists: #{rumination_def.name}")
+          Logger.debug("[Praxis] Rumination already exists: #{rumination_def.name}")
         else
           Logger.warning(
-            "[Board] Failed to create rumination #{rumination_def.name}: #{inspect(changeset_errors(changeset))}"
+            "[Praxis] Failed to create rumination #{rumination_def.name}: #{inspect(changeset_errors(changeset))}"
           )
         end
     end
@@ -383,10 +383,10 @@ defmodule ExCortex.Board do
   # Template definitions — loaded by all/0
   # ---------------------------------------------------------------------------
 
-  defp triage, do: ExCortex.Board.Triage.templates()
-  defp reporting, do: ExCortex.Board.Reporting.templates()
-  defp generation, do: ExCortex.Board.Generation.templates()
-  defp review, do: ExCortex.Board.Review.templates()
-  defp onboarding, do: ExCortex.Board.Onboarding.templates()
-  defp lifestyle, do: ExCortex.Board.Lifestyle.templates()
+  defp triage, do: ExCortex.Praxis.Triage.templates()
+  defp reporting, do: ExCortex.Praxis.Reporting.templates()
+  defp generation, do: ExCortex.Praxis.Generation.templates()
+  defp review, do: ExCortex.Praxis.Review.templates()
+  defp onboarding, do: ExCortex.Praxis.Onboarding.templates()
+  defp lifestyle, do: ExCortex.Praxis.Lifestyle.templates()
 end

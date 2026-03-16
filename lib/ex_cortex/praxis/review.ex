@@ -1,7 +1,7 @@
-defmodule ExCortex.Board.Review do
+defmodule ExCortex.Praxis.Review do
   @moduledoc "Continuous review pipeline thought templates."
 
-  alias ExCortex.Board
+  alias ExCortex.Praxis
 
   def templates do
     [
@@ -15,7 +15,7 @@ defmodule ExCortex.Board.Review do
   end
 
   defp pr_review_pipeline do
-    %Board{
+    %Praxis{
       id: "pr_review_pipeline",
       lobe: :frontal,
       name: "PR Review Pipeline",
@@ -75,7 +75,7 @@ defmodule ExCortex.Board.Review do
   end
 
   defp url_change_review do
-    %Board{
+    %Praxis{
       id: "url_change_review",
       lobe: :frontal,
       name: "URL Change Monitor",
@@ -135,7 +135,7 @@ defmodule ExCortex.Board.Review do
   end
 
   defp content_safety_webhook do
-    %Board{
+    %Praxis{
       id: "content_safety_webhook",
       lobe: :frontal,
       name: "Content Safety Review",
@@ -195,7 +195,7 @@ defmodule ExCortex.Board.Review do
   end
 
   defp a11y_audit do
-    %Board{
+    %Praxis{
       id: "a11y_audit",
       lobe: :frontal,
       name: "Accessibility Audit",
@@ -264,7 +264,7 @@ defmodule ExCortex.Board.Review do
   end
 
   defp proposal_review do
-    %Board{
+    %Praxis{
       id: "proposal_review",
       lobe: :frontal,
       name: "Proposal Review",
@@ -357,7 +357,7 @@ defmodule ExCortex.Board.Review do
   end
 
   defp compliance_monitor do
-    %Board{
+    %Praxis{
       id: "compliance_monitor",
       lobe: :frontal,
       name: "Compliance Monitor",
