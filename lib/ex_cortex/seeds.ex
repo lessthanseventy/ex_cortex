@@ -1045,8 +1045,11 @@ defmodule ExCortex.Seeds do
               "- Personal — from real people you know\n" <>
               "- Transactional — receipts, confirmations, password resets, account notifications\n" <>
               "- Jobs — job applications, recruiter emails, interview scheduling\n" <>
-              "- Notifications — automated alerts from services (GitHub, Slack, AppSignal, etc.)\n" <>
-              "- Social — social media notifications (LinkedIn, Twitter, etc.)\n\n" <>
+              "- Notifications — general automated alerts\n" <>
+              "- Social — social media notifications (LinkedIn, Twitter, etc.)\n" <>
+              "- GitHub — GitHub notifications, PR reviews, issue comments, CI results\n" <>
+              "- AppSignal — AppSignal error incidents, deploy markers, performance alerts\n" <>
+              "- Technical — server alerts, monitoring, DevOps notifications, infrastructure\n\n" <>
               "For each email, call email_move with the thread_id and folder name.\n" <>
               "Process ALL emails in the batch. Do not stop early or ask for clarification.\n" <>
               "If unsure, use \"Notifications\" as the default.",
