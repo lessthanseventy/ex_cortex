@@ -646,6 +646,7 @@ defmodule ExCortex.Seeds do
     seed_devils_review()
     seed_email_management()
     seed_email_backlog_cleanup()
+    seed_email_yearly_archive()
   end
 
   defp seed_morning_briefing do
@@ -1072,6 +1073,38 @@ defmodule ExCortex.Seeds do
   # ---------------------------------------------------------------------------
   # Engrams
   # ---------------------------------------------------------------------------
+
+  defp seed_email_yearly_archive do
+    name = "Email Yearly Archive"
+
+    if !Repo.exists?(from(r in Rumination, where: r.name == ^name)) do
+      {:ok, step} =
+        Ruminations.create_synapse(%{
+          name: "Archive Previous Year",
+          description:
+            "Archive all emails from the previous year. Call email_archive_year with the previous year number.",
+          trigger: "manual",
+          output_type: "freeform",
+          cluster_name: "Triage",
+          loop_tools: ["email_archive_year"],
+          max_tool_iterations: 5,
+          dangerous_tool_mode: "execute",
+          roster: [%{"who" => "all", "preferred_who" => "Classifier", "how" => "solo", "when" => "sequential"}]
+        })
+
+      {:ok, _} =
+        Ruminations.create_rumination(%{
+          name: name,
+          description: "Runs Dec 31 at midnight. Moves all inbox emails from the current year into Archive_YYYY/.",
+          trigger: "scheduled",
+          schedule: "0 0 31 12 *",
+          status: "active",
+          steps: [%{"step_id" => step.id, "order" => 1}]
+        })
+
+      Logger.info("[Seeds] Rumination seeded: #{name}")
+    end
+  end
 
   defp seed_engrams do
     engrams = [

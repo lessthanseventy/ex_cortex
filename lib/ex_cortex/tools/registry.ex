@@ -29,6 +29,7 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.DescribeImage
   alias ExCortex.Tools.DownloadMedia
   alias ExCortex.Tools.EditFile
+  alias ExCortex.Tools.EmailArchiveYear
   alias ExCortex.Tools.EmailClassify
   alias ExCortex.Tools.EmailMove
   alias ExCortex.Tools.EmailTag
@@ -131,6 +132,7 @@ defmodule ExCortex.Tools.Registry do
     RestartApp,
     CloseIssue,
     NextcloudTalk,
+    EmailArchiveYear,
     EmailClassify,
     EmailTag,
     EmailMove
