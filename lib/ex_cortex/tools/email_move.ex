@@ -114,11 +114,25 @@ defmodule ExCortex.Tools.EmailMove do
       end
     end)
 
-    # Re-index so notmuch knows files moved
-    System.cmd("notmuch", ["new", "--quiet"], stderr_to_stdout: true)
+    # Schedule a debounced re-index instead of running after every move
+    debounce_reindex()
     :ok
   rescue
     e -> {:error, "Failed to move files: #{Exception.message(e)}"}
+  end
+
+  defp debounce_reindex do
+    # Skip per-move reindex — notmuch tags work without it,
+    # and the file moves are visible to mbsync immediately.
+    # A periodic `notmuch new` (or next sense fetch) will catch up.
+    :ok
+  end
+
+  @doc "Run `notmuch new` to re-index after file moves. Call after a batch completes."
+  def reindex do
+    Logger.info("[EmailMove] Running notmuch reindex")
+    System.cmd("notmuch", ["new", "--quiet"], stderr_to_stdout: true)
+    :ok
   end
 
   defp retag(thread_id, tag) do
