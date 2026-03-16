@@ -31,6 +31,7 @@ defmodule ExCortexWeb.SensesLive do
          page_title: "Senses",
          tab: :active,
          expanding: nil,
+         editing_sense: nil,
          expanded_panels: MapSet.new(),
          editing_expression: nil,
          expression_type_preview: "slack"
@@ -103,6 +104,9 @@ defmodule ExCortexWeb.SensesLive do
   end
 
   defp lobe_label(lobe), do: Lobe.label(lobe)
+
+  defp config_display(value) when is_list(value), do: Enum.join(value, ", ")
+  defp config_display(value), do: to_string(value)
 
   # ── Events ────────────────────────────────────────────────────────────────
 
@@ -187,6 +191,62 @@ defmodule ExCortexWeb.SensesLive do
     Worker.sync(id)
     {:noreply, put_flash(socket, :info, "Sync triggered.")}
   end
+
+  @impl true
+  def handle_event("edit_sense", %{"id" => id}, socket) do
+    editing = if socket.assigns.editing_sense == id, do: nil, else: id
+    {:noreply, assign(socket, editing_sense: editing)}
+  end
+
+  @impl true
+  def handle_event("save_sense", %{"_sense_id" => id} = params, socket) do
+    case Repo.get(Sense, id) do
+      nil ->
+        {:noreply, socket}
+
+      sense ->
+        name = params["name"] || sense.name
+
+        # Rebuild config from form params, preserving types
+        new_config =
+          params
+          |> Map.drop(["_sense_id", "_csrf_token", "name"])
+          |> Enum.reduce(sense.config, fn {key, value}, acc ->
+            Map.put(acc, key, coerce_config_value(value, Map.get(sense.config, key)))
+          end)
+
+        sense
+        |> Sense.changeset(%{name: name, config: new_config})
+        |> Repo.update!()
+
+        # Restart worker if active so it picks up new config
+        if sense.status == "active" do
+          SensesSupervisor.stop_source(id)
+          SensesSupervisor.start_source(%{sense | name: name, config: new_config})
+        end
+
+        broadcast_sources()
+        {:noreply, socket |> assign(editing_sense: nil) |> load_data()}
+    end
+  end
+
+  # Coerce string form values back to their original types
+  defp coerce_config_value(value, original) when is_integer(original) do
+    case Integer.parse(value) do
+      {int, _} -> int
+      :error -> value
+    end
+  end
+
+  defp coerce_config_value(value, original) when is_boolean(original) do
+    value in ["true", "1"]
+  end
+
+  defp coerce_config_value(value, original) when is_list(original) do
+    value |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+  end
+
+  defp coerce_config_value(value, _original), do: value
 
   @impl true
   def handle_event("navigate", %{"to" => path}, socket) do
@@ -509,6 +569,7 @@ defmodule ExCortexWeb.SensesLive do
                 :for={sense <- @senses}
                 sense={sense}
                 expanding={@expanding}
+                editing={@editing_sense}
                 display_name={sense_display_name(sense)}
               />
             </div>
@@ -648,6 +709,7 @@ defmodule ExCortexWeb.SensesLive do
 
   attr :sense, Sense, required: true
   attr :expanding, :string, default: nil
+  attr :editing, :string, default: nil
   attr :display_name, :string, required: true
 
   defp sense_row(assigns) do
@@ -723,16 +785,66 @@ defmodule ExCortexWeb.SensesLive do
             </.button>
           </div>
 
-          <div :if={@sense.config != %{}} class="mt-3 space-y-1">
-            <p class="text-xs t-muted uppercase tracking-wider font-semibold mb-1">Config</p>
-            <div
-              :for={{k, v} <- Enum.sort(@sense.config)}
-              class="flex gap-2 text-xs font-mono"
-            >
-              <span class="t-dim w-32 shrink-0 truncate">{k}</span>
-              <span class="t-muted truncate">{inspect(v)}</span>
+          <%= if @editing == to_string(@sense.id) do %>
+            <form phx-submit="save_sense" class="mt-3 space-y-2">
+              <input type="hidden" name="_sense_id" value={@sense.id} />
+              <p class="text-xs t-muted uppercase tracking-wider font-semibold mb-1">Edit Config</p>
+              <div class="flex gap-2 items-center">
+                <label class="text-xs t-dim w-32 shrink-0 font-mono">name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={@sense.name}
+                  class="flex-1 h-7 text-xs font-mono border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <div
+                :for={{k, v} <- Enum.sort(@sense.config)}
+                class="flex gap-2 items-center"
+              >
+                <label class="text-xs t-dim w-32 shrink-0 font-mono">{k}</label>
+                <input
+                  type="text"
+                  name={k}
+                  value={config_display(v)}
+                  class="flex-1 h-7 text-xs font-mono border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <div class="flex gap-2 pt-1">
+                <.button type="submit" size="sm">Save</.button>
+                <.button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  phx-click="edit_sense"
+                  phx-value-id={@sense.id}
+                >
+                  Cancel
+                </.button>
+              </div>
+            </form>
+          <% else %>
+            <div :if={@sense.config != %{}} class="mt-3 space-y-1">
+              <div class="flex items-center justify-between mb-1">
+                <p class="text-xs t-muted uppercase tracking-wider font-semibold">Config</p>
+                <button
+                  type="button"
+                  phx-click="edit_sense"
+                  phx-value-id={@sense.id}
+                  class="text-xs t-dim hover:t-bright"
+                >
+                  edit
+                </button>
+              </div>
+              <div
+                :for={{k, v} <- Enum.sort(@sense.config)}
+                class="flex gap-2 text-xs font-mono"
+              >
+                <span class="t-dim w-32 shrink-0 truncate">{k}</span>
+                <span class="t-muted truncate">{config_display(v)}</span>
+              </div>
             </div>
-          </div>
+          <% end %>
         </div>
       <% end %>
     </div>
