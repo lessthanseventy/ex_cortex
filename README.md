@@ -30,7 +30,7 @@ No cloud. No SaaS. No data leaving your network. Just local LLMs, a Postgres dat
 ## Table of Contents
 
 - [Neuroplasticity — Self-Improvement](#neuroplasticity--self-improvement)
-- [Multi-Agent Guilds](#multi-agent-guilds)
+- [Multi-Agent Clusters](#multi-agent-clusters)
 - [Data Sources — Senses](#data-sources--senses)
 - [Chat — Wonder & Muse](#chat--wonder--muse)
 - [Pipelines — Ruminations](#pipelines--ruminations)
@@ -58,7 +58,7 @@ A background job reads the entire codebase, runs static analysis, hunts for test
 
 ### The Neuroplasticity Loop
 
-When those issues land, the Dev Team guild picks them up:
+When those issues land, the Dev Team cluster picks them up:
 
 ```
 Issue filed → PM Triage → Code Writer → Code Reviewer → QA → UX Review → PM Merge Decision
@@ -76,13 +76,15 @@ ExCortex.Neuroplasticity.Seed.seed(%{repo: "owner/repo"})
 
 ---
 
-## Multi-Agent Guilds
+## Multi-Agent Clusters
 
-Guilds are teams of agents with distinct perspectives that evaluate inputs independently, then vote on a consensus verdict. Each agent sees the same content through a different lens — security, style, architecture, compliance — and the final verdict aggregates their confidence scores.
+Clusters are teams of neurons (agents) with distinct perspectives that evaluate inputs independently, then vote on a consensus verdict. Each neuron sees the same content through a different lens — security, style, architecture, compliance — and the final verdict aggregates their confidence scores.
 
-### Built-in Guilds
+### Built-in Pathways
 
-| Guild | What It Does |
+Pathways are cluster blueprints that seed a full team of neurons in one step. ExCortex ships with 20+ pre-built pathways:
+
+| Pathway | What It Does |
 |---|---|
 | **Code Review** | Security auditing, style review, architecture analysis |
 | **Content Moderation** | Safety screening, bias detection, policy compliance |
@@ -92,9 +94,9 @@ Guilds are teams of agents with distinct perspectives that evaluate inputs indep
 | **Dependency Audit** | Vulnerability scanning, version currency |
 | **Incident Triage** | Severity classification, response suggestions |
 | **Contract Review** | Legal document analysis, risk flagging |
-| **Dev Team** | The self-improvement guild — code, review, test, merge |
+| **Dev Team** | The self-improvement cluster — code, review, test, merge |
 
-Install guilds from the Genesis page. Each installation creates neuron records in the database and wires them to the evaluation pipeline. Or build your own — guilds are just Elixir modules with metadata functions. There's nothing special about the built-in ones.
+Seed pathways from the Genesis page. Each pathway creates a cluster with its neurons in the database and wires them to the evaluation pipeline. Or build your own — pathways are just Elixir modules with metadata functions. There's nothing special about the built-in ones.
 
 ---
 
@@ -116,7 +118,7 @@ Senses are supervised workers that watch external data and feed it into your clu
 | `email` | Email inbox monitoring |
 | `media` | Video/audio files for transcription and analysis |
 
-Each sense type has a **Reflex** — a source template that pre-configures common setups. Point a git sense at your repo, wire it to the Code Review guild, and every new commit gets a multi-agent review in ~30 seconds.
+Each sense type has a **Reflex** — a source template that pre-configures common setups. Point a git sense at your repo, wire it to the Code Review cluster, and every new commit gets a multi-agent review in ~30 seconds.
 
 The webhook sense accepts optional Bearer token authentication. The email sense handles both standard and epoch-timestamp formats.
 
@@ -214,7 +216,7 @@ flowchart TD
 
     Sources --> Input
 
-    subgraph Eval ["Guild Evaluation"]
+    subgraph Eval ["Cluster Evaluation"]
         Input --> NeuronA["Neuron A
         alpha perspective"]
         Input --> NeuronB["Neuron B
@@ -293,7 +295,7 @@ ExCortex uses a biological nervous system metaphor throughout. Here's the full m
 | **Thought** | A saved query template — a crystallized idea |
 | **Instinct** | Settings and configuration — base behaviors |
 | **Neuroplasticity** | The self-improvement loop — the brain rewiring itself |
-| **Genesis** | Guild installation — creating new neural pathways |
+| **Genesis** | Pathway seeding — creating new clusters of neurons |
 
 ---
 
@@ -307,7 +309,7 @@ ExCortex uses a biological nervous system metaphor throughout. Here's the full m
 | `/thoughts` | **Thoughts** | Saved thought templates — browse, re-run, save to memory |
 | `/neurons` | **Neurons** | Cluster and agent management |
 | `/ruminations` | **Ruminations** | Pipeline builder and run history |
-| `/genesis` | **Genesis** | Guild installation from the pathway library |
+| `/genesis` | **Genesis** | Pathway seeding — install clusters from the pathway library |
 | `/memory` | **Memory** | Engram browser with tiered drill-down |
 | `/senses` | **Senses** | Source management, reflexes, feeds, expressions |
 | `/evaluate` | **Evaluate** | Direct evaluation interface |
@@ -339,11 +341,11 @@ Custom port: `PORT=4002 docker compose up`
 ### First run
 
 ```bash
-# Reset DB and install the Dev Team guild
+# Reset DB and seed the Dev Team pathway
 mix ecto.fresh
 ```
 
-Then open Genesis and install the guilds you want.
+Then open Genesis and seed whichever pathways you need.
 
 ### Local dev (without Docker for the app)
 
@@ -485,7 +487,7 @@ mix lint                # compile --warnings-as-errors + format check + credo
 mix precommit           # lint + test
 mix ci                  # full quality gate
 mix release.build       # compile + assets + Burrito binary
-mix ecto.fresh          # reset DB + install Dev Team guild
+mix ecto.fresh          # reset DB + seed Dev Team pathway
 ```
 
 ### Quality Notes
