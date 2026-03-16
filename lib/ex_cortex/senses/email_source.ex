@@ -27,12 +27,18 @@ defmodule ExCortex.Senses.EmailSense do
 
     sort = config["sort"] || "oldest-first"
 
+    newest_first? = sort == "newest-first"
+
     case search_threads(query, max_results, sort) do
       {:ok, threads} ->
         new_threads =
-          threads
-          |> Enum.filter(&((&1["timestamp"] || 0) > last_timestamp))
-          |> Enum.sort_by(& &1["timestamp"])
+          if newest_first? do
+            threads |> Enum.filter(&((&1["timestamp"] || 0) < last_timestamp))
+          else
+            threads |> Enum.filter(&((&1["timestamp"] || 0) > last_timestamp))
+          end
+
+        new_threads = Enum.sort_by(new_threads, & &1["timestamp"])
 
         if new_threads == [] do
           Logger.debug("[EmailSense] No new threads for query: #{query}")
@@ -41,9 +47,11 @@ defmodule ExCortex.Senses.EmailSense do
           items = Enum.flat_map(new_threads, &process_thread(&1, config))
 
           new_last_timestamp =
-            new_threads
-            |> Enum.map(& &1["timestamp"])
-            |> Enum.max(fn -> last_timestamp end)
+            if newest_first? do
+              new_threads |> Enum.map(& &1["timestamp"]) |> Enum.min(fn -> last_timestamp end)
+            else
+              new_threads |> Enum.map(& &1["timestamp"]) |> Enum.max(fn -> last_timestamp end)
+            end
 
           {:ok, items, %{state | last_timestamp: new_last_timestamp}}
         end
