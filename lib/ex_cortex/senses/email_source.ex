@@ -10,7 +10,7 @@ defmodule ExCortex.Senses.EmailSense do
   def init(_config) do
     case System.cmd("notmuch", ["--version"], stderr_to_stdout: true) do
       {_output, 0} ->
-        {:ok, %{last_timestamp: -1}}
+        {:ok, %{seen_thread_ids: []}}
 
       {_output, _code} ->
         {:error, "notmuch binary not found or not working"}
@@ -23,37 +23,29 @@ defmodule ExCortex.Senses.EmailSense do
   def fetch(state, config) do
     query = config["query"] || "tag:inbox AND tag:unread"
     max_results = config["max_results"] || 50
-    last_timestamp = state[:last_timestamp] || state["last_timestamp"] || 0
-
     sort = config["sort"] || "oldest-first"
 
-    newest_first? = sort == "newest-first"
+    seen = MapSet.new(state[:seen_thread_ids] || state["seen_thread_ids"] || [])
 
-    case search_threads(query, max_results, sort) do
+    # Over-fetch to account for filtering out already-seen threads
+    fetch_limit = max_results + MapSet.size(seen)
+
+    case search_threads(query, fetch_limit, sort) do
       {:ok, threads} ->
         new_threads =
-          if newest_first? do
-            threads |> Enum.filter(&((&1["timestamp"] || 0) < last_timestamp))
-          else
-            threads |> Enum.filter(&((&1["timestamp"] || 0) > last_timestamp))
-          end
-
-        new_threads = Enum.sort_by(new_threads, & &1["timestamp"])
+          threads
+          |> Enum.reject(&((&1["thread"] || "") in seen))
+          |> Enum.take(max_results)
 
         if new_threads == [] do
           Logger.debug("[EmailSense] No new threads for query: #{query}")
           {:ok, [], state}
         else
           items = Enum.flat_map(new_threads, &process_thread(&1, config))
+          new_ids = Enum.map(new_threads, & &1["thread"])
+          updated_seen = seen |> MapSet.union(MapSet.new(new_ids)) |> MapSet.to_list()
 
-          new_last_timestamp =
-            if newest_first? do
-              new_threads |> Enum.map(& &1["timestamp"]) |> Enum.min(fn -> last_timestamp end)
-            else
-              new_threads |> Enum.map(& &1["timestamp"]) |> Enum.max(fn -> last_timestamp end)
-            end
-
-          {:ok, items, %{state | last_timestamp: new_last_timestamp}}
+          {:ok, items, %{state | seen_thread_ids: updated_seen}}
         end
 
       {:error, reason} ->
@@ -99,6 +91,7 @@ defmodule ExCortex.Senses.EmailSense do
       {:ok, body} ->
         content =
           format_email(
+            thread_id: thread_id,
             subject: subject,
             authors: authors,
             date_relative: date_relative,
@@ -178,6 +171,7 @@ defmodule ExCortex.Senses.EmailSense do
     tags_str = Enum.join(opts[:tags], ", ")
 
     String.trim("""
+    Thread-ID: #{opts[:thread_id]}
     Subject: #{opts[:subject]}
     From: #{opts[:authors]}
     Date: #{opts[:date_relative]}

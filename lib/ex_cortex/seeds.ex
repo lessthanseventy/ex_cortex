@@ -944,7 +944,8 @@ defmodule ExCortex.Seeds do
       {:ok, s1} =
         Ruminations.create_synapse(%{
           name: "Email: Collect",
-          description: "Read the batch of emails provided. Summarize each one briefly: subject, sender, type (newsletter, personal, transactional, spam, notification), and whether it seems important.",
+          description:
+            "Read the batch of emails provided. Summarize each one briefly: subject, sender, type (newsletter, personal, transactional, spam, notification), and whether it seems important.",
           trigger: "manual",
           output_type: "freeform",
           cluster_name: "Archivist",
@@ -997,7 +998,8 @@ defmodule ExCortex.Seeds do
       {:ok, s5} =
         Ruminations.create_synapse(%{
           name: "Email: Summary",
-          description: "Review all actions taken across the pipeline. Produce a final summary signal: how many emails processed, how many tagged, how many marked as junk, how many unsubscribe attempts.",
+          description:
+            "Review all actions taken across the pipeline. Produce a final summary signal: how many emails processed, how many tagged, how many marked as junk, how many unsubscribe attempts.",
           trigger: "manual",
           output_type: "signal",
           cluster_name: "Devil's Advocate",
@@ -1037,26 +1039,13 @@ defmodule ExCortex.Seeds do
         Ruminations.create_synapse(%{
           name: "Bulk: Classify & File",
           description:
-            "You receive a batch of emails. For EACH email in the batch, decide its category " <>
-              "and call email_move to file it into the correct Maildir folder.\n\n" <>
-              "Categories (use these exact folder names):\n" <>
-              "- Newsletter — marketing emails, digests, mailing lists\n" <>
-              "- Spam — junk, scams, unsolicited\n" <>
-              "- Personal — from real people you know\n" <>
-              "- Transactional — receipts, confirmations, password resets, account notifications\n" <>
-              "- Jobs — job applications, recruiter emails, interview scheduling\n" <>
-              "- Notifications — general automated alerts\n" <>
-              "- Social — social media notifications (LinkedIn, Twitter, etc.)\n" <>
-              "- GitHub — GitHub notifications, PR reviews, issue comments, CI results\n" <>
-              "- AppSignal — AppSignal error incidents, deploy markers, performance alerts\n" <>
-              "- Technical — server alerts, monitoring, DevOps notifications, infrastructure\n\n" <>
-              "For each email, call email_move with the thread_id and folder name.\n" <>
-              "Process ALL emails in the batch. Do not stop early or ask for clarification.\n" <>
-              "If unsure, use \"Notifications\" as the default.",
+            "You are an email classifier. For EACH email, call email_classify with its Thread-ID and category.\n\n" <>
+              "Use the Thread-ID field from each email header as the thread_id parameter.\n\n" <>
+              "Process ALL emails in the batch. Do not stop early or ask for clarification.",
           trigger: "manual",
           output_type: "freeform",
           cluster_name: "Triage",
-          loop_tools: ["email_move", "email_tag"],
+          loop_tools: ["email_classify"],
           max_tool_iterations: 60,
           dangerous_tool_mode: "execute",
           roster: [%{"who" => "all", "preferred_who" => "Classifier", "how" => "solo", "when" => "sequential"}]
@@ -1069,7 +1058,7 @@ defmodule ExCortex.Seeds do
       {:ok, _} =
         Ruminations.create_rumination(%{
           name: name,
-          description: "One-step bulk classifier. Moves each email to the appropriate Maildir folder.",
+          description: "One-step bulk classifier. Tags each email, then moves to the appropriate Maildir folder.",
           trigger: if(email_sense, do: "source", else: "manual"),
           source_ids: source_ids,
           status: "paused",
