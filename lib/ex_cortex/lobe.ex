@@ -247,6 +247,110 @@ defmodule ExCortex.Lobe do
   # ---------------------------------------------------------------------------
 
   @doc """
+  Returns a synapse definition map for a pipeline step type.
+  Used by install flows to stamp out lobe-shaped rumination structures.
+  """
+  def pipeline_step_def(:plan, cluster, analyst) do
+    %{
+      name_suffix: "Plan",
+      description:
+        "Break the task into explicit steps. Identify what information is needed, what order to process it, and what risks to watch for.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:memory_query, cluster, analyst) do
+    %{
+      name_suffix: "Recall",
+      description:
+        "Query the engram store for relevant prior knowledge. Search by tags and keywords. Summarize what existing memory says about this topic.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      loop_tools: ["query_memory"],
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:sentiment, cluster, analyst) do
+    %{
+      name_suffix: "Sentiment",
+      description:
+        "Assess the emotional tone and social context of the input. Note urgency, frustration, excitement, or neutrality. Flag anything that needs careful handling.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:media_analysis, cluster, analyst) do
+    %{
+      name_suffix: "Perceive",
+      description:
+        "Process the raw media input. Extract text, structure, and visual patterns. Describe what you see before interpreting.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      loop_tools: ["describe_image", "read_image_text", "transcribe_audio", "read_pdf"],
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:review, cluster, analyst) do
+    %{
+      name_suffix: "Review",
+      description:
+        "Review the output so far for errors, omissions, and quality. Flag anything that needs correction before publishing.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:tone_check, cluster, analyst) do
+    %{
+      name_suffix: "Tone Check",
+      description:
+        "Review the output for appropriate tone. Ensure empathetic framing, no dismissiveness, and constructive language.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:synthesize, cluster, analyst) do
+    %{
+      name_suffix: "Synthesize",
+      description:
+        "Pull together insights from all sources into a coherent narrative. Identify the connecting threads and highlight what matters most.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(:alert, cluster, analyst) do
+    %{
+      name_suffix: "Alert",
+      description:
+        "Format findings as a concise alert with severity, timestamp, and recommended action. Facts only — no speculation.",
+      output_type: "signal",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  def pipeline_step_def(_, cluster, analyst) do
+    %{
+      name_suffix: "Process",
+      description: "Process the input according to the pipeline's requirements.",
+      output_type: "freeform",
+      cluster_name: cluster,
+      roster: [%{"who" => "all", "preferred_who" => analyst, "how" => "solo", "when" => "sequential"}]
+    }
+  end
+
+  @doc """
   Resolve the lobe prompt for a cluster name by looking up its pathway metadata.
   Returns the prompt string or nil if no pathway/lobe is found.
   """
