@@ -91,15 +91,17 @@ defmodule ExCortex.Muse do
     import Ecto.Query
 
     senses =
-      from(s in ExCortex.Senses.Sense, where: s.status == "active", order_by: s.name)
+      from(s in ExCortex.Senses.Sense, where: s.status != "error", order_by: s.name)
       |> ExCortex.Repo.all()
       |> Enum.map(fn s ->
+        status = if s.status == "paused", do: " [paused]", else: ""
+
         last =
           if s.last_run_at,
             do: " (last checked #{Calendar.strftime(s.last_run_at, "%Y-%m-%d %H:%M")})",
             else: ""
 
-        "- #{s.source_type}: \"#{s.name}\"#{last}"
+        "- #{s.source_type}: \"#{s.name}\"#{status}#{last}"
       end)
 
     axioms =
