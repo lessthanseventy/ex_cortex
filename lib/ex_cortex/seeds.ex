@@ -645,6 +645,7 @@ defmodule ExCortex.Seeds do
     seed_sentinel_sweep()
     seed_devils_review()
     seed_email_management()
+    seed_email_backlog_cleanup()
   end
 
   defp seed_morning_briefing do
@@ -1022,6 +1023,54 @@ defmodule ExCortex.Seeds do
             %{"step_id" => s4.id, "order" => 4},
             %{"step_id" => s5.id, "order" => 5}
           ]
+        })
+
+      Logger.info("[Seeds] Rumination seeded: #{name}")
+    end
+  end
+
+  defp seed_email_backlog_cleanup do
+    name = "Email Backlog Cleanup"
+
+    if !Repo.exists?(from(r in Rumination, where: r.name == ^name)) do
+      {:ok, step} =
+        Ruminations.create_synapse(%{
+          name: "Bulk: Classify & File",
+          description:
+            "You receive a batch of emails. For EACH email in the batch, decide its category " <>
+              "and call email_move to file it into the correct Maildir folder.\n\n" <>
+              "Categories (use these exact folder names):\n" <>
+              "- Newsletter — marketing emails, digests, mailing lists\n" <>
+              "- Spam — junk, scams, unsolicited\n" <>
+              "- Personal — from real people you know\n" <>
+              "- Transactional — receipts, confirmations, password resets, account notifications\n" <>
+              "- Jobs — job applications, recruiter emails, interview scheduling\n" <>
+              "- Notifications — automated alerts from services (GitHub, Slack, AppSignal, etc.)\n" <>
+              "- Social — social media notifications (LinkedIn, Twitter, etc.)\n\n" <>
+              "For each email, call email_move with the thread_id and folder name.\n" <>
+              "Process ALL emails in the batch. Do not stop early or ask for clarification.\n" <>
+              "If unsure, use \"Notifications\" as the default.",
+          trigger: "manual",
+          output_type: "freeform",
+          cluster_name: "Triage",
+          loop_tools: ["email_move", "email_tag"],
+          max_tool_iterations: 60,
+          dangerous_tool_mode: "execute",
+          roster: [%{"who" => "all", "preferred_who" => "Classifier", "how" => "solo", "when" => "sequential"}]
+        })
+
+      # Wire to email sense if it exists
+      email_sense = Repo.one(from(s in Sense, where: s.source_type == "email"))
+      source_ids = if email_sense, do: [to_string(email_sense.id)], else: []
+
+      {:ok, _} =
+        Ruminations.create_rumination(%{
+          name: name,
+          description: "One-step bulk classifier. Moves each email to the appropriate Maildir folder.",
+          trigger: if(email_sense, do: "source", else: "manual"),
+          source_ids: source_ids,
+          status: "paused",
+          steps: [%{"step_id" => step.id, "order" => 1}]
         })
 
       Logger.info("[Seeds] Rumination seeded: #{name}")
@@ -2333,15 +2382,22 @@ defmodule ExCortex.Seeds do
 
   defp wire_email_pipeline do
     email_sense = Repo.one(from(s in Sense, where: s.source_type == "email"))
-    pipeline = Repo.one(from(r in Rumination, where: r.name == "Email Management Pipeline"))
 
-    if email_sense && pipeline && pipeline.source_ids == [] do
-      Ruminations.update_rumination(pipeline, %{
-        trigger: "source",
-        source_ids: [to_string(email_sense.id)]
-      })
+    if email_sense do
+      sense_id = to_string(email_sense.id)
 
-      Logger.info("[Seeds] Wired Email Inbox sense → Email Management Pipeline")
+      for name <- ["Email Management Pipeline", "Email Backlog Cleanup"] do
+        rumination = Repo.one(from(r in Rumination, where: r.name == ^name))
+
+        if rumination && rumination.source_ids == [] do
+          Ruminations.update_rumination(rumination, %{
+            trigger: "source",
+            source_ids: [sense_id]
+          })
+
+          Logger.info("[Seeds] Wired Email Inbox sense → #{name}")
+        end
+      end
     end
   end
 end
