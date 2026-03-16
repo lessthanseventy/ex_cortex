@@ -41,6 +41,7 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.JqQuery
   alias ExCortex.Tools.ListFiles
   alias ExCortex.Tools.ListGithubNotifications
+  alias ExCortex.Tools.ListSources
   alias ExCortex.Tools.MergePR
   alias ExCortex.Tools.NextcloudCalendar
   alias ExCortex.Tools.NextcloudTalk
@@ -101,7 +102,8 @@ defmodule ExCortex.Tools.Registry do
     RunSandbox,
     SearchNextcloud,
     ReadNextcloud,
-    ReadNextcloudNotes
+    ReadNextcloudNotes,
+    ListSources
   ]
   @write [
     CreateObsidianNote,
