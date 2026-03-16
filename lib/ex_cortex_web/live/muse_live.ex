@@ -7,8 +7,14 @@ defmodule ExCortexWeb.MuseLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    models = available_models()
-    default = List.first(models, "devstral-small-2:24b")
+    model_groups = ExCortex.ModelCatalog.grouped()
+    all = ExCortex.ModelCatalog.all()
+
+    default =
+      case all do
+        [first | _] -> first.name
+        [] -> "devstral-small-2:24b"
+      end
 
     {:ok,
      assign(socket,
@@ -18,7 +24,7 @@ defmodule ExCortexWeb.MuseLive do
        loading: false,
        filters_open: false,
        tag_filter: "",
-       models: models,
+       model_groups: model_groups,
        selected_model: default
      )}
   end
@@ -162,13 +168,15 @@ defmodule ExCortexWeb.MuseLive do
             aria-label="Select model"
             class="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
           >
-            <option
-              :for={model <- @models}
-              value={model}
-              selected={model == @selected_model}
-            >
-              {model}
-            </option>
+            <optgroup :for={{tier_label, models} <- @model_groups} label={tier_label}>
+              <option
+                :for={model <- models}
+                value={model.name}
+                selected={model.name == @selected_model}
+              >
+                {model.name}
+              </option>
+            </optgroup>
           </select>
           <input
             type="text"
@@ -201,24 +209,4 @@ defmodule ExCortexWeb.MuseLive do
   end
 
   defp render_markdown(text), do: ExCortexWeb.Markdown.render(text)
-
-  defp available_models do
-    ollama = sort_by_capability(ExCortex.OllamaCache.get_models())
-
-    claude =
-      if ExCortex.ClaudeClient.configured?(),
-        do: ["claude_opus", "claude_sonnet", "claude_haiku"],
-        else: []
-
-    claude ++ ollama
-  end
-
-  defp sort_by_capability(models) do
-    Enum.sort_by(models, fn name ->
-      case Regex.run(~r/(\d+)b/, name) do
-        [_, size] -> -String.to_integer(size)
-        _ -> 0
-      end
-    end)
-  end
 end
