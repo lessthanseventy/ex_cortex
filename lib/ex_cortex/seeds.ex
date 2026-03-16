@@ -27,7 +27,7 @@ defmodule ExCortex.Seeds do
     seed_signals()
     seed_senses()
     wire_email_pipeline()
-    wire_digest_pipelines()
+    seed_digests()
     Logger.info("[Seeds] Done.")
   end
 
@@ -648,14 +648,6 @@ defmodule ExCortex.Seeds do
     seed_email_management()
     seed_email_backlog_cleanup()
     seed_email_yearly_archive()
-    # Digest pipelines — auto-wired to stream senses
-    seed_tech_digest()
-    seed_financial_pulse()
-    seed_science_roundup()
-    seed_sports_recap()
-    seed_culture_radar()
-    seed_security_bulletin()
-    seed_elixir_ecosystem()
   end
 
   defp seed_morning_briefing do
@@ -1120,164 +1112,6 @@ defmodule ExCortex.Seeds do
 
       Logger.info("[Seeds] Rumination seeded: #{name}")
     end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Digest pipelines — consume stream senses and publish signal cards
-  # ---------------------------------------------------------------------------
-
-  defp seed_digest(opts) do
-    name = opts[:name]
-
-    if !Repo.exists?(from r in Rumination, where: r.name == ^name) do
-      {:ok, s1} =
-        Ruminations.create_synapse(%{
-          name: "#{opts[:prefix]}: Gather",
-          description:
-            "Collect the latest items from the feed sources. For each item, extract: title, source, URL, and a 1-sentence summary. " <>
-              "IMPORTANT: Always include the original URL for every item — these will be clickable links in the final output. " <>
-              "Group items by subtopic. Discard duplicates and items older than #{opts[:window]}.",
-          trigger: "manual",
-          output_type: "freeform",
-          cluster_name: opts[:cluster],
-          loop_tools: ["fetch_url", "web_search"],
-          roster: [%{"who" => "all", "preferred_who" => opts[:gatherer], "how" => "solo", "when" => "sequential"}]
-        })
-
-      {:ok, s2} =
-        Ruminations.create_synapse(%{
-          name: "#{opts[:prefix]}: Analyze",
-          description:
-            "Analyze the gathered items. Identify the top 5-10 most significant stories. " <>
-              "For each, write a 2-3 sentence analysis explaining why it matters. " <>
-              "Preserve the original source URLs — format each story as: **[Title](url)** — analysis. " <>
-              "End with a 'Trends' section noting any patterns across the stories.",
-          trigger: "manual",
-          output_type: "freeform",
-          cluster_name: opts[:cluster],
-          roster: [%{"who" => "all", "preferred_who" => opts[:analyst], "how" => "solo", "when" => "sequential"}]
-        })
-
-      {:ok, s3} =
-        Ruminations.create_synapse(%{
-          name: "#{opts[:prefix]}: Publish",
-          description:
-            "Format the analysis as a concise dashboard signal card. Use markdown with clickable links. " <>
-              "Structure: brief intro paragraph, then a bulleted list of top stories as **[Title](url)** — one-liner. " <>
-              "Keep it scannable — this is a digest, not an essay.",
-          trigger: "manual",
-          output_type: "signal",
-          cluster_name: opts[:cluster],
-          roster: [%{"who" => "all", "preferred_who" => opts[:analyst], "how" => "solo", "when" => "sequential"}]
-        })
-
-      {:ok, _} =
-        Ruminations.create_rumination(%{
-          name: name,
-          description: opts[:description],
-          trigger: "scheduled",
-          schedule: opts[:schedule],
-          status: "paused",
-          steps: [
-            %{"step_id" => s1.id, "order" => 1},
-            %{"step_id" => s2.id, "order" => 2},
-            %{"step_id" => s3.id, "order" => 3}
-          ]
-        })
-
-      Logger.info("[Seeds] Rumination seeded: #{name}")
-    end
-  end
-
-  defp seed_tech_digest do
-    seed_digest(
-      name: "Tech Digest",
-      prefix: "Tech",
-      description: "Summarize top tech news from HN, Verge, Ars, and TechCrunch every 12 hours with links.",
-      cluster: "Research",
-      gatherer: "Gatherer",
-      analyst: "Research Analyst",
-      schedule: "0 7,19 * * *",
-      window: "12 hours"
-    )
-  end
-
-  defp seed_financial_pulse do
-    seed_digest(
-      name: "Financial Pulse",
-      prefix: "Finance",
-      description: "Summarize financial and business news from Reuters and FT every 12 hours with links.",
-      cluster: "Research",
-      gatherer: "Gatherer",
-      analyst: "Research Analyst",
-      schedule: "0 8,20 * * *",
-      window: "12 hours"
-    )
-  end
-
-  defp seed_science_roundup do
-    seed_digest(
-      name: "Science Roundup",
-      prefix: "Science",
-      description: "Daily science digest from Science Daily, Nature, and Ars Science with links.",
-      cluster: "Learning",
-      gatherer: "Extractor",
-      analyst: "Knowledge Connector",
-      schedule: "0 9 * * *",
-      window: "24 hours"
-    )
-  end
-
-  defp seed_sports_recap do
-    seed_digest(
-      name: "Sports Recap",
-      prefix: "Sports",
-      description: "Daily sports recap from ESPN and BBC Sport with links.",
-      cluster: "Research",
-      gatherer: "Gatherer",
-      analyst: "Summarizer",
-      schedule: "0 7 * * *",
-      window: "24 hours"
-    )
-  end
-
-  defp seed_culture_radar do
-    seed_digest(
-      name: "Culture Radar",
-      prefix: "Culture",
-      description: "Daily culture and entertainment digest from Pitchfork, AV Club, and Vulture with links.",
-      cluster: "Creative",
-      gatherer: "Diverger",
-      analyst: "Idea Connector",
-      schedule: "0 10 * * *",
-      window: "24 hours"
-    )
-  end
-
-  defp seed_security_bulletin do
-    seed_digest(
-      name: "Security Bulletin",
-      prefix: "Security",
-      description: "Security digest from Krebs and CISA every 12 hours with links.",
-      cluster: "Research",
-      gatherer: "Gatherer",
-      analyst: "Research Analyst",
-      schedule: "0 6,18 * * *",
-      window: "12 hours"
-    )
-  end
-
-  defp seed_elixir_ecosystem do
-    seed_digest(
-      name: "Elixir Ecosystem",
-      prefix: "Elixir",
-      description: "Weekly Elixir ecosystem digest from Forum, blog, and OTP releases with links.",
-      cluster: "Learning",
-      gatherer: "Extractor",
-      analyst: "Knowledge Connector",
-      schedule: "0 9 * * 1",
-      window: "7 days"
-    )
   end
 
   defp seed_engrams do
@@ -2558,128 +2392,6 @@ defmodule ExCortex.Seeds do
         source_type: "nextcloud",
         status: "paused",
         config: %{"base_url" => "", "username" => "", "password" => "", "interval" => 1_800_000}
-      },
-      # ----- Stream senses — auto-wired, paused until user activates -----
-      # Tech
-      %{
-        name: "Hacker News",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://news.ycombinator.com/rss", "interval" => 1_800_000}
-      },
-      %{
-        name: "The Verge",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.theverge.com/rss/index.xml", "interval" => 1_800_000}
-      },
-      %{
-        name: "Ars Technica",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://feeds.arstechnica.com/arstechnica/index", "interval" => 1_800_000}
-      },
-      %{
-        name: "TechCrunch",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://techcrunch.com/feed/", "interval" => 1_800_000}
-      },
-      # Business / Finance
-      %{
-        name: "Reuters Business",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://feeds.reuters.com/reuters/businessNews", "interval" => 1_800_000}
-      },
-      %{
-        name: "Financial Times",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.ft.com/rss/home", "interval" => 1_800_000}
-      },
-      # Science
-      %{
-        name: "Science Daily",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.sciencedaily.com/rss/all.xml", "interval" => 3_600_000}
-      },
-      %{
-        name: "Nature News",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.nature.com/nature.rss", "interval" => 3_600_000}
-      },
-      %{
-        name: "Ars Technica Science",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://feeds.arstechnica.com/arstechnica/science", "interval" => 3_600_000}
-      },
-      # Sports
-      %{
-        name: "ESPN",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.espn.com/espn/rss/news", "interval" => 1_800_000}
-      },
-      %{
-        name: "BBC Sport",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "http://feeds.bbci.co.uk/sport/rss.xml", "interval" => 1_800_000}
-      },
-      # Culture
-      %{
-        name: "Pitchfork",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://pitchfork.com/rss/news/", "interval" => 3_600_000}
-      },
-      %{
-        name: "AV Club",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.avclub.com/rss", "interval" => 3_600_000}
-      },
-      %{
-        name: "Vulture",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.vulture.com/rss/all.xml", "interval" => 3_600_000}
-      },
-      # Security
-      %{
-        name: "Krebs on Security",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://krebsonsecurity.com/feed/", "interval" => 3_600_000}
-      },
-      %{
-        name: "CISA Alerts",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://www.cisa.gov/cybersecurity-advisories/all.xml", "interval" => 1_800_000}
-      },
-      # Elixir Ecosystem
-      %{
-        name: "Elixir Forum",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://elixirforum.com/posts.rss", "interval" => 1_800_000}
-      },
-      %{
-        name: "Elixir Lang Blog",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://elixir-lang.org/blog.atom", "interval" => 86_400_000}
-      },
-      %{
-        name: "Erlang/OTP Releases",
-        source_type: "feed",
-        status: "paused",
-        config: %{"url" => "https://github.com/erlang/otp/releases.atom", "interval" => 86_400_000}
       }
     ]
 
@@ -2722,32 +2434,90 @@ defmodule ExCortex.Seeds do
     end
   end
 
-  defp wire_digest_pipelines do
-    # Map of rumination name → list of sense names that feed it
-    digest_wiring = %{
-      "Tech Digest" => ["Hacker News", "The Verge", "Ars Technica", "TechCrunch"],
-      "Financial Pulse" => ["Reuters Business", "Financial Times"],
-      "Science Roundup" => ["Science Daily", "Nature News", "Ars Technica Science"],
-      "Sports Recap" => ["ESPN", "BBC Sport"],
-      "Culture Radar" => ["Pitchfork", "AV Club", "Vulture"],
-      "Security Bulletin" => ["Krebs on Security", "CISA Alerts"],
-      "Elixir Ecosystem" => ["Elixir Forum", "Elixir Lang Blog", "Erlang/OTP Releases"]
-    }
+  defp seed_digests do
+    alias ExCortex.Senses.Reflex
 
-    for {rumination_name, sense_names} <- digest_wiring do
-      rumination = Repo.one(from(r in Rumination, where: r.name == ^rumination_name))
+    for reflex <- Reflex.digests() do
+      # Skip if already installed (any sense has this reflex_id)
+      if !Repo.exists?(from(s in Sense, where: s.reflex_id == ^reflex.id)) do
+        sources = get_in(reflex.default_config, ["sources"]) || []
+        tmpl = reflex.rumination_template
 
-      if rumination && rumination.source_ids == [] do
+        # Create feed senses
         sense_ids =
-          for name <- sense_names,
-              sense = Repo.one(from(s in Sense, where: s.name == ^name)),
-              sense != nil,
-              do: to_string(sense.id)
+          for %{"name" => name, "url" => url} <- sources do
+            {:ok, sense} =
+              %Sense{}
+              |> Sense.changeset(%{
+                name: name,
+                source_type: "feed",
+                config: %{"url" => url, "interval" => 1_800_000},
+                reflex_id: reflex.id,
+                status: "paused"
+              })
+              |> Repo.insert()
 
-        if sense_ids != [] do
-          Ruminations.update_rumination(rumination, %{source_ids: sense_ids})
-          Logger.info("[Seeds] Wired #{length(sense_ids)} senses → #{rumination_name}")
-        end
+            to_string(sense.id)
+          end
+
+        # Create 3-step digest rumination
+        {:ok, s1} =
+          Ruminations.create_synapse(%{
+            name: "#{reflex.name}: Gather",
+            description:
+              "Collect the latest items from the feed sources. For each item, extract: title, source, URL, and a 1-sentence summary. " <>
+                "IMPORTANT: Always include the original URL for every item — these will be clickable links in the final output. " <>
+                "Group items by subtopic. Discard duplicates and items older than #{tmpl.window}.",
+            trigger: "manual",
+            output_type: "freeform",
+            cluster_name: tmpl.cluster,
+            loop_tools: ["fetch_url", "web_search"],
+            roster: [%{"who" => "all", "preferred_who" => tmpl.gatherer, "how" => "solo", "when" => "sequential"}]
+          })
+
+        {:ok, s2} =
+          Ruminations.create_synapse(%{
+            name: "#{reflex.name}: Analyze",
+            description:
+              "Analyze the gathered items. Identify the top 5-10 most significant stories. " <>
+                "For each, write a 2-3 sentence analysis explaining why it matters. " <>
+                "Preserve the original source URLs — format each story as: **[Title](url)** — analysis. " <>
+                "End with a 'Trends' section noting any patterns across the stories.",
+            trigger: "manual",
+            output_type: "freeform",
+            cluster_name: tmpl.cluster,
+            roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
+          })
+
+        {:ok, s3} =
+          Ruminations.create_synapse(%{
+            name: "#{reflex.name}: Publish",
+            description:
+              "Format the analysis as a concise dashboard signal card. Use markdown with clickable links. " <>
+                "Structure: brief intro paragraph, then a bulleted list of top stories as **[Title](url)** — one-liner. " <>
+                "Keep it scannable — this is a digest, not an essay.",
+            trigger: "manual",
+            output_type: "signal",
+            cluster_name: tmpl.cluster,
+            roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
+          })
+
+        {:ok, _} =
+          Ruminations.create_rumination(%{
+            name: reflex.name,
+            description: tmpl.description,
+            trigger: "scheduled",
+            schedule: tmpl.schedule,
+            source_ids: sense_ids,
+            status: "paused",
+            steps: [
+              %{"step_id" => s1.id, "order" => 1},
+              %{"step_id" => s2.id, "order" => 2},
+              %{"step_id" => s3.id, "order" => 3}
+            ]
+          })
+
+        Logger.info("[Seeds] Digest installed: #{reflex.name}")
       end
     end
   end

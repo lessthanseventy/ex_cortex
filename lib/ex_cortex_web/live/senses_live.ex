@@ -7,13 +7,20 @@ defmodule ExCortexWeb.SensesLive do
   alias ExCortex.Expressions
   alias ExCortex.Expressions.Expression
   alias ExCortex.Repo
+  alias ExCortex.Ruminations
   alias ExCortex.Senses.Reflex
   alias ExCortex.Senses.Sense
   alias ExCortex.Senses.Supervisor, as: SensesSupervisor
   alias ExCortex.Senses.Worker
 
   # Declare atoms so String.to_existing_atom/1 works at runtime
-  @valid_tabs [:active, :reflexes, :streams, :expressions]
+  @valid_tabs [:active, :reflexes, :streams, :digests, :expressions]
+
+  @banner_labels %{
+    tech: "Synaptic — Dev & Tech",
+    business: "Cortical — Business & Finance",
+    lifestyle: "Limbic — Life & Culture"
+  }
 
   @impl true
   def mount(_params, _session, socket) do
@@ -49,15 +56,22 @@ defmodule ExCortexWeb.SensesLive do
     installed_ids = MapSet.new(senses, & &1.reflex_id)
 
     reflexes = Enum.reject(Reflex.reflexes(), &MapSet.member?(installed_ids, &1.id))
+    reflexes_by_banner = group_by_banner(reflexes)
 
     streams = Enum.reject(Reflex.streams(), &MapSet.member?(installed_ids, &1.id))
+    streams_by_banner = group_by_banner(streams)
+
+    digests = Enum.reject(Reflex.digests(), &MapSet.member?(installed_ids, &1.id))
 
     expressions = Expressions.list_expressions()
 
     assign(socket,
       senses: senses,
       reflexes: reflexes,
+      reflexes_by_banner: reflexes_by_banner,
       feed_streams: streams,
+      streams_by_banner: streams_by_banner,
+      digests: digests,
       expressions: expressions
     )
   end
@@ -83,6 +97,21 @@ defmodule ExCortexWeb.SensesLive do
   defp broadcast_sources do
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "sources", :refresh)
   end
+
+  defp group_by_banner(items) do
+    items
+    |> Enum.group_by(fn item -> item.banner || :other end)
+    |> Enum.sort_by(fn {banner, _} ->
+      case banner do
+        :tech -> 0
+        :business -> 1
+        :lifestyle -> 2
+        _ -> 3
+      end
+    end)
+  end
+
+  defp banner_label(banner), do: Map.get(@banner_labels, banner, "Other")
 
   # ── Events ────────────────────────────────────────────────────────────────
 
@@ -166,19 +195,104 @@ defmodule ExCortexWeb.SensesLive do
     reflex = Reflex.get(reflex_id)
 
     if reflex do
-      %Sense{}
-      |> Sense.changeset(%{
-        source_type: reflex.source_type,
-        config: reflex.default_config,
-        reflex_id: reflex.id,
-        status: "paused"
-      })
-      |> Repo.insert()
+      case reflex.kind do
+        :digest -> install_digest(reflex)
+        _ -> install_sense(reflex)
+      end
 
       broadcast_sources()
     end
 
     {:noreply, socket |> assign(tab: :active) |> load_data()}
+  end
+
+  defp install_sense(reflex) do
+    %Sense{}
+    |> Sense.changeset(%{
+      source_type: reflex.source_type,
+      config: reflex.default_config,
+      reflex_id: reflex.id,
+      status: "paused"
+    })
+    |> Repo.insert()
+  end
+
+  defp install_digest(reflex) do
+    tmpl = reflex.rumination_template
+    sources = get_in(reflex.default_config, ["sources"]) || []
+
+    # Create feed senses for each source
+    sense_ids =
+      for %{"name" => name, "url" => url} <- sources do
+        {:ok, sense} =
+          %Sense{}
+          |> Sense.changeset(%{
+            name: name,
+            source_type: "feed",
+            config: %{"url" => url, "interval" => 1_800_000},
+            reflex_id: reflex.id,
+            status: "paused"
+          })
+          |> Repo.insert()
+
+        to_string(sense.id)
+      end
+
+    # Create the 3-step digest rumination
+    {:ok, s1} =
+      Ruminations.create_synapse(%{
+        name: "#{reflex.name}: Gather",
+        description:
+          "Collect the latest items from the feed sources. For each item, extract: title, source, URL, and a 1-sentence summary. " <>
+            "IMPORTANT: Always include the original URL for every item — these will be clickable links in the final output. " <>
+            "Group items by subtopic. Discard duplicates and items older than #{tmpl.window}.",
+        trigger: "manual",
+        output_type: "freeform",
+        cluster_name: tmpl.cluster,
+        loop_tools: ["fetch_url", "web_search"],
+        roster: [%{"who" => "all", "preferred_who" => tmpl.gatherer, "how" => "solo", "when" => "sequential"}]
+      })
+
+    {:ok, s2} =
+      Ruminations.create_synapse(%{
+        name: "#{reflex.name}: Analyze",
+        description:
+          "Analyze the gathered items. Identify the top 5-10 most significant stories. " <>
+            "For each, write a 2-3 sentence analysis explaining why it matters. " <>
+            "Preserve the original source URLs — format each story as: **[Title](url)** — analysis. " <>
+            "End with a 'Trends' section noting any patterns across the stories.",
+        trigger: "manual",
+        output_type: "freeform",
+        cluster_name: tmpl.cluster,
+        roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
+      })
+
+    {:ok, s3} =
+      Ruminations.create_synapse(%{
+        name: "#{reflex.name}: Publish",
+        description:
+          "Format the analysis as a concise dashboard signal card. Use markdown with clickable links. " <>
+            "Structure: brief intro paragraph, then a bulleted list of top stories as **[Title](url)** — one-liner. " <>
+            "Keep it scannable — this is a digest, not an essay.",
+        trigger: "manual",
+        output_type: "signal",
+        cluster_name: tmpl.cluster,
+        roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
+      })
+
+    Ruminations.create_rumination(%{
+      name: reflex.name,
+      description: tmpl.description,
+      trigger: "scheduled",
+      schedule: tmpl.schedule,
+      source_ids: sense_ids,
+      status: "paused",
+      steps: [
+        %{"step_id" => s1.id, "order" => 1},
+        %{"step_id" => s2.id, "order" => 2},
+        %{"step_id" => s3.id, "order" => 3}
+      ]
+    })
   end
 
   @impl true
@@ -285,6 +399,7 @@ defmodule ExCortexWeb.SensesLive do
           <.key_hints hints={[
             {"A", "active"},
             {"R", "reflexes"},
+            {"D", "digests"},
             {"S", "streams"},
             {"E", "expressions"}
           ]} />
@@ -296,6 +411,7 @@ defmodule ExCortexWeb.SensesLive do
         <%= for {tab_id, label} <- [
           {:active, "Active"},
           {:reflexes, "Reflexes"},
+          {:digests, "Digests"},
           {:streams, "Streams"},
           {:expressions, "Expressions"}
         ] do %>
@@ -347,20 +463,24 @@ defmodule ExCortexWeb.SensesLive do
         <% end %>
       <% end %>
 
-      <%!-- Reflex library --%>
+      <%!-- Reflex library, grouped by category --%>
       <%= if @tab == :reflexes do %>
-        <.panel title="REFLEX LIBRARY">
-          <p class="t-muted text-sm mb-4">
-            Pre-built source templates. Install a reflex to add a sense — configure and activate it from the Active tab.
-          </p>
-          <%= if @reflexes == [] do %>
+        <p class="t-muted text-sm mb-2">
+          Pre-built source templates. Install a reflex to add a sense — configure and activate it from the Active tab.
+        </p>
+        <%= if @reflexes == [] do %>
+          <.panel title="REFLEX LIBRARY">
             <p class="t-dim text-xs">All reflexes are installed.</p>
-          <% else %>
-            <div class="space-y-2">
-              <.reflex_row :for={reflex <- @reflexes} reflex={reflex} />
-            </div>
+          </.panel>
+        <% else %>
+          <%= for {banner, items} <- @reflexes_by_banner do %>
+            <.panel title={String.upcase(banner_label(banner))}>
+              <div class="space-y-2">
+                <.reflex_row :for={reflex <- items} reflex={reflex} />
+              </div>
+            </.panel>
           <% end %>
-        </.panel>
+        <% end %>
       <% end %>
 
       <%!-- Expressions --%>
@@ -423,20 +543,37 @@ defmodule ExCortexWeb.SensesLive do
         </div>
       <% end %>
 
-      <%!-- Streams (pre-configured RSS feeds) --%>
-      <%= if @tab == :streams do %>
-        <.panel title="STREAMS">
+      <%!-- Digests (compound sense + rumination) --%>
+      <%= if @tab == :digests do %>
+        <.panel title="DIGESTS">
           <p class="t-muted text-sm mb-4">
-            Pre-configured RSS and data feeds. Install a stream to start receiving updates.
+            Scheduled pipelines that gather, analyze, and summarize feeds into signal cards with links. Installing a digest creates the senses and rumination wired together.
           </p>
-          <%= if @feed_streams == [] do %>
-            <p class="t-dim text-xs">All streams are installed.</p>
+          <%= if @digests == [] do %>
+            <p class="t-dim text-xs">All digests are installed.</p>
           <% else %>
             <div class="space-y-2">
-              <.reflex_row :for={feed <- @feed_streams} reflex={feed} />
+              <.digest_row :for={digest <- @digests} reflex={digest} />
             </div>
           <% end %>
         </.panel>
+      <% end %>
+
+      <%!-- Streams (pre-configured RSS feeds), grouped by category --%>
+      <%= if @tab == :streams do %>
+        <%= if @feed_streams == [] do %>
+          <.panel title="STREAMS">
+            <p class="t-dim text-xs">All streams are installed.</p>
+          </.panel>
+        <% else %>
+          <%= for {banner, items} <- @streams_by_banner do %>
+            <.panel title={String.upcase(banner_label(banner))}>
+              <div class="space-y-2">
+                <.reflex_row :for={feed <- items} reflex={feed} />
+              </div>
+            </.panel>
+          <% end %>
+        <% end %>
       <% end %>
     </div>
     """
@@ -551,6 +688,48 @@ defmodule ExCortexWeb.SensesLive do
           </.badge>
         </div>
         <p class="text-xs t-muted">{@reflex.description}</p>
+      </div>
+      <.button
+        type="button"
+        size="sm"
+        variant="outline"
+        phx-click="install_reflex"
+        phx-value-reflex-id={@reflex.id}
+        class="shrink-0 self-start sm:self-auto"
+      >
+        Install
+      </.button>
+    </div>
+    """
+  end
+
+  attr :reflex, Reflex, required: true
+
+  defp digest_row(assigns) do
+    sources = get_in(assigns.reflex.default_config, ["sources"]) || []
+    tmpl = assigns.reflex.rumination_template || %{}
+
+    assigns =
+      assigns
+      |> assign(:source_names, Enum.map(sources, & &1["name"]))
+      |> assign(:schedule, Map.get(tmpl, :schedule, ""))
+      |> assign(:cluster, Map.get(tmpl, :cluster, ""))
+
+    ~H"""
+    <div class="rounded border p-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="space-y-1 min-w-0 flex-1">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="font-medium text-sm">{@reflex.name}</span>
+          <.badge variant="outline" class="text-xs">digest</.badge>
+          <.badge :if={@cluster != ""} variant="secondary" class="text-xs">{@cluster}</.badge>
+        </div>
+        <p class="text-xs t-muted">{@reflex.description}</p>
+        <div class="flex flex-wrap gap-1.5 mt-1">
+          <.badge :for={name <- @source_names} variant="outline" class="text-xs t-dim">{name}</.badge>
+        </div>
+        <p :if={@schedule != ""} class="text-xs t-dim mt-0.5">
+          Schedule: <code class="text-xs">{@schedule}</code>
+        </p>
       </div>
       <.button
         type="button"

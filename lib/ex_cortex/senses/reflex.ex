@@ -1,8 +1,20 @@
 defmodule ExCortex.Senses.Reflex do
   @moduledoc false
-  defstruct [:id, :name, :description, :source_type, :default_config, :suggested_cluster, :kind, :sandbox, banner: nil]
+  defstruct [
+    :id,
+    :name,
+    :description,
+    :source_type,
+    :default_config,
+    :suggested_cluster,
+    :kind,
+    :sandbox,
+    :rumination_template,
+    :source_names,
+    banner: nil
+  ]
 
-  def all, do: reflexes() ++ streams()
+  def all, do: reflexes() ++ streams() ++ digests()
 
   def reflexes do
     [
@@ -816,6 +828,177 @@ defmodule ExCortex.Senses.Reflex do
         },
         suggested_cluster: "Science Watch",
         kind: :stream
+      }
+    ]
+  end
+
+  def digests do
+    [
+      %__MODULE__{
+        id: "tech_digest",
+        banner: :tech,
+        name: "Tech Digest",
+        description: "Top tech news from HN, Verge, Ars, and TechCrunch every 12 hours with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "Hacker News", "url" => "https://news.ycombinator.com/rss"},
+            %{"name" => "The Verge", "url" => "https://www.theverge.com/rss/index.xml"},
+            %{"name" => "Ars Technica", "url" => "https://feeds.arstechnica.com/arstechnica/index"},
+            %{"name" => "TechCrunch", "url" => "https://techcrunch.com/feed/"}
+          ]
+        },
+        suggested_cluster: "Research",
+        rumination_template: %{
+          description: "Summarize top tech news every 12 hours with clickable links.",
+          schedule: "0 7,19 * * *",
+          cluster: "Research",
+          gatherer: "Gatherer",
+          analyst: "Research Analyst",
+          window: "12 hours"
+        }
+      },
+      %__MODULE__{
+        id: "financial_pulse",
+        banner: :business,
+        name: "Financial Pulse",
+        description: "Financial and business news from Reuters and FT every 12 hours with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "Reuters Business", "url" => "https://feeds.reuters.com/reuters/businessNews"},
+            %{"name" => "Financial Times", "url" => "https://www.ft.com/rss/home"}
+          ]
+        },
+        suggested_cluster: "Research",
+        rumination_template: %{
+          description: "Summarize financial and business news every 12 hours with clickable links.",
+          schedule: "0 8,20 * * *",
+          cluster: "Research",
+          gatherer: "Gatherer",
+          analyst: "Research Analyst",
+          window: "12 hours"
+        }
+      },
+      %__MODULE__{
+        id: "science_roundup",
+        banner: :lifestyle,
+        name: "Science Roundup",
+        description: "Daily science digest from Science Daily, Nature, and Ars Science with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "Science Daily", "url" => "https://www.sciencedaily.com/rss/all.xml"},
+            %{"name" => "Nature News", "url" => "https://www.nature.com/nature.rss"},
+            %{"name" => "Ars Technica Science", "url" => "https://feeds.arstechnica.com/arstechnica/science"}
+          ]
+        },
+        suggested_cluster: "Learning",
+        rumination_template: %{
+          description: "Daily science digest with clickable links.",
+          schedule: "0 9 * * *",
+          cluster: "Learning",
+          gatherer: "Extractor",
+          analyst: "Knowledge Connector",
+          window: "24 hours"
+        }
+      },
+      %__MODULE__{
+        id: "sports_recap",
+        banner: :lifestyle,
+        name: "Sports Recap",
+        description: "Daily sports recap from ESPN and BBC Sport with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "ESPN", "url" => "https://www.espn.com/espn/rss/news"},
+            %{"name" => "BBC Sport", "url" => "http://feeds.bbci.co.uk/sport/rss.xml"}
+          ]
+        },
+        suggested_cluster: "Research",
+        rumination_template: %{
+          description: "Daily sports recap with clickable links.",
+          schedule: "0 7 * * *",
+          cluster: "Research",
+          gatherer: "Gatherer",
+          analyst: "Summarizer",
+          window: "24 hours"
+        }
+      },
+      %__MODULE__{
+        id: "culture_radar",
+        banner: :lifestyle,
+        name: "Culture Radar",
+        description: "Daily culture and entertainment digest from Pitchfork, AV Club, and Vulture with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "Pitchfork", "url" => "https://pitchfork.com/rss/news/"},
+            %{"name" => "AV Club", "url" => "https://www.avclub.com/rss"},
+            %{"name" => "Vulture", "url" => "https://www.vulture.com/rss/all.xml"}
+          ]
+        },
+        suggested_cluster: "Creative",
+        rumination_template: %{
+          description: "Daily culture and entertainment digest with clickable links.",
+          schedule: "0 10 * * *",
+          cluster: "Creative",
+          gatherer: "Diverger",
+          analyst: "Idea Connector",
+          window: "24 hours"
+        }
+      },
+      %__MODULE__{
+        id: "security_bulletin",
+        banner: :tech,
+        name: "Security Bulletin",
+        description: "Security digest from Krebs and CISA every 12 hours with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "Krebs on Security", "url" => "https://krebsonsecurity.com/feed/"},
+            %{"name" => "CISA Alerts", "url" => "https://www.cisa.gov/cybersecurity-advisories/all.xml"}
+          ]
+        },
+        suggested_cluster: "Research",
+        rumination_template: %{
+          description: "Security digest every 12 hours with clickable links.",
+          schedule: "0 6,18 * * *",
+          cluster: "Research",
+          gatherer: "Gatherer",
+          analyst: "Research Analyst",
+          window: "12 hours"
+        }
+      },
+      %__MODULE__{
+        id: "elixir_ecosystem",
+        banner: :tech,
+        name: "Elixir Ecosystem",
+        description: "Weekly Elixir ecosystem digest from Forum, blog, and OTP releases with clickable links.",
+        source_type: "feed",
+        kind: :digest,
+        default_config: %{
+          "sources" => [
+            %{"name" => "Elixir Forum", "url" => "https://elixirforum.com/posts.rss"},
+            %{"name" => "Elixir Lang Blog", "url" => "https://elixir-lang.org/blog.atom"},
+            %{"name" => "Erlang/OTP Releases", "url" => "https://github.com/erlang/otp/releases.atom"}
+          ]
+        },
+        suggested_cluster: "Learning",
+        rumination_template: %{
+          description: "Weekly Elixir ecosystem digest with clickable links.",
+          schedule: "0 9 * * 1",
+          cluster: "Learning",
+          gatherer: "Extractor",
+          analyst: "Knowledge Connector",
+          window: "7 days"
+        }
       }
     ]
   end
