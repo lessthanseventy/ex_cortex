@@ -223,6 +223,8 @@ defmodule ExCortexWeb.SensesLive do
   defp install_digest(reflex) do
     tmpl = reflex.rumination_template
     sources = get_in(reflex.default_config, ["sources"]) || []
+    lobe = Lobe.get(reflex.lobe)
+    lobe_iterations = if lobe, do: lobe.processing.max_tool_iterations, else: 15
 
     # Create feed senses for each source
     sense_ids =
@@ -253,6 +255,7 @@ defmodule ExCortexWeb.SensesLive do
         output_type: "freeform",
         cluster_name: tmpl.cluster,
         loop_tools: ["fetch_url", "web_search"],
+        max_tool_iterations: lobe_iterations,
         roster: [%{"who" => "all", "preferred_who" => tmpl.gatherer, "how" => "solo", "when" => "sequential"}]
       })
 
