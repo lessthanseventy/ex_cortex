@@ -10,6 +10,7 @@ defmodule ExCortex.Tools.EmailClassify do
     "personal" => "Personal",
     "transactional" => "Transactional",
     "receipt" => "Receipt",
+    "banking" => "Banking",
     "jobs" => "Jobs",
     "job_alert" => "Job_Alert",
     "notification" => "Notification",
@@ -41,7 +42,8 @@ defmodule ExCortex.Tools.EmailClassify do
             "description" =>
               "newsletter (marketing, digests), promotion (sales, deals, coupons), spam (junk), " <>
                 "personal (real people), transactional (confirmations, password resets), " <>
-                "receipt (purchase receipts, invoices), jobs (applications, recruiters), " <>
+                "receipt (purchase receipts, invoices), banking (bank statements, transfers, alerts), " <>
+                "jobs (applications, recruiters), " <>
                 "job_alert (job board notifications), notification (automated alerts), " <>
                 "social (LinkedIn, Twitter), github (PRs, issues, CI), " <>
                 "appsignal (incidents), technical (server alerts, DevOps)"
