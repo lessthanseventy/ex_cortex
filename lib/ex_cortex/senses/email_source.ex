@@ -10,7 +10,7 @@ defmodule ExCortex.Senses.EmailSense do
   def init(_config) do
     case System.cmd("notmuch", ["--version"], stderr_to_stdout: true) do
       {_output, 0} ->
-        {:ok, %{seen_thread_ids: []}}
+        {:ok, %{}}
 
       {_output, _code} ->
         {:error, "notmuch binary not found or not working"}
@@ -25,28 +25,16 @@ defmodule ExCortex.Senses.EmailSense do
     max_results = config["max_results"] || 50
     sort = config["sort"] || "oldest-first"
 
-    seen = MapSet.new(state[:seen_thread_ids] || state["seen_thread_ids"] || [])
+    # No cursor needed — classified emails lose their inbox tag,
+    # so the query naturally returns only unprocessed threads.
+    case search_threads(query, max_results, sort) do
+      {:ok, []} ->
+        Logger.debug("[EmailSense] No new threads for query: #{query}")
+        {:ok, [], state}
 
-    # Over-fetch to account for filtering out already-seen threads
-    fetch_limit = max_results + MapSet.size(seen)
-
-    case search_threads(query, fetch_limit, sort) do
       {:ok, threads} ->
-        new_threads =
-          threads
-          |> Enum.reject(&((&1["thread"] || "") in seen))
-          |> Enum.take(max_results)
-
-        if new_threads == [] do
-          Logger.debug("[EmailSense] No new threads for query: #{query}")
-          {:ok, [], state}
-        else
-          items = Enum.flat_map(new_threads, &process_thread(&1, config))
-          new_ids = Enum.map(new_threads, & &1["thread"])
-          updated_seen = seen |> MapSet.union(MapSet.new(new_ids)) |> MapSet.to_list()
-
-          {:ok, items, %{state | seen_thread_ids: updated_seen}}
-        end
+        items = Enum.flat_map(threads, &process_thread(&1, config))
+        {:ok, items, state}
 
       {:error, reason} ->
         Logger.warning("[EmailSense] Search failed: #{inspect(reason)}")
