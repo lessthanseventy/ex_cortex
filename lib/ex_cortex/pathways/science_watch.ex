@@ -18,7 +18,7 @@ defmodule ExCortex.Pathways.ScienceWatch do
     ]
 
     %{
-      banner: :lifestyle,
+      lobe: :lifestyle,
       name: "Science Watch",
       description:
         "Research and discovery synthesis. Translates science into plain language, separates signal from hype.",

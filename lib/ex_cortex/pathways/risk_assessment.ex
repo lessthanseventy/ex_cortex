@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.RiskAssessment do
 
   def metadata do
     %{
-      banner: :business,
+      lobe: :business,
       name: "Risk Assessment",
       description: "Multi-agent risk scoring and fraud detection pipeline",
       roles: [

@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.SportsCorner do
     ]
 
     %{
-      banner: :lifestyle,
+      lobe: :lifestyle,
       name: "Sports Corner",
       description: "Daily sports digest — scores, storylines, and what it all means. Builds a narrative arc over time.",
       roles: Enum.map(neurons, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),

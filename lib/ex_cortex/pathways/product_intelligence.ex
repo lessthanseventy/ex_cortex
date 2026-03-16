@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.ProductIntelligence do
     ]
 
     %{
-      banner: :business,
+      lobe: :business,
       name: "Product Intelligence",
       description:
         "Product intelligence cluster — synthesizes user feedback, market trends, and competitive signals into actionable insight.",

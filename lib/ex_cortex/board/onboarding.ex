@@ -15,7 +15,7 @@ defmodule ExCortex.Board.Onboarding do
   defp team_health_check do
     %Board{
       id: "team_health_check",
-      banner: :business,
+      lobe: :business,
       name: "Team Health Check",
       category: :onboarding,
       description:
@@ -73,7 +73,7 @@ defmodule ExCortex.Board.Onboarding do
   defp codebase_first_look do
     %Board{
       id: "codebase_first_look",
-      banner: :business,
+      lobe: :business,
       name: "Codebase First Look",
       category: :onboarding,
       description:
@@ -133,7 +133,7 @@ defmodule ExCortex.Board.Onboarding do
   defp security_baseline_scan do
     %Board{
       id: "security_baseline_scan",
-      banner: :business,
+      lobe: :business,
       name: "Security Baseline Scan",
       category: :onboarding,
       description:
@@ -209,7 +209,7 @@ defmodule ExCortex.Board.Onboarding do
   defp knowledge_base_bootstrap do
     %Board{
       id: "knowledge_base_bootstrap",
-      banner: :business,
+      lobe: :business,
       name: "Knowledge Base Bootstrap",
       category: :onboarding,
       description:

@@ -9,7 +9,7 @@ defmodule ExCortex.Pathways.DevTeam do
 
   def metadata do
     %{
-      banner: :tech,
+      lobe: :tech,
       name: "Dev Team",
       description:
         "Self-improvement cluster — AI neurons that triage issues, write code, review PRs, run tests, and ship improvements to ExCortex itself.",

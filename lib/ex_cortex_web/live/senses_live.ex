@@ -16,7 +16,7 @@ defmodule ExCortexWeb.SensesLive do
   # Declare atoms so String.to_existing_atom/1 works at runtime
   @valid_tabs [:active, :reflexes, :streams, :digests, :expressions]
 
-  @banner_labels %{
+  @lobe_labels %{
     tech: "Synaptic — Dev & Tech",
     business: "Cortical — Business & Finance",
     lifestyle: "Limbic — Life & Culture"
@@ -57,10 +57,10 @@ defmodule ExCortexWeb.SensesLive do
     installed_ids = MapSet.new(senses, & &1.reflex_id)
 
     reflexes = Enum.reject(Reflex.reflexes(), &MapSet.member?(installed_ids, &1.id))
-    reflexes_by_banner = group_by_banner(reflexes)
+    reflexes_by_lobe = group_by_lobe(reflexes)
 
     streams = Enum.reject(Reflex.streams(), &MapSet.member?(installed_ids, &1.id))
-    streams_by_banner = group_by_banner(streams)
+    streams_by_lobe = group_by_lobe(streams)
 
     digests = Enum.reject(Reflex.digests(), &MapSet.member?(installed_ids, &1.id))
 
@@ -69,9 +69,9 @@ defmodule ExCortexWeb.SensesLive do
     assign(socket,
       senses: senses,
       reflexes: reflexes,
-      reflexes_by_banner: reflexes_by_banner,
+      reflexes_by_lobe: reflexes_by_lobe,
       feed_streams: streams,
-      streams_by_banner: streams_by_banner,
+      streams_by_lobe: streams_by_lobe,
       digests: digests,
       expressions: expressions
     )
@@ -99,11 +99,11 @@ defmodule ExCortexWeb.SensesLive do
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "sources", :refresh)
   end
 
-  defp group_by_banner(items) do
+  defp group_by_lobe(items) do
     items
-    |> Enum.group_by(fn item -> item.banner || :other end)
-    |> Enum.sort_by(fn {banner, _} ->
-      case banner do
+    |> Enum.group_by(fn item -> item.lobe || :other end)
+    |> Enum.sort_by(fn {lobe, _} ->
+      case lobe do
         :tech -> 0
         :business -> 1
         :lifestyle -> 2
@@ -112,7 +112,7 @@ defmodule ExCortexWeb.SensesLive do
     end)
   end
 
-  defp banner_label(banner), do: Map.get(@banner_labels, banner, "Other")
+  defp lobe_label(lobe), do: Map.get(@lobe_labels, lobe, "Other")
 
   # ── Events ────────────────────────────────────────────────────────────────
 
@@ -486,12 +486,12 @@ defmodule ExCortexWeb.SensesLive do
             <p class="t-dim text-xs">All reflexes are installed.</p>
           </.panel>
         <% else %>
-          <%= for {banner, items} <- @reflexes_by_banner do %>
+          <%= for {lobe, items} <- @reflexes_by_lobe do %>
             <.panel
-              title={"#{String.upcase(banner_label(banner))} (#{length(items)})"}
+              title={"#{String.upcase(lobe_label(lobe))} (#{length(items)})"}
               on_toggle="toggle_panel"
-              toggle_value={"reflex-#{banner}"}
-              collapsed={not MapSet.member?(@expanded_panels, "reflex-#{banner}")}
+              toggle_value={"reflex-#{lobe}"}
+              collapsed={not MapSet.member?(@expanded_panels, "reflex-#{lobe}")}
               summary={"#{length(items)} reflexes"}
             >
               <div class="space-y-2">
@@ -585,12 +585,12 @@ defmodule ExCortexWeb.SensesLive do
             <p class="t-dim text-xs">All streams are installed.</p>
           </.panel>
         <% else %>
-          <%= for {banner, items} <- @streams_by_banner do %>
+          <%= for {lobe, items} <- @streams_by_lobe do %>
             <.panel
-              title={"#{String.upcase(banner_label(banner))} (#{length(items)})"}
+              title={"#{String.upcase(lobe_label(lobe))} (#{length(items)})"}
               on_toggle="toggle_panel"
-              toggle_value={"stream-#{banner}"}
-              collapsed={not MapSet.member?(@expanded_panels, "stream-#{banner}")}
+              toggle_value={"stream-#{lobe}"}
+              collapsed={not MapSet.member?(@expanded_panels, "stream-#{lobe}")}
               summary={"#{length(items)} streams"}
             >
               <div class="space-y-2">

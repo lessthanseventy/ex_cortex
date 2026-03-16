@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.AccessibilityReview do
 
   def metadata do
     %{
-      banner: :tech,
+      lobe: :tech,
       name: "Accessibility Review",
       description: "Multi-agent accessibility compliance and usability review pipeline",
       roles: [

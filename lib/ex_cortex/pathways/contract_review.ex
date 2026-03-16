@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.ContractReview do
 
   def metadata do
     %{
-      banner: :business,
+      lobe: :business,
       name: "Contract Review",
       description: "Multi-agent document risk analysis and obligation tracking pipeline",
       roles: [

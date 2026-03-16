@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.CodeReview do
 
   def metadata do
     %{
-      banner: :tech,
+      lobe: :tech,
       name: "Code Review",
       description: "Multi-agent code quality and security review pipeline",
       roles: [

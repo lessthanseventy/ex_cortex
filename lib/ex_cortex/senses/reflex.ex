@@ -11,7 +11,7 @@ defmodule ExCortex.Senses.Reflex do
     :sandbox,
     :rumination_template,
     :source_names,
-    banner: nil
+    lobe: nil
   ]
 
   def all, do: reflexes() ++ streams() ++ digests()
@@ -21,7 +21,7 @@ defmodule ExCortex.Senses.Reflex do
       # Generic reflexes (need user config)
       %__MODULE__{
         id: "git_repo_watcher",
-        banner: :tech,
+        lobe: :tech,
         name: "Git Repo Watcher",
         description: "Watch a local git repository for new commits and generate diffs for review.",
         source_type: "git",
@@ -31,7 +31,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "directory_watcher",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Directory Watcher",
         description: "Monitor a directory for new or changed files.",
         source_type: "directory",
@@ -78,7 +78,7 @@ defmodule ExCortex.Senses.Reflex do
       # Everyday Council
       %__MODULE__{
         id: "everyday_council_intake",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Personal Intake",
         description:
           "Webhook endpoint for dropping in links, notes, PDFs, or thoughts for the Journal Keeper to process.",
@@ -89,7 +89,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "obsidian_watcher",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Obsidian Watcher",
         description: "Watch an Obsidian vault folder for new or changed notes and process them automatically.",
         source_type: "obsidian",
@@ -99,7 +99,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "email_inbox",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Email Inbox",
         description: "Monitor your notmuch email database for new messages and feed them into the council.",
         source_type: "email",
@@ -109,7 +109,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "youtube_channel",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "YouTube Channel",
         description: "Monitor a YouTube channel or playlist for new videos via yt-dlp.",
         source_type: "media",
@@ -120,7 +120,7 @@ defmodule ExCortex.Senses.Reflex do
       # Code Review
       %__MODULE__{
         id: "code_review_pr_webhook",
-        banner: :tech,
+        lobe: :tech,
         name: "GitHub PR Webhook",
         description: "Receive GitHub pull request notifications via webhook for automated review.",
         source_type: "webhook",
@@ -131,7 +131,7 @@ defmodule ExCortex.Senses.Reflex do
       # Dev Team
       %__MODULE__{
         id: "github_issue_watcher",
-        banner: :tech,
+        lobe: :tech,
         name: "GitHub Issue Watcher",
         description:
           "Watches a GitHub repository for open issues with a specific label. Use with the Dev Team cluster to automatically pick up and work self-improvement issues.",
@@ -143,7 +143,7 @@ defmodule ExCortex.Senses.Reflex do
       # Content Moderation
       %__MODULE__{
         id: "content_inbox",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Content Inbox",
         description: "Watch a directory for user-submitted content awaiting moderation review.",
         source_type: "directory",
@@ -154,7 +154,7 @@ defmodule ExCortex.Senses.Reflex do
       # Accessibility Review
       %__MODULE__{
         id: "accessibility_dir_watcher",
-        banner: :tech,
+        lobe: :tech,
         name: "Excessibility Snapshots",
         description: "Watch excessibility snapshot output directory for new accessibility reports.",
         source_type: "directory",
@@ -165,7 +165,7 @@ defmodule ExCortex.Senses.Reflex do
       # Performance Audit
       %__MODULE__{
         id: "performance_dir_watcher",
-        banner: :tech,
+        lobe: :tech,
         name: "Excessibility Timelines",
         description: "Watch excessibility timeline JSON output directory for performance data.",
         source_type: "directory",
@@ -176,7 +176,7 @@ defmodule ExCortex.Senses.Reflex do
       # Incident Triage
       %__MODULE__{
         id: "incident_webhook",
-        banner: :tech,
+        lobe: :tech,
         name: "Error Tracker Alerts",
         description: "Receive alerts from error trackers (Sentry, Honeybadger, etc.) via webhook.",
         source_type: "webhook",
@@ -186,7 +186,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "incident_status_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "Statuspage Feed",
         description: "RSS feed from service status pages — track upstream dependency incidents.",
         source_type: "feed",
@@ -196,7 +196,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "incident_ws_stream",
-        banner: :tech,
+        lobe: :tech,
         name: "Log Aggregator Stream",
         description: "Connect to a log aggregator WebSocket stream for real-time error monitoring.",
         source_type: "websocket",
@@ -207,7 +207,7 @@ defmodule ExCortex.Senses.Reflex do
       # Contract Review
       %__MODULE__{
         id: "contract_dir_watcher",
-        banner: :business,
+        lobe: :business,
         name: "Contracts Folder",
         description: "Watch a contracts/documents directory for new or updated files.",
         source_type: "directory",
@@ -221,7 +221,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "contract_webhook",
-        banner: :business,
+        lobe: :business,
         name: "Document Management Notifications",
         description: "Receive notifications from document management systems when contracts are uploaded or changed.",
         source_type: "webhook",
@@ -232,7 +232,7 @@ defmodule ExCortex.Senses.Reflex do
       # Dependency Audit
       %__MODULE__{
         id: "dependency_git_watcher",
-        banner: :tech,
+        lobe: :tech,
         name: "Lock File Watcher",
         description: "Watch a git repo for changes to mix.lock or package.json — triggers audit on dependency updates.",
         source_type: "git",
@@ -243,7 +243,7 @@ defmodule ExCortex.Senses.Reflex do
       # Jira
       %__MODULE__{
         id: "jira_webhook",
-        banner: :tech,
+        lobe: :tech,
         name: "Jira Webhook",
         description: "Receive Jira issue events via webhook — new issues, status changes, priority escalations.",
         source_type: "webhook",
@@ -263,7 +263,7 @@ defmodule ExCortex.Senses.Reflex do
       # Sandbox-enabled reflexes
       %__MODULE__{
         id: "excessibility_scanner",
-        banner: :tech,
+        lobe: :tech,
         name: "Excessibility Scanner",
         description: "Run excessibility accessibility checks against a Phoenix project.",
         source_type: "directory",
@@ -274,7 +274,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "credo_scanner",
-        banner: :tech,
+        lobe: :tech,
         name: "Credo Scanner",
         description: "Run Credo static analysis checks against an Elixir project.",
         source_type: "directory",
@@ -285,7 +285,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "mix_audit_scanner",
-        banner: :tech,
+        lobe: :tech,
         name: "Mix Audit Scanner",
         description: "Run mix audit to check for known vulnerabilities in dependencies.",
         source_type: "git",
@@ -296,7 +296,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "dialyzer_scanner",
-        banner: :tech,
+        lobe: :tech,
         name: "Dialyzer Scanner",
         description: "Run Dialyzer type checking against an Elixir project.",
         source_type: "directory",
@@ -317,7 +317,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "sobelow_scanner",
-        banner: :tech,
+        lobe: :tech,
         name: "Sobelow Security Scanner",
         description: "Run Sobelow security-focused static analysis on a Phoenix project.",
         source_type: "directory",
@@ -339,7 +339,7 @@ defmodule ExCortex.Senses.Reflex do
       # Nextcloud
       %__MODULE__{
         id: "nextcloud_files",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Nextcloud Files",
         description: "Watch a Nextcloud folder for new and changed files.",
         source_type: "nextcloud",
@@ -349,7 +349,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "nextcloud_notes",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Nextcloud Notes",
         description: "Monitor Nextcloud Notes for new entries and changes.",
         source_type: "nextcloud",
@@ -359,7 +359,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "nextcloud_calendar",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Nextcloud Calendar",
         description: "Watch Nextcloud Calendar for upcoming events and changes.",
         source_type: "nextcloud",
@@ -369,7 +369,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "nextcloud_talk",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Nextcloud Talk",
         description: "Monitor Nextcloud Talk conversations for new messages.",
         source_type: "nextcloud",
@@ -395,7 +395,7 @@ defmodule ExCortex.Senses.Reflex do
       # Code Review
       %__MODULE__{
         id: "code_review_elixir_forum",
-        banner: :tech,
+        lobe: :tech,
         name: "Elixir Forum",
         description: "Elixir Forum discussions — best practices, code patterns, and community solutions.",
         source_type: "feed",
@@ -405,7 +405,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "code_review_credo_releases",
-        banner: :tech,
+        lobe: :tech,
         name: "Credo Releases",
         description: "Credo static analysis releases — new checks, rule changes, and style updates.",
         source_type: "feed",
@@ -419,7 +419,7 @@ defmodule ExCortex.Senses.Reflex do
       # Content Moderation
       %__MODULE__{
         id: "content_mod_owasp",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "OWASP Blog",
         description: "OWASP Foundation blog — application security, vulnerability research, and best practices.",
         source_type: "feed",
@@ -430,7 +430,7 @@ defmodule ExCortex.Senses.Reflex do
       # Risk Assessment
       %__MODULE__{
         id: "risk_krebs",
-        banner: :tech,
+        lobe: :tech,
         name: "Krebs on Security",
         description: "Brian Krebs' investigative security journalism — breaches, threats, and cybercrime.",
         source_type: "feed",
@@ -443,7 +443,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "risk_cisa_alerts",
-        banner: :tech,
+        lobe: :tech,
         name: "CISA Alerts",
         description: "US Cybersecurity & Infrastructure Security Agency alerts and advisories.",
         source_type: "feed",
@@ -456,7 +456,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "risk_nist_nvd",
-        banner: :tech,
+        lobe: :tech,
         name: "NIST NVD Updates",
         description: "NIST National Vulnerability Database — CVE entries and severity scoring.",
         source_type: "url",
@@ -466,7 +466,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "risk_troy_hunt",
-        banner: :tech,
+        lobe: :tech,
         name: "Troy Hunt's Blog",
         description: "Troy Hunt's blog — data breaches, Have I Been Pwned, and web security.",
         source_type: "feed",
@@ -480,7 +480,7 @@ defmodule ExCortex.Senses.Reflex do
       # Accessibility Review
       %__MODULE__{
         id: "accessibility_w3c_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "W3C WAI Blog",
         description: "W3C Web Accessibility Initiative blog — guidelines updates, techniques, and best practices.",
         source_type: "feed",
@@ -490,7 +490,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "accessibility_webaim_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "WebAIM Blog",
         description: "WebAIM blog — practical accessibility articles, WCAG interpretation, and testing techniques.",
         source_type: "feed",
@@ -500,7 +500,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "accessibility_wcag_url",
-        banner: :tech,
+        lobe: :tech,
         name: "WCAG Spec Updates",
         description: "Watch the WCAG specification page for changes and updates.",
         source_type: "url",
@@ -511,7 +511,7 @@ defmodule ExCortex.Senses.Reflex do
       # Performance Audit
       %__MODULE__{
         id: "performance_flyio_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "Fly.io Blog",
         description: "Fly.io engineering blog — deployment, infrastructure, and performance insights.",
         source_type: "feed",
@@ -521,7 +521,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "performance_dashbit_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "Dashbit Blog",
         description: "Dashbit blog — Elixir performance, Phoenix optimization, and ecosystem updates.",
         source_type: "feed",
@@ -531,7 +531,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "performance_phoenix_url",
-        banner: :tech,
+        lobe: :tech,
         name: "Phoenix Changelog",
         description: "Watch the Phoenix changelog for new releases and performance-related changes.",
         source_type: "url",
@@ -545,7 +545,7 @@ defmodule ExCortex.Senses.Reflex do
       # Incident Triage
       %__MODULE__{
         id: "incident_hn_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "HN Outage/Incident Feed",
         description: "Hacker News posts about outages, incidents, and postmortems.",
         source_type: "feed",
@@ -559,7 +559,7 @@ defmodule ExCortex.Senses.Reflex do
       # Contract Review
       %__MODULE__{
         id: "contract_law_feed",
-        banner: :business,
+        lobe: :business,
         name: "Law.com Legal News",
         description: "Law.com legal news feed — contract law updates and regulatory changes.",
         source_type: "feed",
@@ -573,7 +573,7 @@ defmodule ExCortex.Senses.Reflex do
       # Dependency Audit
       %__MODULE__{
         id: "dependency_ghsa_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "GitHub Advisory Database",
         description: "GitHub Security Advisory database feed — CVEs and vulnerability disclosures.",
         source_type: "feed",
@@ -586,7 +586,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "dependency_elixir_security_feed",
-        banner: :tech,
+        lobe: :tech,
         name: "Elixir Security News",
         description: "Elixir Forum security category — Elixir/Erlang specific vulnerability announcements.",
         source_type: "feed",
@@ -599,7 +599,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "dependency_hex_url",
-        banner: :tech,
+        lobe: :tech,
         name: "Hex.pm Package Updates",
         description: "Watch hex.pm for package updates relevant to your project.",
         source_type: "url",
@@ -647,7 +647,7 @@ defmodule ExCortex.Senses.Reflex do
       # Tech
       %__MODULE__{
         id: "hacker_news_rss",
-        banner: :tech,
+        lobe: :tech,
         name: "Hacker News",
         description: "Top stories from Hacker News",
         source_type: "feed",
@@ -657,7 +657,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "the_verge_rss",
-        banner: :tech,
+        lobe: :tech,
         name: "The Verge",
         description: "Technology news and reviews from The Verge.",
         source_type: "feed",
@@ -670,7 +670,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "ars_technica_rss",
-        banner: :tech,
+        lobe: :tech,
         name: "Ars Technica",
         description: "In-depth technology news and analysis from Ars Technica.",
         source_type: "feed",
@@ -683,7 +683,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "techcrunch_rss",
-        banner: :tech,
+        lobe: :tech,
         name: "TechCrunch",
         description: "Startup and technology news from TechCrunch.",
         source_type: "feed",
@@ -694,7 +694,7 @@ defmodule ExCortex.Senses.Reflex do
       # Business
       %__MODULE__{
         id: "reuters_business_rss",
-        banner: :business,
+        lobe: :business,
         name: "Reuters Business",
         description: "Business and financial news from Reuters.",
         source_type: "feed",
@@ -707,7 +707,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "ft_rss",
-        banner: :business,
+        lobe: :business,
         name: "Financial Times",
         description: "Global business and financial news from the Financial Times.",
         source_type: "feed",
@@ -718,7 +718,7 @@ defmodule ExCortex.Senses.Reflex do
       # Sports
       %__MODULE__{
         id: "espn_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "ESPN",
         description: "Sports news and scores from ESPN.",
         source_type: "feed",
@@ -731,7 +731,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "bbc_sport_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "BBC Sport",
         description: "Sports news and results from BBC Sport.",
         source_type: "feed",
@@ -744,7 +744,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "the_athletic_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "The Athletic",
         description: "In-depth sports journalism from The Athletic.",
         source_type: "feed",
@@ -758,7 +758,7 @@ defmodule ExCortex.Senses.Reflex do
       # Culture
       %__MODULE__{
         id: "pitchfork_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Pitchfork",
         description: "Music news and reviews from Pitchfork.",
         source_type: "feed",
@@ -771,7 +771,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "av_club_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "AV Club",
         description: "Pop culture and entertainment reviews from The AV Club.",
         source_type: "feed",
@@ -781,7 +781,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "vulture_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Vulture",
         description: "Entertainment and culture coverage from Vulture.",
         source_type: "feed",
@@ -795,7 +795,7 @@ defmodule ExCortex.Senses.Reflex do
       # Science
       %__MODULE__{
         id: "science_daily_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Science Daily",
         description: "Breaking science news from ScienceDaily.",
         source_type: "feed",
@@ -808,7 +808,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "nature_news_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Nature News",
         description: "Science news and research from Nature.",
         source_type: "feed",
@@ -818,7 +818,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "ars_science_rss",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Ars Technica Science",
         description: "Science and technology research coverage from Ars Technica.",
         source_type: "feed",
@@ -836,7 +836,7 @@ defmodule ExCortex.Senses.Reflex do
     [
       %__MODULE__{
         id: "tech_digest",
-        banner: :tech,
+        lobe: :tech,
         name: "Tech Digest",
         description: "Top tech news from HN, Verge, Ars, and TechCrunch every 12 hours with clickable links.",
         source_type: "feed",
@@ -861,7 +861,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "financial_pulse",
-        banner: :business,
+        lobe: :business,
         name: "Financial Pulse",
         description: "Financial and business news from Reuters and FT every 12 hours with clickable links.",
         source_type: "feed",
@@ -884,7 +884,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "science_roundup",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Science Roundup",
         description: "Daily science digest from Science Daily, Nature, and Ars Science with clickable links.",
         source_type: "feed",
@@ -908,7 +908,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "sports_recap",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Sports Recap",
         description: "Daily sports recap from ESPN and BBC Sport with clickable links.",
         source_type: "feed",
@@ -931,7 +931,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "culture_radar",
-        banner: :lifestyle,
+        lobe: :lifestyle,
         name: "Culture Radar",
         description: "Daily culture and entertainment digest from Pitchfork, AV Club, and Vulture with clickable links.",
         source_type: "feed",
@@ -955,7 +955,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "security_bulletin",
-        banner: :tech,
+        lobe: :tech,
         name: "Security Bulletin",
         description: "Security digest from Krebs and CISA every 12 hours with clickable links.",
         source_type: "feed",
@@ -978,7 +978,7 @@ defmodule ExCortex.Senses.Reflex do
       },
       %__MODULE__{
         id: "elixir_ecosystem",
-        banner: :tech,
+        lobe: :tech,
         name: "Elixir Ecosystem",
         description: "Weekly Elixir ecosystem digest from Forum, blog, and OTP releases with clickable links.",
         source_type: "feed",
@@ -1003,14 +1003,14 @@ defmodule ExCortex.Senses.Reflex do
     ]
   end
 
-  def filter_by_banner(banner) do
-    Enum.filter(all(), &(&1.banner == banner || &1.banner == nil))
+  def filter_by_lobe(lobe) do
+    Enum.filter(all(), &(&1.lobe == lobe || &1.lobe == nil))
   end
 
   def get(id), do: Enum.find(all(), &(&1.id == id))
   def for_cluster(cluster_name), do: Enum.filter(all(), &(&1.suggested_cluster == cluster_name))
 
-  def for_banner(banner) when is_atom(banner) do
-    Enum.filter(streams(), &(&1.banner == banner))
+  def for_lobe(lobe) when is_atom(lobe) do
+    Enum.filter(streams(), &(&1.lobe == lobe))
   end
 end

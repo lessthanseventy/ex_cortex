@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.IncidentTriage do
 
   def metadata do
     %{
-      banner: :tech,
+      lobe: :tech,
       name: "Incident Triage",
       description: "Multi-agent incident severity assessment and response routing pipeline",
       roles: [

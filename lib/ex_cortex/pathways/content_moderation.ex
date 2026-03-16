@@ -8,7 +8,7 @@ defmodule ExCortex.Pathways.ContentModeration do
 
   def metadata do
     %{
-      banner: :lifestyle,
+      lobe: :lifestyle,
       name: "Content Moderation",
       description: "Multi-agent content safety review pipeline",
       roles: [

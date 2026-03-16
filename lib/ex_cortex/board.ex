@@ -19,7 +19,7 @@ defmodule ExCortex.Board do
     :id,
     :name,
     :category,
-    :banner,
+    :lobe,
     :description,
     :suggested_team,
     :requires,
@@ -41,8 +41,8 @@ defmodule ExCortex.Board do
 
   def get(id), do: Enum.find(all(), &(&1.id == id))
 
-  def filter_by_banner(banner) do
-    Enum.filter(all(), &(&1.banner == banner))
+  def filter_by_lobe(lobe) do
+    Enum.filter(all(), &(&1.lobe == lobe))
   end
 
   @doc """

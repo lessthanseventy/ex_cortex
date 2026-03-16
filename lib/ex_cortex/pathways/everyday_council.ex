@@ -24,7 +24,7 @@ defmodule ExCortex.Pathways.EverydayCouncil do
     ]
 
     %{
-      banner: :lifestyle,
+      lobe: :lifestyle,
       name: "Everyday Council",
       description:
         "Your personal life OS. Advisory, journaling, news, daily rhythms, priorities, and reflection — all in one place.",

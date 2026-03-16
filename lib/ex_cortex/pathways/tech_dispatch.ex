@@ -18,7 +18,7 @@ defmodule ExCortex.Pathways.TechDispatch do
     ]
 
     %{
-      banner: :tech,
+      lobe: :tech,
       name: "Tech Dispatch",
       description: "Daily and weekly technology news synthesis. Learns trends over time through accumulated memory.",
       roles: Enum.map(neurons, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),

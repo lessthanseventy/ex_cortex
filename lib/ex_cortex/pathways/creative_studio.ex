@@ -17,7 +17,7 @@ defmodule ExCortex.Pathways.CreativeStudio do
     ]
 
     %{
-      banner: :lifestyle,
+      lobe: :lifestyle,
       name: "Creative Studio",
       description: "Creative and content review cluster — evaluates brand voice, tone, and messaging, with flair.",
       roles: Enum.map(neurons, fn m -> %{name: m.name, system_prompt: m.system_prompt} end),
