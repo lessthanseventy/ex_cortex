@@ -75,38 +75,41 @@ defmodule ExCortex.Senses.EmailSense do
     tags = thread["tags"] || []
     total = thread["total"] || 0
 
-    case fetch_thread_body(thread_id) do
-      {:ok, body} ->
-        content =
-          format_email(
-            thread_id: thread_id,
-            subject: subject,
-            authors: authors,
-            date_relative: date_relative,
-            tags: tags,
-            total: total,
-            body: body
-          )
+    body =
+      case fetch_thread_body(thread_id) do
+        {:ok, b} ->
+          b
 
-        [
-          %Item{
-            source_id: config["source_id"],
-            type: "email",
-            content: content,
-            metadata: %{
-              thread_id: thread_id,
-              subject: subject,
-              from: authors,
-              tags: tags,
-              timestamp: thread["timestamp"]
-            }
-          }
-        ]
+        {:error, reason} ->
+          Logger.warning("[EmailSense] Failed to fetch body for #{thread_id}: #{inspect(reason)}")
+          "(body unavailable)"
+      end
 
-      {:error, reason} ->
-        Logger.warning("[EmailSense] Failed to fetch thread #{thread_id}: #{inspect(reason)}")
-        []
-    end
+    content =
+      format_email(
+        thread_id: thread_id,
+        subject: subject,
+        authors: authors,
+        date_relative: date_relative,
+        tags: tags,
+        total: total,
+        body: body
+      )
+
+    [
+      %Item{
+        source_id: config["source_id"],
+        type: "email",
+        content: content,
+        metadata: %{
+          thread_id: thread_id,
+          subject: subject,
+          from: authors,
+          tags: tags,
+          timestamp: thread["timestamp"]
+        }
+      }
+    ]
   end
 
   defp fetch_thread_body(thread_id) do
@@ -155,8 +158,11 @@ defmodule ExCortex.Senses.EmailSense do
 
   defp extract_content_parts(_), do: []
 
+  @max_body_bytes 4_000
+
   defp format_email(opts) do
     tags_str = Enum.join(opts[:tags], ", ")
+    body = opts[:body] |> String.trim() |> String.slice(0, @max_body_bytes)
 
     String.trim("""
     Thread-ID: #{opts[:thread_id]}
@@ -167,7 +173,7 @@ defmodule ExCortex.Senses.EmailSense do
     Thread: #{opts[:total]} messages
 
     ---
-    #{String.trim(opts[:body])}
+    #{body}
     """)
   end
 end
