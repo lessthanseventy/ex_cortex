@@ -75,14 +75,12 @@ defmodule ExCortex.Application do
         ExCortex.Repo.all(from(qr in Daydream, where: qr.status == "running"))
 
       if running_runs != [] do
-        Logger.info("[Boot] Found #{length(running_runs)} interrupted daydream(s) — marking complete")
+        Logger.info("[Boot] Found #{length(running_runs)} interrupted daydream(s) — marking interrupted")
 
-        Enum.each(running_runs, fn run ->
-          ExCortex.Repo.update_all(
-            from(qr in Daydream, where: qr.id == ^run.id),
-            set: [status: "complete"]
-          )
-        end)
+        ExCortex.Repo.update_all(
+          from(qr in Daydream, where: qr.status == "running"),
+          set: [status: "interrupted"]
+        )
       end
     rescue
       e -> Logger.warning("[Boot] Could not check restart status: #{Exception.message(e)}")
