@@ -11,55 +11,55 @@
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>
   </head>
-  <body class="bg-background text-foreground min-h-screen">
-    <nav class="border-b bg-card sticky top-0 z-50 shadow-sm">
-      <div class="max-w-6xl mx-auto flex items-center gap-8 px-6 py-0">
-        <a
-          href={~p"/cortex"}
-          class="flex items-center gap-2 shrink-0 py-4 border-b-2 border-transparent hover:opacity-80 transition-opacity"
-        >
+  <body class="bg-background text-foreground min-h-screen flex">
+    <nav class="w-52 shrink-0 bg-card border-r sticky top-0 h-screen overflow-y-auto flex flex-col">
+      <a
+        href={~p"/cortex"}
+        class="flex items-center gap-2 px-4 py-5 hover:opacity-80 transition-opacity"
+      >
+        <img src={~p"/images/logo.svg"} alt="" class="h-10 w-10 mr-1" aria-hidden="true" />
+        <div class="flex flex-col">
           <span class="text-sm font-bold text-foreground tracking-widest uppercase select-none">
             ExCortex
           </span>
           <%= if @banner do %>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium capitalize">
+            <span class="text-xs text-muted-foreground font-medium capitalize">
               {@banner}
             </span>
           <% end %>
-        </a>
-        <div class="flex overflow-x-auto">
-          <%= for {label, path, tooltip} <- [
-            {"Cortex", ~p"/cortex", "Dashboard — active thoughts, signals, health"},
-            {"Wonder", ~p"/wonder", "Quick questions — pure LLM, no context"},
-            {"Muse", ~p"/muse", "Data-grounded Q&A over your knowledge base"},
-            {"Thoughts", ~p"/thoughts", "Saved question templates and history"},
-            {"Neurons", ~p"/neurons", "Clusters and agent management"},
-            {"Ruminations", ~p"/ruminations", "Pipeline builder and run history"},
-            {"Genesis", ~p"/genesis", "Synaptogenesis — birth of new thought pathways"},
-            {"Memory", ~p"/memory", "Engram browser with tiered drill-down"},
-            {"Senses", ~p"/senses", "Source management and reflex library"},
-            {"Instinct", ~p"/instinct", "Configuration and settings"},
-            {"Guide", ~p"/guide", "Documentation and onboarding"}
-          ] do %>
-            <a
-              href={path}
-              title={tooltip}
-              class={[
-                "px-4 py-4 text-sm whitespace-nowrap transition-colors border-b-2",
-                if(String.starts_with?(@conn.request_path, path),
-                  do: "border-foreground text-foreground font-medium",
-                  else:
-                    "border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground"
-                )
-              ]}
-            >
-              {label}
-            </a>
-          <% end %>
         </div>
+      </a>
+      <div class="flex flex-col flex-1 px-2 pb-4">
+        <%= for {label, path, tooltip} <- [
+          {"Cortex", ~p"/cortex", "Dashboard — active thoughts, signals, health"},
+          {"Wonder", ~p"/wonder", "Quick questions — pure LLM, no context"},
+          {"Muse", ~p"/muse", "Data-grounded Q&A over your knowledge base"},
+          {"Thoughts", ~p"/thoughts", "Saved question templates and history"},
+          {"Neurons", ~p"/neurons", "Clusters and agent management"},
+          {"Ruminations", ~p"/ruminations", "Pipeline builder and run history"},
+          {"Genesis", ~p"/genesis", "Synaptogenesis — birth of new thought pathways"},
+          {"Memory", ~p"/memory", "Engram browser with tiered drill-down"},
+          {"Senses", ~p"/senses", "Source management and reflex library"},
+          {"Instinct", ~p"/instinct", "Configuration and settings"},
+          {"Guide", ~p"/guide", "Documentation and onboarding"}
+        ] do %>
+          <a
+            href={path}
+            title={tooltip}
+            class={[
+              "px-3 py-2 text-sm rounded-md transition-colors",
+              if(String.starts_with?(@conn.request_path, path),
+                do: "bg-muted text-foreground font-medium",
+                else: "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )
+            ]}
+          >
+            {label}
+          </a>
+        <% end %>
       </div>
     </nav>
-    <main class="max-w-6xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+    <main class="flex-1 min-w-0 px-6 py-8 max-w-6xl">
       {@inner_content}
     </main>
   </body>

@@ -82,7 +82,8 @@ defmodule ExCortex.MixProject do
       # Packaging
       {:burrito, "~> 1.5", only: :prod},
       # Accessibility
-      {:excessibility, "~> 0.10", only: [:dev, :test]}
+      {:excessibility, "~> 0.10", only: [:dev, :test]},
+      {:ex_compact, "~> 0.1", path: "/home/andrew/projects/ex_compact"}
     ]
   end
 
