@@ -51,3 +51,4 @@ priv/repo/seeds.local.exs
 /priv/static/*-*.txt
 /priv/static/images/*-*.svg
 /priv/static/images/*.gz
+docs/plans/
