@@ -1,5 +1,5 @@
 defmodule ExCortex.Tools.EmailArchiveYear do
-  @moduledoc "Tool: archive all inbox emails from a given year into Archive_YYYY Maildir folder."
+  @moduledoc "Tool: archive all inbox emails from a given year into ZZZ_Archive_YYYY Maildir folder."
 
   require Logger
 
@@ -9,7 +9,7 @@ defmodule ExCortex.Tools.EmailArchiveYear do
     ReqLLM.Tool.new!(
       name: "email_archive_year",
       description:
-        "Archive all inbox emails from a given year. Moves them to Archive_YYYY/ " <>
+        "Archive all inbox emails from a given year. Moves them to ZZZ_Archive_YYYY/ " <>
           "Maildir folder and tags +archive -inbox. Call with the year to archive.",
       parameter_schema: %{
         "type" => "object",
@@ -26,7 +26,7 @@ defmodule ExCortex.Tools.EmailArchiveYear do
   end
 
   def call(%{"year" => year}) when is_integer(year) do
-    folder = "Archive_#{year}"
+    folder = "ZZZ_Archive_#{year}"
     dest_cur = Path.join([@mail_root, folder, "cur"])
 
     for sub <- ["cur", "new", "tmp"] do

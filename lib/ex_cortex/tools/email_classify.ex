@@ -4,19 +4,16 @@ defmodule ExCortex.Tools.EmailClassify do
   require Logger
 
   @categories %{
-    "newsletter" => "Newsletter",
-    "promotion" => "Promotion",
+    "newsletter" => "Newsletters",
+    "promotion" => "Promotions",
     "spam" => "Spam",
     "personal" => "Personal",
     "transactional" => "Transactional",
-    "receipt" => "Receipt",
-    "banking" => "Banking",
+    "financial" => "Financial",
     "jobs" => "Jobs",
-    "job_alert" => "Job_Alert",
-    "notification" => "Notification",
+    "notification" => "Notifications",
     "social" => "Social",
     "github" => "GitHub",
-    "appsignal" => "AppSignal",
     "technical" => "Technical"
   }
 
@@ -41,12 +38,11 @@ defmodule ExCortex.Tools.EmailClassify do
             "enum" => @category_names,
             "description" =>
               "newsletter (marketing, digests), promotion (sales, deals, coupons), spam (junk), " <>
-                "personal (real people), transactional (confirmations, password resets), " <>
-                "receipt (purchase receipts, invoices), banking (bank statements, transfers, alerts), " <>
-                "jobs (applications, recruiters), " <>
-                "job_alert (job board notifications), notification (automated alerts), " <>
+                "personal (real people), transactional (confirmations, resets, receipts, invoices), " <>
+                "financial (bank statements, transfers), jobs (applications, recruiters, job alerts), " <>
+                "notification (automated alerts, security, account, updates), " <>
                 "social (LinkedIn, Twitter), github (PRs, issues, CI), " <>
-                "appsignal (incidents), technical (server alerts, DevOps)"
+                "technical (server alerts, DevOps, bugs, incidents, AppSignal)"
           }
         },
         "required" => ["thread_id", "category"]
@@ -71,7 +67,7 @@ defmodule ExCortex.Tools.EmailClassify do
   end
 
   defp tag(thread_id, category) do
-    args = ["tag", "+#{category}", "-inbox", "--", "thread:#{thread_id}"]
+    args = ["tag", "+#{category}", "+classified", "-inbox", "--", "thread:#{thread_id}"]
 
     case System.cmd("notmuch", args, stderr_to_stdout: true) do
       {_, 0} -> :ok

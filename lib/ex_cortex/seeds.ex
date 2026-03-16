@@ -958,13 +958,20 @@ defmodule ExCortex.Seeds do
         Ruminations.create_synapse(%{
           name: "Email: Classify & Tag",
           description:
-            "Classify each email by type. Use email_move to move emails to matching Maildir folders " <>
-              "(Newsletter, Spam, Personal, Transactional, Jobs). This creates folders, moves files, " <>
-              "applies notmuch tags, and removes the inbox tag. mbsync will sync changes back to the server.",
+            "Classify each email by type. For EACH email, call email_classify with its Thread-ID and category.\n\n" <>
+              "Categories: newsletter (marketing, digests), promotion (sales, deals, coupons), spam (junk), " <>
+              "personal (real people), transactional (confirmations, resets, receipts, invoices), " <>
+              "financial (bank statements, transfers), jobs (applications, recruiters, job alerts), " <>
+              "notification (automated alerts, security, account, updates), " <>
+              "social (LinkedIn, Twitter), github (PRs, issues, CI), " <>
+              "technical (server alerts, DevOps, bugs, incidents, AppSignal).\n\n" <>
+              "Use the Thread-ID field from each email header as the thread_id parameter. " <>
+              "Process ALL emails in the batch. Do not stop early or ask for clarification.",
           trigger: "manual",
           output_type: "freeform",
           cluster_name: "Triage",
-          loop_tools: ["search_email", "email_tag", "email_move"],
+          loop_tools: ["search_email", "email_classify"],
+          max_tool_iterations: 60,
           roster: [%{"who" => "all", "preferred_who" => "Classifier", "how" => "solo", "when" => "sequential"}]
         })
 
@@ -1082,7 +1089,7 @@ defmodule ExCortex.Seeds do
         Ruminations.create_synapse(%{
           name: "Archive Previous Year",
           description:
-            "Archive all emails from the previous year. Call email_archive_year with the previous year number.",
+            "Archive all emails from the previous year. Call email_archive_year with the previous year number. Files go to ZZZ_Archive_YYYY/.",
           trigger: "manual",
           output_type: "freeform",
           cluster_name: "Triage",
@@ -1095,9 +1102,9 @@ defmodule ExCortex.Seeds do
       {:ok, _} =
         Ruminations.create_rumination(%{
           name: name,
-          description: "Runs Dec 31 at midnight. Moves all inbox emails from the current year into Archive_YYYY/.",
+          description: "Runs Feb 1 at midnight. Moves all emails from the previous year into ZZZ_Archive_YYYY/.",
           trigger: "scheduled",
-          schedule: "0 0 31 12 *",
+          schedule: "0 0 1 2 *",
           status: "active",
           steps: [%{"step_id" => step.id, "order" => 1}]
         })
@@ -2372,7 +2379,7 @@ defmodule ExCortex.Seeds do
         source_type: "email",
         status: "paused",
         config: %{
-          "query" => "tag:inbox",
+          "query" => "tag:unread AND tag:inbox AND NOT tag:classified",
           "interval" => 30_000,
           "max_results" => 15,
           "batch_mode" => true,
