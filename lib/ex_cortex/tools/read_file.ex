@@ -4,7 +4,8 @@ defmodule ExCortex.Tools.ReadFile do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "read_file",
-      description: "Read the contents of a file. Path is relative to the working directory.",
+      description:
+        "Read a file from the local project filesystem (relative paths only). Use list_files to discover available files. Returns full file content. Example: read_file(path: \"lib/ex_cortex/muse.ex\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

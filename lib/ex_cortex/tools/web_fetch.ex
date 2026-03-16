@@ -4,7 +4,8 @@ defmodule ExCortex.Tools.WebFetch do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "web_fetch",
-      description: "Fetch a URL and return readable text content (HTML is converted to plain text via w3m).",
+      description:
+        "Fetch a URL and convert HTML to readable plain text. Returns up to 8000 characters. Better than fetch_url for web pages — renders HTML to clean text via w3m. Example: web_fetch(url: \"https://example.com/article\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

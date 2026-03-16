@@ -5,7 +5,7 @@ defmodule ExCortex.Tools.ListFiles do
     ReqLLM.Tool.new!(
       name: "list_files",
       description:
-        "List files matching a glob pattern. Only searches app source directories (lib/, test/, config/, priv/repo/, docs/) — not deps or path dependencies.",
+        ~s{List files matching a glob pattern. Returns up to 100 file paths. Ignores _build, deps, .git, and node_modules directories. Examples: list_files(pattern: "lib/**/*.ex"), list_files(pattern: "*.md", path: "docs")},
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

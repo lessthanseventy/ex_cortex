@@ -7,7 +7,7 @@ defmodule ExCortex.Tools.QueryAxiom do
     ReqLLM.Tool.new!(
       name: "query_axiom",
       description:
-        "Search a reference axiom by name. Returns matching rows (CSV) or lines (text/markdown) that contain the query string.",
+        ~s{Search a reference axiom (dataset) by exact name. Axioms are CSV or text reference data in the Lexicon. Use list_sources to discover available axiom names. Case-insensitive substring search on content. Example: query_axiom(axiom: "tech-glossary", query: "elixir")},
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

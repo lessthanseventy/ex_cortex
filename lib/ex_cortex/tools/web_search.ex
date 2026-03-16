@@ -4,7 +4,8 @@ defmodule ExCortex.Tools.WebSearch do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "web_search",
-      description: "Search the web using DuckDuckGo and return JSON results.",
+      description:
+        "Search the web via DuckDuckGo. Returns results with title, URL, and snippet. Example: web_search(query: \"elixir phoenix deployment\", num: 5)",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

@@ -7,11 +7,8 @@ defmodule ExCortex.Tools.QueryJaeger do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "query_jaeger",
-      description: """
-      Query Jaeger for recent OpenTelemetry traces from ex_cortex.
-      Use this to find slow operations, failed LLM calls, expensive tool calls, or daydream timings.
-      Returns a summary of recent traces sorted by duration (slowest first).
-      """,
+      description:
+        ~s{Query Jaeger for recent OpenTelemetry traces from ex_cortex. Use this to find slow operations, failed LLM calls, expensive tool calls, or daydream timings. Returns a summary of recent traces sorted by duration (slowest first). Operations: thought.run, thought.step, llm.complete, llm.complete_with_tools, llm.tool_call, or omit for all. Example: query_jaeger(operation: "llm.complete", lookback: "4h", min_duration_ms: 5000)},
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

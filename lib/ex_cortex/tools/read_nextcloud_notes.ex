@@ -6,7 +6,8 @@ defmodule ExCortex.Tools.ReadNextcloudNotes do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "read_nextcloud_notes",
-      description: "List all notes from Nextcloud Notes app.",
+      description:
+        "List all notes from the Nextcloud Notes app. Returns note ID, title, and category. Example: read_nextcloud_notes() — no parameters needed.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{},

@@ -4,7 +4,8 @@ defmodule ExCortex.Tools.FetchUrl do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "fetch_url",
-      description: "Fetch the text content of a URL. Only use when explicitly permitted.",
+      description:
+        "Fetch raw content from a URL (HTML, JSON, plain text). Returns up to 4000 characters. Use web_fetch instead for human-readable web pages. Use this for APIs or raw data. Example: fetch_url(url: \"https://api.example.com/data.json\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

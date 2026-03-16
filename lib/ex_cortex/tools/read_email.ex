@@ -6,7 +6,8 @@ defmodule ExCortex.Tools.ReadEmail do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "read_email",
-      description: "Read the full content of an email by its message or thread ID from notmuch search results.",
+      description:
+        "Read the full content of an email thread or message by ID (from search_email results). Output capped at 8000 characters. Use search_email first to find thread/message IDs. Example: read_email(id: \"thread:00000000000001a3\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

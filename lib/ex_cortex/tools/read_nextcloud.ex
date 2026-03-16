@@ -6,7 +6,8 @@ defmodule ExCortex.Tools.ReadNextcloud do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "read_nextcloud",
-      description: "Read a file from Nextcloud by its path.",
+      description:
+        "Read a file from Nextcloud by path. Returns file content as text. Use search_nextcloud to discover available files first. Example: read_nextcloud(path: \"/Documents/notes.txt\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

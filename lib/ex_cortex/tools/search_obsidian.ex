@@ -4,7 +4,8 @@ defmodule ExCortex.Tools.SearchObsidian do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "search_obsidian",
-      description: "Search Obsidian vault note titles by keyword. Returns matching note names.",
+      description:
+        "Search Obsidian vault by note title (fuzzy substring match). Returns matching note names. For searching inside note bodies, use search_obsidian_content instead. Example: search_obsidian(query: \"meeting notes\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{

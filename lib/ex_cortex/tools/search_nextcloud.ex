@@ -6,7 +6,8 @@ defmodule ExCortex.Tools.SearchNextcloud do
   def req_llm_tool do
     ReqLLM.Tool.new!(
       name: "search_nextcloud",
-      description: "Search for files in Nextcloud by listing a directory path via WebDAV.",
+      description:
+        "List files in a Nextcloud directory (WebDAV). Not recursive — lists one directory level. Example: search_nextcloud(path: \"/Documents\")",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
