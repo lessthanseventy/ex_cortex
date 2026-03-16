@@ -9,12 +9,15 @@ defmodule ExCortex.Tools.QueryMemoryTest do
     assert is_struct(tool, ReqLLM.Tool)
     assert tool.name == "query_memory"
 
-    assert tool.description ==
-             "Search the memory store for entries matching the given tags. Returns recent matching entries."
+    assert tool.description =~ "engram"
 
     assert Map.has_key?(tool.parameter_schema, "properties")
     assert Map.has_key?(tool.parameter_schema["properties"], "tags")
     assert Map.has_key?(tool.parameter_schema["properties"], "limit")
+    assert Map.has_key?(tool.parameter_schema["properties"], "search")
+    assert Map.has_key?(tool.parameter_schema["properties"], "category")
+    assert Map.has_key?(tool.parameter_schema["properties"], "since")
+    assert Map.has_key?(tool.parameter_schema["properties"], "output")
   end
 
   test "call/1 returns summaries of matching engrams" do

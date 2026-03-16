@@ -4,8 +4,9 @@ defmodule ExCortex.MuseTest do
   alias ExCortex.Muse
 
   describe "gather_context/2" do
-    test "returns empty string when no engrams or axioms match" do
-      assert Muse.gather_context("xyzzy_nonexistent_query_12345") == ""
+    test "returns source context even when no engrams or axioms match" do
+      context = Muse.gather_context("xyzzy_nonexistent_query_12345")
+      assert context =~ "Available Data Sources"
     end
 
     test "includes matching engrams" do
