@@ -106,11 +106,15 @@ defmodule ExCortex.Tools.EmailMove do
 
     Enum.each(files, fn src ->
       filename = Path.basename(src)
-      dest = Path.join(dest_cur, filename)
+      # Strip the UID from the filename — UIDs are per-folder, so keeping
+      # the source folder's UID causes "beyond highest assigned UID" errors
+      # in mbsync. Let mbsync assign a fresh UID on next sync.
+      clean_name = Regex.replace(~r/,U=\d+/, filename, "")
+      dest = Path.join(dest_cur, clean_name)
 
       if src != dest do
         File.rename!(src, dest)
-        Logger.debug("[EmailMove] #{filename} → #{folder}/cur/")
+        Logger.debug("[EmailMove] #{clean_name} → #{folder}/cur/")
       end
     end)
 
