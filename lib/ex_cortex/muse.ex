@@ -25,10 +25,10 @@ defmodule ExCortex.Muse do
   - query_axiom — query reference datasets (sports teams, stock tickers, WCAG criteria, currencies, regulatory frameworks)
   - list_sources — see what data sources and senses are configured
 
-  Obsidian Vault:
-  - search_obsidian — search notes by title (fast, fuzzy)
-  - search_obsidian_content — search inside note bodies (slower, thorough)
-  - read_obsidian — read a specific note's full content
+  Obsidian Vault (the user's personal notes — ALWAYS try these for personal questions):
+  - search_obsidian — search notes by title (fast, fuzzy). Use query="" to list all notes.
+  - search_obsidian_content — search INSIDE note bodies. Use this for: todos ("- [ ]"), specific phrases, tags, dates, anything inside notes.
+  - read_obsidian — read a specific note's full content by path
   - read_obsidian_frontmatter — read a note's YAML frontmatter metadata
 
   Email:
@@ -66,7 +66,8 @@ defmodule ExCortex.Muse do
 
   PRIORITIES — what to check first:
   - Recent news, digests, summaries → Dashboard Signals context (already provided below if relevant)
-  - Notes, ideas, personal knowledge → search_obsidian or search_obsidian_content
+  - Notes, ideas, personal knowledge, todos, journal → search_obsidian or search_obsidian_content
+  - Open todos or checklists → search_obsidian_content(query: "- [ ]")
   - Past knowledge, stored facts → query_memory
   - Emails → search_email
   - Code, repos, issues → search_github
