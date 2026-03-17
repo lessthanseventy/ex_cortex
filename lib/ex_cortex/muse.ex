@@ -11,6 +11,7 @@ defmodule ExCortex.Muse do
   alias ExCortex.Signals.Signal
   alias ExCortex.Thoughts
   alias ExCortex.Tools.Registry
+  alias ExCortex.Tools.SearchObsidianContent
 
   require Logger
 
@@ -139,14 +140,17 @@ defmodule ExCortex.Muse do
     end
   end
 
-  @doc "Gather RAG context from signals, engrams, and axioms."
+  @doc "Gather RAG context from signals, engrams, axioms, and Obsidian."
   def gather_context(question, filters \\ []) do
     source_context = gather_source_context()
     signal_context = gather_signal_context(question)
+    obsidian_context = gather_obsidian_context(question)
     engram_context = gather_engram_context(question, filters)
     axiom_context = gather_axiom_context(question)
 
-    [source_context, signal_context, engram_context, axiom_context]
+    email_context = gather_email_context(question)
+
+    [source_context, signal_context, obsidian_context, email_context, engram_context, axiom_context]
     |> Enum.reject(&(&1 == ""))
     |> Enum.join("\n\n---\n\n")
   end
@@ -236,6 +240,111 @@ defmodule ExCortex.Muse do
       diff < 60 -> "#{diff}m ago"
       diff < 1440 -> "#{div(diff, 60)}h ago"
       true -> "#{div(diff, 1440)}d ago"
+    end
+  end
+
+  @obsidian_triggers ~w(obsidian note notes vault todo todos task tasks checklist journal daily)
+
+  defp gather_obsidian_context(question) do
+    q_lower = String.downcase(question)
+    relevant? = Enum.any?(@obsidian_triggers, &String.contains?(q_lower, &1))
+
+    if relevant? do
+      results = []
+
+      # If asking about todos/tasks, search for unchecked checkboxes
+      results =
+        if String.contains?(q_lower, "todo") or String.contains?(q_lower, "task") or
+             String.contains?(q_lower, "checklist") do
+          case SearchObsidianContent.call(%{"query" => "- [ ]"}) do
+            {:ok, content} -> results ++ ["### Open Todos\n#{content}"]
+            _ -> results
+          end
+        else
+          results
+        end
+
+      # If asking about journal/daily, fetch today's daily note
+      results =
+        if String.contains?(q_lower, "journal") or String.contains?(q_lower, "daily") or
+             String.contains?(q_lower, "today") do
+          today = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
+
+          case ExCortex.Tools.ReadObsidian.call(%{"path" => "journal/#{today}.md"}) do
+            {:ok, content} -> results ++ ["### Daily Note (#{today})\n#{content}"]
+            _ -> results
+          end
+        else
+          results
+        end
+
+      # General note search based on question keywords
+      results =
+        if results == [] do
+          search_terms =
+            q_lower
+            |> String.replace(~r/\b(how|many|what|are|the|my|in|do|i|have|of|a|an|is)\b/, "")
+            |> String.replace(~r/\b(obsidian|notes?|vault)\b/, "")
+            |> String.trim()
+
+          if search_terms == "" do
+            # Empty search — list all notes
+            case ExCortex.Tools.SearchObsidian.call(%{"query" => ""}) do
+              {:ok, content} -> results ++ ["### All Notes\n#{content}"]
+              _ -> results
+            end
+          else
+            case SearchObsidianContent.call(%{"query" => search_terms}) do
+              {:ok, content} when content != "" -> results ++ ["### Obsidian Search: #{search_terms}\n#{content}"]
+              _ -> results
+            end
+          end
+        else
+          results
+        end
+
+      if results == [] do
+        ""
+      else
+        "## Obsidian Vault\n\n" <> Enum.join(results, "\n\n")
+      end
+    else
+      ""
+    end
+  end
+
+  @email_triggers ~w(email mail inbox message sent unread newsletter)
+
+  defp gather_email_context(question) do
+    q_lower = String.downcase(question)
+    relevant? = Enum.any?(@email_triggers, &String.contains?(q_lower, &1))
+
+    if relevant? do
+      # Extract search terms — strip common words and email-related noise
+      search_terms =
+        q_lower
+        |> String.replace(~r/\b(how|many|what|are|the|my|in|do|i|have|of|a|an|is|any|from|about|show|me|get)\b/, "")
+        |> String.replace(~r/\b(email|emails|mail|inbox|message|messages|unread)\b/, "")
+        |> String.trim()
+
+      # Build notmuch query
+      query =
+        cond do
+          String.contains?(q_lower, "unread") -> "tag:unread"
+          String.contains?(q_lower, "newsletter") -> "tag:newsletter OR folder:Newsletter"
+          search_terms != "" -> search_terms
+          true -> "tag:inbox date:7days.."
+        end
+
+      case ExCortex.Tools.SearchEmail.call(%{"query" => query, "limit" => "10"}) do
+        {:ok, content} when content != "" ->
+          "## Email\n\n### Search: #{query}\n#{content}"
+
+        _ ->
+          ""
+      end
+    else
+      ""
     end
   end
 
