@@ -58,13 +58,9 @@ const PersistToggles = {
     const saved = localStorage.getItem(key)
 
     if (saved) {
-      // Hide content, restore state, show after DOM patch
-      this.el.style.visibility = "hidden"
       try {
         this.pushEvent("restore_toggles", JSON.parse(saved))
       } catch (_) {}
-      // LiveView patches DOM synchronously after pushEvent reply
-      setTimeout(() => { this.el.style.visibility = "visible" }, 50)
     }
 
     this.handleEvent("persist_toggles", (state) => {
@@ -72,6 +68,8 @@ const PersistToggles = {
     })
   }
 }
+
+
 
 const Hooks = {
   ...colocatedHooks,

@@ -23,16 +23,20 @@ defmodule ExCortexWeb.CortexLive do
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
     end
 
-    # Restore toggle state from connect params (passed via localStorage in JS)
-    saved =
+    # On static render: default all panels collapsed to prevent flash.
+    # On connected mount: restore saved state from connect params.
+    {expanded_signals, collapsed_panels} =
       if connected?(socket) do
-        get_in(get_connect_params(socket), ["_toggles", "cortex"]) || %{}
-      else
-        %{}
-      end
+        saved = get_in(get_connect_params(socket), ["_toggles", "cortex"]) || %{}
 
-    expanded_signals = saved |> Map.get("expanded_signals", []) |> MapSet.new()
-    collapsed_panels = saved |> Map.get("collapsed_panels", []) |> MapSet.new()
+        {
+          saved |> Map.get("expanded_signals", []) |> MapSet.new(),
+          saved |> Map.get("collapsed_panels", []) |> MapSet.new()
+        }
+      else
+        # Static render: collapse everything — connected mount will restore
+        {MapSet.new(), MapSet.new(["ruminations", "signals", "clusters", "memory"])}
+      end
 
     {:ok,
      load_data(
