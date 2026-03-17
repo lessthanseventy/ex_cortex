@@ -369,13 +369,70 @@ defmodule ExCortexWeb.CortexLive do
   defp signals_panel(%{signals: []} = assigns), do: ~H[<p class="t-dim text-xs">No active signals.</p>]
 
   defp signals_panel(assigns) do
-    ~H[<div class="space-y-0.5">
-  <.signal_row
-    :for={signal <- @signals}
-    signal={signal}
-    expanded={MapSet.member?(@expanded, signal.id)}
-  />
-</div>]
+    pinned = Enum.filter(assigns.signals, & &1.pinned)
+    unpinned = Enum.reject(assigns.signals, & &1.pinned)
+    assigns = assign(assigns, pinned: pinned, unpinned: unpinned)
+
+    ~H"""
+    <div class="space-y-3">
+      <%!-- Pinned panes - expanded by default, small collapse toggle --%>
+      <div :if={@pinned != []} class="space-y-2">
+        <.pinned_pane
+          :for={signal <- @pinned}
+          signal={signal}
+          collapsed={MapSet.member?(@expanded, signal.id)}
+        />
+      </div>
+      <%!-- Regular signals - collapsed by default --%>
+      <div :if={@unpinned != []} class="space-y-0.5">
+        <.signal_row
+          :for={signal <- @unpinned}
+          signal={signal}
+          expanded={MapSet.member?(@expanded, signal.id)}
+        />
+      </div>
+    </div>
+    """
+  end
+
+  attr :signal, :map, required: true
+  attr :collapsed, :boolean, required: true
+
+  defp pinned_pane(%{collapsed: true} = assigns) do
+    ~H"""
+    <div class="rounded border border-primary/20 bg-primary/5 px-3 py-2">
+      <div
+        class="flex items-center justify-between cursor-pointer"
+        phx-click="toggle_signal"
+        phx-value-id={@signal.id}
+      >
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <span class="text-primary/60">📌</span>
+          {@signal.title}
+        </div>
+        <span class="text-xs t-dim">▸</span>
+      </div>
+    </div>
+    """
+  end
+
+  defp pinned_pane(assigns) do
+    ~H"""
+    <div class="rounded border border-primary/20 bg-primary/5 px-3 py-2">
+      <div
+        class="flex items-center justify-between cursor-pointer mb-2"
+        phx-click="toggle_signal"
+        phx-value-id={@signal.id}
+      >
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <span class="text-primary/60">📌</span>
+          {@signal.title}
+        </div>
+        <span class="text-xs t-dim">▾</span>
+      </div>
+      <.signal_card card={@signal} />
+    </div>
+    """
   end
 
   attr :signal, :map, required: true

@@ -453,6 +453,23 @@ defmodule ExCortexWeb.Components.SignalCards do
   defp cluster_color("business"), do: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
   defp cluster_color(_), do: ""
 
+  defp signal_card_actions(%{card: %{pin_slug: slug}} = assigns) when is_binary(slug) and slug != "" do
+    # Pane cards (owned by a rumination via pin_slug) — no destructive actions
+    ~H"""
+    <div class="flex gap-1 justify-end">
+      <.button
+        type="button"
+        variant="ghost"
+        size="sm"
+        phx-click="toggle_pin"
+        phx-value-card-id={@card.id}
+      >
+        {if @card.pinned, do: "Unpin", else: "Pin"}
+      </.button>
+    </div>
+    """
+  end
+
   defp signal_card_actions(assigns) do
     ~H"""
     <div class="flex gap-1 justify-end">
