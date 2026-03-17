@@ -170,7 +170,8 @@ defmodule ExCortex.Tools.ObsidianTodos do
       name: "obsidian_add_todo",
       description:
         "Add a new todo to today's Obsidian daily note. " <>
-          "Adds it to the [!todo] section by default, or specify a section.",
+          "Adds it to the [!todo] 'what's happening' section by default. " <>
+          "Use section='example' for the daily recurring checklist.",
       parameter_schema: %{
         "type" => "object",
         "properties" => %{
@@ -180,7 +181,8 @@ defmodule ExCortex.Tools.ObsidianTodos do
           },
           "section" => %{
             "type" => "string",
-            "description" => "Section to add to. Matches callout type like 'todo', 'example'. Default: 'todo'."
+            "description" =>
+              "Callout type to add to: 'todo' for what's happening (default), 'example' for daily recurring. Matches [!type] in the note."
           },
           "date" => %{
             "type" => "string",
