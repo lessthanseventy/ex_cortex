@@ -171,7 +171,8 @@ defmodule ExCortex.Muse do
   defp format_signal_age(nil), do: "unknown"
 
   defp format_signal_age(inserted_at) do
-    diff = DateTime.diff(DateTime.utc_now(), inserted_at, :minute)
+    utc = if is_struct(inserted_at, NaiveDateTime), do: DateTime.from_naive!(inserted_at, "Etc/UTC"), else: inserted_at
+    diff = DateTime.diff(DateTime.utc_now(), utc, :minute)
 
     cond do
       diff < 60 -> "#{diff}m ago"
