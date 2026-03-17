@@ -56,16 +56,18 @@ const PersistToggles = {
     const page = this.el.dataset.page
     const key = `excortex:toggles:${page}`
     const saved = localStorage.getItem(key)
+
     if (saved) {
+      // Hide content, restore state, show after DOM patch
+      this.el.style.visibility = "hidden"
       try {
-        const state = JSON.parse(saved)
-        console.debug("[PersistToggles] restoring", page, state)
-        this.pushEvent("restore_toggles", state)
+        this.pushEvent("restore_toggles", JSON.parse(saved))
       } catch (_) {}
+      // LiveView patches DOM synchronously after pushEvent reply
+      setTimeout(() => { this.el.style.visibility = "visible" }, 50)
     }
 
     this.handleEvent("persist_toggles", (state) => {
-      console.debug("[PersistToggles] saving", page, state)
       localStorage.setItem(key, JSON.stringify(state))
     })
   }
