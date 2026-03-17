@@ -27,6 +27,7 @@ defmodule ExCortex.Seeds do
     seed_signals()
     seed_senses()
     wire_email_pipeline()
+    wire_cortex_ruminations()
     seed_digests()
     Logger.info("[Seeds] Done.")
   end
@@ -641,7 +642,7 @@ defmodule ExCortex.Seeds do
   defp seed_ruminations do
     seed_morning_briefing()
     seed_sense_intake()
-    seed_research_digest()
+    # Research Digest removed — superseded by digest reflexes
     seed_memory_maintenance()
     seed_sentinel_sweep()
     seed_devils_review()
@@ -735,57 +736,6 @@ defmodule ExCortex.Seeds do
           steps: [
             %{"step_id" => s1.id, "order" => 1},
             %{"step_id" => s2.id, "order" => 2}
-          ]
-        })
-
-      Logger.info("[Seeds] Rumination seeded: #{name}")
-    end
-  end
-
-  defp seed_research_digest do
-    name = "Research Digest"
-
-    if !Repo.exists?(from r in Rumination, where: r.name == ^name) do
-      {:ok, s1} =
-        Ruminations.create_synapse(%{
-          name: "Research: Gather",
-          description: "Retrieve and organize raw information from specified sources.",
-          trigger: "manual",
-          output_type: "freeform",
-          cluster_name: "Research",
-          roster: [%{"who" => "all", "preferred_who" => "Gatherer", "how" => "solo", "when" => "sequential"}]
-        })
-
-      {:ok, s2} =
-        Ruminations.create_synapse(%{
-          name: "Research: Analyze",
-          description: "Cross-reference gathered information and produce structured analysis.",
-          trigger: "manual",
-          output_type: "freeform",
-          cluster_name: "Research",
-          roster: [%{"who" => "all", "preferred_who" => "Research Analyst", "how" => "solo", "when" => "sequential"}]
-        })
-
-      {:ok, s3} =
-        Ruminations.create_synapse(%{
-          name: "Research: Summarize",
-          description: "Distill analysis into a publishable research digest artifact.",
-          trigger: "manual",
-          output_type: "artifact",
-          cluster_name: "Research",
-          roster: [%{"who" => "all", "preferred_who" => "Summarizer", "how" => "solo", "when" => "sequential"}]
-        })
-
-      {:ok, _} =
-        Ruminations.create_rumination(%{
-          name: name,
-          description: "Gather, analyze, and summarize research from multiple sources into a digest artifact.",
-          trigger: "manual",
-          status: "paused",
-          steps: [
-            %{"step_id" => s1.id, "order" => 1},
-            %{"step_id" => s2.id, "order" => 2},
-            %{"step_id" => s3.id, "order" => 3}
           ]
         })
 
@@ -2429,6 +2379,23 @@ defmodule ExCortex.Seeds do
           })
 
           Logger.info("[Seeds] Wired Email Inbox sense → #{name}")
+        end
+      end
+    end
+  end
+
+  defp wire_cortex_ruminations do
+    cortex_sense = Repo.one(from(s in Sense, where: s.source_type == "cortex"))
+
+    if cortex_sense do
+      sense_id = to_string(cortex_sense.id)
+
+      for name <- ["Morning Briefing", "Sentinel Sweep"] do
+        rumination = Repo.one(from(r in Rumination, where: r.name == ^name))
+
+        if rumination && rumination.source_ids == [] do
+          Ruminations.update_rumination(rumination, %{source_ids: [sense_id]})
+          Logger.info("[Seeds] Wired Self-Monitor sense → #{name}")
         end
       end
     end
