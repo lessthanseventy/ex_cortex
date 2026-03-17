@@ -574,7 +574,10 @@ defmodule ExCortexWeb.SensesLive do
             </p>
           </.panel>
         <% else %>
-          <.panel title={"ACTIVE SENSES (#{length(@senses)})"}>
+          <% active_senses = Enum.filter(@senses, &(&1.status == "active")) %>
+          <% inactive_senses = Enum.reject(@senses, &(&1.status == "active")) %>
+
+          <.panel title={"ACTIVE (#{length(active_senses)})"}>
             <div class="flex justify-end mb-2">
               <.button
                 type="button"
@@ -587,7 +590,7 @@ defmodule ExCortexWeb.SensesLive do
             </div>
             <div class="space-y-2">
               <.sense_row
-                :for={sense <- @senses}
+                :for={sense <- active_senses}
                 sense={sense}
                 expanding={@expanding}
                 editing={@editing_sense}
@@ -595,6 +598,20 @@ defmodule ExCortexWeb.SensesLive do
               />
             </div>
           </.panel>
+
+          <%= if inactive_senses != [] do %>
+            <.panel title={"PAUSED (#{length(inactive_senses)})"}>
+              <div class="space-y-2">
+                <.sense_row
+                  :for={sense <- inactive_senses}
+                  sense={sense}
+                  expanding={@expanding}
+                  editing={@editing_sense}
+                  display_name={sense_display_name(sense)}
+                />
+              </div>
+            </.panel>
+          <% end %>
         <% end %>
       <% end %>
 
