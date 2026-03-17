@@ -335,6 +335,7 @@ defmodule ExCortexWeb.SensesLive do
         description:
           "Collect the latest items from the feed sources. For each item, extract: title, source, URL, and a 1-sentence summary. " <>
             "IMPORTANT: Always include the original URL for every item — these will be clickable links in the final output. " <>
+            "NEVER invent or fabricate details — only report what the source material actually contains. No made-up CVE numbers, names, or statistics. " <>
             "Group items by subtopic. Discard duplicates and items older than #{tmpl.window}.",
         trigger: "manual",
         output_type: "freeform",
@@ -351,6 +352,8 @@ defmodule ExCortexWeb.SensesLive do
           "Analyze the gathered items. Identify the top 5-10 most significant stories. " <>
             "For each, write a 2-3 sentence analysis explaining why it matters. " <>
             "Preserve the original source URLs — format each story as: **[Title](url)** — analysis. " <>
+            "ONLY use facts from the gathered items. Do not add information from outside the provided content. " <>
+            "If a detail (version number, CVE, statistic) isn't in the source, don't include it. " <>
             "End with a 'Trends' section noting any patterns across the stories.",
         trigger: "manual",
         output_type: "freeform",
