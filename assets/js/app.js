@@ -51,10 +51,29 @@ const KeyboardNav = {
   }
 };
 
+const PersistToggles = {
+  mounted() {
+    const page = this.el.dataset.page
+    const key = `excortex:toggles:${page}`
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      try {
+        const state = JSON.parse(saved)
+        this.pushEvent("restore_toggles", state)
+      } catch (_) {}
+    }
+
+    this.handleEvent("persist_toggles", (state) => {
+      localStorage.setItem(key, JSON.stringify(state))
+    })
+  }
+}
+
 const Hooks = {
   ...colocatedHooks,
   SaladUI: SaladUI.SaladUIHook,
   KeyboardNav,
+  PersistToggles,
   AutoDismissFlash: {
     mounted() {
       this.timer = setTimeout(() => {

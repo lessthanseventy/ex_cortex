@@ -78,7 +78,7 @@ defmodule ExCortexWeb.CortexLive do
         do: MapSet.delete(collapsed, panel),
         else: MapSet.put(collapsed, panel)
 
-    {:noreply, assign(socket, collapsed_panels: collapsed)}
+    {:noreply, socket |> assign(collapsed_panels: collapsed) |> persist_toggles()}
   end
 
   def handle_event("toggle_item", %{"panel" => panel, "id" => id}, socket) do
@@ -102,7 +102,7 @@ defmodule ExCortexWeb.CortexLive do
         do: MapSet.delete(expanded, signal_id),
         else: MapSet.put(expanded, signal_id)
 
-    {:noreply, assign(socket, expanded_signals: expanded)}
+    {:noreply, socket |> assign(expanded_signals: expanded) |> persist_toggles()}
   end
 
   def handle_event("toggle_pin", %{"card-id" => id}, socket) do
@@ -136,6 +136,20 @@ defmodule ExCortexWeb.CortexLive do
 
   def handle_event("quick_muse", _params, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("restore_toggles", state, socket) do
+    expanded_signals =
+      state
+      |> Map.get("expanded_signals", [])
+      |> MapSet.new()
+
+    collapsed_panels =
+      state
+      |> Map.get("collapsed_panels", [])
+      |> MapSet.new()
+
+    {:noreply, assign(socket, expanded_signals: expanded_signals, collapsed_panels: collapsed_panels)}
   end
 
   # ---------------------------------------------------------------------------
@@ -216,7 +230,10 @@ defmodule ExCortexWeb.CortexLive do
   def render(assigns) do
     ~H"""
     <div
+      id="cortex-root"
       class="tui-screen"
+      phx-hook="PersistToggles"
+      data-page="cortex"
       phx-window-keydown="navigate"
       phx-value-key=""
     >
@@ -661,6 +678,13 @@ defmodule ExCortexWeb.CortexLive do
   defp engram_tier(assigns), do: ~H""
 
   # --- Data loading ---
+
+  defp persist_toggles(socket) do
+    push_event(socket, "persist_toggles", %{
+      expanded_signals: MapSet.to_list(socket.assigns.expanded_signals),
+      collapsed_panels: MapSet.to_list(socket.assigns.collapsed_panels)
+    })
+  end
 
   defp load_data(socket) do
     socket

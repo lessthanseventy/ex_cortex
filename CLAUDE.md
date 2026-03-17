@@ -177,6 +177,10 @@ docker compose up -d             # full stack: db, ollama, jaeger, prometheus, g
 - Axioms (`ExCortex.Lexicon`) store reference datasets — queried via `query_axiom` tool
 - `query_memory` tool searches engrams by tags — agents should query it before writing code/tests
 
+## Code Style
+- In LiveView modules: group all `handle_event` clauses together, then all private helpers at the bottom. Never interleave `defp` functions between `handle_event` clauses — it causes clause grouping warnings.
+- Private functions (`defp`) go at the bottom of the module, after all public functions and callbacks.
+
 ## Gotchas
 - Warnings are errors in test
 - SaladUI textarea uses `value` attr, not inner content

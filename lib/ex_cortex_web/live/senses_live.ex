@@ -130,6 +130,15 @@ defmodule ExCortexWeb.SensesLive do
         do: MapSet.delete(panels, panel),
         else: MapSet.put(panels, panel)
 
+    {:noreply,
+     socket
+     |> assign(expanded_panels: panels)
+     |> push_event("persist_toggles", %{expanded_panels: MapSet.to_list(panels)})}
+  end
+
+  @impl true
+  def handle_event("restore_toggles", state, socket) do
+    panels = state |> Map.get("expanded_panels", []) |> MapSet.new()
     {:noreply, assign(socket, expanded_panels: panels)}
   end
 
@@ -238,24 +247,6 @@ defmodule ExCortexWeb.SensesLive do
     end
   end
 
-  # Coerce string form values back to their original types
-  defp coerce_config_value(value, original) when is_integer(original) do
-    case Integer.parse(value) do
-      {int, _} -> int
-      :error -> value
-    end
-  end
-
-  defp coerce_config_value(value, original) when is_boolean(original) do
-    value in ["true", "1"]
-  end
-
-  defp coerce_config_value(value, original) when is_list(original) do
-    value |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
-  end
-
-  defp coerce_config_value(value, _original), do: value
-
   @impl true
   def handle_event("navigate", %{"to" => path}, socket) do
     {:noreply, push_navigate(socket, to: path)}
@@ -276,6 +267,68 @@ defmodule ExCortexWeb.SensesLive do
 
     {:noreply, socket |> assign(tab: :active) |> load_data()}
   end
+
+  @impl true
+  def handle_event("preview_expression_type", %{"expression" => %{"type" => type}}, socket) do
+    {:noreply, assign(socket, expression_type_preview: type)}
+  end
+
+  def handle_event("preview_expression_type", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("create_expression", %{"expression" => params}, socket) do
+    config = build_expression_config(params)
+    attrs = %{name: params["name"], type: params["type"], config: config}
+
+    case Expressions.create_expression(attrs) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(expression_type_preview: "slack")
+         |> put_flash(:info, "Expression created.")
+         |> load_data()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Failed to create expression.")}
+    end
+  end
+
+  @impl true
+  def handle_event("edit_expression", %{"id" => id}, socket) do
+    editing = if socket.assigns.editing_expression == id, do: nil, else: id
+    {:noreply, assign(socket, editing_expression: editing)}
+  end
+
+  @impl true
+  def handle_event("save_expression", %{"expression" => params, "_expression_id" => id}, socket) do
+    case Repo.get(Expression, String.to_integer(id)) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "Expression not found.")}
+
+      expr ->
+        config = build_expression_config(Map.put(params, "type", expr.type))
+
+        expr
+        |> Expression.changeset(%{config: config})
+        |> Repo.update()
+
+        {:noreply, socket |> assign(editing_expression: nil) |> load_data()}
+    end
+  end
+
+  @impl true
+  def handle_event("delete_expression", %{"id" => id}, socket) do
+    case Repo.get(Expression, String.to_integer(id)) do
+      nil ->
+        {:noreply, socket}
+
+      expr ->
+        Expressions.delete_expression(expr)
+        {:noreply, socket |> put_flash(:info, "Expression deleted.") |> load_data()}
+    end
+  end
+
+  # ── Private helpers ────────────────────────────────────────────────────────
 
   defp install_sense(reflex) do
     %Sense{}
@@ -423,68 +476,23 @@ defmodule ExCortexWeb.SensesLive do
     })
   end
 
-  @impl true
-  def handle_event("preview_expression_type", %{"expression" => %{"type" => type}}, socket) do
-    {:noreply, assign(socket, expression_type_preview: type)}
-  end
-
-  def handle_event("preview_expression_type", _params, socket), do: {:noreply, socket}
-
-  @impl true
-  def handle_event("create_expression", %{"expression" => params}, socket) do
-    config = build_expression_config(params)
-    attrs = %{name: params["name"], type: params["type"], config: config}
-
-    case Expressions.create_expression(attrs) do
-      {:ok, _} ->
-        {:noreply,
-         socket
-         |> assign(expression_type_preview: "slack")
-         |> put_flash(:info, "Expression created.")
-         |> load_data()}
-
-      {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Failed to create expression.")}
+  # Coerce string form values back to their original types
+  defp coerce_config_value(value, original) when is_integer(original) do
+    case Integer.parse(value) do
+      {int, _} -> int
+      :error -> value
     end
   end
 
-  @impl true
-  def handle_event("edit_expression", %{"id" => id}, socket) do
-    editing = if socket.assigns.editing_expression == id, do: nil, else: id
-    {:noreply, assign(socket, editing_expression: editing)}
+  defp coerce_config_value(value, original) when is_boolean(original), do: value in ["true", "1"]
+
+  defp coerce_config_value(value, original) when is_list(original) do
+    value |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
   end
 
-  @impl true
-  def handle_event("save_expression", %{"expression" => params, "_expression_id" => id}, socket) do
-    case Repo.get(Expression, String.to_integer(id)) do
-      nil ->
-        {:noreply, put_flash(socket, :error, "Expression not found.")}
-
-      expr ->
-        config = build_expression_config(Map.put(params, "type", expr.type))
-
-        expr
-        |> Expression.changeset(%{config: config})
-        |> Repo.update()
-
-        {:noreply, socket |> assign(editing_expression: nil) |> load_data()}
-    end
-  end
-
-  @impl true
-  def handle_event("delete_expression", %{"id" => id}, socket) do
-    case Repo.get(Expression, String.to_integer(id)) do
-      nil ->
-        {:noreply, socket}
-
-      expr ->
-        Expressions.delete_expression(expr)
-        {:noreply, socket |> put_flash(:info, "Expression deleted.") |> load_data()}
-    end
-  end
+  defp coerce_config_value(value, _original), do: value
 
   defp build_expression_config(%{"type" => "slack"} = p), do: %{"webhook_url" => p["webhook_url"] || ""}
-
   defp build_expression_config(%{"type" => "webhook"} = p), do: %{"url" => p["url"] || "", "headers" => %{}}
 
   defp build_expression_config(%{"type" => type} = p) when type in ["github_issue", "github_pr"],
@@ -509,7 +517,7 @@ defmodule ExCortexWeb.SensesLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div id="senses-root" class="space-y-6" phx-hook="PersistToggles" data-page="senses">
       <%!-- Header panel --%>
       <.panel title="SENSES">
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
