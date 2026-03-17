@@ -160,9 +160,26 @@ Two conversational interfaces for different needs:
 
 **Wonder** (`/wonder`) — Pure LLM chat. No context retrieval, no grounding. Just you and the model, thinking out loud.
 
-**Muse** (`/muse`) — Data-grounded RAG chat. Muse queries your engram store and axiom datasets, assembles relevant context, calls the LLM with that context, and persists the result as a Thought. When you ask Muse a question, it's answering from *your* knowledge base.
+**Muse** (`/muse`) — Data-grounded RAG chat. Muse pulls context from across your entire data surface before answering — Obsidian notes, email, GitHub, dashboard signals, engrams, axioms, and more. It persists every Q&A as a Thought.
 
-Both support all configured LLM providers (Ollama local models, Claude via Anthropic API) and fall back through the model chain automatically.
+### What Muse Can Do
+
+Muse has access to 30 tools across 8 categories. It automatically detects what you're asking about and pre-fetches relevant context before the LLM even runs.
+
+| Category | Capabilities |
+|---|---|
+| **Obsidian Vault** | Search notes by title or body, read notes, list/toggle/add todos in daily notes |
+| **Email** | Search inbox (notmuch), read messages, detect unread/newsletters |
+| **Knowledge Base** | Query engrams (tiered memory), search reference datasets (axioms) |
+| **Dashboard** | Pull recent signal cards — digest outputs, alerts, reports |
+| **GitHub** | Search repos, read issues/PRs, list notifications |
+| **Web** | Fetch URLs, search via DuckDuckGo |
+| **Documents** | Read PDFs, OCR images, transcribe audio/video, convert formats |
+| **System** | Run sandboxed commands, query Jaeger traces, list data sources |
+
+Ask Muse "what are my open todos?" and it searches your Obsidian daily note for unchecked checkboxes. Ask "what's the latest tech news?" and it pulls from the most recent Tech Digest signal card. Ask "any emails from Bob?" and it runs a notmuch search. No manual tool selection — it figures out what to query based on your question.
+
+Both Wonder and Muse support all configured LLM providers (Ollama local models, Claude via Anthropic API). Muse filters to models with verified tool-calling support.
 
 ---
 
