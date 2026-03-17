@@ -210,9 +210,14 @@ defmodule ExCortexWeb.CortexLive do
 
   # Refresh — re-run the owning rumination
   defp handle_pane_action(%{"rumination_id" => rum_id}, _card, _params) do
-    rumination = Ruminations.get_rumination!(rum_id)
-    Task.start(fn -> ExCortex.Ruminations.Runner.run(rumination, "") end)
-    {:ok, "Refreshing #{rumination.name}..."}
+    case Repo.get(ExCortex.Ruminations.Rumination, rum_id) do
+      nil ->
+        {:error, "Rumination ##{rum_id} not found — it may have been deleted."}
+
+      rumination ->
+        Task.start(fn -> ExCortex.Ruminations.Runner.run(rumination, "") end)
+        {:ok, "Refreshing #{rumination.name}..."}
+    end
   end
 
   defp handle_pane_action(nil, _card, _params), do: :noop
