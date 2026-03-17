@@ -2,16 +2,15 @@ defmodule ExCortex.Muse do
   @moduledoc """
   Data-grounded single-step LLM queries.
 
-  Wonderings use no context. Musings pull context via RAG over engrams and axioms.
+  Wonderings use no context. Musings pull context via the ContextProvider
+  system — signals, obsidian, email, engrams, axioms, and data sources.
   Both persist the Q&A to the thoughts table.
   """
 
+  alias ExCortex.ContextProviders.ContextProvider
   alias ExCortex.LLM
-  alias ExCortex.Memory
-  alias ExCortex.Signals.Signal
   alias ExCortex.Thoughts
   alias ExCortex.Tools.Registry
-  alias ExCortex.Tools.SearchObsidianContent
 
   require Logger
 
@@ -86,10 +85,22 @@ defmodule ExCortex.Muse do
   You are a helpful assistant. Answer questions concisely and accurately.
   """
 
+  # Context providers that Muse uses for RAG grounding.
+  # Each is a config map matching the ContextProvider behaviour.
+  # "auto" mode providers detect relevance from the input question.
+  @muse_providers [
+    %{"type" => "sources"},
+    %{"type" => "signals"},
+    %{"type" => "obsidian", "mode" => "auto"},
+    %{"type" => "email", "mode" => "auto"},
+    %{"type" => "engrams", "tags" => [], "limit" => 10, "sort" => "top"},
+    %{"type" => "axiom_search"}
+  ]
+
   @doc """
   Ask a question. Scope determines data grounding:
   - "wonder" — no context, pure LLM
-  - "muse" — RAG over engrams and axioms
+  - "muse" — RAG over all context providers
 
   Returns `{:ok, %Thought{}}` or `{:error, reason}`.
   """
@@ -140,256 +151,23 @@ defmodule ExCortex.Muse do
     end
   end
 
-  @doc "Gather RAG context from signals, engrams, axioms, and Obsidian."
+  @doc "Gather RAG context using the context provider system."
   def gather_context(question, filters \\ []) do
-    source_context = gather_source_context()
-    signal_context = gather_signal_context(question)
-    obsidian_context = gather_obsidian_context(question)
-    engram_context = gather_engram_context(question, filters)
-    axiom_context = gather_axiom_context(question)
-
-    email_context = gather_email_context(question)
-
-    [source_context, signal_context, obsidian_context, email_context, engram_context, axiom_context]
-    |> Enum.reject(&(&1 == ""))
-    |> Enum.join("\n\n---\n\n")
-  end
-
-  defp gather_source_context do
-    import Ecto.Query
-
-    senses =
-      from(s in ExCortex.Senses.Sense, where: s.status != "error", order_by: s.name)
-      |> ExCortex.Repo.all()
-      |> Enum.map(fn s ->
-        status = if s.status == "paused", do: " [paused]", else: ""
-
-        last =
-          if s.last_run_at,
-            do: " (last checked #{Calendar.strftime(s.last_run_at, "%Y-%m-%d %H:%M")})",
-            else: ""
-
-        "- #{s.source_type}: \"#{s.name}\"#{status}#{last}"
-      end)
-
-    axioms =
-      Enum.map(ExCortex.Lexicon.list_axioms(), fn a -> "- #{a.name}" end)
-
-    engram_count = ExCortex.Repo.aggregate(ExCortex.Memory.Engram, :count)
-
-    sections = ["## Available Data Sources"]
-    sections = if senses == [], do: sections, else: sections ++ ["### Senses\n" <> Enum.join(senses, "\n")]
-    sections = if axioms == [], do: sections, else: sections ++ ["### Axioms\n" <> Enum.join(axioms, "\n")]
-    sections = sections ++ ["### Memory\n- #{engram_count} engrams in store"]
-
-    Enum.join(sections, "\n\n")
-  end
-
-  defp gather_signal_context(question) do
-    import Ecto.Query
-
-    # Pull recent active signals, prioritize by recency
-    signals =
-      ExCortex.Repo.all(from(s in Signal, where: s.status == "active", order_by: [desc: s.inserted_at], limit: 20))
-
-    # Score relevance by keyword overlap with the question
-    question_words =
-      question
-      |> String.downcase()
-      |> String.split(~r/\W+/, trim: true)
-      |> MapSet.new()
-
-    scored =
-      signals
-      |> Enum.map(fn s ->
-        signal_words =
-          "#{s.title} #{Enum.join(s.tags || [], " ")}"
-          |> String.downcase()
-          |> String.split(~r/\W+/, trim: true)
-          |> MapSet.new()
-
-        overlap = question_words |> MapSet.intersection(signal_words) |> MapSet.size()
-        {s, overlap}
-      end)
-      |> Enum.sort_by(fn {_s, score} -> score end, :desc)
-      |> Enum.take(5)
-      |> Enum.map(fn {s, _score} -> s end)
-
-    if scored == [] do
-      ""
-    else
-      entries =
-        Enum.map(scored, fn s ->
-          age = format_signal_age(s.inserted_at)
-          body = String.slice(s.body || "", 0, 2000)
-          tags = if s.tags == [], do: "", else: " [#{Enum.join(s.tags, ", ")}]"
-          "### #{s.title}#{tags}\n*#{age} · #{s.source || "system"}*\n\n#{body}"
-        end)
-
-      "## Dashboard Signals (recent digests and reports)\n\n" <> Enum.join(entries, "\n\n---\n\n")
-    end
-  end
-
-  defp format_signal_age(nil), do: "unknown"
-
-  defp format_signal_age(inserted_at) do
-    utc = if is_struct(inserted_at, NaiveDateTime), do: DateTime.from_naive!(inserted_at, "Etc/UTC"), else: inserted_at
-    diff = DateTime.diff(DateTime.utc_now(), utc, :minute)
-
-    cond do
-      diff < 60 -> "#{diff}m ago"
-      diff < 1440 -> "#{div(diff, 60)}h ago"
-      true -> "#{div(diff, 1440)}d ago"
-    end
-  end
-
-  @obsidian_triggers ~w(obsidian note notes vault todo todos task tasks checklist journal daily)
-
-  defp gather_obsidian_context(question) do
-    q_lower = String.downcase(question)
-    relevant? = Enum.any?(@obsidian_triggers, &String.contains?(q_lower, &1))
-
-    if relevant? do
-      results = []
-
-      # If asking about todos/tasks, search for unchecked checkboxes
-      results =
-        if String.contains?(q_lower, "todo") or String.contains?(q_lower, "task") or
-             String.contains?(q_lower, "checklist") do
-          case SearchObsidianContent.call(%{"query" => "- [ ]"}) do
-            {:ok, content} -> results ++ ["### Open Todos\n#{content}"]
-            _ -> results
-          end
-        else
-          results
-        end
-
-      # If asking about journal/daily, fetch today's daily note
-      results =
-        if String.contains?(q_lower, "journal") or String.contains?(q_lower, "daily") or
-             String.contains?(q_lower, "today") do
-          today = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
-
-          case ExCortex.Tools.ReadObsidian.call(%{"path" => "journal/#{today}.md"}) do
-            {:ok, content} -> results ++ ["### Daily Note (#{today})\n#{content}"]
-            _ -> results
-          end
-        else
-          results
-        end
-
-      # General note search based on question keywords
-      results =
-        if results == [] do
-          search_terms =
-            q_lower
-            |> String.replace(~r/\b(how|many|what|are|the|my|in|do|i|have|of|a|an|is)\b/, "")
-            |> String.replace(~r/\b(obsidian|notes?|vault)\b/, "")
-            |> String.trim()
-
-          if search_terms == "" do
-            # Empty search — list all notes
-            case ExCortex.Tools.SearchObsidian.call(%{"query" => ""}) do
-              {:ok, content} -> results ++ ["### All Notes\n#{content}"]
-              _ -> results
-            end
-          else
-            case SearchObsidianContent.call(%{"query" => search_terms}) do
-              {:ok, content} when content != "" -> results ++ ["### Obsidian Search: #{search_terms}\n#{content}"]
-              _ -> results
-            end
-          end
-        else
-          results
-        end
-
-      if results == [] do
-        ""
-      else
-        "## Obsidian Vault\n\n" <> Enum.join(results, "\n\n")
-      end
-    else
-      ""
-    end
-  end
-
-  @email_triggers ~w(email mail inbox message sent unread newsletter)
-
-  defp gather_email_context(question) do
-    q_lower = String.downcase(question)
-    relevant? = Enum.any?(@email_triggers, &String.contains?(q_lower, &1))
-
-    if relevant? do
-      # Extract search terms — strip common words and email-related noise
-      search_terms =
-        q_lower
-        |> String.replace(~r/\b(how|many|what|are|the|my|in|do|i|have|of|a|an|is|any|from|about|show|me|get)\b/, "")
-        |> String.replace(~r/\b(email|emails|mail|inbox|message|messages|unread)\b/, "")
-        |> String.trim()
-
-      # Build notmuch query
-      query =
-        cond do
-          String.contains?(q_lower, "unread") -> "tag:unread"
-          String.contains?(q_lower, "newsletter") -> "tag:newsletter OR folder:Newsletter"
-          search_terms != "" -> search_terms
-          true -> "tag:inbox date:7days.."
-        end
-
-      case ExCortex.Tools.SearchEmail.call(%{"query" => query, "limit" => "10"}) do
-        {:ok, content} when content != "" ->
-          "## Email\n\n### Search: #{query}\n#{content}"
-
-        _ ->
-          ""
-      end
-    else
-      ""
-    end
-  end
-
-  defp gather_engram_context(question, filters) do
-    opts = [tier: :L1, limit: 10]
-
-    opts =
+    providers =
       if filters == [] do
-        opts
+        @muse_providers
       else
-        Keyword.put(opts, :tags, filters)
-      end
-
-    engrams = Memory.query(question, opts)
-
-    if engrams == [] do
-      ""
-    else
-      entries =
-        Enum.map(engrams, fn e ->
-          body = e.recall || e.impression || ""
-          "### #{e.title}\n#{body}"
+        # Override engram tags if source filters specified
+        Enum.map(@muse_providers, fn
+          %{"type" => "engrams"} = p -> Map.put(p, "tags", filters)
+          p -> p
         end)
-
-      "## Relevant Memories\n\n" <> Enum.join(entries, "\n\n")
-    end
-  end
-
-  defp gather_axiom_context(question) do
-    ExCortex.Lexicon.list_axioms()
-    |> Enum.map(fn axiom ->
-      case ExCortex.Tools.QueryAxiom.call(%{"axiom" => axiom.name, "query" => question}) do
-        {:ok, result} ->
-          if String.contains?(result, "No matches") do
-            nil
-          else
-            "## #{axiom.name}\n#{result}"
-          end
-
-        _ ->
-          nil
       end
-    end)
-    |> Enum.reject(&is_nil/1)
-    |> Enum.join("\n\n")
+
+    # Build a pseudo-thought map for the provider interface
+    thought = %{name: "Muse", id: nil}
+
+    ContextProvider.assemble(providers, thought, question)
   end
 
   defp build_user_text("", question), do: question

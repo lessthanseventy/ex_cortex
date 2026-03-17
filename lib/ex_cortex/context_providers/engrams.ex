@@ -21,12 +21,18 @@ defmodule ExCortex.ContextProviders.Engrams do
   @total_cap 6_000
 
   @impl true
-  def build(config, _thought, _input) do
+  def build(config, _thought, input) do
     tags = Map.get(config, "tags", [])
     limit = Map.get(config, "limit", 5)
     sort = Map.get(config, "sort", "newest")
 
-    entries = select_entries(tags, sort, limit)
+    entries =
+      if tags == [] and input != "" do
+        # Query-based search when no tags specified (used by Muse)
+        Memory.query(input, tier: :L1, limit: limit)
+      else
+        select_entries(tags, sort, limit)
+      end
 
     if entries == [] do
       ""

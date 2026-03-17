@@ -73,5 +73,15 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   defp module_for("neuron_roster"), do: Module.concat([ExCortex, ContextProviders, NeuronRoster])
 
+  defp module_for("signals"), do: Module.concat([ExCortex, ContextProviders, Signals])
+
+  defp module_for("axiom_search"), do: Module.concat([ExCortex, ContextProviders, AxiomSearch])
+
+  defp module_for("obsidian"), do: Module.concat([ExCortex, ContextProviders, Obsidian])
+
+  defp module_for("email"), do: Module.concat([ExCortex, ContextProviders, Email])
+
+  defp module_for("sources"), do: Module.concat([ExCortex, ContextProviders, Sources])
+
   defp module_for(_), do: nil
 end
