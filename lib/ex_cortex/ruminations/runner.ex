@@ -37,6 +37,14 @@ defmodule ExCortex.Ruminations.Runner do
   end
 
   def run(thought, input, opts \\ []) do
+    # If input is empty and the rumination has source_ids, fetch fresh data
+    effective_input =
+      if (input == "" or input == nil) and has_source_ids?(thought) do
+        gather_source_input(thought)
+      else
+        input
+      end
+
     Tracer.with_span "thought.run", %{
       attributes: %{
         "thought.id" => thought.id,
@@ -45,7 +53,7 @@ defmodule ExCortex.Ruminations.Runner do
         "thought.dry_run" => Keyword.get(opts, :dry_run, false)
       }
     } do
-      do_run(thought, input, opts)
+      do_run(thought, effective_input, opts)
     end
   end
 
@@ -491,4 +499,51 @@ defmodule ExCortex.Ruminations.Runner do
   end
 
   defp extract_tool_calls(_), do: []
+
+  # ---------------------------------------------------------------------------
+  # Source data gathering — for ruminations with source_ids
+  # ---------------------------------------------------------------------------
+
+  defp has_source_ids?(%{source_ids: ids}) when is_list(ids) and ids != [], do: true
+  defp has_source_ids?(_), do: false
+
+  defp gather_source_input(%{source_ids: source_ids}) do
+    import Ecto.Query
+
+    alias ExCortex.Senses.Sense
+
+    senses = ExCortex.Repo.all(from(s in Sense, where: s.id in ^source_ids))
+
+    items =
+      Enum.flat_map(senses, fn sense ->
+        mod = ExCortex.Senses.Worker.source_module(sense.source_type)
+
+        case mod.fetch(%{last_seen_ids: []}, sense.config) do
+          {:ok, items, _state} -> items
+          _ -> []
+        end
+      end)
+
+    if items == [] do
+      Logger.warning("[Runner] No feed data from #{length(senses)} source(s) — running with empty input")
+      ""
+    else
+      Logger.info("[Runner] Gathered #{length(items)} items from #{length(senses)} source(s)")
+
+      header = "## Feed Data: #{length(items)} items from #{length(senses)} source(s)\n\n"
+
+      body =
+        items
+        |> Enum.take(50)
+        |> Enum.with_index(1)
+        |> Enum.map_join("\n\n---\n\n", fn {item, idx} ->
+          link = get_in(item.metadata, [:link]) || ""
+          title = get_in(item.metadata, [:title]) || ""
+          link_line = if link == "", do: "", else: "\nURL: #{link}"
+          "### Item #{idx}: #{title}#{link_line}\n#{item.content}"
+        end)
+
+      header <> body
+    end
+  end
 end
