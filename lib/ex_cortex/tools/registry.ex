@@ -25,7 +25,7 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.CreateGithubIssue
   alias ExCortex.Tools.CreateNextcloudNote
   alias ExCortex.Tools.CreateObsidianNote
-  alias ExCortex.Tools.DailyObsidian
+  alias ExCortex.Tools.DailyNoteWrite
   alias ExCortex.Tools.DescribeImage
   alias ExCortex.Tools.DownloadMedia
   alias ExCortex.Tools.EditFile
@@ -112,7 +112,7 @@ defmodule ExCortex.Tools.Registry do
   ]
   @write [
     CreateObsidianNote,
-    DailyObsidian,
+    DailyNoteWrite,
     ObsidianToggleTodo,
     ObsidianAddTodo,
     DownloadMedia,

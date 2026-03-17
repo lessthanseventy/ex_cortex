@@ -33,6 +33,7 @@ defmodule ExCortex.Muse do
   - obsidian_list_todos — list open todos from today's (or any day's) daily note, grouped by section
   - obsidian_toggle_todo — mark a todo as done or undone by line number or text match
   - obsidian_add_todo — add a new todo to today's daily note (in the [!todo] section by default)
+  - daily_note_write — write content into a specific section of today's daily note (e.g. "brain dump", "stuff that came up"). Content is added inside the matching callout block.
 
   Email:
   - search_email — search emails by query (notmuch syntax)
@@ -81,7 +82,8 @@ defmodule ExCortex.Muse do
   - USE YOUR TOOLS. Never say "I can't access that" without trying the relevant tool first.
   - When context includes links, include them in your answer.
   - If neither context nor tools can answer, say so honestly rather than guessing.
-  - You can manage Obsidian todos (list, toggle, add) but cannot send emails, create files, or modify code in this mode.
+  - You can write to the user's Obsidian daily note sections (daily_note_write), add todos (obsidian_add_todo), and toggle todos (obsidian_toggle_todo).
+  - You CANNOT send emails, create files, modify code, or push to git in this mode.
   """
 
   @wonder_system_prompt """
@@ -129,7 +131,7 @@ defmodule ExCortex.Muse do
           LLM.complete(provider, model, system_prompt, user_text, history: history)
 
         _ ->
-          tools = Registry.list_safe()
+          tools = Registry.list_safe() ++ muse_write_tools()
 
           case LLM.complete_with_tools(provider, model, system_prompt, user_text, tools, history: history) do
             {:ok, answer, _tool_log} -> {:ok, answer}
@@ -196,4 +198,13 @@ defmodule ExCortex.Muse do
 
   defp provider_for("claude_" <> _), do: "claude"
   defp provider_for(_), do: "ollama"
+
+  # Obsidian write tools Muse is allowed to use
+  defp muse_write_tools do
+    [
+      ExCortex.Tools.DailyNoteWrite.req_llm_tool(),
+      ExCortex.Tools.ObsidianAddTodo.req_llm_tool(),
+      ExCortex.Tools.ObsidianToggleTodo.req_llm_tool()
+    ]
+  end
 end
