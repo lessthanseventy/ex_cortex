@@ -92,7 +92,16 @@ const Hooks = {
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: () => {
+    // Pass saved toggle state as connect params so it's available at mount time
+    const toggles = {}
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith("excortex:toggles:")) {
+        try { toggles[key.replace("excortex:toggles:", "")] = JSON.parse(localStorage.getItem(key)) } catch(_) {}
+      }
+    }
+    return {_csrf_token: csrfToken, _toggles: toggles}
+  },
   hooks: Hooks,
 })
 

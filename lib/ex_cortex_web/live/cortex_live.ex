@@ -23,6 +23,17 @@ defmodule ExCortexWeb.CortexLive do
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
     end
 
+    # Restore toggle state from connect params (passed via localStorage in JS)
+    saved =
+      if connected?(socket) do
+        get_in(get_connect_params(socket), ["_toggles", "cortex"]) || %{}
+      else
+        %{}
+      end
+
+    expanded_signals = saved |> Map.get("expanded_signals", []) |> MapSet.new()
+    collapsed_panels = saved |> Map.get("collapsed_panels", []) |> MapSet.new()
+
     {:ok,
      load_data(
        assign(socket,
@@ -30,8 +41,8 @@ defmodule ExCortexWeb.CortexLive do
          muse_input: "",
          muse_answer: nil,
          muse_loading: false,
-         expanded_signals: MapSet.new(),
-         collapsed_panels: MapSet.new(),
+         expanded_signals: expanded_signals,
+         collapsed_panels: collapsed_panels,
          expanded_ruminations: MapSet.new(),
          expanded_clusters: MapSet.new(),
          expanded_engrams: MapSet.new()

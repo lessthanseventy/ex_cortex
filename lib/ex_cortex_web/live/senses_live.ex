@@ -25,6 +25,15 @@ defmodule ExCortexWeb.SensesLive do
       :timer.send_interval(10_000, self(), :refresh)
     end
 
+    saved =
+      if connected?(socket) do
+        get_in(get_connect_params(socket), ["_toggles", "senses"]) || %{}
+      else
+        %{}
+      end
+
+    expanded_panels = saved |> Map.get("expanded_panels", []) |> MapSet.new()
+
     {:ok,
      load_data(
        assign(socket,
@@ -32,7 +41,7 @@ defmodule ExCortexWeb.SensesLive do
          tab: :active,
          expanding: nil,
          editing_sense: nil,
-         expanded_panels: MapSet.new(),
+         expanded_panels: expanded_panels,
          editing_expression: nil,
          expression_type_preview: "slack"
        )
