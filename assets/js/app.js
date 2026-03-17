@@ -59,11 +59,13 @@ const PersistToggles = {
     if (saved) {
       try {
         const state = JSON.parse(saved)
+        console.debug("[PersistToggles] restoring", page, state)
         this.pushEvent("restore_toggles", state)
       } catch (_) {}
     }
 
     this.handleEvent("persist_toggles", (state) => {
+      console.debug("[PersistToggles] saving", page, state)
       localStorage.setItem(key, JSON.stringify(state))
     })
   }
