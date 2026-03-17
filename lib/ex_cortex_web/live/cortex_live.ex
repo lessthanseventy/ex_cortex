@@ -105,6 +105,30 @@ defmodule ExCortexWeb.CortexLive do
     {:noreply, assign(socket, expanded_signals: expanded)}
   end
 
+  def handle_event("toggle_pin", %{"card-id" => id}, socket) do
+    card = Signals.get_signal!(id)
+    Signals.update_signal(card, %{pinned: !card.pinned})
+    {:noreply, load_signals(socket)}
+  end
+
+  def handle_event("archive_card", %{"card-id" => id}, socket) do
+    card = Signals.get_signal!(id)
+    Signals.update_signal(card, %{status: "archived"})
+    {:noreply, load_signals(socket)}
+  end
+
+  def handle_event("dismiss_card", %{"card-id" => id}, socket) do
+    card = Signals.get_signal!(id)
+    Signals.update_signal(card, %{status: "dismissed"})
+    {:noreply, load_signals(socket)}
+  end
+
+  def handle_event("delete_card", %{"card-id" => id}, socket) do
+    card = Signals.get_signal!(id)
+    Repo.delete!(card)
+    {:noreply, load_signals(socket)}
+  end
+
   def handle_event("quick_muse", %{"question" => q}, socket) when q != "" do
     Task.async(fn -> ExCortex.Muse.ask(q, scope: "muse") end)
     {:noreply, assign(socket, muse_input: q, muse_loading: true, muse_answer: nil)}
