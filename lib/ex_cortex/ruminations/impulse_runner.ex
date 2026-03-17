@@ -619,7 +619,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
       rumination_id: thought.id,
       metadata: metadata,
       pin_slug: Map.get(thought, :pin_slug),
-      pinned: Map.get(thought, :pinned, false),
+      pinned: Map.get(thought, :pin_slug) != nil || Map.get(thought, :pinned, false),
       pin_order: Map.get(thought, :pin_order, 0),
       cluster_name: Map.get(thought, :cluster_name)
     }
