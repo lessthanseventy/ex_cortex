@@ -14,11 +14,26 @@ defmodule ExCortex.ModelCatalog do
     "claude_haiku" => :journeyman
   }
 
-  @type model :: %{name: String.t(), tier: :master | :journeyman | :apprentice, provider: String.t()}
+  # Models known to handle structured tool calling properly.
+  # Others may emit raw text instead of structured tool use.
+  @tool_capable MapSet.new([
+                  "claude_opus",
+                  "claude_sonnet",
+                  "claude_haiku",
+                  "qwen3-coder",
+                  "devstral-small-2:24b"
+                ])
+
+  @type model :: %{
+          name: String.t(),
+          tier: :master | :journeyman | :apprentice,
+          provider: String.t(),
+          tool_calling: boolean()
+        }
 
   @doc "Returns all available models grouped by tier, most capable first."
-  def grouped do
-    models = all()
+  def grouped(opts \\ []) do
+    models = if Keyword.get(opts, :tool_calling), do: tool_capable(), else: all()
 
     Enum.reject(
       [
@@ -35,12 +50,17 @@ defmodule ExCortex.ModelCatalog do
     claude_models() ++ ollama_models()
   end
 
+  @doc "Returns only models known to handle structured tool calling."
+  def tool_capable do
+    Enum.filter(all(), & &1.tool_calling)
+  end
+
   defp claude_models do
     if ExCortex.ClaudeClient.configured?() do
       [
-        %{name: "claude_opus", tier: :master, provider: "claude"},
-        %{name: "claude_sonnet", tier: :master, provider: "claude"},
-        %{name: "claude_haiku", tier: :journeyman, provider: "claude"}
+        %{name: "claude_opus", tier: :master, provider: "claude", tool_calling: true},
+        %{name: "claude_sonnet", tier: :master, provider: "claude", tool_calling: true},
+        %{name: "claude_haiku", tier: :journeyman, provider: "claude", tool_calling: true}
       ]
     else
       []
@@ -49,8 +69,16 @@ defmodule ExCortex.ModelCatalog do
 
   defp ollama_models do
     ExCortex.OllamaCache.get_models()
-    |> Enum.map(fn name -> %{name: name, tier: tier_for(name), provider: "ollama"} end)
+    |> Enum.map(fn name ->
+      %{name: name, tier: tier_for(name), provider: "ollama", tool_calling: tool_capable?(name)}
+    end)
     |> Enum.sort_by(fn m -> {tier_sort(m.tier), m.name} end)
+  end
+
+  defp tool_capable?(name) do
+    # Check exact match or base model name (before the :tag)
+    base = name |> String.split(":") |> List.first()
+    MapSet.member?(@tool_capable, name) or MapSet.member?(@tool_capable, base)
   end
 
   @doc "Determine the tier for a model name."

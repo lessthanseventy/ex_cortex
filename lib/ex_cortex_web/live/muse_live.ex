@@ -7,8 +7,8 @@ defmodule ExCortexWeb.MuseLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    model_groups = ExCortex.ModelCatalog.grouped()
-    all = ExCortex.ModelCatalog.all()
+    model_groups = ExCortex.ModelCatalog.grouped(tool_calling: true)
+    all = ExCortex.ModelCatalog.tool_capable()
 
     default =
       case all do
