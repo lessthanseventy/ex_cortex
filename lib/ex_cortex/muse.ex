@@ -8,16 +8,19 @@ defmodule ExCortex.Muse do
 
   alias ExCortex.LLM
   alias ExCortex.Memory
+  alias ExCortex.Signals.Signal
   alias ExCortex.Thoughts
   alias ExCortex.Tools.Registry
 
   require Logger
 
   @system_prompt """
-  You are a helpful assistant with access to the user's personal knowledge base and a set of tools.
-  Answer questions concisely and accurately. Use your tools to look up information the user asks about —
-  search email, query memory, fetch URLs, read files, etc. If neither the provided context nor your
-  tools can answer the question, say so honestly rather than guessing.
+  You are a helpful assistant with access to the user's personal knowledge base, dashboard signals, and a set of tools.
+  Answer questions concisely and accurately. When the user asks about recent news, digests, or summaries,
+  check the Dashboard Signals section first — these contain recent digest outputs with links.
+  Use your tools to look up information the user asks about — search email, query memory, fetch URLs, read files, etc.
+  If neither the provided context nor your tools can answer the question, say so honestly rather than guessing.
+  When your context includes links, include them in your answer.
   """
 
   @wonder_system_prompt """
@@ -78,13 +81,14 @@ defmodule ExCortex.Muse do
     end
   end
 
-  @doc "Gather RAG context from engrams and axioms."
+  @doc "Gather RAG context from signals, engrams, and axioms."
   def gather_context(question, filters \\ []) do
     source_context = gather_source_context()
+    signal_context = gather_signal_context(question)
     engram_context = gather_engram_context(question, filters)
     axiom_context = gather_axiom_context(question)
 
-    [source_context, engram_context, axiom_context]
+    [source_context, signal_context, engram_context, axiom_context]
     |> Enum.reject(&(&1 == ""))
     |> Enum.join("\n\n---\n\n")
   end
@@ -117,6 +121,63 @@ defmodule ExCortex.Muse do
     sections = sections ++ ["### Memory\n- #{engram_count} engrams in store"]
 
     Enum.join(sections, "\n\n")
+  end
+
+  defp gather_signal_context(question) do
+    import Ecto.Query
+
+    # Pull recent active signals, prioritize by recency
+    signals =
+      ExCortex.Repo.all(from(s in Signal, where: s.status == "active", order_by: [desc: s.inserted_at], limit: 20))
+
+    # Score relevance by keyword overlap with the question
+    question_words =
+      question
+      |> String.downcase()
+      |> String.split(~r/\W+/, trim: true)
+      |> MapSet.new()
+
+    scored =
+      signals
+      |> Enum.map(fn s ->
+        signal_words =
+          "#{s.title} #{Enum.join(s.tags || [], " ")}"
+          |> String.downcase()
+          |> String.split(~r/\W+/, trim: true)
+          |> MapSet.new()
+
+        overlap = question_words |> MapSet.intersection(signal_words) |> MapSet.size()
+        {s, overlap}
+      end)
+      |> Enum.sort_by(fn {_s, score} -> score end, :desc)
+      |> Enum.take(5)
+      |> Enum.map(fn {s, _score} -> s end)
+
+    if scored == [] do
+      ""
+    else
+      entries =
+        Enum.map(scored, fn s ->
+          age = format_signal_age(s.inserted_at)
+          body = String.slice(s.body || "", 0, 2000)
+          tags = if s.tags == [], do: "", else: " [#{Enum.join(s.tags, ", ")}]"
+          "### #{s.title}#{tags}\n*#{age} · #{s.source || "system"}*\n\n#{body}"
+        end)
+
+      "## Dashboard Signals (recent digests and reports)\n\n" <> Enum.join(entries, "\n\n---\n\n")
+    end
+  end
+
+  defp format_signal_age(nil), do: "unknown"
+
+  defp format_signal_age(inserted_at) do
+    diff = DateTime.diff(DateTime.utc_now(), inserted_at, :minute)
+
+    cond do
+      diff < 60 -> "#{diff}m ago"
+      diff < 1440 -> "#{div(diff, 60)}h ago"
+      true -> "#{div(diff, 1440)}d ago"
+    end
   end
 
   defp gather_engram_context(question, filters) do
