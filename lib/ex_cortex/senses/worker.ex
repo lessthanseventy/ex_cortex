@@ -250,17 +250,17 @@ defmodule ExCortex.Senses.Worker do
     end
   end
 
-  defp source_module("git"), do: ExCortex.Senses.GitWatcher
-  defp source_module("directory"), do: ExCortex.Senses.DirectoryWatcher
-  defp source_module("feed"), do: ExCortex.Senses.FeedWatcher
-  defp source_module("url"), do: ExCortex.Senses.UrlWatcher
-  defp source_module("websocket"), do: ExCortex.Senses.WebSocketSource
-  defp source_module("cortex"), do: ExCortex.Senses.SignalWatcher
-  defp source_module("obsidian"), do: ExCortex.Senses.ObsidianWatcher
-  defp source_module("email"), do: ExCortex.Senses.EmailSense
-  defp source_module("media"), do: ExCortex.Senses.MediaSense
-  defp source_module("github_issues"), do: ExCortex.Senses.GithubIssueWatcher
-  defp source_module("nextcloud"), do: ExCortex.Senses.NextcloudWatcher
+  def source_module("git"), do: ExCortex.Senses.GitWatcher
+  def source_module("directory"), do: ExCortex.Senses.DirectoryWatcher
+  def source_module("feed"), do: ExCortex.Senses.FeedWatcher
+  def source_module("url"), do: ExCortex.Senses.UrlWatcher
+  def source_module("websocket"), do: ExCortex.Senses.WebSocketSource
+  def source_module("cortex"), do: ExCortex.Senses.SignalWatcher
+  def source_module("obsidian"), do: ExCortex.Senses.ObsidianWatcher
+  def source_module("email"), do: ExCortex.Senses.EmailSense
+  def source_module("media"), do: ExCortex.Senses.MediaSense
+  def source_module("github_issues"), do: ExCortex.Senses.GithubIssueWatcher
+  def source_module("nextcloud"), do: ExCortex.Senses.NextcloudWatcher
 
   defp get_interval(config), do: config["interval"] || 60_000
 
