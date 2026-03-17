@@ -21,6 +21,8 @@ defmodule ExCortexWeb.CortexLive do
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "daydreams")
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
+      # Sync Obsidian todos to dashboard on every visit
+      Task.start(fn -> ExCortex.Signals.TodoSync.sync() end)
     end
 
     # On static render: default all panels collapsed to prevent flash.

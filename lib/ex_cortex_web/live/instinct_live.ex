@@ -4,7 +4,7 @@ defmodule ExCortexWeb.InstinctLive do
 
   alias ExCortex.Settings
 
-  @banners ~w(tech lifestyle business)
+  @banners ~w(frontal temporal parietal occipital limbic cerebellar)
 
   @impl true
   def mount(_params, _session, socket) do

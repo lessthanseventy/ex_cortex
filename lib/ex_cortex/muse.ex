@@ -87,7 +87,11 @@ defmodule ExCortex.Muse do
   """
 
   @wonder_system_prompt """
-  You are a helpful assistant. Answer questions concisely and accurately.
+  You are Wonder, a curious assistant for exploring the external world.
+  You have web search and URL fetching tools — use them freely to find current information.
+  Answer questions concisely and accurately. When you search the web, cite your sources.
+  You do NOT have access to the user's personal data, notes, email, or memory — that's Muse's domain.
+  You're for outward curiosity: what's happening in the world, how things work, research, exploration.
   """
 
   # Context providers that Muse uses for RAG grounding.
@@ -128,7 +132,13 @@ defmodule ExCortex.Muse do
     result =
       case scope do
         "wonder" ->
-          LLM.complete(provider, model, system_prompt, user_text, history: history)
+          tools = wonder_tools()
+
+          case LLM.complete_with_tools(provider, model, system_prompt, user_text, tools, history: history) do
+            {:ok, answer, _tool_log} -> {:ok, answer}
+            {:error, reason, _tool_log} -> {:error, reason}
+            other -> other
+          end
 
         _ ->
           tools = Registry.list_safe() ++ muse_write_tools()
@@ -198,6 +208,15 @@ defmodule ExCortex.Muse do
 
   defp provider_for("claude_" <> _), do: "claude"
   defp provider_for(_), do: "ollama"
+
+  # Wonder gets outward-facing tools only
+  defp wonder_tools do
+    [
+      ExCortex.Tools.WebSearch.req_llm_tool(),
+      ExCortex.Tools.WebFetch.req_llm_tool(),
+      ExCortex.Tools.FetchUrl.req_llm_tool()
+    ]
+  end
 
   # Obsidian write tools Muse is allowed to use
   defp muse_write_tools do
