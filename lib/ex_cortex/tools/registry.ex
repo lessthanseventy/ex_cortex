@@ -46,6 +46,9 @@ defmodule ExCortex.Tools.Registry do
   alias ExCortex.Tools.MergePR
   alias ExCortex.Tools.NextcloudCalendar
   alias ExCortex.Tools.NextcloudTalk
+  alias ExCortex.Tools.ObsidianAddTodo
+  alias ExCortex.Tools.ObsidianListTodos
+  alias ExCortex.Tools.ObsidianToggleTodo
   alias ExCortex.Tools.OpenPR
   alias ExCortex.Tools.QueryAxiom
   alias ExCortex.Tools.QueryJaeger
@@ -104,11 +107,14 @@ defmodule ExCortex.Tools.Registry do
     SearchNextcloud,
     ReadNextcloud,
     ReadNextcloudNotes,
-    ListSources
+    ListSources,
+    ObsidianListTodos
   ]
   @write [
     CreateObsidianNote,
     DailyObsidian,
+    ObsidianToggleTodo,
+    ObsidianAddTodo,
     DownloadMedia,
     ExtractAudio,
     ExtractFrames,

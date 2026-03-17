@@ -30,6 +30,9 @@ defmodule ExCortex.Muse do
   - search_obsidian_content — search INSIDE note bodies. Use this for: todos ("- [ ]"), specific phrases, tags, dates, anything inside notes.
   - read_obsidian — read a specific note's full content by path
   - read_obsidian_frontmatter — read a note's YAML frontmatter metadata
+  - obsidian_list_todos — list open todos from today's (or any day's) daily note, grouped by section
+  - obsidian_toggle_todo — mark a todo as done or undone by line number or text match
+  - obsidian_add_todo — add a new todo to today's daily note (in the [!todo] section by default)
 
   Email:
   - search_email — search emails by query (notmuch syntax)
@@ -78,7 +81,7 @@ defmodule ExCortex.Muse do
   - USE YOUR TOOLS. Never say "I can't access that" without trying the relevant tool first.
   - When context includes links, include them in your answer.
   - If neither context nor tools can answer, say so honestly rather than guessing.
-  - You can READ but not WRITE — you cannot create notes, send emails, or modify files in this mode.
+  - You can manage Obsidian todos (list, toggle, add) but cannot send emails, create files, or modify code in this mode.
   """
 
   @wonder_system_prompt """
