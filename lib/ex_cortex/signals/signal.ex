@@ -4,7 +4,7 @@ defmodule ExCortex.Signals.Signal do
 
   import Ecto.Changeset
 
-  @valid_types ~w(note checklist meeting alert link proposal augury briefing action_list table media metric freeform)
+  @valid_types ~w(note checklist meeting alert link proposal augury briefing action_list table media metric notepad freeform)
   @valid_statuses ~w(active dismissed archived)
 
   schema "signals" do

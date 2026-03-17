@@ -592,6 +592,23 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   defp post_single_signal_card(thought, attrs) do
     card_type = attrs[:card_type] || parse_card_type(thought.description) || "note"
 
+    # Build action_handler for interactive pane features
+    base_metadata = attrs[:metadata] || %{}
+
+    metadata =
+      if Map.get(thought, :rumination_id) || Map.get(thought, :id) do
+        rum_id = Map.get(thought, :rumination_id) || Map.get(thought, :id)
+
+        action_handler =
+          base_metadata
+          |> Map.get("action_handler", %{})
+          |> Map.put_new("refresh", %{"rumination_id" => rum_id})
+
+        Map.put(base_metadata, "action_handler", action_handler)
+      else
+        base_metadata
+      end
+
     card_attrs = %{
       type: card_type,
       card_type: card_type,
@@ -600,7 +617,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
       tags: attrs[:tags] || [],
       source: "rumination",
       rumination_id: thought.id,
-      metadata: attrs[:metadata] || %{},
+      metadata: metadata,
       pin_slug: Map.get(thought, :pin_slug),
       pinned: Map.get(thought, :pinned, false),
       pin_order: Map.get(thought, :pin_order, 0),

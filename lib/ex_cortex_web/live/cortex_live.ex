@@ -114,6 +114,80 @@ defmodule ExCortexWeb.CortexLive do
     {:noreply, socket}
   end
 
+  # ---------------------------------------------------------------------------
+  # Pane interactions — route widget actions to tools
+  # ---------------------------------------------------------------------------
+
+  def handle_event("pane_action", %{"card-id" => card_id, "action" => action} = params, socket) do
+    card = Signals.get_signal!(card_id)
+    handler = get_in(card.metadata, ["action_handler", action])
+
+    case handle_pane_action(handler, card, params) do
+      {:ok, message} ->
+        {:noreply, socket |> put_flash(:info, message) |> load_signals()}
+
+      {:error, message} ->
+        {:noreply, put_flash(socket, :error, message)}
+
+      :noop ->
+        {:noreply, socket}
+    end
+  end
+
+  # Toggle a checklist item via tool
+  defp handle_pane_action(%{"tool" => tool_name} = handler, card, params) do
+    args = build_tool_args(handler, card, params)
+
+    tool_mod = ExCortex.Tools.Registry.resolve_by_name(tool_name)
+
+    if tool_mod do
+      case tool_mod.call(args) do
+        {:ok, message} ->
+          # Also update the card's local state if it's a checklist toggle
+          maybe_update_checklist(card, params)
+          {:ok, message}
+
+        {:error, reason} ->
+          {:error, "Tool #{tool_name} failed: #{inspect(reason)}"}
+      end
+    else
+      {:error, "Unknown tool: #{tool_name}"}
+    end
+  end
+
+  # Refresh — re-run the owning rumination
+  defp handle_pane_action(%{"rumination_id" => rum_id}, _card, _params) do
+    rumination = Ruminations.get_rumination!(rum_id)
+    Task.start(fn -> ExCortex.Ruminations.Runner.run(rumination, "") end)
+    {:ok, "Refreshing #{rumination.name}..."}
+  end
+
+  defp handle_pane_action(nil, _card, _params), do: :noop
+
+  defp build_tool_args(%{"args_template" => template}, _card, params) do
+    Enum.reduce(template, %{}, fn {key, value}, acc ->
+      resolved =
+        cond do
+          value == "{input}" -> params["value"] || ""
+          value == "{item.text}" -> params["text"] || ""
+          value == "{item.index}" -> params["index"] || ""
+          String.starts_with?(value, "{") -> params[String.trim(value, "{}")] || ""
+          true -> value
+        end
+
+      Map.put(acc, key, resolved)
+    end)
+  end
+
+  defp build_tool_args(_, _card, params), do: params
+
+  defp maybe_update_checklist(card, %{"index" => idx_str}) when card.type == "checklist" do
+    index = String.to_integer(idx_str)
+    Signals.toggle_checklist_item(card, index)
+  end
+
+  defp maybe_update_checklist(_, _), do: :ok
+
   @impl true
   def render(assigns) do
     ~H"""

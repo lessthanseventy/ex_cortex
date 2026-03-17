@@ -144,6 +144,15 @@ defmodule ExCortex.Tools.Registry do
     EmailMove
   ]
 
+  @all_modules @safe ++ @write ++ @dangerous
+
+  @doc "Look up a tool module by its string name (e.g. 'obsidian_toggle_todo')."
+  def resolve_by_name(name) when is_binary(name) do
+    Enum.find(@all_modules, fn mod ->
+      mod.req_llm_tool().name == name
+    end)
+  end
+
   def list_safe, do: Enum.map(@safe, & &1.req_llm_tool())
   def list_write, do: Enum.map(@safe ++ @write, & &1.req_llm_tool())
   def list_dangerous, do: Enum.map(@safe ++ @write ++ @dangerous, & &1.req_llm_tool())

@@ -21,7 +21,8 @@ defmodule ExCortexWeb.Components.SignalCards do
 
   def signal_card(%{card: %{type: "checklist"}} = assigns) do
     items = assigns.card.metadata["items"] || []
-    assigns = assign(assigns, :items, items)
+    has_handler = assigns.card.metadata["action_handler"] != nil
+    assigns = assign(assigns, items: items, has_handler: has_handler)
 
     ~H"""
     <.signal_card_frame card={@card}>
@@ -31,9 +32,11 @@ defmodule ExCortexWeb.Components.SignalCards do
             <input
               type="checkbox"
               checked={item["checked"]}
-              phx-click="toggle_checklist_item"
+              phx-click={if @has_handler, do: "pane_action", else: "toggle_checklist_item"}
               phx-value-card-id={@card.id}
+              phx-value-action="toggle"
               phx-value-index={idx}
+              phx-value-text={item["text"]}
               class="rounded border-input"
             />
             <span class={if item["checked"], do: "line-through text-muted-foreground"}>
@@ -42,6 +45,8 @@ defmodule ExCortexWeb.Components.SignalCards do
           </label>
         <% end %>
       </div>
+      <.pane_add_input :if={@has_handler && @card.metadata["action_handler"]["add"]} card={@card} />
+      <.pane_refresh :if={@card.metadata["action_handler"]["refresh"]} card={@card} />
     </.signal_card_frame>
     """
   end
@@ -84,7 +89,8 @@ defmodule ExCortexWeb.Components.SignalCards do
 
   def signal_card(%{card: %{type: "link"}} = assigns) do
     url = assigns.card.metadata["url"] || ""
-    assigns = assign(assigns, :url, url)
+    has_refresh = get_in(assigns.card.metadata, ["action_handler", "refresh"]) != nil
+    assigns = assign(assigns, url: url, has_refresh: has_refresh)
 
     ~H"""
     <.signal_card_frame card={@card}>
@@ -99,6 +105,7 @@ defmodule ExCortexWeb.Components.SignalCards do
           {@url}
         </a>
       <% end %>
+      <.pane_refresh :if={@has_refresh} card={@card} />
     </.signal_card_frame>
     """
   end
@@ -287,6 +294,28 @@ defmodule ExCortexWeb.Components.SignalCards do
     """
   end
 
+  def signal_card(%{card: %{type: "notepad"}} = assigns) do
+    ~H"""
+    <.signal_card_frame card={@card}>
+      <.md_body body={@card.body} />
+      <form phx-submit="pane_action" class="mt-2">
+        <input type="hidden" name="card-id" value={@card.id} />
+        <input type="hidden" name="action" value="append" />
+        <div class="flex gap-2">
+          <input
+            type="text"
+            name="value"
+            placeholder="Add a note..."
+            class="flex-1 h-8 text-sm border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <.button type="submit" size="sm" variant="outline">Add</.button>
+        </div>
+      </form>
+      <.pane_refresh :if={@card.metadata["action_handler"]["refresh"]} card={@card} />
+    </.signal_card_frame>
+    """
+  end
+
   def signal_card(%{card: %{type: "freeform"}} = assigns) do
     ~H"""
     <.signal_card_frame card={@card}>
@@ -304,7 +333,53 @@ defmodule ExCortexWeb.Components.SignalCards do
     """
   end
 
+  # ---------------------------------------------------------------------------
+  # Pane interaction sub-components
+  # ---------------------------------------------------------------------------
+
+  attr :card, :map, required: true
+
+  defp pane_refresh(assigns) do
+    ~H"""
+    <div class="flex justify-end mt-2">
+      <.button
+        type="button"
+        size="sm"
+        variant="ghost"
+        phx-click="pane_action"
+        phx-value-card-id={@card.id}
+        phx-value-action="refresh"
+        class="text-xs"
+      >
+        Refresh
+      </.button>
+    </div>
+    """
+  end
+
+  attr :card, :map, required: true
+
+  defp pane_add_input(assigns) do
+    ~H"""
+    <form phx-submit="pane_action" class="mt-2">
+      <input type="hidden" name="card-id" value={@card.id} />
+      <input type="hidden" name="action" value="add" />
+      <div class="flex gap-2">
+        <input
+          type="text"
+          name="value"
+          placeholder="Add item..."
+          class="flex-1 h-7 text-xs border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <.button type="submit" size="sm" variant="outline" class="text-xs h-7">Add</.button>
+      </div>
+    </form>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
   # Shared sub-components
+  # ---------------------------------------------------------------------------
 
   attr :card, :map, required: true
   slot :inner_block, required: true
@@ -369,6 +444,7 @@ defmodule ExCortexWeb.Components.SignalCards do
   defp type_icon("table"), do: "📊"
   defp type_icon("media"), do: "🖼️"
   defp type_icon("metric"), do: "📈"
+  defp type_icon("notepad"), do: "📝"
   defp type_icon("freeform"), do: "✏️"
   defp type_icon(_), do: nil
 

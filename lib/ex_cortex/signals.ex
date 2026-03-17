@@ -89,17 +89,58 @@ defmodule ExCortex.Signals do
     end
   end
 
+  def post_signal(%{pin_slug: slug} = attrs) when is_binary(slug) and slug != "" do
+    upsert_pinned_signal(attrs, slug)
+  end
+
+  def post_signal(%{"pin_slug" => slug} = attrs) when is_binary(slug) and slug != "" do
+    upsert_pinned_signal(attrs, slug)
+  end
+
   def post_signal(attrs) do
     case create_signal(attrs) do
       {:ok, card} ->
         Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:signal_posted, card})
-
         Sync.sync_signal(card)
-
         {:ok, card}
 
       error ->
         error
+    end
+  end
+
+  defp upsert_pinned_signal(attrs, slug) do
+    case Repo.one(from(s in Signal, where: s.pin_slug == ^slug)) do
+      nil ->
+        # First time — create with pinned=true
+        attrs = Map.merge(attrs, %{pinned: true, pin_slug: slug})
+
+        case create_signal(attrs) do
+          {:ok, card} ->
+            Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:signal_posted, card})
+            Sync.sync_signal(card)
+            {:ok, card}
+
+          error ->
+            error
+        end
+
+      existing ->
+        # Update in place — preserve id, pinned status, pin_order
+        update_attrs =
+          attrs
+          |> Map.drop([:pin_slug, "pin_slug", :pinned, "pinned", :pin_order, "pin_order"])
+          |> Map.put(:status, "active")
+
+        case update_signal(existing, update_attrs) do
+          {:ok, card} ->
+            Phoenix.PubSub.broadcast(ExCortex.PubSub, "cortex", {:signal_posted, card})
+            Sync.sync_signal(card)
+            {:ok, card}
+
+          error ->
+            error
+        end
     end
   end
 

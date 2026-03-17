@@ -2518,6 +2518,8 @@ defmodule ExCortex.Seeds do
             roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
           })
 
+        slug = reflex.name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-") |> String.trim("-")
+
         {:ok, s3} =
           Ruminations.create_synapse(%{
             name: "#{reflex.name}: Publish",
@@ -2528,6 +2530,8 @@ defmodule ExCortex.Seeds do
             trigger: "manual",
             output_type: "signal",
             cluster_name: tmpl.cluster,
+            pin_slug: slug,
+            pinned: true,
             roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
           })
 
