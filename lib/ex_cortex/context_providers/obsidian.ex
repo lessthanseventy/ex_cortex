@@ -14,9 +14,12 @@ defmodule ExCortex.ContextProviders.Obsidian do
 
   @behaviour ExCortex.ContextProviders.ContextProvider
 
+  alias ExCortex.Tools.ReadObsidian
+  alias ExCortex.Tools.SearchObsidian
   alias ExCortex.Tools.SearchObsidianContent
 
   @triggers ~w(obsidian note notes vault todo todos task tasks checklist journal daily)
+  @meta_triggers ~w(system structure organize gaps missing setup workflow template folder tag)
 
   @impl true
   def build(config, _thought, input) do
@@ -35,10 +38,12 @@ defmodule ExCortex.ContextProviders.Obsidian do
   defp auto_gather(input) do
     q_lower = String.downcase(input)
     relevant? = Enum.any?(@triggers, &String.contains?(q_lower, &1))
+    meta? = Enum.any?(@meta_triggers, &String.contains?(q_lower, &1))
 
-    if relevant? do
+    if relevant? or meta? do
       results =
         []
+        |> maybe_gather_vault_overview(q_lower, meta?)
         |> maybe_gather_todos(q_lower)
         |> maybe_gather_daily(q_lower)
         |> maybe_gather_search(q_lower)
@@ -51,6 +56,32 @@ defmodule ExCortex.ContextProviders.Obsidian do
     else
       ""
     end
+  end
+
+  defp maybe_gather_vault_overview(results, _q_lower, false), do: results
+
+  defp maybe_gather_vault_overview(results, _q_lower, true) do
+    parts = []
+
+    # List all notes to show vault structure
+    parts =
+      case SearchObsidian.call(%{"query" => ""}) do
+        {:ok, content} when content != "" -> parts ++ ["### Vault Structure\n#{content}"]
+        _ -> parts
+      end
+
+    # Read the vault overview note if it exists
+    parts =
+      for path <- ["how-i-use-this-vault.md", "README.md"],
+          reduce: parts do
+        acc ->
+          case ReadObsidian.call(%{"path" => path}) do
+            {:ok, content} when content != "" -> acc ++ ["### #{path}\n#{content}"]
+            _ -> acc
+          end
+      end
+
+    results ++ parts
   end
 
   defp maybe_gather_todos(results, q_lower) do
@@ -111,14 +142,14 @@ defmodule ExCortex.ContextProviders.Obsidian do
   defp gather_daily do
     today = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
 
-    case ExCortex.Tools.ReadObsidian.call(%{"path" => "journal/#{today}.md"}) do
+    case ReadObsidian.call(%{"path" => "journal/#{today}.md"}) do
       {:ok, content} when content != "" -> "### Daily Note (#{today})\n#{content}"
       _ -> ""
     end
   end
 
   defp gather_list do
-    case ExCortex.Tools.SearchObsidian.call(%{"query" => ""}) do
+    case SearchObsidian.call(%{"query" => ""}) do
       {:ok, content} when content != "" -> "### All Notes\n#{content}"
       _ -> ""
     end
