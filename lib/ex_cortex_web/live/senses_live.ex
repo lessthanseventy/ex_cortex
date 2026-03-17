@@ -193,6 +193,13 @@ defmodule ExCortexWeb.SensesLive do
   end
 
   @impl true
+  def handle_event("sync_all", _params, socket) do
+    active = Enum.filter(socket.assigns.senses, &(&1.status == "active"))
+    Enum.each(active, &Worker.sync(&1.id))
+    {:noreply, put_flash(socket, :info, "Syncing #{length(active)} active senses.")}
+  end
+
+  @impl true
   def handle_event("edit_sense", %{"id" => id}, socket) do
     editing = if socket.assigns.editing_sense == id, do: nil, else: id
     {:noreply, assign(socket, editing_sense: editing)}
@@ -567,6 +574,16 @@ defmodule ExCortexWeb.SensesLive do
           </.panel>
         <% else %>
           <.panel title={"ACTIVE SENSES (#{length(@senses)})"}>
+            <div class="flex justify-end mb-2">
+              <.button
+                type="button"
+                size="sm"
+                variant="outline"
+                phx-click="sync_all"
+              >
+                Sync All
+              </.button>
+            </div>
             <div class="space-y-2">
               <.sense_row
                 :for={sense <- @senses}
