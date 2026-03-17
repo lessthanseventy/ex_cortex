@@ -759,6 +759,28 @@ defmodule ExCortexWeb.RuminationsLive do
   defp status_color("done"), do: "cyan"
   defp status_color(_), do: "dim"
 
+  attr :rumination, :map, required: true
+  attr :selected, :boolean, required: true
+  attr :running, :any, default: nil
+
+  defp rumination_sidebar_item(assigns) do
+    ~H"""
+    <button
+      class={"w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 hover:bg-muted/40 transition-colors " <> if(@selected, do: "bg-muted/60 font-medium", else: "")}
+      phx-click="select_rumination"
+      phx-value-id={@rumination.id}
+    >
+      <.status color={status_color(@rumination.status)} label="" />
+      <span class="flex-1 truncate">{@rumination.name}</span>
+      <%= if @running == :running do %>
+        <span class="text-xs t-amber animate-pulse">running</span>
+      <% else %>
+        <span class="text-xs t-dim">{step_count(@rumination)}s</span>
+      <% end %>
+    </button>
+    """
+  end
+
   defp run_color("complete"), do: "green"
   defp run_color("failed"), do: "red"
   defp run_color("running"), do: "amber"
@@ -824,23 +846,34 @@ defmodule ExCortexWeb.RuminationsLive do
                 page.
               </p>
             <% else %>
-              <div class="space-y-1">
-                <%= for rumination <- @ruminations do %>
-                  <button
-                    class={"w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 hover:bg-muted/40 transition-colors " <> if(@selected_id == rumination.id, do: "bg-muted/60 font-medium", else: "")}
-                    phx-click="select_rumination"
-                    phx-value-id={rumination.id}
-                  >
-                    <.status color={status_color(rumination.status)} label="" />
-                    <span class="flex-1 truncate">{rumination.name}</span>
-                    <%= if Map.get(@running, rumination.id) == :running do %>
-                      <span class="text-xs t-amber animate-pulse">running</span>
-                    <% else %>
-                      <span class="text-xs t-dim">{step_count(rumination)}s</span>
-                    <% end %>
-                  </button>
-                <% end %>
-              </div>
+              <% active_rums = Enum.filter(@ruminations, &(&1.status == "active")) %>
+              <% paused_rums = Enum.reject(@ruminations, &(&1.status == "active")) %>
+              <%= if active_rums != [] do %>
+                <p class="text-[10px] uppercase tracking-wider t-dim font-semibold px-2 pt-1">
+                  Active
+                </p>
+                <div class="space-y-0.5">
+                  <.rumination_sidebar_item
+                    :for={rumination <- active_rums}
+                    rumination={rumination}
+                    selected={@selected_id == rumination.id}
+                    running={Map.get(@running, rumination.id)}
+                  />
+                </div>
+              <% end %>
+              <%= if paused_rums != [] do %>
+                <p class="text-[10px] uppercase tracking-wider t-dim font-semibold px-2 pt-2">
+                  Paused
+                </p>
+                <div class="space-y-0.5">
+                  <.rumination_sidebar_item
+                    :for={rumination <- paused_rums}
+                    rumination={rumination}
+                    selected={@selected_id == rumination.id}
+                    running={Map.get(@running, rumination.id)}
+                  />
+                </div>
+              <% end %>
             <% end %>
           </.panel>
         </div>
