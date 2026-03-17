@@ -73,6 +73,8 @@ defmodule ExCortexWeb.SensesLive do
     )
   end
 
+  defp sense_display_name(%Sense{name: name}) when is_binary(name) and name != "", do: name
+
   defp sense_display_name(%Sense{reflex_id: reflex_id}) when is_binary(reflex_id) do
     case Reflex.get(reflex_id) do
       nil -> reflex_id
@@ -80,7 +82,6 @@ defmodule ExCortexWeb.SensesLive do
     end
   end
 
-  defp sense_display_name(%Sense{name: name}) when is_binary(name) and name != "", do: name
   defp sense_display_name(%Sense{source_type: type}), do: String.capitalize(type) <> " source"
 
   defp format_time(nil), do: "never"
