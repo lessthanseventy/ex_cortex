@@ -170,12 +170,38 @@ docker compose up -d             # full stack: db, ollama, jaeger, prometheus, g
 - Sense types: git, directory, feed, webhook, url, websocket, obsidian, nextcloud, email, media, github_issues, cortex
 - Evaluator module (`ExCortex.Evaluator`) shared between EvaluateLive and Senses
 - Webhook endpoint: `POST /api/webhooks/:sense_id` with optional Bearer auth
+- Expression reply endpoint: `POST /api/expressions/reply` with `ref` + `content` params
 - Reflexes: source blueprints in `ExCortex.Senses.Reflex`
 - Core library uses `Excellence.Charters.*`
 - `ExCortex.Muse` is the RAG engine — gathers context from engrams/axioms, calls LLM, persists as Thought
 - Engrams (`ExCortex.Memory`) store artifacts, notes, and rumination outputs — browsed in Memory screen
 - Axioms (`ExCortex.Lexicon`) store reference datasets — queried via `query_axiom` tool
 - `query_memory` tool searches engrams by tags — agents should query it before writing code/tests
+
+## Middleware System
+- `ExCortex.Ruminations.Middleware` — behaviour with `before_impulse/2`, `after_impulse/3`, `wrap_tool_call/3`
+- Synapse schema has `middleware` field (list of module name strings)
+- ImpulseRunner resolves middleware from synapse, runs before/after chain around each impulse
+- `ExCortex.LLM.ToolExecutor` — shared tool execution for Claude + Ollama, supports middleware wrapping
+- Built-in middleware: `ToolErrorHandler`, `UntrustedContentTagger`, `MessageQueueInjector`
+
+## Bidirectional Expressions
+- Expressions return `{:ok, external_ref}` on delivery (webhook, slack)
+- `expression_correlations` table links outbound messages to daydreams via `external_ref`
+- Inbound replies via `POST /api/expressions/reply?ref=<ref>` route to running daydream inbox
+- `MessageQueueInjector` middleware drains inbox messages and prepends them to impulse input
+
+## Daydream Dedup
+- Rumination schema has `dedup_strategy`: `"none"` (default) or `"concurrent"`
+- Daydream schema has `fingerprint` (sha256 of rumination_id + normalized input)
+- `concurrent` mode skips creating a new daydream if one with the same fingerprint is already running
+- `Ruminations.latest_daydream/1` returns most recent daydream for a rumination (used by pinned signal cards)
+
+## Trust Levels
+- Sense schema has `trust_level`: `"trusted"` or `"untrusted"` (default)
+- Webhook senses always set `trust_level: "untrusted"`
+- `UntrustedContentTagger` middleware wraps untrusted input in `<untrusted>` tags with safety warning
+- Propagated through: WebhookController → Runner → ImpulseRunner → Middleware.Context.metadata
 
 ## Code Style
 - In LiveView modules: group all `handle_event` clauses together, then all private helpers at the bottom. Never interleave `defp` functions between `handle_event` clauses — it causes clause grouping warnings.
