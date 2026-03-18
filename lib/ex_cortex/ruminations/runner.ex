@@ -30,6 +30,19 @@ defmodule ExCortex.Ruminations.Runner do
 
   def check_gate(_, _), do: :continue
 
+  @doc "Compute a deterministic fingerprint for deduplication."
+  def compute_fingerprint(rumination_id, input) do
+    normalized =
+      (input || "")
+      |> String.trim()
+      |> String.replace(~r/\s+/, " ")
+      |> String.slice(0, 2048)
+
+    :sha256
+    |> :crypto.hash("#{rumination_id}:#{normalized}")
+    |> Base.encode16(case: :lower)
+  end
+
   @doc "Run all steps of a thought, returning the final step result."
   def run(%{steps: steps} = thought, _input) when steps == [] do
     Logger.info("[RuminationRunner] Thought #{thought.id} (#{thought.name}) has no steps")
@@ -58,6 +71,23 @@ defmodule ExCortex.Ruminations.Runner do
   end
 
   defp do_run(thought, input, opts) do
+    fingerprint = compute_fingerprint(thought.id, input)
+
+    if Map.get(thought, :dedup_strategy) == "concurrent" do
+      case Ruminations.running_daydream_by_fingerprint(fingerprint) do
+        %{id: existing_id} ->
+          Logger.info("[Runner] Dedup: skipping — daydream #{existing_id} already running")
+          {:ok, %{deduplicated: true, existing_daydream_id: existing_id}}
+
+        nil ->
+          do_run_with_daydream(thought, input, opts, fingerprint)
+      end
+    else
+      do_run_with_daydream(thought, input, opts, fingerprint)
+    end
+  end
+
+  defp do_run_with_daydream(thought, input, opts, fingerprint) do
     dry_run? = Keyword.get(opts, :dry_run, false)
     ordered_steps = Enum.sort_by(thought.steps, &Map.get(&1, "order", 0))
 
@@ -66,7 +96,10 @@ defmodule ExCortex.Ruminations.Runner do
 
     # Create a daydream record
     initial_status = if dry_run?, do: "dry_run", else: "running"
-    {:ok, daydream} = Ruminations.create_daydream(%{rumination_id: thought.id, status: initial_status})
+
+    {:ok, daydream} =
+      Ruminations.create_daydream(%{rumination_id: thought.id, status: initial_status, fingerprint: fingerprint})
+
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_started, daydream})
 
     # Zip each step with the next step for look-ahead (next step name for handoff)

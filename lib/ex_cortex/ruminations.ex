@@ -117,6 +117,23 @@ defmodule ExCortex.Ruminations do
     )
   end
 
+  def latest_daydream(rumination_id) do
+    Repo.one(
+      from d in Daydream,
+        where: d.rumination_id == ^rumination_id,
+        order_by: [desc: d.inserted_at, desc: d.id],
+        limit: 1
+    )
+  end
+
+  def running_daydream_by_fingerprint(fingerprint) do
+    Repo.one(
+      from d in Daydream,
+        where: d.fingerprint == ^fingerprint and d.status == "running",
+        limit: 1
+    )
+  end
+
   def create_daydream(attrs) do
     %Daydream{} |> Daydream.changeset(attrs) |> Repo.insert()
   end
