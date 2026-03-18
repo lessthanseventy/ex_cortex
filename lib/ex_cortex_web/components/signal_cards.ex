@@ -361,7 +361,7 @@ defmodule ExCortexWeb.Components.SignalCards do
 
   defp pane_add_input(assigns) do
     ~H"""
-    <form phx-submit="pane_action" class="mt-2">
+    <form id={"pane-add-#{@card.id}"} phx-submit="pane_action" class="mt-2">
       <input type="hidden" name="card-id" value={@card.id} />
       <input type="hidden" name="action" value="add" />
       <div class="flex gap-2">

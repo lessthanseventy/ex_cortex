@@ -174,7 +174,11 @@ defmodule ExCortexWeb.CortexLive do
   # Pane interactions — route widget actions to tools
   # ---------------------------------------------------------------------------
 
-  def handle_event("pane_action", %{"card-id" => card_id, "action" => action} = params, socket) do
+  def handle_event("pane_action", params, socket) do
+    require Logger
+
+    Logger.debug("[PaneAction] params: #{inspect(params)}")
+    %{"card-id" => card_id, "action" => action} = params
     card = Signals.get_signal!(card_id)
     handler = get_in(card.metadata, ["action_handler", action])
 
