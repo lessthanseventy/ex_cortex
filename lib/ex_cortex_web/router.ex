@@ -22,6 +22,7 @@ defmodule ExCortexWeb.Router do
   scope "/api", ExCortexWeb do
     pipe_through :api
     post "/webhooks/:sense_id", WebhookController, :receive
+    post "/expressions/reply", ExpressionReplyController, :reply
   end
 
   scope "/", ExCortexWeb do
