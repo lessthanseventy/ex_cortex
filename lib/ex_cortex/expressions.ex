@@ -20,17 +20,39 @@ defmodule ExCortex.Expressions do
 
   def delete_expression(%Expression{} = e), do: Repo.delete(e)
 
-  def deliver(%Expression{type: "slack"} = e, thought, body), do: ExCortex.Expressions.Slack.deliver(e, thought, body)
-  def deliver(%Expression{type: "webhook"} = e, thought, body), do: ExCortex.Expressions.Webhook.deliver(e, thought, body)
+  def deliver(%Expression{type: type, id: expression_id} = expression, thought, body) do
+    provider = provider_module(type)
 
-  def deliver(%Expression{type: "github_issue"} = e, thought, body),
-    do: ExCortex.Expressions.GithubIssue.deliver(e, thought, body)
+    case provider.deliver(expression, thought, body) do
+      {:ok, external_ref} ->
+        create_correlation(expression_id, thought, external_ref)
+        {:ok, external_ref}
 
-  def deliver(%Expression{type: "github_pr"} = e, thought, body),
-    do: ExCortex.Expressions.GithubPR.deliver(e, thought, body)
+      :ok ->
+        :ok
 
-  def deliver(%Expression{type: "email"} = e, thought, body), do: ExCortex.Expressions.Email.deliver(e, thought, body)
+      error ->
+        error
+    end
+  end
 
-  def deliver(%Expression{type: "pagerduty"} = e, thought, body),
-    do: ExCortex.Expressions.PagerDuty.deliver(e, thought, body)
+  defp provider_module("slack"), do: ExCortex.Expressions.Slack
+  defp provider_module("webhook"), do: ExCortex.Expressions.Webhook
+  defp provider_module("github_issue"), do: ExCortex.Expressions.GithubIssue
+  defp provider_module("github_pr"), do: ExCortex.Expressions.GithubPR
+  defp provider_module("email"), do: ExCortex.Expressions.Email
+  defp provider_module("pagerduty"), do: ExCortex.Expressions.PagerDuty
+
+  defp create_correlation(expression_id, thought, external_ref) do
+    alias ExCortex.Expressions.Correlation
+
+    attrs = %{
+      expression_id: expression_id,
+      daydream_id: Map.get(thought, :daydream_id) || Map.get(thought, :id),
+      synapse_id: Map.get(thought, :id),
+      external_ref: external_ref
+    }
+
+    %Correlation{} |> Correlation.changeset(attrs) |> Repo.insert()
+  end
 end
