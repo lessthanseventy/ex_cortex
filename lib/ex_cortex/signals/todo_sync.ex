@@ -13,19 +13,28 @@ defmodule ExCortex.Signals.TodoSync do
   @pin_slug "daily-todos"
 
   def sync do
-    date = Date.to_iso8601(Date.utc_today())
-    path = daily_note_path(date)
+    # Use local date, not UTC — daily notes follow the user's timezone
+    today = Date.utc_today()
+    yesterday = Date.add(today, -1)
+    # Try today first, then yesterday (handles UTC rollover)
 
-    case File.read(path) do
-      {:ok, content} ->
-        items = parse_whats_happening(content)
-        post_checklist(items)
+    {date, content} =
+      case File.read(daily_note_path(Date.to_iso8601(today))) do
+        {:ok, c} ->
+          {today, c}
 
-      {:error, :enoent} ->
-        post_checklist([])
+        _ ->
+          case File.read(daily_note_path(Date.to_iso8601(yesterday))) do
+            {:ok, c} -> {yesterday, c}
+            _ -> {today, nil}
+          end
+      end
 
-      _ ->
-        :ok
+    if content do
+      items = parse_whats_happening(content)
+      post_checklist(items, date)
+    else
+      post_checklist([], today)
     end
   end
 
@@ -70,8 +79,8 @@ defmodule ExCortex.Signals.TodoSync do
     Path.join([vault_path, "journal", "#{date}.md"])
   end
 
-  defp post_checklist(items) do
-    today = Calendar.strftime(Date.utc_today(), "%B %-d")
+  defp post_checklist(items, date) do
+    today = Calendar.strftime(date, "%B %-d")
 
     Signals.post_signal(%{
       type: "checklist",
