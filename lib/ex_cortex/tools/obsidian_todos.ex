@@ -56,7 +56,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
   end
 
   def list_todos(params) do
-    date = Map.get(params, "date", Date.to_iso8601(Date.utc_today()))
+    date = Map.get(params, "date", resolve_today())
 
     case read_daily_note(date) do
       {:ok, content} ->
@@ -116,7 +116,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
   end
 
   def toggle_todo(params) do
-    date = Map.get(params, "date", Date.to_iso8601(Date.utc_today()))
+    date = Map.get(params, "date", resolve_today())
     done = Map.get(params, "done", true)
     from = if done, do: "- [ ]", else: "- [x]"
     to = if done, do: "- [x]", else: "- [ ]"
@@ -196,7 +196,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
   end
 
   def add_todo(params) do
-    date = Map.get(params, "date", Date.to_iso8601(Date.utc_today()))
+    date = Map.get(params, "date", resolve_today())
     text = params["text"]
     section = Map.get(params, "section", "todo")
 
@@ -233,6 +233,19 @@ defmodule ExCortex.Tools.ObsidianTodos do
 
   defp daily_note_path(date) do
     Path.join([vault_path(), "journal", "#{date}.md"])
+  end
+
+  # Resolve today's date, falling back to yesterday if today's note doesn't exist.
+  # Handles UTC timezone rollover.
+  defp resolve_today do
+    today = Date.to_iso8601(Date.utc_today())
+    yesterday = Date.to_iso8601(Date.add(Date.utc_today(), -1))
+
+    cond do
+      File.exists?(daily_note_path(today)) -> today
+      File.exists?(daily_note_path(yesterday)) -> yesterday
+      true -> today
+    end
   end
 
   defp read_daily_note(date) do

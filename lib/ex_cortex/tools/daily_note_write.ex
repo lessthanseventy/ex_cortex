@@ -36,7 +36,7 @@ defmodule ExCortex.Tools.DailyNoteWrite do
   end
 
   def call(%{"content" => content, "section" => section} = params) do
-    date = Map.get(params, "date", Date.to_iso8601(Date.utc_today()))
+    date = Map.get(params, "date", resolve_today())
     path = daily_note_path(date)
 
     case File.read(path) do
@@ -106,6 +106,17 @@ defmodule ExCortex.Tools.DailyNoteWrite do
     case Regex.run(~r/>\s*\[!\w+\]\s*(.*)/i, line) do
       [_, title] -> String.contains?(String.downcase(String.trim(title)), target_lower)
       _ -> false
+    end
+  end
+
+  defp resolve_today do
+    today = Date.to_iso8601(Date.utc_today())
+    yesterday = Date.to_iso8601(Date.add(Date.utc_today(), -1))
+
+    cond do
+      File.exists?(daily_note_path(today)) -> today
+      File.exists?(daily_note_path(yesterday)) -> yesterday
+      true -> today
     end
   end
 
