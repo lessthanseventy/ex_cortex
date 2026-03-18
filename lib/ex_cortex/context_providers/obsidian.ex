@@ -8,8 +8,10 @@ defmodule ExCortex.ContextProviders.Obsidian do
   - other obsidian/note queries → content search by keywords
 
   Config options:
-    "mode" - "auto" (default), "todos", "daily", "search", "list"
+    "mode" - "auto" (default), "todos", "daily", "daily_range", "search", "list"
     "query" - explicit search query (for "search" mode)
+    "time_range" - for daily_range: "today", "yesterday", "week", "month" (default "today")
+    "sections" - for daily_range: list of callout section names, or ["all"] (default ["all"])
   """
 
   @behaviour ExCortex.ContextProviders.ContextProvider
@@ -85,17 +87,54 @@ defmodule ExCortex.ContextProviders.Obsidian do
   defp finalize_section([], acc), do: acc
   defp finalize_section(lines, acc), do: acc ++ [Enum.join(lines, "\n")]
 
+  @doc """
+  Returns a list of `Date` structs for the given time range keyword.
+
+  - `"today"` → `[Date.utc_today()]`
+  - `"yesterday"` → `[Date.add(Date.utc_today(), -1)]`
+  - `"week"` → last 7 dates (oldest first)
+  - `"month"` → last 30 dates (oldest first)
+  - anything else → `[Date.utc_today()]`
+  """
+  def date_range_for("today"), do: [Date.utc_today()]
+  def date_range_for("yesterday"), do: [Date.add(Date.utc_today(), -1)]
+  def date_range_for("week"), do: date_list(6)
+  def date_range_for("month"), do: date_list(29)
+  def date_range_for(_), do: [Date.utc_today()]
+
+  defp date_list(days_back) do
+    today = Date.utc_today()
+    Enum.map(days_back..0//-1, &Date.add(today, -&1))
+  end
+
   @impl true
   def build(config, _thought, input) do
     mode = Map.get(config, "mode", "auto")
 
     case mode do
-      "auto" -> auto_gather(input)
-      "todos" -> gather_todos()
-      "daily" -> gather_daily()
-      "search" -> gather_search(Map.get(config, "query", ""))
-      "list" -> gather_list()
-      _ -> auto_gather(input)
+      "auto" ->
+        auto_gather(input)
+
+      "todos" ->
+        gather_todos()
+
+      "daily" ->
+        gather_daily()
+
+      "search" ->
+        gather_search(Map.get(config, "query", ""))
+
+      "daily_range" ->
+        gather_daily_range(
+          Map.get(config, "time_range", "today"),
+          Map.get(config, "sections", ["all"])
+        )
+
+      "list" ->
+        gather_list()
+
+      _ ->
+        auto_gather(input)
     end
   end
 
@@ -139,7 +178,7 @@ defmodule ExCortex.ContextProviders.Obsidian do
       for path <- ["how-i-use-this-vault.md", "README.md"],
           reduce: parts do
         acc ->
-          case ReadObsidian.call(%{"path" => path}) do
+          case ReadObsidian.call(%{"title" => path}) do
             {:ok, content} when content != "" -> acc ++ ["### #{path}\n#{content}"]
             _ -> acc
           end
@@ -206,7 +245,7 @@ defmodule ExCortex.ContextProviders.Obsidian do
   defp gather_daily do
     today = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
 
-    case ReadObsidian.call(%{"path" => "journal/#{today}.md"}) do
+    case ReadObsidian.call(%{"title" => "journal/#{today}.md"}) do
       {:ok, content} when content != "" -> "### Daily Note (#{today})\n#{content}"
       _ -> ""
     end
@@ -217,6 +256,30 @@ defmodule ExCortex.ContextProviders.Obsidian do
       {:ok, content} when content != "" -> "### All Notes\n#{content}"
       _ -> ""
     end
+  end
+
+  defp gather_daily_range(time_range, sections) do
+    dates = date_range_for(time_range)
+
+    results =
+      Enum.flat_map(dates, fn date ->
+        date_str = Calendar.strftime(date, "%Y-%m-%d")
+
+        case ReadObsidian.call(%{"title" => "journal/#{date_str}.md"}) do
+          {:ok, content} when content != "" ->
+            filtered =
+              if sections == ["all"], do: content, else: extract_sections(content, sections)
+
+            if filtered == "", do: [], else: ["### #{date_str}\n#{filtered}"]
+
+          _ ->
+            []
+        end
+      end)
+
+    if results == [],
+      do: "",
+      else: "## Daily Notes (#{time_range})\n\n" <> Enum.join(results, "\n\n---\n\n")
   end
 
   defp gather_search(query) do
