@@ -8,12 +8,13 @@ defmodule ExCortex.Ruminations.Daydream do
     field :rumination_id, :integer
     field :status, :string, default: "pending"
     field :synapse_results, :map, default: %{}
+    field :fingerprint, :string
     timestamps()
   end
 
   def changeset(run, attrs) do
     run
-    |> cast(attrs, [:rumination_id, :status, :synapse_results])
+    |> cast(attrs, [:rumination_id, :status, :synapse_results, :fingerprint])
     |> validate_required([:rumination_id])
     |> validate_inclusion(:status, ["pending", "running", "complete", "failed", "dry_run", "gated"])
   end

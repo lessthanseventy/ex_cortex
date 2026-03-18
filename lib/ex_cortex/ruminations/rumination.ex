@@ -16,6 +16,7 @@ defmodule ExCortex.Ruminations.Rumination do
     field :engram_trigger_tags, {:array, :string}, default: []
     field :signal_trigger_types, {:array, :string}, default: []
     field :signal_trigger_tags, {:array, :string}, default: []
+    field :dedup_strategy, :string, default: "none"
     timestamps()
   end
 
@@ -29,7 +30,8 @@ defmodule ExCortex.Ruminations.Rumination do
     :source_ids,
     :engram_trigger_tags,
     :signal_trigger_types,
-    :signal_trigger_tags
+    :signal_trigger_tags,
+    :dedup_strategy
   ]
 
   def changeset(rumination, attrs) do
@@ -38,6 +40,7 @@ defmodule ExCortex.Ruminations.Rumination do
     |> validate_required(@required)
     |> validate_inclusion(:status, ["active", "paused", "done"])
     |> validate_inclusion(:trigger, ["manual", "source", "scheduled", "once", "memory", "cortex"])
+    |> validate_inclusion(:dedup_strategy, ["none", "concurrent"])
     |> unique_constraint(:name)
   end
 end

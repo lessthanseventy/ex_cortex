@@ -36,6 +36,7 @@ defmodule ExCortex.Ruminations.Synapse do
     field :cluster_name, :string
     field :dangerous_tool_mode, :string, default: "execute"
     field :max_tool_iterations, :integer, default: 15
+    field :middleware, {:array, :string}, default: []
     timestamps()
   end
 
@@ -67,7 +68,8 @@ defmodule ExCortex.Ruminations.Synapse do
     :cards,
     :cluster_name,
     :dangerous_tool_mode,
-    :max_tool_iterations
+    :max_tool_iterations,
+    :middleware
   ]
 
   def changeset(step, attrs) do

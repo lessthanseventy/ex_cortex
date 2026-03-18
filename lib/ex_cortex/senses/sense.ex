@@ -13,18 +13,20 @@ defmodule ExCortex.Senses.Sense do
     field :status, :string, default: "active"
     field :last_run_at, :utc_datetime
     field :error_message, :string
+    field :trust_level, :string, default: "untrusted"
     field :reflex_id, :string
     timestamps(type: :utc_datetime)
   end
 
   def changeset(source, attrs) do
     source
-    |> cast(attrs, [:name, :source_type, :config, :state, :status, :last_run_at, :error_message, :reflex_id])
+    |> cast(attrs, [:name, :source_type, :config, :state, :status, :last_run_at, :error_message, :trust_level, :reflex_id])
     |> validate_required([:source_type])
     |> validate_inclusion(
       :source_type,
       ~w(git directory feed webhook url websocket cortex obsidian email media github_issues nextcloud)
     )
     |> validate_inclusion(:status, ~w(active paused error))
+    |> validate_inclusion(:trust_level, ~w(trusted untrusted))
   end
 end
