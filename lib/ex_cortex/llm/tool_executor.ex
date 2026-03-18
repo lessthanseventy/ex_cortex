@@ -99,8 +99,8 @@ defmodule ExCortex.LLM.ToolExecutor do
   end
 
   defp run_tool(tool, _tool_name, tool_args) do
-    # Support both ReqLLM.Tool structs and test stubs with a :function field
-    if is_function(tool.function) do
+    # Support both ReqLLM.Tool structs (callback field) and test stubs with a :function field
+    if Map.has_key?(tool, :function) and is_function(tool.function) do
       tool.function.(tool_args)
     else
       ReqLLM.Tool.execute(tool, tool_args)

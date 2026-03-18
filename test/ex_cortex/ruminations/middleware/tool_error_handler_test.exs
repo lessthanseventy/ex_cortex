@@ -1,8 +1,8 @@
 defmodule ExCortex.Ruminations.Middleware.ToolErrorHandlerTest do
   use ExUnit.Case, async: true
 
-  alias ExCortex.Ruminations.Middleware.ToolErrorHandler
   alias ExCortex.Ruminations.Middleware.Context
+  alias ExCortex.Ruminations.Middleware.ToolErrorHandler
 
   describe "before_impulse/2" do
     test "passes through context unchanged" do

@@ -58,7 +58,7 @@ defmodule ExCortex.Integration.EverydayCouncilFlowTest do
     tools = ExCortex.Tools.Registry.resolve_tools(:write)
     names = Enum.map(tools, & &1.name)
     assert "create_obsidian_note" in names
-    assert "daily_obsidian" in names
+    assert "daily_note_write" in names
     assert "query_memory" in names
   end
 

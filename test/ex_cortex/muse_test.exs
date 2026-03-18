@@ -23,7 +23,7 @@ defmodule ExCortex.MuseTest do
 
       context = Muse.gather_context("GenServer")
       assert context =~ "GenServer"
-      assert context =~ "Relevant Memories"
+      assert context =~ "Memory Context"
     end
 
     test "respects source filters as tags" do

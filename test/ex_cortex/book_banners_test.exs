@@ -3,18 +3,18 @@ defmodule ExCortex.BookBannersTest do
 
   alias ExCortex.Senses.Reflex
 
-  describe "reflex banners" do
-    test "all reflexes have a banner tag" do
+  describe "reflex lobes" do
+    test "all reflexes have a lobe tag" do
       for reflex <- Reflex.all() do
-        assert reflex.banner in [:tech, :lifestyle, :business, nil],
-               "Reflex #{reflex.id} missing banner tag"
+        assert reflex.lobe in [:frontal, :parietal, :limbic, :cerebellar, :temporal, :occipital, nil],
+               "Reflex #{reflex.id} missing lobe tag"
       end
     end
 
-    test "filter_by_banner/1 returns matching and nil-banner reflexes" do
-      tech = Reflex.filter_by_banner(:tech)
+    test "filter_by_lobe/1 returns matching and nil-lobe reflexes" do
+      tech = Reflex.filter_by_lobe(:frontal)
       assert tech != []
-      assert Enum.all?(tech, &(&1.banner in [:tech, nil]))
+      assert Enum.all?(tech, &(&1.lobe in [:frontal, nil]))
     end
   end
 end

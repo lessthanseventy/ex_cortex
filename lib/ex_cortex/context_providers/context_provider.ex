@@ -83,6 +83,8 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   defp module_for("sources"), do: Module.concat([ExCortex, ContextProviders, Sources])
 
+  defp module_for("engrams"), do: Module.concat([ExCortex, ContextProviders, Engrams])
+
   defp module_for("agents_md"), do: Module.concat([ExCortex, ContextProviders, AgentsMd])
 
   defp module_for(_), do: nil

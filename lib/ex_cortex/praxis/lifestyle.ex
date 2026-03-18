@@ -352,5 +352,4 @@ defmodule ExCortex.Praxis.Lifestyle do
       ]
     }
   end
-
 end
