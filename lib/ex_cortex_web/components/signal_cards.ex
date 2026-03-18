@@ -21,11 +21,17 @@ defmodule ExCortexWeb.Components.SignalCards do
 
   def signal_card(%{card: %{type: "checklist"}} = assigns) do
     items = assigns.card.metadata["items"] || []
+    brain_dump = assigns.card.metadata["brain_dump"] || []
     has_handler = assigns.card.metadata["action_handler"] != nil
-    assigns = assign(assigns, items: items, has_handler: has_handler)
+    has_brain_dump = assigns.card.metadata["action_handler"]["brain_dump"] != nil
+
+    assigns =
+      assign(assigns, items: items, brain_dump: brain_dump, has_handler: has_handler, has_brain_dump: has_brain_dump)
 
     ~H"""
     <.signal_card_frame card={@card}>
+      <%!-- Todos --%>
+      <p class="text-xs t-dim uppercase tracking-wider font-semibold mb-1">what's happening</p>
       <div class="space-y-1.5">
         <%= for {item, idx} <- Enum.with_index(@items) do %>
           <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -46,6 +52,22 @@ defmodule ExCortexWeb.Components.SignalCards do
         <% end %>
       </div>
       <.pane_add_input :if={@has_handler && @card.metadata["action_handler"]["add"]} card={@card} />
+
+      <%!-- Brain dump --%>
+      <%= if @has_brain_dump do %>
+        <div class="mt-4 pt-3 border-t border-border">
+          <p class="text-xs t-dim uppercase tracking-wider font-semibold mb-1">brain dump</p>
+          <%= if @brain_dump != [] do %>
+            <ul class="space-y-1 mb-2">
+              <%= for item <- @brain_dump do %>
+                <li class="text-sm t-muted pl-2 border-l-2 border-muted">{item}</li>
+              <% end %>
+            </ul>
+          <% end %>
+          <.pane_action_input card={@card} action="brain_dump" placeholder="dump a thought..." />
+        </div>
+      <% end %>
+
       <.pane_refresh :if={@card.metadata["action_handler"]["refresh"]} card={@card} />
     </.signal_card_frame>
     """
@@ -353,6 +375,29 @@ defmodule ExCortexWeb.Components.SignalCards do
       >
         Refresh
       </.button>
+    </div>
+    """
+  end
+
+  attr :card, :map, required: true
+  attr :action, :string, required: true
+  attr :placeholder, :string, default: "Add..."
+
+  defp pane_action_input(assigns) do
+    ~H"""
+    <div
+      class="flex gap-2"
+      id={"pane-#{@action}-#{@card.id}"}
+      phx-hook="PaneAddInput"
+      data-card-id={@card.id}
+      data-action={@action}
+    >
+      <input
+        type="text"
+        placeholder={@placeholder}
+        class="flex-1 h-7 text-xs border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+      />
+      <.button type="button" size="sm" variant="outline" class="text-xs h-7">Add</.button>
     </div>
     """
   end

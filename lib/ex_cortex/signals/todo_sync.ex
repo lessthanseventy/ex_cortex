@@ -32,9 +32,10 @@ defmodule ExCortex.Signals.TodoSync do
 
     if content do
       items = parse_whats_happening(content)
-      post_checklist(items, date)
+      brain_dump = parse_section_bullets(content, ~r/^>\s*\[!abstract\]\s*brain dump/i)
+      post_daily_card(items, brain_dump, date)
     else
-      post_checklist([], today)
+      post_daily_card([], [], today)
     end
   end
 
@@ -74,17 +75,71 @@ defmodule ExCortex.Signals.TodoSync do
     |> elem(0)
   end
 
+  # Parse bullet items from a callout section (brain dump, stuff that came up, etc.)
+  defp parse_section_bullets(content, section_regex) do
+    content
+    |> String.split("\n")
+    |> Enum.reduce({[], false, false}, fn line, {items, in_callout, past_callout} ->
+      cond do
+        # Found the callout header
+        not in_callout and not past_callout and Regex.match?(section_regex, line) ->
+          {items, true, false}
+
+        # Still inside the callout (> prefixed lines) — skip
+        in_callout and String.starts_with?(String.trim(line), ">") ->
+          {items, true, false}
+
+        # Just left the callout — now in the bullet area
+        in_callout and not String.starts_with?(String.trim(line), ">") ->
+          case parse_bullet(line) do
+            nil -> {items, false, true}
+            text -> {items ++ [text], false, true}
+          end
+
+        # In the post-callout area, collecting bullets
+        past_callout ->
+          cond do
+            String.match?(line, ~r/^>\s*\[!/) ->
+              {items, false, false}
+
+            String.match?(line, ~r/^##\s/) ->
+              {items, false, false}
+
+            true ->
+              case parse_bullet(line) do
+                nil -> {items, false, past_callout}
+                text -> {items ++ [text], false, true}
+              end
+          end
+
+        true ->
+          {items, in_callout, past_callout}
+      end
+    end)
+    |> elem(0)
+  end
+
+  defp parse_bullet(line) do
+    trimmed = String.trim(line)
+
+    cond do
+      trimmed == "-" or trimmed == "- " -> nil
+      String.starts_with?(trimmed, "- ") -> String.trim_leading(trimmed, "- ")
+      true -> nil
+    end
+  end
+
   defp daily_note_path(date) do
     vault_path = ExCortex.Settings.get(:obsidian_vault_path) || Path.expand("~/notes/notes")
     Path.join([vault_path, "journal", "#{date}.md"])
   end
 
-  defp post_checklist(items, date) do
-    today = Calendar.strftime(date, "%B %-d")
+  defp post_daily_card(items, brain_dump, date) do
+    label = Calendar.strftime(date, "%B %-d")
 
     Signals.post_signal(%{
       type: "checklist",
-      title: "Today's Todos — #{today}",
+      title: "Today — #{label}",
       body: "",
       tags: ["todos", "obsidian", "daily"],
       source: "todo_sync",
@@ -93,6 +148,7 @@ defmodule ExCortex.Signals.TodoSync do
       pin_order: -1,
       metadata: %{
         "items" => items,
+        "brain_dump" => brain_dump,
         "action_handler" => %{
           "toggle" => %{
             "tool" => "obsidian_toggle_todo",
@@ -101,6 +157,10 @@ defmodule ExCortex.Signals.TodoSync do
           "add" => %{
             "tool" => "obsidian_add_todo",
             "args_template" => %{"text" => "{input}"}
+          },
+          "brain_dump" => %{
+            "tool" => "daily_note_write",
+            "args_template" => %{"content" => "{input}", "section" => "brain dump"}
           }
         }
       }

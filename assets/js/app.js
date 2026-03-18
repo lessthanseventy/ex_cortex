@@ -73,15 +73,15 @@ const PersistToggles = {
 
 const PaneAddInput = {
   mounted() {
-    console.debug("[PaneAddInput] mounted", this.el.id)
     const cardId = this.el.dataset.cardId
+    const action = this.el.dataset.action || "add"
     const input = this.el.querySelector("input[type=text]")
     const button = this.el.querySelector("button")
 
     const submit = () => {
       const value = input.value.trim()
       if (value) {
-        this.pushEvent("pane_action", {"card-id": cardId, action: "add", value: value})
+        this.pushEvent("pane_action", {"card-id": cardId, action: action, value: value})
         input.value = ""
       }
     }
