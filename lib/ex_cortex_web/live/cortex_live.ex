@@ -60,6 +60,7 @@ defmodule ExCortexWeb.CortexLive do
   @impl true
   def handle_info({:daydream_updated, _}, socket), do: {:noreply, load_ruminations(socket)}
   def handle_info({:daydream_started, _}, socket), do: {:noreply, load_ruminations(socket)}
+  def handle_info({:daydream_completed, _}, socket), do: {:noreply, socket |> load_ruminations() |> load_signals()}
   def handle_info({:signal_posted, _}, socket), do: {:noreply, load_signals(socket)}
   def handle_info({:engram_updated, _}, socket), do: {:noreply, load_engrams(socket)}
 
@@ -750,8 +751,22 @@ defmodule ExCortexWeb.CortexLive do
       []
       |> Signals.list_signals()
       |> Enum.take(@signal_limit)
+      |> enrich_with_daydreams()
 
     assign(socket, signals: signals)
+  end
+
+  defp enrich_with_daydreams(signals) do
+    Enum.map(signals, fn
+      %{rumination_id: rum_id} = signal when is_integer(rum_id) ->
+        case Ruminations.latest_daydream(rum_id) do
+          nil -> signal
+          daydream -> %{signal | latest_daydream: daydream}
+        end
+
+      signal ->
+        signal
+    end)
   end
 
   defp load_clusters(socket) do

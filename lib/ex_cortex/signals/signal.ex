@@ -21,6 +21,7 @@ defmodule ExCortex.Signals.Signal do
     field :pin_slug, :string
     field :pin_order, :integer, default: 0
     field :cluster_name, :string
+    field :latest_daydream, :map, virtual: true
 
     timestamps()
   end
