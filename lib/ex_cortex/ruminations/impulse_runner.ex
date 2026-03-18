@@ -20,6 +20,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   alias ExCortex.ContextProviders.ContextProvider
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
+  alias ExCortex.Ruminations.Middleware
   alias ExCortex.Ruminations.RosterResolver
 
   require Logger
@@ -79,33 +80,55 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
 
   # Reflect mode — run neurons, if unsatisfied gather context via tools and retry
   def run(%{loop_mode: "reflect"} = thought, input_text) do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    threshold = thought.reflect_threshold || 0.6
-    reflect_on = thought.reflect_on_verdict || []
-    max_iter = thought.max_iterations || 3
-    tools = ExCortex.Tools.Registry.resolve_tools(thought.loop_tools || [])
+    mw_ctx = build_middleware_context(thought, augmented)
 
-    do_reflect(thought, augmented, tools, threshold, reflect_on, max_iter, 0)
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        threshold = thought.reflect_threshold || 0.6
+        reflect_on = thought.reflect_on_verdict || []
+        max_iter = thought.max_iterations || 3
+        tools = ExCortex.Tools.Registry.resolve_tools(thought.loop_tools || [])
+
+        result = do_reflect(thought, updated_ctx.input_text, tools, threshold, reflect_on, max_iter, 0)
+        Middleware.run_after(middleware, updated_ctx, result, [])
+    end
   end
 
   # Escalate mode — try ranks in order until result is satisfying
   def run(%{escalate: true} = thought, input_text) do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    threshold = thought.escalate_threshold || 0.6
-    escalate_on = thought.escalate_on_verdict || []
+    mw_ctx = build_middleware_context(thought, augmented)
 
-    ["apprentice", "journeyman", "master"]
-    |> Enum.reduce_while(nil, fn rank, _acc ->
-      try_escalate_rank(rank, thought, augmented, threshold, escalate_on)
-    end)
-    |> then(fn
-      nil -> {:ok, %{verdict: "abstain", steps: []}}
-      result -> result
-    end)
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        threshold = thought.escalate_threshold || 0.6
+        escalate_on = thought.escalate_on_verdict || []
+
+        result =
+          ["apprentice", "journeyman", "master"]
+          |> Enum.reduce_while(nil, fn rank, _acc ->
+            try_escalate_rank(rank, thought, updated_ctx.input_text, threshold, escalate_on)
+          end)
+          |> then(fn
+            nil -> {:ok, %{verdict: "abstain", steps: []}}
+            result -> result
+          end)
+
+        Middleware.run_after(middleware, updated_ctx, result, [])
+    end
   end
 
   def run(%{min_rank: min_rank} = thought, input_text) when is_binary(min_rank) and min_rank != "" do
@@ -125,68 +148,139 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
       )
 
     if has_eligible do
+      middleware = resolve_middleware(thought)
       context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
       augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-      run(thought.roster, augmented, dangerous_tool_opts(thought))
+
+      mw_ctx = build_middleware_context(thought, augmented)
+
+      case Middleware.run_before(middleware, mw_ctx, []) do
+        {:halt, reason} ->
+          {:error, {:middleware_halted, reason}}
+
+        {:cont, updated_ctx} ->
+          opts = dangerous_tool_opts(thought) ++ [middleware: middleware]
+          result = run(thought.roster, updated_ctx.input_text, opts)
+          Middleware.run_after(middleware, updated_ctx, result, [])
+      end
     else
       {:error, {:rank_insufficient, "Step requires #{min_rank} or higher — no eligible neurons found"}}
     end
   end
 
   def run(%{output_type: type} = thought, input_text) when type in @expression_types do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    with {:ok, expression} <- ExCortex.Expressions.get_by_name(thought.expression_name || ""),
-         {:ok, attrs} <- run_artifact(thought, augmented),
-         :ok <- ExCortex.Expressions.deliver(expression, thought, attrs) do
-      {:ok, %{delivered: true, type: type, title: attrs.title}}
+    mw_ctx = build_middleware_context(thought, augmented)
+
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        result =
+          with {:ok, expression} <- ExCortex.Expressions.get_by_name(thought.expression_name || ""),
+               {:ok, attrs} <- run_artifact(thought, updated_ctx.input_text),
+               :ok <- ExCortex.Expressions.deliver(expression, thought, attrs) do
+            {:ok, %{delivered: true, type: type, title: attrs.title}}
+          end
+
+        Middleware.run_after(middleware, updated_ctx, result, [])
     end
   end
 
   def run(%{output_type: "artifact"} = thought, input_text) do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-    result = run_artifact(thought, augmented)
 
-    case result do
-      {:ok, attrs} ->
-        forced_tags = thought.engram_tags || []
-        attrs = Map.update(attrs, :tags, forced_tags, &Enum.uniq(&1 ++ forced_tags))
-        ExCortex.Memory.write_artifact(thought, attrs)
-        {:ok, %{artifact: attrs}}
+    mw_ctx = build_middleware_context(thought, augmented)
 
-      error ->
-        error
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        result =
+          case run_artifact(thought, updated_ctx.input_text) do
+            {:ok, attrs} ->
+              forced_tags = thought.engram_tags || []
+              attrs = Map.update(attrs, :tags, forced_tags, &Enum.uniq(&1 ++ forced_tags))
+              ExCortex.Memory.write_artifact(thought, attrs)
+              {:ok, %{artifact: attrs}}
+
+            error ->
+              error
+          end
+
+        Middleware.run_after(middleware, updated_ctx, result, [])
     end
   end
 
   def run(%{output_type: "freeform"} = thought, input_text) do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    roster = thought.roster || []
+    mw_ctx = build_middleware_context(thought, augmented)
 
-    case roster do
-      [] -> {:error, :no_roster}
-      [step | _] -> run_freeform_step(step, augmented, thought)
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        roster = thought.roster || []
+
+        result =
+          case roster do
+            [] -> {:error, :no_roster}
+            [step | _] -> run_freeform_step(step, updated_ctx.input_text, thought)
+          end
+
+        Middleware.run_after(middleware, updated_ctx, result, [])
     end
   end
 
   def run(%{output_type: "signal"} = thought, input_text) do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    case run_artifact(thought, augmented) do
-      {:ok, attrs} -> post_signal_cards(thought, attrs)
-      error -> error
+    mw_ctx = build_middleware_context(thought, augmented)
+
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        result =
+          case run_artifact(thought, updated_ctx.input_text) do
+            {:ok, attrs} -> post_signal_cards(thought, attrs)
+            error -> error
+          end
+
+        Middleware.run_after(middleware, updated_ctx, result, [])
     end
   end
 
   def run(thought, input_text) when is_struct(thought) do
+    middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
-    run(thought.roster, augmented, dangerous_tool_opts(thought))
+
+    mw_ctx = build_middleware_context(thought, augmented)
+
+    case Middleware.run_before(middleware, mw_ctx, []) do
+      {:halt, reason} ->
+        {:error, {:middleware_halted, reason}}
+
+      {:cont, updated_ctx} ->
+        opts = dangerous_tool_opts(thought) ++ [middleware: middleware]
+        result = run(thought.roster, updated_ctx.input_text, opts)
+        Middleware.run_after(middleware, updated_ctx, result, [])
+    end
   end
 
   def run(roster, input_text, opts) when is_list(roster) do
@@ -855,5 +949,26 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     System.cmd("git", ["clean", "-fd", "--exclude=_build", "--exclude=deps", "--exclude=.elixir_ls"],
       stderr_to_stdout: true
     )
+  end
+
+  # ---------------------------------------------------------------------------
+  # Middleware helpers
+  # ---------------------------------------------------------------------------
+
+  defp build_middleware_context(thought, input_text, opts \\ []) do
+    %ExCortex.Ruminations.Middleware.Context{
+      synapse: thought,
+      daydream: Keyword.get(opts, :daydream),
+      input_text: input_text,
+      neurons: nil,
+      metadata: %{
+        trust_level: Keyword.get(opts, :trust_level),
+        source_type: Keyword.get(opts, :source_type)
+      }
+    }
+  end
+
+  defp resolve_middleware(thought) do
+    Middleware.resolve(Map.get(thought, :middleware) || [])
   end
 end
