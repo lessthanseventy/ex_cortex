@@ -71,11 +71,33 @@ const PersistToggles = {
 
 
 
+const PaneAddInput = {
+  mounted() {
+    const cardId = this.el.dataset.cardId
+    const input = this.el.querySelector("input[type=text]")
+    const button = this.el.querySelector("button")
+
+    const submit = () => {
+      const value = input.value.trim()
+      if (value) {
+        this.pushEvent("pane_action", {"card-id": cardId, action: "add", value: value})
+        input.value = ""
+      }
+    }
+
+    button.addEventListener("click", submit)
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submit() }
+    })
+  }
+}
+
 const Hooks = {
   ...colocatedHooks,
   SaladUI: SaladUI.SaladUIHook,
   KeyboardNav,
   PersistToggles,
+  PaneAddInput,
   AutoDismissFlash: {
     mounted() {
       this.timer = setTimeout(() => {

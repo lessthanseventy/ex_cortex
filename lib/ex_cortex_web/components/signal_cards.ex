@@ -361,19 +361,19 @@ defmodule ExCortexWeb.Components.SignalCards do
 
   defp pane_add_input(assigns) do
     ~H"""
-    <form id={"pane-add-#{@card.id}"} phx-submit="pane_action" class="mt-2">
-      <input type="hidden" name="card-id" value={@card.id} />
-      <input type="hidden" name="action" value="add" />
-      <div class="flex gap-2">
-        <input
-          type="text"
-          name="value"
-          placeholder="Add item..."
-          class="flex-1 h-7 text-xs border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-        <.button type="submit" size="sm" variant="outline" class="text-xs h-7">Add</.button>
-      </div>
-    </form>
+    <div
+      class="flex gap-2 mt-2"
+      id={"pane-add-#{@card.id}"}
+      phx-hook="PaneAddInput"
+      data-card-id={@card.id}
+    >
+      <input
+        type="text"
+        placeholder="Add item..."
+        class="flex-1 h-7 text-xs border border-input rounded px-2 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+      />
+      <.button type="button" size="sm" variant="outline" class="text-xs h-7">Add</.button>
+    </div>
     """
   end
 
