@@ -8,7 +8,6 @@ defmodule ExCortex.Signals.TodoSync do
   """
 
   alias ExCortex.Signals
-  alias ExCortex.Tools.ObsidianTodos
 
   @pin_slug "daily-todos"
 
