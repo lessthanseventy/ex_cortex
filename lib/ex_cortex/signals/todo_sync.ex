@@ -13,13 +13,15 @@ defmodule ExCortex.Signals.TodoSync do
   @pin_slug "daily-todos"
 
   def sync do
-    case ObsidianTodos.list_todos(%{}) do
+    date = Date.to_iso8601(Date.utc_today())
+    path = daily_note_path(date)
+
+    case File.read(path) do
       {:ok, content} ->
-        items = parse_items_from_output(content)
+        items = parse_whats_happening(content)
         post_checklist(items)
 
-      {:error, :not_found} ->
-        # No daily note today — clear the card
+      {:error, :enoent} ->
         post_checklist([])
 
       _ ->
@@ -27,23 +29,45 @@ defmodule ExCortex.Signals.TodoSync do
     end
   end
 
-  defp parse_items_from_output(output) do
-    output
+  # Parse todos from the "## what's happening" section of the daily note.
+  # Handles both bare `- [ ]` items and callout-prefixed `> - [ ]` items.
+  defp parse_whats_happening(content) do
+    content
     |> String.split("\n")
-    |> Enum.flat_map(fn line ->
+    |> Enum.reduce({[], false}, fn line, {items, in_section} ->
       cond do
-        String.contains?(line, "- [ ]") ->
-          text = line |> String.replace(~r/.*- \[ \]\s*/, "") |> String.trim()
-          if text == "", do: [], else: [%{"text" => text, "checked" => false}]
+        # Start of our section
+        String.match?(line, ~r/^##\s+what's happening/i) ->
+          {items, true}
 
-        String.contains?(line, "- [x]") ->
+        # Next heading — stop
+        in_section and String.match?(line, ~r/^##\s/) ->
+          {items, false}
+
+        # Next callout header that isn't a todo continuation — stop
+        in_section and String.match?(line, ~r/^>\s*\[!(?!todo)/) ->
+          {items, false}
+
+        # Open todo (bare or callout-prefixed)
+        in_section and String.match?(line, ~r/- \[ \]/) ->
+          text = line |> String.replace(~r/.*- \[ \]\s*/, "") |> String.trim()
+          if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
+
+        # Done todo
+        in_section and String.match?(line, ~r/- \[x\]/) ->
           text = line |> String.replace(~r/.*- \[x\]\s*/, "") |> String.trim()
-          if text == "", do: [], else: [%{"text" => text, "checked" => true}]
+          if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => true}], true}
 
         true ->
-          []
+          {items, in_section}
       end
     end)
+    |> elem(0)
+  end
+
+  defp daily_note_path(date) do
+    vault_path = ExCortex.Settings.get(:obsidian_vault_path) || Path.expand("~/notes/notes")
+    Path.join([vault_path, "journal", "#{date}.md"])
   end
 
   defp post_checklist(items) do
