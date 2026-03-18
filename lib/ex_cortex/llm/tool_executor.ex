@@ -98,13 +98,12 @@ defmodule ExCortex.LLM.ToolExecutor do
     {:error, "Tool #{tool_name} not found"}
   end
 
+  defp run_tool(%{function: fun} = _tool, _tool_name, tool_args) when is_function(fun) do
+    fun.(tool_args)
+  end
+
   defp run_tool(tool, _tool_name, tool_args) do
-    # Support both ReqLLM.Tool structs (callback field) and test stubs with a :function field
-    if Map.has_key?(tool, :function) and is_function(tool.function) do
-      tool.function.(tool_args)
-    else
-      ReqLLM.Tool.execute(tool, tool_args)
-    end
+    ReqLLM.Tool.execute(tool, tool_args)
   end
 
   defp update_breaker(tool_name, output, breaker_state) do
