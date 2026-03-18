@@ -11,6 +11,7 @@ defmodule ExCortexWeb.CortexLive do
   alias ExCortex.Repo
   alias ExCortex.Ruminations
   alias ExCortex.Signals
+  alias ExCortex.Signals.TodoSync
 
   @signal_limit 10
   @engram_limit 8
@@ -22,7 +23,7 @@ defmodule ExCortexWeb.CortexLive do
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
       Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
       # Sync Obsidian todos to dashboard on every visit
-      Task.start(fn -> ExCortex.Signals.TodoSync.sync() end)
+      Task.start(fn -> TodoSync.sync() end)
     end
 
     # On static render: default all panels collapsed to prevent flash.
@@ -179,6 +180,8 @@ defmodule ExCortexWeb.CortexLive do
 
     case handle_pane_action(handler, card, params) do
       {:ok, message} ->
+        # Re-sync todos if this was a todo action
+        if card.pin_slug == "daily-todos", do: TodoSync.sync()
         {:noreply, socket |> put_flash(:info, message) |> load_signals()}
 
       {:error, message} ->
