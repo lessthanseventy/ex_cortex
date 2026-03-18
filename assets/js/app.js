@@ -73,6 +73,7 @@ const PersistToggles = {
 
 const PaneAddInput = {
   mounted() {
+    console.debug("[PaneAddInput] mounted", this.el.id)
     const cardId = this.el.dataset.cardId
     const input = this.el.querySelector("input[type=text]")
     const button = this.el.querySelector("button")
