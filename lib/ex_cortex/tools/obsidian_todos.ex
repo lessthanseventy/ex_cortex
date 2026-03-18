@@ -306,6 +306,31 @@ defmodule ExCortex.Tools.ObsidianTodos do
     todos
   end
 
+  defp split_whats_happening(lines) do
+    # Split into: lines before section, section lines, lines after section
+    section_start =
+      Enum.find_index(lines, &String.match?(&1, ~r/^##\s+what's happening/i))
+
+    if is_nil(section_start) do
+      {lines, [], []}
+    else
+      before = Enum.take(lines, section_start + 1)
+      rest = Enum.drop(lines, section_start + 1)
+
+      # Section ends at the next heading or callout header
+      section_end =
+        Enum.find_index(rest, fn line ->
+          String.match?(line, ~r/^##\s/) or String.match?(line, ~r/^>\s*\[!/)
+        end)
+
+      if is_nil(section_end) do
+        {before, rest, []}
+      else
+        {before, Enum.take(rest, section_end), Enum.drop(rest, section_end)}
+      end
+    end
+  end
+
   defp find_todo_line(lines, search_text, checkbox_pattern) do
     search_lower = String.downcase(search_text)
 
@@ -318,40 +343,39 @@ defmodule ExCortex.Tools.ObsidianTodos do
   defp insert_todo(content, text, _target_section) do
     lines = String.split(content, "\n")
 
-    # Find "## what's happening" and insert after the last todo in that section
-    {new_lines, state} =
-      Enum.reduce(lines, {[], :seeking}, fn line, {acc, st} ->
-        case st do
-          :seeking ->
-            if String.match?(line, ~r/^##\s+what's happening/i) do
-              {acc ++ [line], :in_section}
-            else
-              {acc ++ [line], :seeking}
-            end
+    # Find "## what's happening", collect the section, find insert point
+    {before, section_lines, after_lines} = split_whats_happening(lines)
 
-          :in_section ->
-            cond do
-              # Another heading — insert before it, stop
-              String.match?(line, ~r/^##\s/) ->
-                {acc ++ ["- [ ] #{text}"] ++ [line], :done}
+    # Find the last actual todo line (not blank lines or empty checkboxes)
+    last_todo_idx =
+      section_lines
+      |> Enum.with_index()
+      |> Enum.filter(fn {line, _} -> String.match?(line, ~r/^[> ]*- \[[ x]\] .+/) end)
+      |> List.last()
+      |> case do
+        {_, idx} -> idx
+        nil -> length(section_lines) - 1
+      end
 
-              # A callout header that's not a continuation — insert before it, stop
-              String.match?(line, ~r/^>\s*\[!/) ->
-                {acc ++ ["- [ ] #{text}"] ++ [line], :done}
+    # Insert right after the last todo
+    {top, bottom} = Enum.split(section_lines, last_todo_idx + 1)
+    new_section = top ++ ["- [ ] #{text}"] ++ bottom
 
-              # Empty line or blank todo placeholder — keep going
-              true ->
-                {acc ++ [line], :in_section}
-            end
+    # Ensure blank line before next section
+    new_section =
+      case after_lines do
+        [] ->
+          new_section
 
-          :done ->
-            {acc ++ [line], :done}
-        end
-      end)
+        [next | _] ->
+          if String.trim(next) != "" and List.last(new_section) != "" do
+            new_section ++ [""]
+          else
+            new_section
+          end
+      end
 
-    # If still in section at EOF, append
-    new_lines = if state == :in_section, do: new_lines ++ ["- [ ] #{text}"], else: new_lines
-    Enum.join(new_lines, "\n")
+    Enum.join(before ++ new_section ++ after_lines, "\n")
   end
 
   defp format_date_header(date_str) do
