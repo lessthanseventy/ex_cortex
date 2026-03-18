@@ -33,9 +33,15 @@ defmodule ExCortex.Signals.TodoSync do
     if content do
       items = parse_whats_happening(content)
       brain_dump = parse_section_bullets(content, ~r/^>\s*\[!abstract\]\s*brain dump/i)
-      post_daily_card(items, brain_dump, date)
+
+      # Safety: never overwrite with empty data — skip if nothing was parsed
+      if items != [] or brain_dump != [] do
+        post_daily_card(items, brain_dump, date)
+      else
+        :ok
+      end
     else
-      post_daily_card([], [], today)
+      :ok
     end
   end
 
