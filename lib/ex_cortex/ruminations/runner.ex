@@ -108,7 +108,8 @@ defmodule ExCortex.Ruminations.Runner do
     run_ctx = %{
       ordered_steps: ordered_steps,
       daydream: daydream,
-      dry_run: dry_run?
+      dry_run: dry_run?,
+      trust_level: Keyword.get(opts, :trust_level)
     }
 
     {results, gated?} =
@@ -222,7 +223,7 @@ defmodule ExCortex.Ruminations.Runner do
               "step.dry_run" => ctx.dry_run
             }
           } do
-            r = ImpulseRunner.run(resolved_step, current_input)
+            r = ImpulseRunner.run(resolved_step, current_input, trust_level: ctx.trust_level)
             Tracer.set_attributes(%{"step.status" => inspect_result(r)["status"]})
             r
           end

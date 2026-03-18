@@ -78,13 +78,16 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   Returns `{:ok, result}` or `{:error, reason}`.
   """
 
+  # Default opts for all struct/map run clauses
+  def run(thought_or_roster, input_text, opts \\ [])
+
   # Reflect mode — run neurons, if unsatisfied gather context via tools and retry
-  def run(%{loop_mode: "reflect"} = thought, input_text) do
+  def run(%{loop_mode: "reflect"} = thought, input_text, opts) do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -102,12 +105,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   end
 
   # Escalate mode — try ranks in order until result is satisfying
-  def run(%{escalate: true} = thought, input_text) do
+  def run(%{escalate: true} = thought, input_text, opts) do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -131,7 +134,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  def run(%{min_rank: min_rank} = thought, input_text) when is_binary(min_rank) and min_rank != "" do
+  def run(%{min_rank: min_rank} = thought, input_text, opts) when is_binary(min_rank) and min_rank != "" do
     min_order = Map.get(@rank_order, min_rank, 0)
 
     eligible_ranks =
@@ -152,7 +155,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
       context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
       augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-      mw_ctx = build_middleware_context(thought, augmented)
+      mw_ctx = build_middleware_context(thought, augmented, opts)
 
       case Middleware.run_before(middleware, mw_ctx, []) do
         {:halt, reason} ->
@@ -168,12 +171,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  def run(%{output_type: type} = thought, input_text) when type in @expression_types do
+  def run(%{output_type: type} = thought, input_text, opts) when type in @expression_types do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -191,12 +194,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  def run(%{output_type: "artifact"} = thought, input_text) do
+  def run(%{output_type: "artifact"} = thought, input_text, opts) do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -219,12 +222,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  def run(%{output_type: "freeform"} = thought, input_text) do
+  def run(%{output_type: "freeform"} = thought, input_text, opts) do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -243,12 +246,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  def run(%{output_type: "signal"} = thought, input_text) do
+  def run(%{output_type: "signal"} = thought, input_text, opts) do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -265,12 +268,12 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  def run(thought, input_text) when is_struct(thought) do
+  def run(thought, input_text, opts) when is_struct(thought) do
     middleware = resolve_middleware(thought)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 
-    mw_ctx = build_middleware_context(thought, augmented)
+    mw_ctx = build_middleware_context(thought, augmented, opts)
 
     case Middleware.run_before(middleware, mw_ctx, []) do
       {:halt, reason} ->
@@ -955,7 +958,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   # Middleware helpers
   # ---------------------------------------------------------------------------
 
-  defp build_middleware_context(thought, input_text, opts \\ []) do
+  defp build_middleware_context(thought, input_text, opts) do
     %ExCortex.Ruminations.Middleware.Context{
       synapse: thought,
       daydream: Keyword.get(opts, :daydream),

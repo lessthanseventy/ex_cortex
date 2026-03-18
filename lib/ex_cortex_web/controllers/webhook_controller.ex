@@ -11,7 +11,7 @@ defmodule ExCortexWeb.WebhookController do
       body = conn.body_params["content"] || Jason.encode!(conn.body_params)
 
       Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
-        Evaluator.evaluate(body)
+        Evaluator.evaluate(body, trust_level: "untrusted", source_type: "webhook")
       end)
 
       source |> Sense.changeset(%{last_run_at: DateTime.utc_now()}) |> ExCortex.Repo.update()
