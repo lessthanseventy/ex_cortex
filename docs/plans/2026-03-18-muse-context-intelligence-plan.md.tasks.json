@@ -1,0 +1,11 @@
+{
+  "planPath": "docs/plans/2026-03-18-muse-context-intelligence-plan.md",
+  "tasks": [
+    {"id": 19, "subject": "Task 1: Obsidian Section Extraction", "status": "pending"},
+    {"id": 20, "subject": "Task 2: Temporal Daily Note Reading", "status": "pending", "blockedBy": [19]},
+    {"id": 21, "subject": "Task 3: Question Classifier", "status": "pending"},
+    {"id": 22, "subject": "Task 4: Wire Classifier into Muse", "status": "pending", "blockedBy": [19, 20, 21]},
+    {"id": 23, "subject": "Task 5: Format + Full Test Suite", "status": "pending", "blockedBy": [22]}
+  ],
+  "lastUpdated": "2026-03-18T00:00:00Z"
+}
