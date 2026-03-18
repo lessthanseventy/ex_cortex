@@ -315,27 +315,33 @@ defmodule ExCortex.Tools.ObsidianTodos do
     end)
   end
 
-  defp insert_todo(content, text, target_section) do
+  defp insert_todo(content, text, _target_section) do
     lines = String.split(content, "\n")
-    target_lower = String.downcase(target_section)
 
-    # Find the target callout section and insert after the last todo in it
-    {new_lines, _inserted} =
-      Enum.reduce(lines, {[], :seeking}, fn line, {acc, state} ->
-        case state do
+    # Find "## what's happening" and insert after the last todo in that section
+    {new_lines, state} =
+      Enum.reduce(lines, {[], :seeking}, fn line, {acc, st} ->
+        case st do
           :seeking ->
-            if Regex.match?(~r/>\s*\[!#{Regex.escape(target_lower)}\]/i, line) do
+            if String.match?(line, ~r/^##\s+what's happening/i) do
               {acc ++ [line], :in_section}
             else
               {acc ++ [line], :seeking}
             end
 
           :in_section ->
-            if String.starts_with?(String.trim(line), ">") do
-              {acc ++ [line], :in_section}
-            else
-              # End of callout — insert the new todo before this line
-              {acc ++ ["> - [ ] #{text}"] ++ [line], :done}
+            cond do
+              # Another heading — insert before it, stop
+              String.match?(line, ~r/^##\s/) ->
+                {acc ++ ["- [ ] #{text}"] ++ [line], :done}
+
+              # A callout header that's not a continuation — insert before it, stop
+              String.match?(line, ~r/^>\s*\[!/) ->
+                {acc ++ ["- [ ] #{text}"] ++ [line], :done}
+
+              # Empty line or blank todo placeholder — keep going
+              true ->
+                {acc ++ [line], :in_section}
             end
 
           :done ->
@@ -343,9 +349,8 @@ defmodule ExCortex.Tools.ObsidianTodos do
         end
       end)
 
-    # If we're still in_section at the end (section is last thing in file), append there
-    _ = List.last(Tuple.to_list({new_lines, nil}))
-    new_lines = if Enum.member?([:in_section], nil), do: new_lines ++ ["> - [ ] #{text}"], else: new_lines
+    # If still in section at EOF, append
+    new_lines = if state == :in_section, do: new_lines ++ ["- [ ] #{text}"], else: new_lines
     Enum.join(new_lines, "\n")
   end
 
