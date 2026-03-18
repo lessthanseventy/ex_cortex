@@ -2,8 +2,6 @@ defmodule ExCortex.LLM.Claude do
   @moduledoc "Claude (Anthropic) LLM provider."
   @behaviour ExCortex.LLM
 
-  alias ExCortex.Ruminations.ImpulseRunner
-
   require Logger
   require OpenTelemetry.Tracer, as: Tracer
 
@@ -142,82 +140,24 @@ defmodule ExCortex.LLM.Claude do
   end
 
   defp execute_tools_with_log(context, calls, tools, breaker_state, opts) do
-    dangerous_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
-    rumination_id = Keyword.get(opts, :rumination_id)
+    middleware = Keyword.get(opts, :middleware, [])
 
     Enum.reduce(calls, {context, [], breaker_state}, fn call, {ctx, log, bs} ->
       {name, id} = extract_call_info(call)
       args = extract_call_args(call)
-      {output, result_content, new_bs} = execute_single_call(name, args, tools, bs, dangerous_mode, rumination_id)
-      msg = ReqLLM.Context.tool_result(id, name, result_content)
+
+      {output, log_entry, new_bs} =
+        ExCortex.LLM.ToolExecutor.execute(name, args, tools, bs,
+          dangerous_tool_mode: Keyword.get(opts, :dangerous_tool_mode, "execute"),
+          rumination_id: Keyword.get(opts, :rumination_id),
+          middleware: middleware
+        )
+
+      content = log_entry[:output] || output
+      msg = ReqLLM.Context.tool_result(id, name, content)
       next_ctx = ReqLLM.Context.append(ctx, msg)
-      {next_ctx, log ++ [%{tool: name, input: args, output: output}], new_bs}
+      {next_ctx, log ++ [log_entry], new_bs}
     end)
-  end
-
-  defp execute_single_call(name, args, tools, bs, dangerous_mode, rumination_id) do
-    prior_count = Map.get(bs, name, 0)
-    do_execute_call(name, args, tools, bs, dangerous_mode, rumination_id, prior_count)
-  end
-
-  defp do_execute_call(name, _args, _tools, bs, _mode, _rumination_id, prior_count) when prior_count >= 3 do
-    out = "Tool #{name} returned empty results #{prior_count} times. Skipping — proceed with available information."
-    Logger.debug("[Claude] circuit breaker: skipping #{name}")
-    {out, out, bs}
-  end
-
-  defp do_execute_call(name, args, tools, bs, dangerous_mode, rumination_id, _prior_count) do
-    if ImpulseRunner.dangerous?(name) and dangerous_mode != "execute" do
-      execute_dangerous_call(name, args, bs, dangerous_mode, rumination_id)
-    else
-      execute_safe_call(name, args, tools, bs)
-    end
-  end
-
-  defp execute_dangerous_call(name, args, bs, "dry_run", _rumination_id) do
-    out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
-    Logger.info("[Claude] dry_run: #{name}")
-    {out, out, bs}
-  end
-
-  defp execute_dangerous_call(name, args, bs, "intercept", rumination_id) do
-    ImpulseRunner.intercept_dangerous_tool(name, args, rumination_id)
-    out = "Tool call queued for human approval. Proposal ID: #{rumination_id}. Continue without this result."
-    Logger.info("[Claude] intercepted: #{name}")
-    {out, out, bs}
-  end
-
-  defp execute_safe_call(name, args, tools, bs) do
-    tool = Enum.find(tools, &(&1.name == name))
-
-    {_result, out, content} =
-      Tracer.with_span "llm.tool_call", %{attributes: %{"tool.name" => name}} do
-        r = if tool, do: ReqLLM.Tool.execute(tool, args), else: {:error, "Tool #{name} not found"}
-
-        o =
-          case r do
-            {:ok, v} -> to_string(v)
-            {:error, e} -> "Error: #{inspect(e)}"
-          end
-
-        c =
-          case r do
-            {:ok, v} -> to_string(v)
-            {:error, e} -> Jason.encode!(%{error: to_string(e)})
-          end
-
-        Tracer.set_attributes(%{
-          "tool.status" => if(match?({:ok, _}, r), do: "ok", else: "error"),
-          "tool.output_bytes" => byte_size(o)
-        })
-
-        {r, o, c}
-      end
-
-    case ExCortex.LLM.Ollama.check_circuit_breaker(name, out, bs) do
-      {:tripped, updated_bs} -> {out, content, updated_bs}
-      {:ok, updated_bs} -> {out, content, updated_bs}
-    end
   end
 
   defp log_tool_entry(%{tool: name, output: out}) do

@@ -3,7 +3,6 @@ defmodule ExCortex.LLM.Ollama do
   @behaviour ExCortex.LLM
 
   alias ExCortex.Core.LLM.Ollama
-  alias ExCortex.Ruminations.ImpulseRunner
 
   require Logger
   require OpenTelemetry.Tracer, as: Tracer
@@ -194,12 +193,18 @@ defmodule ExCortex.LLM.Ollama do
   end
 
   defp execute_tool_calls(calls, tools, breaker_state, opts) do
-    dangerous_mode = Keyword.get(opts, :dangerous_tool_mode, "execute")
-    rumination_id = Keyword.get(opts, :rumination_id)
+    middleware = Keyword.get(opts, :middleware, [])
 
     Enum.reduce(calls, {[], [], breaker_state}, fn call, {msgs, log, bs} ->
       {name, args} = extract_call(call)
-      {output, log_entry, new_bs} = execute_call(name, args, tools, bs, dangerous_mode, rumination_id)
+
+      {output, log_entry, new_bs} =
+        ExCortex.LLM.ToolExecutor.execute(name, args, tools, bs,
+          dangerous_tool_mode: Keyword.get(opts, :dangerous_tool_mode, "execute"),
+          rumination_id: Keyword.get(opts, :rumination_id),
+          middleware: middleware
+        )
+
       {msgs ++ [%{role: "tool", content: output}], log ++ [log_entry], new_bs}
     end)
   end
@@ -215,91 +220,6 @@ defmodule ExCortex.LLM.Ollama do
       end
 
     {name, args}
-  end
-
-  defp execute_call(name, args, tools, bs, dangerous_mode, rumination_id) do
-    prior_count = Map.get(bs, name, 0)
-
-    cond do
-      prior_count >= @empty_threshold ->
-        out = unavailable_message(name, tools)
-        Logger.debug("[Ollama] circuit breaker: skipping #{name}")
-        ExCortex.AppTelemetry.record_circuit_breaker(name)
-        {out, %{tool: name, input: args, output: out}, bs}
-
-      is_nil(Enum.find(tools, &(&1.name == name))) and not ImpulseRunner.dangerous?(name) ->
-        # Unknown tool — trip the breaker immediately so it's skipped on all future calls
-        out = unavailable_message(name, tools)
-        Logger.warning("[Ollama] unknown tool called: #{name}")
-        {out, %{tool: name, input: %{}, output: out}, Map.put(bs, name, @empty_threshold)}
-
-      true ->
-        {out, entry} = execute_or_intercept_tool(name, args, tools, dangerous_mode, rumination_id)
-
-        case check_circuit_breaker(name, out, bs) do
-          {:tripped, updated_bs} -> {out, entry, updated_bs}
-          {:ok, updated_bs} -> {out, entry, updated_bs}
-        end
-    end
-  end
-
-  defp execute_or_intercept_tool(name, args, tools, dangerous_mode, rumination_id) do
-    if ImpulseRunner.dangerous?(name) and dangerous_mode != "execute" do
-      intercept_dangerous_call(name, args, dangerous_mode, rumination_id)
-    else
-      run_tool(name, args, Enum.find(tools, &(&1.name == name)))
-    end
-  end
-
-  defp intercept_dangerous_call(name, args, "dry_run", _rumination_id) do
-    out = "DRY RUN: Would have called #{name} with #{Jason.encode!(args)}. No action taken."
-    Logger.info("[Ollama] dry_run: #{name}")
-    {out, %{tool: name, input: args, output: out}}
-  end
-
-  defp intercept_dangerous_call(name, args, "intercept", rumination_id) do
-    ImpulseRunner.intercept_dangerous_tool(name, args, rumination_id)
-    out = "Tool call queued for human approval. Proposal ID: #{rumination_id}. Continue without this result."
-    Logger.info("[Ollama] intercepted: #{name}")
-    {out, %{tool: name, input: args, output: out}}
-  end
-
-  defp run_tool(name, _args, nil) do
-    o = "Tool '#{name}' is not available in this step. Stop calling it."
-    Logger.warning("[Ollama] unknown tool called: #{name}")
-    {o, %{tool: name, input: %{}, output: o}}
-  end
-
-  defp run_tool(name, args, tool) do
-    case ReqLLM.Tool.execute(tool, args) do
-      {:ok, v} ->
-        o = to_string(v)
-        Logger.debug("[Ollama] tool #{name} → #{String.slice(o, 0, 120)}")
-        {o, %{tool: name, input: args, output: o}}
-
-      {:error, e} ->
-        o = "Error: #{inspect(e)}"
-        {o, %{tool: name, input: args, output: o}}
-    end
-  end
-
-  # Build a directive unavailability message that names the tools the model SHOULD use instead.
-  defp unavailable_message(blocked_name, tools) do
-    available = Enum.map(tools, & &1.name)
-
-    hint =
-      cond do
-        "run_sandbox" in available ->
-          " Call run_sandbox with 'mix credo --all' or 'mix test' to analyze the codebase."
-
-        available != [] ->
-          " Your available tools are: #{Enum.join(available, ", ")}. Use those instead."
-
-        true ->
-          " Stop calling tools and write your findings based on what you already know."
-      end
-
-    "Tool '#{blocked_name}' is not available in this step.#{hint}"
   end
 
   defp tool_call_incompatible?(body) when is_binary(body), do: String.contains?(body, "roles must alternate")
