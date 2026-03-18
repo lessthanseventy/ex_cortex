@@ -97,14 +97,9 @@ defmodule ExCortex.Muse do
   # Context providers that Muse uses for RAG grounding.
   # Each is a config map matching the ContextProvider behaviour.
   # "auto" mode providers detect relevance from the input question.
-  @muse_providers [
-    %{"type" => "sources"},
-    %{"type" => "signals"},
-    %{"type" => "obsidian", "mode" => "auto"},
-    %{"type" => "email", "mode" => "auto"},
-    %{"type" => "engrams", "tags" => [], "limit" => 10, "sort" => "top"},
-    %{"type" => "axiom_search"}
-  ]
+  # Previously had a static @muse_providers list here.
+  # Now the Classifier dynamically selects providers via classify/1 + build_providers_from_classification/1.
+  # See ExCortex.Muse.Classifier.default_classification/0 for the baseline provider set.
 
   @doc """
   Ask a question. Scope determines data grounding:
@@ -168,21 +163,26 @@ defmodule ExCortex.Muse do
 
   @doc "Gather RAG context using the context provider system."
   def gather_context(question, filters \\ []) do
+    classification = ExCortex.Muse.Classifier.classify(question)
+
     providers =
-      if filters == [] do
-        @muse_providers
-      else
-        # Override engram tags if source filters specified
-        Enum.map(@muse_providers, fn
-          %{"type" => "engrams"} = p -> Map.put(p, "tags", filters)
-          p -> p
-        end)
-      end
+      classification
+      |> ExCortex.Muse.Classifier.build_providers_from_classification()
+      |> maybe_apply_filters(filters)
 
     # Build a pseudo-thought map for the provider interface
     thought = %{name: "Muse", id: nil}
 
     ContextProvider.assemble(providers, thought, question)
+  end
+
+  defp maybe_apply_filters(providers, []), do: providers
+
+  defp maybe_apply_filters(providers, filters) do
+    Enum.map(providers, fn
+      %{"type" => "engrams"} = p -> Map.put(p, "tags", filters)
+      p -> p
+    end)
   end
 
   defp build_user_text("", question), do: question
