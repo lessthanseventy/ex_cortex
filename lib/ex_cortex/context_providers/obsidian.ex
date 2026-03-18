@@ -21,6 +21,70 @@ defmodule ExCortex.ContextProviders.Obsidian do
   @triggers ~w(obsidian note notes vault todo todos task tasks checklist journal daily)
   @meta_triggers ~w(system structure organize gaps missing setup workflow template folder tag)
 
+  @doc """
+  Extracts specific callout sections from Obsidian daily note content.
+
+  Section names use underscores to match callout titles with spaces (case-insensitive).
+  Passing `["all"]` returns the full content unchanged.
+
+  ## Examples
+
+      extract_sections(content, ["brain_dump"])       # just the brain dump callout
+      extract_sections(content, ["brain_dump", "todo"]) # both sections
+      extract_sections(content, ["all"])               # full content
+  """
+  def extract_sections(content, ["all"]), do: content
+
+  def extract_sections(content, section_names) when is_list(section_names) do
+    targets = Enum.map(section_names, &String.replace(&1, "_", " "))
+
+    content
+    |> String.split("\n")
+    |> collect_sections(targets, nil, [], [])
+    |> Enum.join("\n\n")
+  end
+
+  defp collect_sections([], _targets, _current, current_lines, acc) do
+    finalize_section(current_lines, acc)
+  end
+
+  defp collect_sections([line | rest], targets, current, current_lines, acc) do
+    case parse_callout_header(line) do
+      {:callout, title} ->
+        acc = finalize_section(current_lines, acc)
+
+        if title_matches?(title, targets) do
+          collect_sections(rest, targets, :collecting, [], acc)
+        else
+          collect_sections(rest, targets, nil, [], acc)
+        end
+
+      :not_callout ->
+        if current == :collecting and String.starts_with?(line, ">") do
+          stripped = line |> String.replace_prefix("> ", "") |> String.replace_prefix(">", "")
+          collect_sections(rest, targets, :collecting, current_lines ++ [stripped], acc)
+        else
+          acc = finalize_section(current_lines, acc)
+          collect_sections(rest, targets, nil, [], acc)
+        end
+    end
+  end
+
+  defp parse_callout_header(line) do
+    case Regex.run(~r/^>\s*\[!(\w+)\]\s+(.+)$/, line) do
+      [_, _type, title] -> {:callout, String.trim(title)}
+      _ -> :not_callout
+    end
+  end
+
+  defp title_matches?(title, targets) do
+    lower = String.downcase(title)
+    Enum.any?(targets, &(String.downcase(&1) == lower))
+  end
+
+  defp finalize_section([], acc), do: acc
+  defp finalize_section(lines, acc), do: acc ++ [Enum.join(lines, "\n")]
+
   @impl true
   def build(config, _thought, input) do
     mode = Map.get(config, "mode", "auto")
