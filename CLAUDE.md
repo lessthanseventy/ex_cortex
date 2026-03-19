@@ -203,12 +203,45 @@ docker compose up -d             # full stack: db, ollama, jaeger, prometheus, g
 - `UntrustedContentTagger` middleware wraps untrusted input in `<untrusted>` tags with safety warning
 - Propagated through: WebhookController → Runner → ImpulseRunner → Middleware.Context.metadata
 
+## Neuroplasticity Loop
+- `Loop.retrospect/2` is memory-informed — queries past run engrams and previous proposals before generating new ones
+- `ProposalExecutor` auto-applies approved roster/schedule changes to synapses; prompt changes flagged for manual review
+- `ProposalPolicy` evaluates proposals against auto-approve/reject rules from Settings (Instinct UI)
+- Policies configurable via `:proposal_policies` setting — list of rule maps with type/tool/trust matchers
+- Trust scores now bidirectional: decay (×0.97) on disagreement, boost (×1.005) on agreement
+- Trust-weighted effective confidence in right-hemisphere consensus: `raw_confidence × trust_score`
+
+## ImpulseRunner Architecture
+- Main module (473 lines) at `lib/ex_cortex/ruminations/impulse_runner.ex`
+- Submodules: `Consensus` (verdict parsing/aggregation), `Artifact` (generation/signal posting), `Reflect` (tool-assisted retry), `Escalation` (rank ladder)
+- `with_middleware/4` wraps all run clauses — eliminates boilerplate
+
+## Sense Feedback Loop
+- `ExCortex.Senses.Feedback` GenServer subscribes to daydream completions
+- Analyzes verdict patterns for source-triggered ruminations
+- 80%+ pass rate → slow down polling (×1.5 interval)
+- 60%+ fail rate → speed up polling (×0.75 interval)
+- Respects min/max bounds (30s–1h)
+
+## Pathway Eval Harness
+- `mix eval_pathway` runs golden-input evaluations against synapses
+- Eval sets stored as engrams with category "eval" and tagged with synapse name
+- Reports per-synapse pass rates and overall accuracy
+- Flags: `--synapse "Name"` to filter, `--tag domain` to scope
+
+## Muse Context Intelligence
+- `ExCortex.Muse.Classifier` classifies questions via ministral-3:8b before context gathering
+- Determines providers, time range, obsidian mode/sections, and search terms
+- Drives both context provider selection AND tool selection (curated per question)
+- Obsidian provider supports `daily_range` mode — reads last N daily notes with section filtering
+- `extract_sections/2` pulls specific callout blocks from note content
+
 ## Code Style
 - In LiveView modules: group all `handle_event` clauses together, then all private helpers at the bottom. Never interleave `defp` functions between `handle_event` clauses — it causes clause grouping warnings.
 - Private functions (`defp`) go at the bottom of the module, after all public functions and callbacks.
 
 ## Gotchas
-- Warnings are errors in test
+- Warnings are errors in test and dev
 - SaladUI textarea uses `value` attr, not inner content
 - Styler formatter plugin — don't fight its rewrites
 - TwMerge.Cache is initialized in application.ex (guards against double-creation)
