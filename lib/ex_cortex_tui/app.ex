@@ -248,7 +248,10 @@ defmodule ExCortexTUI.App do
     tty_path = "/proc/#{beam_pid}/fd/0"
 
     # Spawn a shell that sets the BEAM's terminal to raw mode and reads from it
-    cmd = "stty raw -echo < #{tty_path} 2>/dev/null; exec cat < #{tty_path}"
+    # -icanon: disable line buffering (single keypress)
+    # -echo: don't echo input
+    # Keep opost/onlcr so \n still translates to \r\n for output
+    cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec cat < #{tty_path}"
     port = Port.open({:spawn, "sh -c '#{cmd}'"}, [:binary, :eof])
 
     Task.start_link(fn -> read_port_loop(port, app_pid) end)
