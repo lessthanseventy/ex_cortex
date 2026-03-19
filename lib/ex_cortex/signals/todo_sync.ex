@@ -32,10 +32,11 @@ defmodule ExCortex.Signals.TodoSync do
     if content do
       items = parse_whats_happening(content)
       brain_dump = parse_section_bullets(content, ~r/^>\s*\[!abstract\]\s*brain dump/i)
+      what_happened = parse_heading_bullets(content, ~r/^##\s+what happened/i)
 
       # Safety: never overwrite with empty data — skip if nothing was parsed
-      if items != [] or brain_dump != [] do
-        post_daily_card(items, brain_dump, date)
+      if items != [] or brain_dump != [] or what_happened != [] do
+        post_daily_card(items, brain_dump, what_happened, date)
       else
         :ok
       end
@@ -124,6 +125,34 @@ defmodule ExCortex.Signals.TodoSync do
     |> elem(0)
   end
 
+  # Parse plain bullet items from a heading section (## what happened, etc.)
+  defp parse_heading_bullets(content, heading_regex) do
+    content
+    |> String.split("\n")
+    |> Enum.reduce({[], false}, fn line, {items, in_section} ->
+      cond do
+        Regex.match?(heading_regex, line) ->
+          {items, true}
+
+        in_section and String.match?(line, ~r/^##\s/) ->
+          {items, false}
+
+        in_section and String.match?(line, ~r/^>\s*\[!/) ->
+          {items, false}
+
+        in_section ->
+          case parse_bullet(line) do
+            nil -> {items, in_section}
+            text -> {items ++ [text], true}
+          end
+
+        true ->
+          {items, in_section}
+      end
+    end)
+    |> elem(0)
+  end
+
   defp parse_bullet(line) do
     trimmed = String.trim(line)
 
@@ -139,7 +168,7 @@ defmodule ExCortex.Signals.TodoSync do
     Path.join([vault_path, "journal", "#{date}.md"])
   end
 
-  defp post_daily_card(items, brain_dump, date) do
+  defp post_daily_card(items, brain_dump, what_happened, date) do
     label = Calendar.strftime(date, "%B %-d")
 
     Signals.post_signal(%{
@@ -154,6 +183,7 @@ defmodule ExCortex.Signals.TodoSync do
       metadata: %{
         "items" => items,
         "brain_dump" => brain_dump,
+        "what_happened" => what_happened,
         "action_handler" => %{
           "toggle" => %{
             "tool" => "obsidian_toggle_todo",
@@ -166,6 +196,10 @@ defmodule ExCortex.Signals.TodoSync do
           "brain_dump" => %{
             "tool" => "daily_note_write",
             "args_template" => %{"content" => "{input}", "section" => "brain dump"}
+          },
+          "what_happened" => %{
+            "tool" => "daily_note_write",
+            "args_template" => %{"content" => "- {input}", "section" => "what happened"}
           }
         }
       }

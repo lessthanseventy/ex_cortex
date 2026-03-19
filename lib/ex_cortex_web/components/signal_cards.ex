@@ -22,11 +22,20 @@ defmodule ExCortexWeb.Components.SignalCards do
   def signal_card(%{card: %{type: "checklist"}} = assigns) do
     items = assigns.card.metadata["items"] || []
     brain_dump = assigns.card.metadata["brain_dump"] || []
+    what_happened = assigns.card.metadata["what_happened"] || []
     has_handler = assigns.card.metadata["action_handler"] != nil
     has_brain_dump = assigns.card.metadata["action_handler"]["brain_dump"] != nil
+    has_what_happened = assigns.card.metadata["action_handler"]["what_happened"] != nil
 
     assigns =
-      assign(assigns, items: items, brain_dump: brain_dump, has_handler: has_handler, has_brain_dump: has_brain_dump)
+      assign(assigns,
+        items: items,
+        brain_dump: brain_dump,
+        what_happened: what_happened,
+        has_handler: has_handler,
+        has_brain_dump: has_brain_dump,
+        has_what_happened: has_what_happened
+      )
 
     ~H"""
     <.signal_card_frame card={@card}>
@@ -65,6 +74,21 @@ defmodule ExCortexWeb.Components.SignalCards do
             </ul>
           <% end %>
           <.pane_action_input card={@card} action="brain_dump" placeholder="dump a thought..." />
+        </div>
+      <% end %>
+
+      <%!-- What happened --%>
+      <%= if @has_what_happened do %>
+        <div class="mt-4 pt-3 border-t border-border">
+          <p class="text-xs t-dim uppercase tracking-wider font-semibold mb-1">what happened</p>
+          <%= if @what_happened != [] do %>
+            <ul class="space-y-1 mb-2">
+              <%= for item <- @what_happened do %>
+                <li class="text-sm t-muted pl-2 border-l-2 border-emerald-500/40">{item}</li>
+              <% end %>
+            </ul>
+          <% end %>
+          <.pane_action_input card={@card} action="what_happened" placeholder="log what you did..." />
         </div>
       <% end %>
 
