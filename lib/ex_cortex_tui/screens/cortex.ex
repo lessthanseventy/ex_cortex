@@ -8,11 +8,38 @@ defmodule ExCortexTUI.Screens.Cortex do
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "daydreams")
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
-    fetch_all()
+    Map.put(fetch_all(), :scroll, 0)
   end
 
   @impl true
   def render(state) do
+    # Render all panels into lines, then apply scroll offset
+    lines =
+      render_all_panels(state)
+      |> Owl.Data.to_chardata()
+      |> IO.chardata_to_string()
+      |> String.split("\n")
+
+    visible_height = terminal_height() - 4
+    offset = min(state.scroll, max(length(lines) - visible_height, 0))
+
+    lines
+    |> Enum.drop(offset)
+    |> Enum.take(visible_height)
+    |> Enum.intersperse("\n")
+  end
+
+  @impl true
+  def handle_key("j", state), do: {:noreply, %{state | scroll: state.scroll + 3}}
+  def handle_key("k", state), do: {:noreply, %{state | scroll: max(state.scroll - 3, 0)}}
+  def handle_key(_key, state), do: {:noreply, state}
+
+  @impl true
+  def handle_info(_msg, state), do: {:noreply, Map.put(fetch_all(), :scroll, state.scroll)}
+
+  # -- Panels --
+
+  defp render_all_panels(state) do
     [
       Owl.Box.new(render_ruminations(state.ruminations), title: "Active Ruminations", min_width: 60),
       "\n",
@@ -23,12 +50,6 @@ defmodule ExCortexTUI.Screens.Cortex do
       Owl.Box.new(render_memory(state.engrams), title: "Recent Memory", min_width: 60)
     ]
   end
-
-  @impl true
-  def handle_key(_key, state), do: {:noreply, state}
-
-  @impl true
-  def handle_info(_msg, _state), do: {:noreply, fetch_all()}
 
   # -- Data fetching --
 
@@ -100,4 +121,17 @@ defmodule ExCortexTUI.Screens.Cortex do
   defp format_time(%NaiveDateTime{} = dt), do: dt |> NaiveDateTime.to_string() |> String.slice(0, 16)
   defp format_time(%DateTime{} = dt), do: dt |> DateTime.to_string() |> String.slice(0, 16)
   defp format_time(_), do: "??:??"
+
+  defp terminal_height do
+    case :io.columns() do
+      {:ok, _cols} ->
+        case :io.rows() do
+          {:ok, rows} -> rows
+          _ -> 24
+        end
+
+      _ ->
+        24
+    end
+  end
 end
