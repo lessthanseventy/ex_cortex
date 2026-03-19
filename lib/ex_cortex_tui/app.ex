@@ -68,9 +68,9 @@ defmodule ExCortexTUI.App do
       })
 
     add_blocks(state)
-    start_keyboard_reader()
+    input_port = start_keyboard_reader()
 
-    {:ok, state}
+    {:ok, Map.put(state, :input_port, input_port)}
   end
 
   @impl true
@@ -119,6 +119,16 @@ defmodule ExCortexTUI.App do
             {:noreply, state}
         end
     end
+  end
+
+  # Port data from keyboard reader
+  def handle_info({port, {:data, data}}, %{input_port: port} = state) do
+    parse_keys(data, self())
+    {:noreply, state}
+  end
+
+  def handle_info({port, :eof}, %{input_port: port} = state) do
+    {:noreply, state}
   end
 
   def handle_info(msg, state) do
@@ -241,32 +251,20 @@ defmodule ExCortexTUI.App do
   end
 
   defp start_keyboard_reader do
-    app_pid = self()
-
     # Get the BEAM's PID so we can access its terminal fd
     beam_pid = :os.getpid() |> List.to_string()
     tty_path = "/proc/#{beam_pid}/fd/0"
 
-    # Spawn a shell that sets the BEAM's terminal to raw mode and reads from it
-    # -icanon: disable line buffering (single keypress)
+    # Set terminal to raw mode and read keypresses
+    # -icanon: single keypress (no line buffering)
     # -echo: don't echo input
-    # Keep opost/onlcr so \n still translates to \r\n for output
+    # opost preserved so \n → \r\n for output
     cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec cat < #{tty_path}"
+
+    # Port messages go to the process that opened it (this GenServer)
+    # So we handle {port, {:data, data}} in handle_info directly
     port = Port.open({:spawn, "sh -c '#{cmd}'"}, [:binary, :eof])
-
-    Task.start_link(fn -> read_port_loop(port, app_pid) end)
-  end
-
-  defp read_port_loop(port, app_pid) do
-    receive do
-      {^port, {:data, data}} ->
-        # Parse escape sequences for arrow keys
-        parse_keys(data, app_pid)
-        read_port_loop(port, app_pid)
-
-      {^port, :eof} ->
-        :ok
-    end
+    port
   end
 
   defp parse_keys(<<"\e[A" :: binary>>, pid), do: send(pid, {:key, :up})
