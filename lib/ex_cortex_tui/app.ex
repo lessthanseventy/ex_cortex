@@ -76,11 +76,18 @@ defmodule ExCortexTUI.App do
   @impl true
   def terminate(_reason, _state) do
     # Restore terminal
+    System.cmd("stty", ["sane"], into: IO.stream())
     IO.write(["\e[?25h", "\e[?1049l"])
     :ok
   end
 
   @impl true
+  # Arrow keys → j/k equivalents
+  def handle_info({:key, :up}, state), do: handle_info({:key, "k"}, state)
+  def handle_info({:key, :down}, state), do: handle_info({:key, "j"}, state)
+  def handle_info({:key, :left}, state), do: handle_info({:key, "\e"}, state)
+  def handle_info({:key, :right}, state), do: handle_info({:key, "\r"}, state)
+
   def handle_info({:key, "\e"}, %{screen: :cortex} = state) do
     {:noreply, state}
   end
@@ -133,6 +140,7 @@ defmodule ExCortexTUI.App do
 
   defp cleanup_and_quit do
     Owl.LiveScreen.flush()
+    System.cmd("stty", ["sane"], into: IO.stream())
     IO.write(["\e[?25h", "\e[?1049l"])
     Logger.configure(level: :debug)
     System.stop(0)
@@ -231,30 +239,48 @@ defmodule ExCortexTUI.App do
   defp start_keyboard_reader do
     app_pid = self()
 
-    # Put terminal in raw mode for single-keypress capture
-    Task.start(fn ->
-      :io.setopts(:stdio, binary: true, echo: false)
-      keyboard_loop(app_pid)
-    end)
+    # Put terminal in raw mode via stty
+    System.cmd("stty", ["raw", "-echo"], into: IO.stream())
+
+    # Use a Port to read raw stdin
+    Task.start_link(fn -> keyboard_loop(app_pid) end)
   end
 
   defp keyboard_loop(app_pid) do
-    case :io.get_chars(:stdio, ~c"", 1) do
-      :eof ->
+    # Read raw bytes from stdin via Port
+    port = Port.open({:fd, 0, 1}, [:binary, :eof])
+    read_port_loop(port, app_pid)
+  end
+
+  defp read_port_loop(port, app_pid) do
+    receive do
+      {^port, {:data, data}} ->
+        # Parse escape sequences for arrow keys
+        parse_keys(data, app_pid)
+        read_port_loop(port, app_pid)
+
+      {^port, :eof} ->
         :ok
-
-      {:error, _reason} ->
-        :ok
-
-      char when is_binary(char) ->
-        send(app_pid, {:key, char})
-        keyboard_loop(app_pid)
-
-      char when is_list(char) ->
-        send(app_pid, {:key, List.to_string(char)})
-        keyboard_loop(app_pid)
     end
   end
+
+  defp parse_keys(<<"\e[A" :: binary>>, pid), do: send(pid, {:key, :up})
+  defp parse_keys(<<"\e[B" :: binary>>, pid), do: send(pid, {:key, :down})
+  defp parse_keys(<<"\e[C" :: binary>>, pid), do: send(pid, {:key, :right})
+  defp parse_keys(<<"\e[D" :: binary>>, pid), do: send(pid, {:key, :left})
+  defp parse_keys(<<"\e" :: binary>>, pid), do: send(pid, {:key, "\e"})
+  defp parse_keys(<<"\r" :: binary>>, pid), do: send(pid, {:key, "\r"})
+  defp parse_keys(<<"\n" :: binary>>, pid), do: send(pid, {:key, "\r"})
+  defp parse_keys(<<3 :: integer>>, pid), do: send(pid, {:key, <<3>>})  # Ctrl+C
+  defp parse_keys(<<127 :: integer>>, pid), do: send(pid, {:key, <<127>>})  # Backspace
+  defp parse_keys(<<c :: integer>>, pid) when c >= 32 and c < 127, do: send(pid, {:key, <<c>>})
+  defp parse_keys(data, pid) when byte_size(data) > 1 do
+    # Multi-byte sequence — try to parse each byte
+    for <<byte <- data>> do
+      parse_keys(<<byte>>, pid)
+    end
+  end
+  defp parse_keys(_, _pid), do: :ok
 
   # Safe wrappers that handle screens not implementing the behaviour yet
 

@@ -34,9 +34,9 @@ defmodule ExCortexTUI.Screens.Cortex do
 
   defp fetch_all do
     %{
-      ruminations: safe_fetch(fn -> ExCortex.Ruminations.list_ruminations() end),
+      ruminations: safe_fetch(fn -> ExCortex.Ruminations.list_ruminations() |> Enum.take(5) end),
       signals: safe_fetch(fn -> ExCortex.Signals.list_signals(limit: 5) end),
-      clusters: safe_fetch(fn -> ExCortex.Clusters.list_pathways() end),
+      clusters: safe_fetch(fn -> ExCortex.Clusters.list_pathways() |> Enum.take(5) end),
       engrams: safe_fetch(fn -> ExCortex.Memory.list_engrams(limit: 5) end)
     }
   end
