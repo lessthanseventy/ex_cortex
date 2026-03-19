@@ -199,7 +199,7 @@ defmodule ExCortex.Signals.TodoSync do
           },
           "what_happened" => %{
             "tool" => "daily_note_write",
-            "args_template" => %{"content" => "- {input}", "section" => "what happened"}
+            "args_template" => %{"content" => "{input}", "section" => "what happened"}
           }
         }
       }
