@@ -115,36 +115,17 @@ defmodule ExCortexTUI.App do
 
   @impl true
   def render(model) do
-    top =
-      bar do
-        label do
-          for {ch, screen, name} <- @nav_items do
-            if screen == model.screen do
-              text(content: " [#{<<ch>>}]#{name}", color: :cyan, attributes: [:bold])
-            else
-              text(content: " [#{<<ch>>}]#{name}", color: :white)
-            end
-          end
-        end
-      end
-
-    bottom =
-      bar do
-        label do
-          text(content: "● ", color: :green)
-          text(content: "ready  ")
-          text(content: "daydreams:", color: :white)
-          text(content: "#{model.daydream_count} ", color: :cyan)
-          text(content: "proposals:", color: :white)
-          text(content: "#{model.proposal_count} ", color: :cyan)
-          text(content: " [q]quit [esc]back", color: :white)
-          render_input_indicator(model)
-        end
-      end
-
-    view top_bar: top, bottom_bar: bottom do
+    view do
+      label(content: "ExCortex TUI — screen: #{model.screen}")
+      label(content: "Press q to quit, a/c/d/p/w/m/h/l/? to switch screens")
+      label(content: "")
       render_screen(model)
     end
+  rescue
+    e ->
+      view do
+        label(content: "Render error: #{Exception.message(e)}")
+      end
   end
 
   # ── Key handling ───────────────────────────────────────────────────
@@ -565,11 +546,6 @@ defmodule ExCortexTUI.App do
     ]
   end
 
-  defp render_input_indicator(%{input: input}) when not is_nil(input) do
-    text(content: " [INPUT]", color: :yellow, attributes: [:bold])
-  end
-
-  defp render_input_indicator(_model), do: text(content: "")
 
   defp submit_input(model, :todo, text) do
     {%{model | input: nil, input_mode: nil}, todo_add_cmd(text)}
