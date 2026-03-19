@@ -3,6 +3,8 @@ defmodule ExCortexTUI.App do
 
   use GenServer
 
+  import Ecto.Query
+
   alias ExCortexTUI.Router
 
   @screens %{
@@ -41,13 +43,14 @@ defmodule ExCortexTUI.App do
     screen_mod = Map.fetch!(@screens, screen)
     screen_state = safe_init(screen_mod, %{})
 
-    state = %{
-      screen: screen,
-      screen_mod: screen_mod,
-      screen_state: screen_state,
-      daydream_count: 0,
-      proposal_count: 0
-    }
+    state =
+      update_status_counts(%{
+        screen: screen,
+        screen_mod: screen_mod,
+        screen_state: screen_state,
+        daydream_count: 0,
+        proposal_count: 0
+      })
 
     add_blocks(state)
     start_keyboard_reader()
@@ -94,6 +97,8 @@ defmodule ExCortexTUI.App do
   end
 
   def handle_info(msg, state) do
+    state = update_status_counts(state)
+
     case safe_handle_info(state.screen_mod, msg, state.screen_state) do
       {:noreply, new_screen_state} ->
         new_state = %{state | screen_state: new_screen_state}
@@ -101,6 +106,7 @@ defmodule ExCortexTUI.App do
         {:noreply, new_state}
 
       _ ->
+        update_blocks(state)
         {:noreply, state}
     end
   end
@@ -118,6 +124,20 @@ defmodule ExCortexTUI.App do
 
     update_blocks(new_state)
     new_state
+  end
+
+  defp update_status_counts(state) do
+    daydream_count =
+      ExCortex.Repo.aggregate(
+        from(d in ExCortex.Ruminations.Daydream, where: d.status == "running"),
+        :count
+      )
+
+    proposal_count = length(ExCortex.Ruminations.list_proposals(status: "pending"))
+
+    %{state | daydream_count: daydream_count, proposal_count: proposal_count}
+  rescue
+    _ -> %{state | daydream_count: 0, proposal_count: 0}
   end
 
   defp ensure_live_screen do

@@ -68,7 +68,9 @@ defmodule ExCortexTUI.Screens.Chat do
           {:token, t} -> send(app_pid, {:chat_token, t})
           :done -> send(app_pid, :chat_done)
           {:error, e} -> send(app_pid, {:chat_error, e})
-        end, scope: scope)
+        end,
+        scope: scope
+      )
     end)
 
     {:noreply, new_state}
