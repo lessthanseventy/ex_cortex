@@ -157,9 +157,7 @@ defmodule ExCortexTUI.App do
   end
 
   defp restore_terminal do
-    beam_pid = :os.getpid() |> List.to_string()
-    tty_path = "/proc/#{beam_pid}/fd/0"
-    :os.cmd(~c"stty sane < #{tty_path} 2>/dev/null")
+    System.cmd("stty", ["sane"])
     IO.write(["\e[?25h", "\e[?1049l"])
   end
 
@@ -254,22 +252,10 @@ defmodule ExCortexTUI.App do
   end
 
   defp start_keyboard_reader do
-    # Get the BEAM's PID so we can access its terminal fd
-    beam_pid = :os.getpid() |> List.to_string()
-    tty_path = "/proc/#{beam_pid}/fd/0"
-
-    # Set terminal to raw mode and read keypresses
-    # -icanon: single keypress (no line buffering)
-    # -echo: don't echo input
-    # opost preserved so \n → \r\n for output
-    # stdbuf -o0 disables output buffering on cat so keystrokes arrive immediately
-    # 2>/dev/null suppresses "broken pipe" on quit
-    cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec stdbuf -o0 cat < #{tty_path} 2>/dev/null"
-
-    # Port messages go to the process that opened it (this GenServer)
-    # So we handle {port, {:data, data}} in handle_info directly
-    port = Port.open({:spawn, "sh -c '#{cmd}'"}, [:binary, :eof])
-    port
+    # Raw mode is set by mix tui task before boot.
+    # Read directly from fd 0 — no cat, no pipes, no buffering.
+    # Port messages go to the process that opened it (this GenServer).
+    Port.open({:fd, 0, 1}, [:binary, :eof])
   end
 
   # Arrow keys
