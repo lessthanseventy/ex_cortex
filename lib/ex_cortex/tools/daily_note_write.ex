@@ -102,7 +102,8 @@ defmodule ExCortex.Tools.DailyNoteWrite do
 
     {section_lines, after_section} =
       Enum.split_while(rest, fn line ->
-        not String.match?(line, ~r/^##\s/) and not String.match?(line, ~r/^>\s*\[!/)
+        not String.match?(line, ~r/^##\s/) and not String.match?(line, ~r/^>\s*\[!/) and
+          not String.match?(line, ~r/^---\s*$/)
       end)
 
     new_section = insert_bullet(section_lines, content)
