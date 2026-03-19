@@ -179,6 +179,70 @@ defmodule ExCortex.Muse do
     end
   end
 
+  @doc """
+  Stream an answer token-by-token. The callback receives:
+  - `{:token, text}` for each chunk
+  - `:done` when complete
+  - `{:error, reason}` on failure
+
+  Returns `{:ok, full_text}` or `{:error, reason}`.
+  """
+  def stream_ask(question, callback, opts \\ []) do
+    scope = Keyword.get(opts, :scope, "muse")
+    model = Keyword.get(opts, :model, resolve_model())
+    history = Keyword.get(opts, :history, [])
+    source_filters = Keyword.get(opts, :source_filters, [])
+
+    {system_prompt, context, _tools} =
+      case scope do
+        "wonder" ->
+          {@wonder_system_prompt, "", wonder_tools()}
+
+        _ ->
+          classification = Classifier.classify(question)
+          ctx = gather_context_from_classification(classification, question, source_filters)
+          t = tools_for_classification(classification)
+          {@system_prompt, ctx, t}
+      end
+
+    user_text = build_user_text(context, question)
+    provider = provider_for(model)
+
+    case LLM.stream_complete(provider, model, system_prompt, user_text, history: history) do
+      {:ok, stream} ->
+        full_text =
+          Enum.reduce(stream, "", fn
+            {:token, t}, acc ->
+              callback.({:token, t})
+              acc <> t
+
+            {:done, _}, acc ->
+              callback.(:done)
+              acc
+
+            {:error, e}, acc ->
+              callback.({:error, e})
+              acc
+          end)
+
+        if scope != "wonder" do
+          Thoughts.create_thought(%{
+            question: question,
+            answer: full_text,
+            scope: scope,
+            source_filters: source_filters,
+            status: "complete"
+          })
+        end
+
+        {:ok, full_text}
+
+      {:error, reason} ->
+        callback.({:error, reason})
+        {:error, reason}
+    end
+  end
+
   @doc "Gather RAG context using the context provider system."
   def gather_context(question, filters \\ []) do
     classification = Classifier.classify(question)

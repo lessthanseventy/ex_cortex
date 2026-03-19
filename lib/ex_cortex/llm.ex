@@ -25,7 +25,16 @@ defmodule ExCortex.LLM do
               opts :: keyword()
             ) :: {:ok, String.t(), [map()]} | {:error, term()}
 
+  @callback stream_complete(
+              model :: String.t(),
+              system_prompt :: String.t(),
+              user_text :: String.t(),
+              opts :: keyword()
+            ) :: {:ok, Enumerable.t()} | {:error, term()}
+
   @callback configured?() :: boolean()
+
+  @optional_callbacks [stream_complete: 4]
 
   @providers %{
     "ollama" => Ollama,
@@ -44,6 +53,20 @@ defmodule ExCortex.LLM do
 
   def complete_with_tools(provider, model, system_prompt, user_text, tools, opts \\ []) do
     provider_for(provider).complete_with_tools(model, system_prompt, user_text, tools, opts)
+  end
+
+  def stream_complete(provider, model, system_prompt, user_text, opts \\ []) do
+    mod = provider_for(provider)
+
+    if function_exported?(mod, :stream_complete, 4) do
+      mod.stream_complete(model, system_prompt, user_text, opts)
+    else
+      # Fallback: blocking call emitted as a single token
+      case mod.complete(model, system_prompt, user_text, opts) do
+        {:ok, text} -> {:ok, [{:token, text}, {:done, text}]}
+        error -> error
+      end
+    end
   end
 
   def configured?(provider) do

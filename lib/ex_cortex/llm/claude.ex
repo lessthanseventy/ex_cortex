@@ -87,6 +87,102 @@ defmodule ExCortex.LLM.Claude do
   end
 
   @impl true
+  def stream_complete(model, system_prompt, user_text, opts \\ []) do
+    api_key = ExCortex.Settings.resolve(:anthropic_api_key, env_var: "ANTHROPIC_API_KEY")
+    api_model = model |> resolve_model() |> String.replace("anthropic:", "")
+    history = opts |> Keyword.get(:history, []) |> normalize_history()
+
+    messages =
+      Enum.map(history ++ [%{role: "user", content: user_text}], fn msg ->
+        %{"role" => msg.role, "content" => msg.content}
+      end)
+
+    body =
+      Jason.encode!(%{
+        model: api_model,
+        system: system_prompt,
+        messages: messages,
+        max_tokens: 4096,
+        stream: true
+      })
+
+    headers = [
+      {"content-type", "application/json"},
+      {"x-api-key", api_key},
+      {"anthropic-version", "2023-06-01"}
+    ]
+
+    case Req.post(Req.new(),
+           url: "https://api.anthropic.com/v1/messages",
+           body: body,
+           headers: headers,
+           into: :self,
+           receive_timeout: 120_000
+         ) do
+      {:ok, resp} ->
+        ref = resp.body
+
+        stream =
+          Stream.resource(
+            fn -> {ref, ""} end,
+            fn {ref, buffer} ->
+              receive do
+                {^ref, {:data, data}} ->
+                  {events, rest} = parse_sse_buffer(buffer <> data)
+                  {events, {ref, rest}}
+
+                {^ref, :done} ->
+                  {:halt, {ref, buffer}}
+              after
+                60_000 -> {:halt, {ref, buffer}}
+              end
+            end,
+            fn _state -> :ok end
+          )
+
+        {:ok, stream}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp parse_sse_buffer(buffer) do
+    # SSE events are separated by double newlines
+    parts = String.split(buffer, "\n\n")
+    # Last part may be incomplete
+    {complete, [rest]} = Enum.split(parts, -1)
+
+    events =
+      Enum.flat_map(complete, fn part ->
+        part
+        |> String.split("\n")
+        |> Enum.reduce(nil, fn
+          "data: " <> json, _acc -> json
+          _, acc -> acc
+        end)
+        |> case do
+          nil ->
+            []
+
+          json ->
+            case Jason.decode(json) do
+              {:ok, %{"type" => "content_block_delta", "delta" => %{"text" => text}}} ->
+                [{:token, text}]
+
+              {:ok, %{"type" => "message_stop"}} ->
+                [{:done, ""}]
+
+              _ ->
+                []
+            end
+        end
+      end)
+
+    {events, rest}
+  end
+
+  @impl true
   def configured? do
     key = ExCortex.Settings.resolve(:anthropic_api_key, env_var: "ANTHROPIC_API_KEY")
     key != nil and key != ""

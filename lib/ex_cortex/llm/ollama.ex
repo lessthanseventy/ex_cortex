@@ -239,6 +239,68 @@ defmodule ExCortex.LLM.Ollama do
   end
 
   @impl true
+  def stream_complete(model, system_prompt, user_text, opts \\ []) do
+    ollama = client(opts)
+    history = opts |> Keyword.get(:history, []) |> normalize_history(:atom)
+
+    messages =
+      [%{role: :system, content: system_prompt}] ++
+        history ++
+        [%{role: :user, content: user_text}]
+
+    body = Jason.encode!(%{model: model, messages: messages, stream: true})
+    headers = if ollama.api_key, do: [{"authorization", "Bearer #{ollama.api_key}"}], else: []
+    headers = [{"content-type", "application/json"} | headers]
+
+    req = Req.new(base_url: ollama.base_url)
+
+    case Req.post(req,
+           url: "/api/chat",
+           body: body,
+           headers: headers,
+           into: :self,
+           receive_timeout: 120_000
+         ) do
+      {:ok, resp} ->
+        ref = resp.body
+
+        stream =
+          Stream.resource(
+            fn -> ref end,
+            fn ref ->
+              receive do
+                {^ref, {:data, data}} ->
+                  {parse_ollama_chunks(data), ref}
+
+                {^ref, :done} ->
+                  {:halt, ref}
+              after
+                60_000 -> {:halt, ref}
+              end
+            end,
+            fn _ref -> :ok end
+          )
+
+        {:ok, stream}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp parse_ollama_chunks(data) do
+    data
+    |> String.split("\n", trim: true)
+    |> Enum.flat_map(fn line ->
+      case Jason.decode(line) do
+        {:ok, %{"done" => true}} -> [{:done, ""}]
+        {:ok, %{"message" => %{"content" => c}}} -> [{:token, c}]
+        _ -> []
+      end
+    end)
+  end
+
+  @impl true
   def configured? do
     url = ExCortex.Settings.resolve(:ollama_url, env_var: "OLLAMA_URL", default: "http://127.0.0.1:11434")
     url != nil and url != ""
