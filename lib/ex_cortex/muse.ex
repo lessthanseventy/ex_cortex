@@ -9,6 +9,7 @@ defmodule ExCortex.Muse do
 
   alias ExCortex.ContextProviders.ContextProvider
   alias ExCortex.LLM
+  alias ExCortex.Muse.Classifier
   alias ExCortex.Thoughts
   alias ExCortex.Tools.Registry
 
@@ -114,10 +115,16 @@ defmodule ExCortex.Muse do
     model = Keyword.get(opts, :model, resolve_model())
     history = Keyword.get(opts, :history, [])
 
-    {system_prompt, context} =
+    {system_prompt, context, tools} =
       case scope do
-        "wonder" -> {@wonder_system_prompt, ""}
-        _ -> {@system_prompt, gather_context(question, source_filters)}
+        "wonder" ->
+          {@wonder_system_prompt, "", wonder_tools()}
+
+        _ ->
+          classification = Classifier.classify(question)
+          ctx = gather_context_from_classification(classification, question, source_filters)
+          t = tools_for_classification(classification)
+          {@system_prompt, ctx, t}
       end
 
     user_text = build_user_text(context, question)
@@ -125,24 +132,10 @@ defmodule ExCortex.Muse do
     provider = provider_for(model)
 
     result =
-      case scope do
-        "wonder" ->
-          tools = wonder_tools()
-
-          case LLM.complete_with_tools(provider, model, system_prompt, user_text, tools, history: history) do
-            {:ok, answer, _tool_log} -> {:ok, answer}
-            {:error, reason, _tool_log} -> {:error, reason}
-            other -> other
-          end
-
-        _ ->
-          tools = Registry.list_safe() ++ muse_write_tools()
-
-          case LLM.complete_with_tools(provider, model, system_prompt, user_text, tools, history: history) do
-            {:ok, answer, _tool_log} -> {:ok, answer}
-            {:error, reason, _tool_log} -> {:error, reason}
-            {:error, reason} -> {:error, reason}
-          end
+      case LLM.complete_with_tools(provider, model, system_prompt, user_text, tools, history: history) do
+        {:ok, answer, _tool_log} -> {:ok, answer}
+        {:error, reason, _tool_log} -> {:error, reason}
+        {:error, reason} -> {:error, reason}
       end
 
     case result do
@@ -163,17 +156,25 @@ defmodule ExCortex.Muse do
 
   @doc "Gather RAG context using the context provider system."
   def gather_context(question, filters \\ []) do
-    classification = ExCortex.Muse.Classifier.classify(question)
+    classification = Classifier.classify(question)
+    gather_context_from_classification(classification, question, filters)
+  end
 
+  defp gather_context_from_classification(classification, question, filters) do
     providers =
       classification
-      |> ExCortex.Muse.Classifier.build_providers_from_classification()
+      |> Classifier.build_providers_from_classification()
       |> maybe_apply_filters(filters)
 
-    # Build a pseudo-thought map for the provider interface
     thought = %{name: "Muse", id: nil}
-
     ContextProvider.assemble(providers, thought, question)
+  end
+
+  defp tools_for_classification(classification) do
+    tool_names = Classifier.tools_for_classification(classification)
+    safe_tools = Registry.list_safe()
+    selected = Enum.filter(safe_tools, &(&1.name in tool_names))
+    selected ++ muse_write_tools()
   end
 
   defp maybe_apply_filters(providers, []), do: providers

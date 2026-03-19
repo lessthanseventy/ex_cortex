@@ -20,8 +20,8 @@ defmodule ExCortex.Ruminations.ImpulseRunner.RollbackTest do
       assert ImpulseRunner.has_write_tools?(["create_obsidian_note"])
     end
 
-    test "detects daily_obsidian" do
-      assert ImpulseRunner.has_write_tools?(["daily_obsidian"])
+    test "detects daily_note_write" do
+      assert ImpulseRunner.has_write_tools?(["daily_note_write"])
     end
 
     test "returns false for read-only tools" do

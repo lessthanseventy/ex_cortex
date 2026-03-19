@@ -9,7 +9,7 @@ defmodule ExCortex.Muse.Classifier do
 
   require Logger
 
-  @valid_providers ~w(obsidian signals engrams email axioms sources)
+  @valid_providers ~w(obsidian signals engrams email axioms sources github)
   @valid_time_ranges ~w(today yesterday week month all)
   @valid_obsidian_modes ~w(daily search todos list auto)
   @valid_sections ~w(brain_dump todo stuff_that_came_up whats_happening all)
@@ -29,7 +29,7 @@ defmodule ExCortex.Muse.Classifier do
   }
 
   Rules:
-  - providers: which data sources to query. Options: obsidian, signals, engrams, email, axioms, sources
+  - providers: which data sources to query. Options: obsidian, signals, engrams, email, axioms, sources, github
   - time_range: today, yesterday, week, month, all
   - obsidian_mode: daily (journal notes), search (vault search), todos (task lists), list (list notes), auto (let system decide)
   - obsidian_sections: brain_dump, todo, stuff_that_came_up, whats_happening, all
@@ -45,6 +45,7 @@ defmodule ExCortex.Muse.Classifier do
   - Memory, past knowledge, "remember when" → engrams
   - Email, messages, inbox → email
   - Reference data, datasets, lookup → axioms
+  - Code, PRs, issues, repo, commits → github
   - If unsure, default to: obsidian + engrams + signals with time_range: all and obsidian_mode: auto
   """
 
@@ -215,5 +216,34 @@ defmodule ExCortex.Muse.Classifier do
     %{"type" => "axiom_search"}
   end
 
+  defp build_provider("github", _classification), do: nil
+
   defp build_provider(_unknown, _classification), do: nil
+
+  # ---------------------------------------------------------------------------
+  # Tool selection — derive tool categories from provider classification
+  # ---------------------------------------------------------------------------
+
+  @tool_groups %{
+    "obsidian" => ~w(search_obsidian search_obsidian_content read_obsidian read_obsidian_frontmatter obsidian_list_todos),
+    "email" => ~w(search_email read_email),
+    "github" => ~w(search_github read_github_issue list_github_notifications),
+    "axioms" => ~w(query_axiom),
+    "signals" => [],
+    "sources" => ~w(list_sources)
+  }
+
+  # Always available regardless of classification
+  @baseline_tools ~w(query_memory fetch_url web_fetch web_search)
+
+  @doc """
+  Returns tool name lists for a classification. Derives tool categories from
+  the selected providers, always includes baseline tools (memory, web).
+  """
+  @spec tools_for_classification(map()) :: [String.t()]
+  def tools_for_classification(classification) do
+    provider_tools = Enum.flat_map(classification.providers, &Map.get(@tool_groups, &1, []))
+
+    Enum.uniq(@baseline_tools ++ provider_tools)
+  end
 end

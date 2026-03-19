@@ -5,7 +5,8 @@ defmodule ExCortex.Muse.ClassifierTest do
 
   describe "parse_result/1" do
     test "parses valid JSON" do
-      json = ~s|{"providers": ["obsidian", "engrams"], "time_range": "week", "obsidian_mode": "daily", "obsidian_sections": ["brain_dump"], "search_terms": "brain dump"}|
+      json =
+        ~s|{"providers": ["obsidian", "engrams"], "time_range": "week", "obsidian_mode": "daily", "obsidian_sections": ["brain_dump"], "search_terms": "brain dump"}|
 
       assert {:ok, result} = Classifier.parse_result(json)
       assert result.providers == ["obsidian", "engrams"]
@@ -32,28 +33,32 @@ defmodule ExCortex.Muse.ClassifierTest do
     end
 
     test "filters out unknown provider names" do
-      json = ~s|{"providers": ["obsidian", "bogus", "engrams", "fake"], "time_range": "all", "obsidian_mode": "auto", "obsidian_sections": ["all"], "search_terms": ""}|
+      json =
+        ~s|{"providers": ["obsidian", "bogus", "engrams", "fake"], "time_range": "all", "obsidian_mode": "auto", "obsidian_sections": ["all"], "search_terms": ""}|
 
       assert {:ok, result} = Classifier.parse_result(json)
       assert result.providers == ["obsidian", "engrams"]
     end
 
     test "defaults invalid time_range to all" do
-      json = ~s|{"providers": ["obsidian"], "time_range": "fortnight", "obsidian_mode": "auto", "obsidian_sections": ["all"], "search_terms": ""}|
+      json =
+        ~s|{"providers": ["obsidian"], "time_range": "fortnight", "obsidian_mode": "auto", "obsidian_sections": ["all"], "search_terms": ""}|
 
       assert {:ok, result} = Classifier.parse_result(json)
       assert result.time_range == "all"
     end
 
     test "defaults invalid obsidian_mode to auto" do
-      json = ~s|{"providers": ["obsidian"], "time_range": "week", "obsidian_mode": "invalid", "obsidian_sections": ["all"], "search_terms": ""}|
+      json =
+        ~s|{"providers": ["obsidian"], "time_range": "week", "obsidian_mode": "invalid", "obsidian_sections": ["all"], "search_terms": ""}|
 
       assert {:ok, result} = Classifier.parse_result(json)
       assert result.obsidian_mode == "auto"
     end
 
     test "filters out invalid obsidian_sections" do
-      json = ~s|{"providers": ["obsidian"], "time_range": "week", "obsidian_mode": "daily", "obsidian_sections": ["brain_dump", "invalid_section"], "search_terms": ""}|
+      json =
+        ~s|{"providers": ["obsidian"], "time_range": "week", "obsidian_mode": "daily", "obsidian_sections": ["brain_dump", "invalid_section"], "search_terms": ""}|
 
       assert {:ok, result} = Classifier.parse_result(json)
       assert result.obsidian_sections == ["brain_dump"]
@@ -168,7 +173,7 @@ defmodule ExCortex.Muse.ClassifierTest do
       providers = Classifier.build_providers_from_classification(classification)
 
       signals = Enum.find(providers, &(&1["type"] == "signals"))
-      assert signals != nil
+      assert signals
     end
 
     test "builds email provider" do
@@ -198,7 +203,7 @@ defmodule ExCortex.Muse.ClassifierTest do
       providers = Classifier.build_providers_from_classification(classification)
 
       axiom = Enum.find(providers, &(&1["type"] == "axiom_search"))
-      assert axiom != nil
+      assert axiom
     end
   end
 end
