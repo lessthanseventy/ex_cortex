@@ -32,6 +32,7 @@ run = "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 ./burrito_out/ex_cortex
 
 [tasks.tui]
 description = "Start the interactive TUI"
+raw = true
 run = "mix tui"
 
 [tasks.hud]
