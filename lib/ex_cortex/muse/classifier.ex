@@ -12,7 +12,7 @@ defmodule ExCortex.Muse.Classifier do
   @valid_providers ~w(obsidian signals engrams email axioms sources github)
   @valid_time_ranges ~w(today yesterday week month all)
   @valid_obsidian_modes ~w(daily search todos list auto)
-  @valid_sections ~w(brain_dump todo stuff_that_came_up whats_happening all)
+  @valid_sections ~w(brain_dump todo stuff_that_came_up whats_happening what_happened all)
 
   @system_prompt """
   You are a question classifier for a personal knowledge system. Given a user question,
@@ -32,7 +32,7 @@ defmodule ExCortex.Muse.Classifier do
   - providers: which data sources to query. Options: obsidian, signals, engrams, email, axioms, sources, github
   - time_range: today, yesterday, week, month, all
   - obsidian_mode: daily (journal notes), search (vault search), todos (task lists), list (list notes), auto (let system decide)
-  - obsidian_sections: brain_dump, todo, stuff_that_came_up, whats_happening, all
+  - obsidian_sections: brain_dump, todo, stuff_that_came_up, whats_happening, what_happened, all
 
   Classification rules:
   - Personal notes, brain dumps, journal, diary → obsidian + daily mode
@@ -40,6 +40,8 @@ defmodule ExCortex.Muse.Classifier do
   - "today" → time_range: today
   - "yesterday" → time_range: yesterday
   - "brain dump" → obsidian_sections: ["brain_dump"]
+  - "what did I do", "get done", "accomplished", "completed" → obsidian_sections: ["what_happened"]
+  - "what should I do", "what's on my plate", "what's happening" → obsidian_sections: ["whats_happening"]
   - "todos", "tasks", "to do" → obsidian + todos mode
   - Dashboard, metrics, status → signals
   - Memory, past knowledge, "remember when" → engrams

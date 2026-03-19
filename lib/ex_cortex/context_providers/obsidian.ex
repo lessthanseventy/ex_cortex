@@ -51,37 +51,64 @@ defmodule ExCortex.ContextProviders.Obsidian do
   end
 
   defp collect_sections([line | rest], targets, current, current_lines, acc) do
-    case parse_callout_header(line) do
+    case parse_section_header(line) do
       {:callout, title} ->
         acc = finalize_section(current_lines, acc)
 
         if title_matches?(title, targets) do
-          collect_sections(rest, targets, :collecting, [], acc)
+          collect_sections(rest, targets, {:collecting, :callout}, [], acc)
         else
           collect_sections(rest, targets, nil, [], acc)
         end
 
-      :not_callout ->
-        if current == :collecting and String.starts_with?(line, ">") do
-          stripped = line |> String.replace_prefix("> ", "") |> String.replace_prefix(">", "")
-          collect_sections(rest, targets, :collecting, current_lines ++ [stripped], acc)
+      {:heading, title} ->
+        acc = finalize_section(current_lines, acc)
+
+        if title_matches?(title, targets) do
+          collect_sections(rest, targets, {:collecting, :heading}, [], acc)
         else
-          acc = finalize_section(current_lines, acc)
           collect_sections(rest, targets, nil, [], acc)
+        end
+
+      :not_section ->
+        case current do
+          {:collecting, :callout} ->
+            if String.starts_with?(line, ">") do
+              stripped = line |> String.replace_prefix("> ", "") |> String.replace_prefix(">", "")
+              collect_sections(rest, targets, current, current_lines ++ [stripped], acc)
+            else
+              acc = finalize_section(current_lines, acc)
+              collect_sections(rest, targets, nil, [], acc)
+            end
+
+          {:collecting, :heading} ->
+            # Heading sections collect all lines until next heading or callout
+            collect_sections(rest, targets, current, current_lines ++ [line], acc)
+
+          _ ->
+            collect_sections(rest, targets, nil, current_lines, acc)
         end
     end
   end
 
-  defp parse_callout_header(line) do
+  defp parse_section_header(line) do
     case Regex.run(~r/^>\s*\[!(\w+)\]\s+(.+)$/, line) do
-      [_, _type, title] -> {:callout, String.trim(title)}
-      _ -> :not_callout
+      [_, _type, title] ->
+        {:callout, String.trim(title)}
+
+      _ ->
+        case Regex.run(~r/^##\s+(.+)$/, line) do
+          [_, title] -> {:heading, String.trim(title)}
+          _ -> :not_section
+        end
     end
   end
 
   defp title_matches?(title, targets) do
-    lower = String.downcase(title)
-    Enum.any?(targets, &(String.downcase(&1) == lower))
+    # Normalize: lowercase, strip apostrophes/punctuation for fuzzy matching
+    normalize = fn s -> s |> String.downcase() |> String.replace(~r/[''"]/, "") end
+    lower = normalize.(title)
+    Enum.any?(targets, &(normalize.(&1) == lower))
   end
 
   defp finalize_section([], acc), do: acc
