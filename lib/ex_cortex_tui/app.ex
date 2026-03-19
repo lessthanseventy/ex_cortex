@@ -10,6 +10,7 @@ defmodule ExCortexTUI.App do
   require Logger
 
   @screens %{
+    daily: ExCortexTUI.Screens.Daily,
     cortex: ExCortexTUI.Screens.Cortex,
     daydreams: ExCortexTUI.Screens.Daydreams,
     proposals: ExCortexTUI.Screens.Proposals,
@@ -21,6 +22,7 @@ defmodule ExCortexTUI.App do
   }
 
   @nav_items [
+    {"a", :daily, "Daily"},
     {"c", :cortex, "Cortex"},
     {"d", :daydreams, "Daydreams"},
     {"p", :proposals, "Proposals"},
@@ -54,7 +56,7 @@ defmodule ExCortexTUI.App do
 
     ensure_live_screen()
 
-    screen = :cortex
+    screen = :daily
     screen_mod = Map.fetch!(@screens, screen)
     screen_state = safe_init(screen_mod, %{})
 
@@ -86,13 +88,13 @@ defmodule ExCortexTUI.App do
   def handle_info({:key, :left}, state), do: handle_info({:key, "\e"}, state)
   def handle_info({:key, :right}, state), do: handle_info({:key, "\r"}, state)
 
-  # Esc or Ctrl+D — go back to cortex
-  def handle_info({:key, back}, %{screen: :cortex} = state) when back in ["\e", :back] do
+  # Esc or Ctrl+D — go back to daily (home screen)
+  def handle_info({:key, back}, %{screen: :daily} = state) when back in ["\e", :back] do
     {:noreply, state}
   end
 
   def handle_info({:key, back}, state) when back in ["\e", :back] do
-    {:noreply, switch_screen(state, :cortex)}
+    {:noreply, switch_screen(state, :daily)}
   end
 
   def handle_info({:key, "q"}, %{screen: screen} = state) when screen not in [:wonder, :muse] do
@@ -260,7 +262,8 @@ defmodule ExCortexTUI.App do
     # -icanon: single keypress (no line buffering)
     # -echo: don't echo input
     # opost preserved so \n → \r\n for output
-    cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec cat < #{tty_path}"
+    # stdbuf -o0 disables output buffering on cat so keystrokes arrive immediately
+    cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec stdbuf -o0 cat < #{tty_path}"
 
     # Port messages go to the process that opened it (this GenServer)
     # So we handle {port, {:data, data}} in handle_info directly

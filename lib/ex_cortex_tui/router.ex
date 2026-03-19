@@ -2,6 +2,7 @@ defmodule ExCortexTUI.Router do
   @moduledoc "Maps keyboard input to screen switches or forwards to active screen."
 
   @nav_keys %{
+    "a" => :daily,
     "c" => :cortex,
     "d" => :daydreams,
     "p" => :proposals,
