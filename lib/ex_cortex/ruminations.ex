@@ -157,7 +157,29 @@ defmodule ExCortex.Ruminations do
   end
 
   def create_proposal(attrs) do
-    %Proposal{} |> Proposal.changeset(attrs) |> Repo.insert()
+    case %Proposal{} |> Proposal.changeset(attrs) |> Repo.insert() do
+      {:ok, proposal} = result ->
+        # Check auto-approval policies
+        case ExCortex.Ruminations.ProposalPolicy.evaluate(proposal) do
+          :auto_approve ->
+            require Logger
+
+            Logger.info("[Proposals] Auto-approving proposal #{proposal.id} (#{proposal.type})")
+            approve_proposal(proposal)
+
+          :auto_reject ->
+            require Logger
+
+            Logger.info("[Proposals] Auto-rejecting proposal #{proposal.id} (#{proposal.type})")
+            reject_proposal(proposal)
+
+          :pending ->
+            result
+        end
+
+      error ->
+        error
+    end
   end
 
   def update_proposal(%Proposal{} = proposal, attrs) do

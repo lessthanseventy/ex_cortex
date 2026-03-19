@@ -36,13 +36,16 @@ defmodule ExCortex.AppTelemetryTest do
   end
 
   test "deduplicates repeated log events" do
-    AppTelemetry.record_log_event(:warning, "Connection refused", MyModule)
-    AppTelemetry.record_log_event(:warning, "Connection refused", MyModule)
-    AppTelemetry.record_log_event(:warning, "Connection refused", MyModule)
+    # Use a unique message to avoid interference from concurrent test log events
+    unique = "TestDedup_#{System.unique_integer([:positive])}"
+    AppTelemetry.record_log_event(:warning, unique, MyModule)
+    AppTelemetry.record_log_event(:warning, unique, MyModule)
+    AppTelemetry.record_log_event(:warning, unique, MyModule)
+    # Sync call to flush the mailbox before asserting
     _ = AppTelemetry.recent(window_hours: 24)
 
     result = AppTelemetry.recent(window_hours: 24)
-    assert result =~ "Connection refused"
+    assert result =~ unique
     assert result =~ "×3"
   end
 
