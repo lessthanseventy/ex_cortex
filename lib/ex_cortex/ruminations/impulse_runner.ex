@@ -20,12 +20,15 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   alias ExCortex.ContextProviders.ContextProvider
   alias ExCortex.Neurons.Neuron
   alias ExCortex.Repo
+  alias ExCortex.Ruminations.ImpulseRunner.Artifact
+  alias ExCortex.Ruminations.ImpulseRunner.Consensus
+  alias ExCortex.Ruminations.ImpulseRunner.Escalation
+  alias ExCortex.Ruminations.ImpulseRunner.Reflect
   alias ExCortex.Ruminations.Middleware
   alias ExCortex.Ruminations.RosterResolver
 
   require Logger
 
-  @verdict_order %{"fail" => 0, "warn" => 1, "abstain" => 2, "pass" => 3}
   @rank_order %{"apprentice" => 0, "journeyman" => 1, "master" => 2}
 
   @expression_types ~w(slack webhook github_issue github_pr email pagerduty)
@@ -88,7 +91,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
       reflect_on = thought.reflect_on_verdict || []
       max_iter = thought.max_iterations || 3
       tools = ExCortex.Tools.Registry.resolve_tools(thought.loop_tools || [])
-      do_reflect(thought, augmented, tools, threshold, reflect_on, max_iter, 0)
+      Reflect.do_reflect(thought, augmented, tools, threshold, reflect_on, max_iter, 0)
     end)
   end
 
@@ -100,7 +103,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
 
       ["apprentice", "journeyman", "master"]
       |> Enum.reduce_while(nil, fn rank, _acc ->
-        try_escalate_rank(rank, thought, augmented, threshold, escalate_on)
+        Escalation.try_escalate_rank(rank, thought, augmented, threshold, escalate_on)
       end)
       |> then(fn
         nil -> {:ok, %{verdict: "abstain", steps: []}}
@@ -137,7 +140,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   def run(%{output_type: type} = thought, input_text, opts) when type in @expression_types do
     with_middleware(thought, input_text, opts, fn augmented, _middleware ->
       with {:ok, expression} <- ExCortex.Expressions.get_by_name(thought.expression_name || ""),
-           {:ok, attrs} <- run_artifact(thought, augmented),
+           {:ok, attrs} <- Artifact.run_artifact(thought, augmented),
            :ok <- ExCortex.Expressions.deliver(expression, thought, attrs) do
         {:ok, %{delivered: true, type: type, title: attrs.title}}
       end
@@ -146,7 +149,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
 
   def run(%{output_type: "artifact"} = thought, input_text, opts) do
     with_middleware(thought, input_text, opts, fn augmented, _middleware ->
-      case run_artifact(thought, augmented) do
+      case Artifact.run_artifact(thought, augmented) do
         {:ok, attrs} ->
           forced_tags = thought.engram_tags || []
           attrs = Map.update(attrs, :tags, forced_tags, &Enum.uniq(&1 ++ forced_tags))
@@ -172,8 +175,8 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
 
   def run(%{output_type: "signal"} = thought, input_text, opts) do
     with_middleware(thought, input_text, opts, fn augmented, _middleware ->
-      case run_artifact(thought, augmented) do
-        {:ok, attrs} -> post_signal_cards(thought, attrs)
+      case Artifact.run_artifact(thought, augmented) do
+        {:ok, attrs} -> Artifact.post_signal_cards(thought, attrs)
         error -> error
       end
     end)
@@ -193,7 +196,7 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
         synapse_results = run_step(neurons, step["how"], input_text, opts)
 
         laterality = ExCortex.Lobe.laterality_for_cluster(step["cluster_name"])
-        step_verdict = aggregate(synapse_results, step["how"], laterality)
+        step_verdict = Consensus.aggregate(synapse_results, step["how"], laterality)
 
         trace = %{
           who: step["who"],
@@ -212,6 +215,32 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     result = {:ok, %{verdict: final_verdict || "pass", steps: steps}}
     ExCortex.TrustScorer.record_run(steps)
     result
+  end
+
+  # ---------------------------------------------------------------------------
+  # Public helpers used by submodules
+  # ---------------------------------------------------------------------------
+
+  @doc false
+  def dangerous_tool_opts(thought) do
+    loop_tools = Map.get(thought, :loop_tools)
+
+    override =
+      cond do
+        is_list(loop_tools) and loop_tools != [] -> loop_tools
+        is_list(loop_tools) -> :none
+        true -> nil
+      end
+
+    Enum.reject(
+      [
+        dangerous_tool_mode: Map.get(thought, :dangerous_tool_mode) || "execute",
+        rumination_id: Map.get(thought, :id),
+        override_tools: override,
+        max_tool_iterations: Map.get(thought, :max_tool_iterations)
+      ],
+      fn {_k, v} -> is_nil(v) end
+    )
   end
 
   # ---------------------------------------------------------------------------
@@ -275,13 +304,13 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
         require Logger
 
         Logger.debug("[StepRunner] raw response (#{byte_size(text)}B): #{String.slice(text, 0, 300)}")
-        text |> parse_verdict() |> Map.put(:tool_calls, tool_log)
+        text |> Consensus.parse_verdict() |> Map.put(:tool_calls, tool_log)
 
       {:ok, text} ->
         require Logger
 
         Logger.debug("[StepRunner] raw response (#{byte_size(text)}B): #{String.slice(text, 0, 300)}")
-        text |> parse_verdict() |> Map.put(:tool_calls, [])
+        text |> Consensus.parse_verdict() |> Map.put(:tool_calls, [])
 
       {:error, _, _} ->
         %{verdict: "abstain", confidence: 0.0, reason: "LLM error (#{provider})", tool_calls: []}
@@ -331,82 +360,6 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   end
 
   # ---------------------------------------------------------------------------
-  # Verdict parsing
-  # ---------------------------------------------------------------------------
-
-  defp parse_verdict(text) do
-    verdict =
-      case Regex.run(~r/ACTION:\s*(pass|warn|fail|abstain)/i, text) do
-        [_, v] -> String.downcase(v)
-        _ -> "abstain"
-      end
-
-    confidence =
-      case Regex.run(~r/CONFIDENCE:\s*([0-9.]+)/i, text) do
-        [_, c] -> String.to_float(c)
-        _ -> 0.5
-      end
-
-    reason =
-      case Regex.run(~r/REASON:\s*(.+)/is, text) do
-        [_, r] -> String.trim(r)
-        _ -> ""
-      end
-
-    %{verdict: verdict, confidence: confidence, reason: reason}
-  end
-
-  # ---------------------------------------------------------------------------
-  # Aggregation
-  # ---------------------------------------------------------------------------
-
-  defp aggregate([], _, _), do: "abstain"
-
-  defp aggregate(results, "solo", _laterality) do
-    results |> List.first() |> Map.get(:verdict, "abstain")
-  end
-
-  # Right hemisphere (divergent): if any neuron has high confidence, their verdict
-  # can pull the group — novel insights win over consensus.
-  defp aggregate(results, "consensus", %{hemisphere: :right, confidence_threshold: threshold}) do
-    verdicts = Enum.map(results, & &1.verdict)
-
-    # Check for a high-confidence outlier
-    high_confidence = Enum.find(results, fn r -> (r[:confidence] || 0.0) >= threshold end)
-
-    cond do
-      Enum.uniq(verdicts) == [hd(verdicts)] -> hd(verdicts)
-      high_confidence -> high_confidence.verdict
-      true -> best_verdict(verdicts)
-    end
-  end
-
-  # Left hemisphere (systematic): unanimous or worst-case — conservative default.
-  defp aggregate(results, "consensus", _laterality) do
-    verdicts = Enum.map(results, & &1.verdict)
-    if Enum.uniq(verdicts) == [hd(verdicts)], do: hd(verdicts), else: worst_verdict(verdicts)
-  end
-
-  # Right hemisphere majority: lower bar — any non-abstain verdict with at least one vote wins.
-  defp aggregate(results, _majority, %{hemisphere: :right}) do
-    verdicts = results |> Enum.map(& &1.verdict) |> Enum.reject(&(&1 == "abstain"))
-    if verdicts == [], do: "abstain", else: best_verdict(verdicts)
-  end
-
-  defp aggregate(results, _majority, _laterality) do
-    verdicts = Enum.map(results, & &1.verdict)
-    verdicts |> Enum.frequencies() |> Enum.max_by(fn {_, count} -> count end) |> elem(0)
-  end
-
-  defp worst_verdict(verdicts) do
-    Enum.min_by(verdicts, &Map.get(@verdict_order, &1, 2))
-  end
-
-  defp best_verdict(verdicts) do
-    Enum.max_by(verdicts, &Map.get(@verdict_order, &1, 2))
-  end
-
-  # ---------------------------------------------------------------------------
   # Escalation
   # ---------------------------------------------------------------------------
 
@@ -425,126 +378,8 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   defp should_escalate?(_, _), do: false
 
   # ---------------------------------------------------------------------------
-  # Reflect mode helpers
+  # Freeform helpers
   # ---------------------------------------------------------------------------
-
-  defp do_reflect(thought, input_text, _tools, _threshold, _reflect_on, max_iter, iter) when iter >= max_iter do
-    run(thought.roster, input_text, dangerous_tool_opts(thought))
-  end
-
-  defp do_reflect(thought, input_text, tools, threshold, reflect_on, max_iter, iter) do
-    result = run(thought.roster, input_text, dangerous_tool_opts(thought))
-
-    case result do
-      {:ok, %{verdict: v, steps: steps}} = ok ->
-        avg_confidence =
-          steps
-          |> Enum.flat_map(& &1.results)
-          |> Enum.map(&Map.get(&1, :confidence, 0.5))
-          |> then(fn
-            [] -> 0.5
-            cs -> Enum.sum(cs) / length(cs)
-          end)
-
-        satisfied = avg_confidence >= threshold and v not in reflect_on
-
-        if satisfied or tools == [] do
-          ok
-        else
-          extra_context = gather_reflect_context(tools, v)
-          augmented = "#{input_text}\n\n## Reflection Context\n#{extra_context}"
-          do_reflect(thought, augmented, tools, threshold, reflect_on, max_iter, iter + 1)
-        end
-
-      other ->
-        other
-    end
-  end
-
-  defp gather_reflect_context(tools, verdict) do
-    memory_tool = Enum.find(tools, &(&1.name == "query_memory"))
-
-    if memory_tool do
-      gather_memory_context(memory_tool, verdict)
-    else
-      gather_tool_context(tools)
-    end
-  end
-
-  defp gather_memory_context(memory_tool, verdict) do
-    case ReqLLM.Tool.execute(memory_tool, %{"tags" => [], "limit" => 3}) do
-      {:ok, content} -> "Prior memory context (verdict was #{verdict}):\n#{content}"
-      _ -> ""
-    end
-  end
-
-  defp gather_tool_context(tools) do
-    tools
-    |> Enum.map(&execute_tool_for_context/1)
-    |> Enum.reject(&(&1 == ""))
-    |> Enum.join("\n")
-  end
-
-  defp execute_tool_for_context(tool) do
-    case ReqLLM.Tool.execute(tool, %{}) do
-      {:ok, result} -> to_string(result)
-      _ -> ""
-    end
-  end
-
-  # ---------------------------------------------------------------------------
-  # Helpers
-  # ---------------------------------------------------------------------------
-
-  defp dangerous_tool_opts(thought) do
-    loop_tools = Map.get(thought, :loop_tools)
-
-    override =
-      cond do
-        is_list(loop_tools) and loop_tools != [] -> loop_tools
-        is_list(loop_tools) -> :none
-        true -> nil
-      end
-
-    Enum.reject(
-      [
-        dangerous_tool_mode: Map.get(thought, :dangerous_tool_mode) || "execute",
-        rumination_id: Map.get(thought, :id),
-        override_tools: override,
-        max_tool_iterations: Map.get(thought, :max_tool_iterations)
-      ],
-      fn {_k, v} -> is_nil(v) end
-    )
-  end
-
-  defp try_escalate_rank(rank, thought, augmented, threshold, escalate_on) do
-    neurons = resolve_neurons(rank)
-
-    if neurons == [] do
-      {:cont, nil}
-    else
-      result = run(thought.roster, augmented, dangerous_tool_opts(thought))
-      evaluate_escalate_result(result, threshold, escalate_on)
-    end
-  end
-
-  defp evaluate_escalate_result({:ok, %{verdict: v, steps: steps}} = ok, threshold, escalate_on) do
-    avg_confidence = average_step_confidence(steps)
-    satisfied = avg_confidence >= threshold and v not in escalate_on
-    if satisfied, do: {:halt, ok}, else: {:cont, ok}
-  end
-
-  defp evaluate_escalate_result(other, _threshold, _escalate_on), do: {:cont, other}
-
-  defp average_step_confidence(steps) do
-    steps
-    |> Enum.flat_map(& &1.results)
-    |> Enum.map(&Map.get(&1, :confidence, 0.5))
-    |> then(fn
-      [] -> 0.5
-      cs -> Enum.sum(cs) / length(cs)
-    end)
-  end
 
   defp run_freeform_step(step, augmented, thought) do
     case resolve_neurons(step) do
@@ -575,79 +410,6 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     end
   end
 
-  defp post_signal_cards(thought, attrs) do
-    cards_spec = Map.get(thought, :cards) || %{}
-
-    if cards_spec == %{} do
-      post_single_signal_card(thought, attrs)
-    else
-      post_multi_signal_cards(thought, attrs, cards_spec)
-    end
-  end
-
-  defp post_single_signal_card(thought, attrs) do
-    card_type = attrs[:card_type] || parse_card_type(thought.description) || "note"
-
-    # Build action_handler for interactive pane features
-    base_metadata = attrs[:metadata] || %{}
-
-    metadata =
-      if Map.get(thought, :rumination_id) || Map.get(thought, :id) do
-        rum_id = Map.get(thought, :rumination_id) || Map.get(thought, :id)
-
-        action_handler =
-          base_metadata
-          |> Map.get("action_handler", %{})
-          |> Map.put_new("refresh", %{"rumination_id" => rum_id})
-
-        Map.put(base_metadata, "action_handler", action_handler)
-      else
-        base_metadata
-      end
-
-    card_attrs = %{
-      type: card_type,
-      card_type: card_type,
-      title: attrs.title,
-      body: attrs.body,
-      tags: attrs[:tags] |> Kernel.||([]) |> Enum.uniq() |> Enum.take(15),
-      source: "rumination",
-      rumination_id: thought.id,
-      metadata: metadata,
-      pin_slug: Map.get(thought, :pin_slug),
-      pinned: Map.get(thought, :pin_slug) != nil || Map.get(thought, :pinned, false),
-      pin_order: Map.get(thought, :pin_order, 0),
-      cluster_name: Map.get(thought, :cluster_name)
-    }
-
-    ExCortex.Signals.post_signal(card_attrs)
-    {:ok, %{signal: card_attrs}}
-  end
-
-  defp post_multi_signal_cards(thought, attrs, cards_spec) do
-    posted =
-      Enum.map(cards_spec, fn spec ->
-        card_attrs = %{
-          type: spec["card_type"] || "briefing",
-          card_type: spec["card_type"] || "briefing",
-          title: attrs.title,
-          body: attrs.body,
-          tags: attrs[:tags] |> Kernel.||([]) |> Enum.uniq() |> Enum.take(15),
-          source: "rumination",
-          rumination_id: thought.id,
-          metadata: attrs[:metadata] || %{},
-          pin_slug: spec["pin_slug"],
-          pinned: spec["pinned"] || false,
-          pin_order: spec["pin_order"] || 0,
-          cluster_name: Map.get(thought, :cluster_name)
-        }
-
-        ExCortex.Signals.post_signal(card_attrs)
-      end)
-
-    {:ok, %{signals: posted}}
-  end
-
   defp default_claude_prompt do
     """
     You are a careful evaluator. Review the provided text and give your assessment.
@@ -657,180 +419,6 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
     CONFIDENCE: 0.0-1.0
     REASON: your reasoning
     """
-  end
-
-  # ---------------------------------------------------------------------------
-  # Artifact generation
-  # ---------------------------------------------------------------------------
-
-  defp run_artifact(thought, input_text) do
-    roster = thought.roster || []
-
-    case roster do
-      [] ->
-        {:error, :no_roster}
-
-      [single_step] ->
-        # Single step — original behaviour
-        run_artifact_step(single_step, input_text, thought)
-
-      steps ->
-        # Multi-step: run all but last in reasoning mode, thread outputs to final step
-        {prelim_steps, [final_step]} = Enum.split(steps, length(steps) - 1)
-        reasoning_context = build_reasoning_context(prelim_steps, input_text)
-        augmented = "#{input_text}\n\n---\n## Team Analysis\n#{reasoning_context}"
-        run_artifact_step(final_step, augmented, thought)
-    end
-  end
-
-  defp run_artifact_step(step, input_text, thought) do
-    neurons = resolve_neurons(step)
-    neuron = List.first(neurons)
-
-    if is_nil(neuron) do
-      {:error, :no_members}
-    else
-      system_prompt = artifact_system_prompt(thought)
-
-      raw =
-        case ExCortex.LLM.complete(neuron.provider, neuron.model, system_prompt, input_text) do
-          {:ok, text} -> text
-          _ -> nil
-        end
-
-      if raw do
-        date = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
-        title_template = thought.entry_title_template || thought.name || "Entry — {date}"
-        title = String.replace(title_template, "{date}", date)
-        {:ok, parse_artifact(raw, title)}
-      else
-        {:error, :llm_failed}
-      end
-    end
-  end
-
-  defp build_reasoning_context(prelim_steps, input_text) do
-    Enum.map_join(prelim_steps, "\n\n", fn step ->
-      label = step["label"] || step["who"] || "Analyst"
-      member_outputs = build_step_member_outputs(step, input_text)
-      "### #{label}\n#{member_outputs}"
-    end)
-  end
-
-  defp build_step_member_outputs(step, input_text) do
-    neurons = resolve_neurons(step)
-
-    Enum.map_join(neurons, "\n\n", fn neuron ->
-      reasoning_prompt = reasoning_system_prompt(neuron, step)
-
-      text =
-        case ExCortex.LLM.complete(neuron.provider, neuron.model, reasoning_prompt, input_text) do
-          {:ok, t} -> t
-          _ -> "(no response)"
-        end
-
-      "**#{neuron.name}:** #{String.slice(text, 0, 500)}"
-    end)
-  end
-
-  defp reasoning_system_prompt(neuron, step) do
-    base = neuron.system_prompt || ""
-    label = step["label"] || neuron.name
-
-    lobe_prefix =
-      case ExCortex.Lobe.prompt_for_cluster(step["cluster_name"] || neuron.team) do
-        nil -> ""
-        prompt -> "[#{prompt}]\n\n"
-      end
-
-    """
-    #{lobe_prefix}#{base}
-
-    You are #{label}. Provide your analysis and perspective on the data below.
-    Be direct and opinionated. Your output will be read by a synthesizer.
-    Do NOT use the TITLE/IMPORTANCE/TAGS/BODY format — just write your raw analysis.
-    """
-  end
-
-  defp artifact_system_prompt(thought) do
-    instruction = thought.description || "Synthesize the provided content."
-    today = Calendar.strftime(Date.utc_today(), "%B %d, %Y")
-
-    """
-    Today's date is #{today}.
-
-    #{instruction}
-
-    Respond in this exact format:
-    TITLE: <a concise title for this entry>
-    IMPORTANCE: <integer 1-5, where 5 is most important, or omit if not applicable>
-    TAGS: <comma-separated tags, lowercase, e.g. a11y,security,deps>
-    BODY:
-    <your synthesized content here, markdown is fine>
-    """
-  end
-
-  defp parse_artifact(text, fallback_title) do
-    %{
-      title: parse_artifact_title(text, fallback_title),
-      body: parse_artifact_body(text),
-      tags: parse_artifact_tags(text),
-      importance: parse_artifact_importance(text),
-      card_type: parse_artifact_card_type(text),
-      source: "step"
-    }
-  end
-
-  defp parse_artifact_title(text, fallback_title) do
-    case Regex.run(~r/^TITLE:\s*(.+)$/m, text) do
-      [_, t] -> String.trim(t)
-      _ -> fallback_title
-    end
-  end
-
-  defp parse_artifact_importance(text) do
-    case Regex.run(~r/^IMPORTANCE:\s*(\d)$/m, text) do
-      [_, n] ->
-        val = String.to_integer(n)
-        if val in 1..5, do: val
-
-      _ ->
-        nil
-    end
-  end
-
-  defp parse_artifact_tags(text) do
-    case Regex.run(~r/^TAGS:\s*(.+)$/m, text) do
-      [_, t] -> t |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
-      _ -> []
-    end
-  end
-
-  defp parse_artifact_body(text) do
-    case Regex.run(~r/^BODY:\s*\n(.*)/ms, text) do
-      [_, b] -> String.trim(b)
-      _ -> text
-    end
-  end
-
-  defp parse_artifact_card_type(text) do
-    case Regex.run(~r/^CARD_TYPE:\s*(.+)$/m, text) do
-      [_, ct] ->
-        ct = ct |> String.trim() |> String.downcase()
-        if ct in ~w(note checklist meeting alert link briefing action_list table media metric freeform), do: ct
-
-      _ ->
-        nil
-    end
-  end
-
-  @valid_card_types ~w(note checklist meeting alert link briefing action_list table media metric freeform)
-  defp parse_card_type(nil), do: nil
-  defp parse_card_type(""), do: nil
-
-  defp parse_card_type(description) when is_binary(description) do
-    desc = String.downcase(description)
-    Enum.find(@valid_card_types, fn type -> String.contains?(desc, type) end)
   end
 
   # ---------------------------------------------------------------------------
