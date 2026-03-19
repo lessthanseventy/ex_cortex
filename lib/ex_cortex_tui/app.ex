@@ -263,7 +263,8 @@ defmodule ExCortexTUI.App do
     # -echo: don't echo input
     # opost preserved so \n → \r\n for output
     # stdbuf -o0 disables output buffering on cat so keystrokes arrive immediately
-    cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec stdbuf -o0 cat < #{tty_path}"
+    # 2>/dev/null suppresses "broken pipe" on quit
+    cmd = "stty -icanon -echo < #{tty_path} 2>/dev/null; exec stdbuf -o0 cat < #{tty_path} 2>/dev/null"
 
     # Port messages go to the process that opened it (this GenServer)
     # So we handle {port, {:data, data}} in handle_info directly
@@ -271,23 +272,69 @@ defmodule ExCortexTUI.App do
     port
   end
 
-  defp parse_keys(<<"\e[A" :: binary>>, pid), do: send(pid, {:key, :up})
-  defp parse_keys(<<"\e[B" :: binary>>, pid), do: send(pid, {:key, :down})
-  defp parse_keys(<<"\e[C" :: binary>>, pid), do: send(pid, {:key, :right})
-  defp parse_keys(<<"\e[D" :: binary>>, pid), do: send(pid, {:key, :left})
-  defp parse_keys(<<"\e" :: binary>>, pid), do: send(pid, {:key, "\e"})
-  defp parse_keys(<<"\r" :: binary>>, pid), do: send(pid, {:key, "\r"})
-  defp parse_keys(<<"\n" :: binary>>, pid), do: send(pid, {:key, "\r"})
-  defp parse_keys(<<3 :: integer>>, pid), do: send(pid, {:key, <<3>>})  # Ctrl+C
-  defp parse_keys(<<4 :: integer>>, pid), do: send(pid, {:key, :back})  # Ctrl+D
-  defp parse_keys(<<127 :: integer>>, pid), do: send(pid, {:key, <<127>>})  # Backspace
-  defp parse_keys(<<c :: integer>>, pid) when c >= 32 and c < 127, do: send(pid, {:key, <<c>>})
-  defp parse_keys(data, pid) when byte_size(data) > 1 do
-    # Multi-byte sequence — try to parse each byte
-    for <<byte <- data>> do
-      parse_keys(<<byte>>, pid)
-    end
+  # Arrow keys
+  defp parse_keys(<<"\e[A", rest::binary>>, pid) do
+    send(pid, {:key, :up})
+    if rest != "", do: parse_keys(rest, pid)
   end
+
+  defp parse_keys(<<"\e[B", rest::binary>>, pid) do
+    send(pid, {:key, :down})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<"\e[C", rest::binary>>, pid) do
+    send(pid, {:key, :right})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<"\e[D", rest::binary>>, pid) do
+    send(pid, {:key, :left})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  # Other CSI sequences (alt+key, tmux, etc.) — ignore
+  defp parse_keys(<<"\e[", _rest::binary>>, _pid), do: :ok
+  defp parse_keys(<<"\eO", _rest::binary>>, _pid), do: :ok
+
+  # Alt+key sends \e followed by the key — ignore (don't steal from tmux)
+  defp parse_keys(<<"\e", c, _rest::binary>>, _pid) when c >= 32 and c < 127, do: :ok
+
+  # Bare escape (single byte)
+  defp parse_keys(<<"\e">>, pid), do: send(pid, {:key, "\e"})
+
+  # Regular keys
+  defp parse_keys(<<"\r", rest::binary>>, pid) do
+    send(pid, {:key, "\r"})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<"\n", rest::binary>>, pid) do
+    send(pid, {:key, "\r"})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<3, rest::binary>>, pid) do
+    send(pid, {:key, <<3>>})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<4, rest::binary>>, pid) do
+    send(pid, {:key, :back})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<127, rest::binary>>, pid) do
+    send(pid, {:key, <<127>>})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  defp parse_keys(<<c, rest::binary>>, pid) when c >= 32 and c < 127 do
+    send(pid, {:key, <<c>>})
+    if rest != "", do: parse_keys(rest, pid)
+  end
+
+  # Unknown bytes — skip
   defp parse_keys(_, _pid), do: :ok
 
   # Safe wrappers that handle screens not implementing the behaviour yet
