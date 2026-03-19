@@ -49,14 +49,13 @@ defmodule ExCortex.Application do
     senses = senses_children()
     scheduled = if sandbox?, do: [], else: scheduled_children()
     web = [ExCortexWeb.Endpoint]
-    tui = [ExCortexTUI.App]
     hud = [ExCortexTUI.HUD]
 
     case mode do
       :server -> base ++ scheduled ++ senses ++ web
-      :tui -> base ++ scheduled ++ senses ++ tui
+      :tui -> base ++ scheduled ++ senses
       :hud -> base ++ hud
-      :full -> base ++ scheduled ++ senses ++ web ++ tui
+      :full -> base ++ scheduled ++ senses ++ web
     end
   end
 
