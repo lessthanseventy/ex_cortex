@@ -26,8 +26,8 @@ defmodule ExCortex.Application do
     # Auto-migrate on boot (safe for releases — no-ops if already up)
     ExCortex.Release.migrate()
 
-    mode = ExCortex.BootMode.current()
     sandbox? = Application.get_env(:ex_cortex, :sql_sandbox, false)
+    mode = if sandbox?, do: :server, else: ExCortex.BootMode.current()
     children = children_for_mode(mode, sandbox?)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
