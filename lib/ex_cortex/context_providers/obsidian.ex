@@ -82,8 +82,13 @@ defmodule ExCortex.ContextProviders.Obsidian do
             end
 
           {:collecting, :heading} ->
-            # Heading sections collect all lines until next heading or callout
-            collect_sections(rest, targets, current, current_lines ++ [line], acc)
+            # Heading sections collect until next heading, callout, or horizontal rule
+            if String.match?(line, ~r/^---\s*$/) do
+              acc = finalize_section(current_lines, acc)
+              collect_sections(rest, targets, nil, [], acc)
+            else
+              collect_sections(rest, targets, current, current_lines ++ [line], acc)
+            end
 
           _ ->
             collect_sections(rest, targets, nil, current_lines, acc)
