@@ -26,46 +26,70 @@ defmodule ExCortex.Application do
     # Auto-migrate on boot (safe for releases — no-ops if already up)
     ExCortex.Release.migrate()
 
+    mode = ExCortex.BootMode.current()
     sandbox? = Application.get_env(:ex_cortex, :sql_sandbox, false)
-
-    children =
-      [
-        ExCortexWeb.Telemetry,
-        ExCortex.Repo,
-        ExCortex.Core.Registry,
-        {Oban, Application.fetch_env!(:ex_cortex, Oban)},
-        {DNSCluster, query: Application.get_env(:ex_cortex, :dns_cluster_query) || :ignore},
-        {Phoenix.PubSub, name: ExCortex.PubSub},
-        {Registry, keys: :unique, name: ExCortex.SourceRegistry},
-        {Task.Supervisor, name: ExCortex.SourceTaskSupervisor, max_children: 10},
-        {Task.Supervisor, name: ExCortex.AsyncTaskSupervisor},
-        ExCortex.AppTelemetry,
-        ExCortex.Ruminations.Debouncer,
-        SensesSupervisor,
-        {Task, fn -> SensesSupervisor.start_all_active() end},
-        ExCortexWeb.Endpoint
-      ] ++
-        if(sandbox?,
-          do: [],
-          else: [
-            ExCortex.Ruminations.Scheduler,
-            ExCortex.Memory.EngramTriggerRunner,
-            ExCortex.Signals.TriggerRunner,
-            ExCortex.Senses.Feedback
-          ]
-        )
+    children = children_for_mode(mode, sandbox?)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: ExCortex.Supervisor]
     result = Supervisor.start_link(children, opts)
-    OpentelemetryPhoenix.setup(adapter: :bandit)
+
+    if mode in [:server, :full], do: OpentelemetryPhoenix.setup(adapter: :bandit)
     OpentelemetryEcto.setup([:ex_cortex, :repo])
     ExCortex.Settings.apply_to_runtime()
     check_cli_tools()
     write_pid_file()
     check_restart_status()
     result
+  end
+
+  defp children_for_mode(mode, sandbox?) do
+    base = base_children()
+    senses = senses_children()
+    scheduled = if sandbox?, do: [], else: scheduled_children()
+    web = [ExCortexWeb.Endpoint]
+    tui = [ExCortexTUI.App]
+    hud = [ExCortexTUI.HUD]
+
+    case mode do
+      :server -> base ++ scheduled ++ senses ++ web
+      :tui -> base ++ scheduled ++ senses ++ tui
+      :hud -> base ++ hud
+      :full -> base ++ scheduled ++ senses ++ web ++ tui
+    end
+  end
+
+  defp base_children do
+    [
+      ExCortexWeb.Telemetry,
+      ExCortex.Repo,
+      ExCortex.Core.Registry,
+      {Oban, Application.fetch_env!(:ex_cortex, Oban)},
+      {DNSCluster, query: Application.get_env(:ex_cortex, :dns_cluster_query) || :ignore},
+      {Phoenix.PubSub, name: ExCortex.PubSub},
+      {Registry, keys: :unique, name: ExCortex.SourceRegistry},
+      {Task.Supervisor, name: ExCortex.SourceTaskSupervisor, max_children: 10},
+      {Task.Supervisor, name: ExCortex.AsyncTaskSupervisor},
+      ExCortex.AppTelemetry,
+      ExCortex.Ruminations.Debouncer
+    ]
+  end
+
+  defp senses_children do
+    [
+      SensesSupervisor,
+      {Task, fn -> SensesSupervisor.start_all_active() end}
+    ]
+  end
+
+  defp scheduled_children do
+    [
+      ExCortex.Ruminations.Scheduler,
+      ExCortex.Memory.EngramTriggerRunner,
+      ExCortex.Signals.TriggerRunner,
+      ExCortex.Senses.Feedback
+    ]
   end
 
   defp check_restart_status do
