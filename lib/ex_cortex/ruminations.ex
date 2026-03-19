@@ -165,9 +165,17 @@ defmodule ExCortex.Ruminations do
   end
 
   def approve_proposal(%Proposal{} = proposal) do
-    proposal
-    |> Proposal.changeset(%{status: "approved", applied_at: DateTime.utc_now()})
-    |> Repo.update()
+    with {:ok, approved} <-
+           proposal
+           |> Proposal.changeset(%{status: "approved", applied_at: DateTime.utc_now()})
+           |> Repo.update() do
+      # Auto-apply roster and schedule changes; prompt changes flagged for manual review
+      if approved.type in ["roster_change", "schedule_change", "prompt_change"] do
+        ExCortex.Neuroplasticity.ProposalExecutor.apply(approved)
+      else
+        {:ok, approved}
+      end
+    end
   end
 
   def reject_proposal(%Proposal{} = proposal) do

@@ -3,8 +3,8 @@ defmodule ExCortex.Neuroplasticity.Loop do
   Retrospective analysis: after a step run completes, optionally asks Claude
   to review the verdict trace and suggest improvements as Proposals.
 
-  Small changes (schedule tweaks, roster tier adjustments) are proposed with
-  status "pending" and require user approval from the Cortex.
+  Memory-informed: queries past run engrams and previous proposals for context
+  before generating new proposals.
 
   Usage:
     Loop.retrospect(step, impulse)
@@ -12,15 +12,25 @@ defmodule ExCortex.Neuroplasticity.Loop do
     # => {:error, reason}
   """
 
+  import Ecto.Query
+
   alias ExCortex.ClaudeClient
+  alias ExCortex.Memory
+  alias ExCortex.Repo
   alias ExCortex.Ruminations
+  alias ExCortex.Ruminations.Proposal
   alias ExCortex.Ruminations.Synapse
+
+  require Logger
 
   @system_prompt """
   You are a learning system that reviews AI evaluation step results and suggests
   improvements to make future runs more accurate and efficient.
 
-  Given a step definition and a run trace, propose up to 3 concrete changes.
+  You have access to memory from past runs and previous proposals. Use this context
+  to avoid repeating rejected proposals and to build on successful patterns.
+
+  Given a step definition, a run trace, and historical context, propose up to 3 concrete changes.
   Each proposal must be one of: roster_change, schedule_change, prompt_change, other.
 
   Format each proposal as:
@@ -33,6 +43,7 @@ defmodule ExCortex.Neuroplasticity.Loop do
 
   Only propose changes that would meaningfully improve accuracy or efficiency.
   If the run went well and no changes are needed, output nothing.
+  Do NOT re-propose changes that were previously rejected.
   """
 
   @doc """
@@ -48,7 +59,8 @@ defmodule ExCortex.Neuroplasticity.Loop do
   end
 
   defp do_retrospect(step, impulse) do
-    user_text = build_prompt(step, impulse)
+    memory_context = gather_memory_context(step)
+    user_text = build_prompt(step, impulse, memory_context)
 
     case ClaudeClient.complete("claude_haiku", @system_prompt, user_text) do
       {:ok, response} ->
@@ -61,7 +73,54 @@ defmodule ExCortex.Neuroplasticity.Loop do
     end
   end
 
-  defp build_prompt(step, impulse) do
+  defp gather_memory_context(step) do
+    # Query past run engrams for this step's rumination
+    step_tag = step.name |> String.downcase() |> String.replace(~r/\s+/, "-")
+    past_runs = Memory.query(step_tag, tier: :L0, limit: 5)
+
+    past_runs_text =
+      case past_runs do
+        [] ->
+          ""
+
+        runs ->
+          lines =
+            Enum.map_join(runs, "\n", fn e ->
+              "- #{e.title}: #{e.impression || "(no summary)"}"
+            end)
+
+          "## Past Runs\n#{lines}"
+      end
+
+    # Query previous proposals for this synapse
+    past_proposals =
+      Repo.all(
+        from p in Proposal,
+          where: p.synapse_id == ^step.id,
+          order_by: [desc: p.inserted_at],
+          limit: 10
+      )
+
+    proposals_text =
+      case past_proposals do
+        [] ->
+          ""
+
+        proposals ->
+          lines =
+            Enum.map_join(proposals, "\n", fn p ->
+              "- [#{p.status}] #{p.type}: #{p.description}"
+            end)
+
+          "## Previous Proposals\n#{lines}"
+      end
+
+    [past_runs_text, proposals_text]
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join("\n\n")
+  end
+
+  defp build_prompt(step, impulse, memory_context) do
     results = impulse.results || %{}
     verdict = results["verdict"] || "unknown"
 
@@ -77,6 +136,8 @@ defmodule ExCortex.Neuroplasticity.Loop do
         "Step #{i} (#{s["who"]} · #{s["how"]}): #{s["verdict"]}\n#{neurons}"
       end)
 
+    memory_section = if memory_context == "", do: "", else: "\n\n#{memory_context}"
+
     """
     Step: #{step.name}
     Trigger: #{step.trigger}
@@ -86,7 +147,7 @@ defmodule ExCortex.Neuroplasticity.Loop do
     Run input (truncated): #{String.slice(impulse.input || "", 0, 300)}
 
     Trace:
-    #{steps}
+    #{steps}#{memory_section}
     """
   end
 
