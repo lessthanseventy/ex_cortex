@@ -86,11 +86,12 @@ defmodule ExCortexTUI.App do
   def handle_info({:key, :left}, state), do: handle_info({:key, "\e"}, state)
   def handle_info({:key, :right}, state), do: handle_info({:key, "\r"}, state)
 
-  def handle_info({:key, "\e"}, %{screen: :cortex} = state) do
+  # Esc or Ctrl+D — go back to cortex
+  def handle_info({:key, back}, %{screen: :cortex} = state) when back in ["\e", :back] do
     {:noreply, state}
   end
 
-  def handle_info({:key, "\e"}, state) do
+  def handle_info({:key, back}, state) when back in ["\e", :back] do
     {:noreply, switch_screen(state, :cortex)}
   end
 
@@ -275,6 +276,7 @@ defmodule ExCortexTUI.App do
   defp parse_keys(<<"\r" :: binary>>, pid), do: send(pid, {:key, "\r"})
   defp parse_keys(<<"\n" :: binary>>, pid), do: send(pid, {:key, "\r"})
   defp parse_keys(<<3 :: integer>>, pid), do: send(pid, {:key, <<3>>})  # Ctrl+C
+  defp parse_keys(<<4 :: integer>>, pid), do: send(pid, {:key, :back})  # Ctrl+D
   defp parse_keys(<<127 :: integer>>, pid), do: send(pid, {:key, <<127>>})  # Backspace
   defp parse_keys(<<c :: integer>>, pid) when c >= 32 and c < 127, do: send(pid, {:key, <<c>>})
   defp parse_keys(data, pid) when byte_size(data) > 1 do
