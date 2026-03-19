@@ -1,9 +1,29 @@
 defmodule ExCortexTUI.App do
-  @moduledoc "Owl-based terminal UI for ExCortex."
+  @moduledoc "Owl LiveScreen-based terminal UI for ExCortex."
 
   use GenServer
 
   alias ExCortexTUI.Router
+
+  @screens %{
+    cortex: ExCortexTUI.Screens.Cortex,
+    daydreams: ExCortexTUI.Screens.Daydreams,
+    proposals: ExCortexTUI.Screens.Proposals,
+    wonder: ExCortexTUI.Screens.Wonder,
+    muse: ExCortexTUI.Screens.Muse,
+    hud: ExCortexTUI.Screens.HUD,
+    help: ExCortexTUI.Screens.Help
+  }
+
+  @nav_items [
+    {"c", :cortex, "Cortex"},
+    {"d", :daydreams, "Daydreams"},
+    {"p", :proposals, "Proposals"},
+    {"w", :wonder, "Wonder"},
+    {"m", :muse, "Muse"},
+    {"h", :hud, "HUD"},
+    {"?", :help, "Help"}
+  ]
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -15,55 +35,224 @@ defmodule ExCortexTUI.App do
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
 
-    state = %{screen: :cortex}
-    render(state)
-    schedule_refresh()
+    ensure_live_screen()
+
+    screen = :cortex
+    screen_mod = Map.fetch!(@screens, screen)
+    screen_state = safe_init(screen_mod, %{})
+
+    state = %{
+      screen: screen,
+      screen_mod: screen_mod,
+      screen_state: screen_state,
+      daydream_count: 0,
+      proposal_count: 0
+    }
+
+    add_blocks(state)
+    start_keyboard_reader()
+
     {:ok, state}
   end
 
   @impl true
-  def handle_info(:refresh, state) do
-    render(state)
-    schedule_refresh()
+  def handle_info({:key, "\e"}, %{screen: :cortex} = state) do
     {:noreply, state}
   end
 
-  def handle_info(_msg, state) do
-    render(state)
+  def handle_info({:key, "\e"}, state) do
+    {:noreply, switch_screen(state, :cortex)}
+  end
+
+  def handle_info({:key, "q"}, %{screen: screen} = state) when screen not in [:wonder, :muse] do
+    Owl.LiveScreen.stop()
+    System.stop(0)
     {:noreply, state}
   end
 
-  defp render(state) do
-    IO.write(IO.ANSI.clear() <> IO.ANSI.home())
+  def handle_info({:key, key}, state) do
+    case Router.handle_key(key, state.screen) do
+      {:switch, target} ->
+        {:noreply, switch_screen(state, target)}
 
-    header =
-      IO.ANSI.yellow() <>
-        "ExCortex" <>
-        IO.ANSI.reset() <>
-        "  " <>
-        ExCortexTUI.Components.KeyHints.render([
-          {"c", "cortex"},
-          {"n", "neurons"},
-          {"t", "thoughts"},
-          {"m", "memory"},
-          {"s", "senses"},
-          {"i", "instinct"},
-          {"g", "guide"},
-          {"q", "quit"}
-        ])
+      :forward ->
+        case safe_handle_key(state.screen_mod, key, state.screen_state) do
+          {:noreply, new_screen_state} ->
+            new_state = %{state | screen_state: new_screen_state}
+            update_blocks(new_state)
+            {:noreply, new_state}
 
-    content = Router.render(state.screen, state)
+          {:switch, target} ->
+            {:noreply, switch_screen(state, target)}
 
-    status =
-      IO.ANSI.green() <>
-        "●" <> IO.ANSI.reset() <> " ready  " <> IO.ANSI.faint() <> "[?] help" <> IO.ANSI.reset()
-
-    IO.puts(header)
-    IO.puts(String.duplicate("─", 80))
-    IO.puts(content)
-    IO.puts(String.duplicate("─", 80))
-    IO.puts(status)
+          {:quit, _screen_state} ->
+            Owl.LiveScreen.stop()
+            System.stop(0)
+            {:noreply, state}
+        end
+    end
   end
 
-  defp schedule_refresh, do: Process.send_after(self(), :refresh, 10_000)
+  def handle_info(msg, state) do
+    case safe_handle_info(state.screen_mod, msg, state.screen_state) do
+      {:noreply, new_screen_state} ->
+        new_state = %{state | screen_state: new_screen_state}
+        update_blocks(new_state)
+        {:noreply, new_state}
+
+      _ ->
+        {:noreply, state}
+    end
+  end
+
+  defp switch_screen(state, target) do
+    screen_mod = Map.get(@screens, target, Map.fetch!(@screens, :cortex))
+    screen_state = safe_init(screen_mod, %{})
+
+    new_state = %{
+      state
+      | screen: target,
+        screen_mod: screen_mod,
+        screen_state: screen_state
+    }
+
+    update_blocks(new_state)
+    new_state
+  end
+
+  defp ensure_live_screen do
+    if !Process.whereis(Owl.LiveScreen) do
+      Owl.LiveScreen.start_link(refresh_every: 100)
+    end
+  end
+
+  defp add_blocks(state) do
+    Owl.LiveScreen.add_block(:header,
+      state: state,
+      render: &render_header/1
+    )
+
+    Owl.LiveScreen.add_block(:content,
+      state: state,
+      render: &render_content/1
+    )
+
+    Owl.LiveScreen.add_block(:status,
+      state: state,
+      render: &render_status/1
+    )
+  end
+
+  defp update_blocks(state) do
+    Owl.LiveScreen.update(:header, state)
+    Owl.LiveScreen.update(:content, state)
+    Owl.LiveScreen.update(:status, state)
+  end
+
+  defp render_header(state) do
+    nav =
+      Enum.map_intersperse(@nav_items, " ", fn {key, screen, label} ->
+        styled_label =
+          if screen == state.screen do
+            Owl.Data.tag("[#{key}]#{label}", :bright_cyan)
+          else
+            Owl.Data.tag("[#{key}]#{label}", :faint)
+          end
+
+        styled_label
+      end)
+
+    [Owl.Data.tag("ExCortex", :yellow), "  " | nav]
+  end
+
+  defp render_content(state) do
+    safe_render(state.screen_mod, state.screen_state)
+  end
+
+  defp render_status(state) do
+    [
+      Owl.Data.tag(String.duplicate("─", 72), :faint),
+      "\n",
+      Owl.Data.tag("●", :green),
+      " ready",
+      "  daydreams:",
+      Owl.Data.tag(to_string(state.daydream_count), :cyan),
+      "  proposals:",
+      Owl.Data.tag(to_string(state.proposal_count), :cyan),
+      "  ",
+      Owl.Data.tag("[q]quit [esc]back", :faint)
+    ]
+  end
+
+  defp start_keyboard_reader do
+    app_pid = self()
+
+    Task.start(fn -> keyboard_loop(app_pid) end)
+  end
+
+  defp keyboard_loop(app_pid) do
+    case :io.get_chars(:stdio, ~c"", 1) do
+      :eof ->
+        :ok
+
+      {:error, _reason} ->
+        :ok
+
+      char when is_binary(char) ->
+        send(app_pid, {:key, char})
+        keyboard_loop(app_pid)
+
+      char when is_list(char) ->
+        send(app_pid, {:key, List.to_string(char)})
+        keyboard_loop(app_pid)
+    end
+  end
+
+  # Safe wrappers that handle screens not implementing the behaviour yet
+
+  defp safe_init(module, args) do
+    if function_exported?(module, :init, 1) do
+      module.init(args)
+    else
+      %{}
+    end
+  rescue
+    _ -> %{}
+  end
+
+  defp safe_render(module, screen_state) do
+    if function_exported?(module, :render, 1) do
+      result = module.render(screen_state)
+
+      if is_binary(result) do
+        result
+      else
+        result
+      end
+    else
+      Owl.Data.tag("  Coming soon...", :faint)
+    end
+  rescue
+    e -> Owl.Data.tag("  Screen error: #{Exception.message(e)}", :red)
+  end
+
+  defp safe_handle_key(module, key, screen_state) do
+    if function_exported?(module, :handle_key, 2) do
+      module.handle_key(key, screen_state)
+    else
+      {:noreply, screen_state}
+    end
+  rescue
+    _ -> {:noreply, screen_state}
+  end
+
+  defp safe_handle_info(module, msg, screen_state) do
+    if function_exported?(module, :handle_info, 2) do
+      module.handle_info(msg, screen_state)
+    else
+      {:noreply, screen_state}
+    end
+  rescue
+    _ -> {:noreply, screen_state}
+  end
 end

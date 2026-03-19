@@ -1,29 +1,26 @@
 defmodule ExCortexTUI.Router do
-  @moduledoc "Routes keyboard input and renders the active screen."
+  @moduledoc "Maps keyboard input to screen switches or forwards to active screen."
 
-  alias ExCortexTUI.Screens
-
-  @screen_keys %{
+  @nav_keys %{
     "c" => :cortex,
-    "n" => :neurons,
-    "t" => :thoughts,
-    "m" => :memory,
-    "s" => :senses,
-    "i" => :instinct,
-    "g" => :guide
+    "d" => :daydreams,
+    "p" => :proposals,
+    "w" => :wonder,
+    "m" => :muse,
+    "h" => :hud,
+    "?" => :help
   }
 
-  def handle_key(%{key: key}, _current_screen) when is_map_key(@screen_keys, key) do
-    {:switch, Map.fetch!(@screen_keys, key)}
+  @chat_screens [:wonder, :muse]
+
+  def handle_key(_key, current_screen) when current_screen in @chat_screens do
+    :forward
   end
 
-  def handle_key(_, _), do: :ignore
-
-  def render(:cortex, state), do: Screens.Cortex.render(state)
-  def render(:neurons, state), do: Screens.Neurons.render(state)
-  def render(:thoughts, state), do: Screens.Thoughts.render(state)
-  def render(:memory, state), do: Screens.Memory.render(state)
-  def render(:senses, state), do: Screens.Senses.render(state)
-  def render(:instinct, state), do: Screens.Instinct.render(state)
-  def render(:guide, state), do: Screens.Guide.render(state)
+  def handle_key(key, _current_screen) do
+    case Map.get(@nav_keys, key) do
+      nil -> :forward
+      screen -> {:switch, screen}
+    end
+  end
 end
