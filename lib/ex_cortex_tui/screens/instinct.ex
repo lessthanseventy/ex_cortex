@@ -1,10 +1,19 @@
 defmodule ExCortexTUI.Screens.Instinct do
   @moduledoc "Instinct screen: shows current app settings — Ollama URL, API keys, banner."
 
+  @behaviour ExCortexTUI.Screen
+
   alias ExCortexTUI.Components.KeyHints
   alias ExCortexTUI.Components.Panel
   alias ExCortexTUI.Components.Status
 
+  @impl true
+  def init(_), do: %{}
+
+  @impl true
+  def handle_key(_key, state), do: {:noreply, state}
+
+  @impl true
   def render(_state) do
     settings_content = fetch_settings()
     expressions_content = fetch_expressions()

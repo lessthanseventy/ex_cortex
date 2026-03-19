@@ -1,108 +1,97 @@
 defmodule ExCortexTUI.Screens.Cortex do
-  @moduledoc "Dashboard screen: Active Thoughts, Recent Signals, Cluster Health, Recent Memory."
+  @moduledoc "Dashboard screen: Active Ruminations, Recent Signals, Cluster Health, Recent Memory."
 
-  alias ExCortexTUI.Components.KeyHints
-  alias ExCortexTUI.Components.Panel
-  alias ExCortexTUI.Components.Status
+  @behaviour ExCortexTUI.Screen
 
-  def render(_state) do
-    ruminations_content = fetch_ruminations()
-    signals_content = fetch_signals()
-    clusters_content = fetch_clusters()
-    memory_content = fetch_memory()
-
-    hints =
-      KeyHints.render([
-        {"c", "Cortex"},
-        {"n", "Neurons"},
-        {"t", "Ruminations"},
-        {"m", "Memory"},
-        {"s", "Senses"},
-        {"i", "Instinct"},
-        {"g", "Guide"},
-        {"q", "Quit"}
-      ])
-
-    Enum.join(
-      [
-        Panel.render("Active Ruminations", ruminations_content),
-        Panel.render("Recent Signals", signals_content),
-        Panel.render("Cluster Health", clusters_content),
-        Panel.render("Recent Memory", memory_content),
-        "",
-        hints
-      ],
-      "\n"
-    )
+  @impl true
+  def init(_opts) do
+    Phoenix.PubSub.subscribe(ExCortex.PubSub, "daydreams")
+    Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
+    Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
+    fetch_all()
   end
 
-  defp fetch_ruminations do
-    ruminations = ExCortex.Ruminations.list_ruminations()
-
-    if Enum.empty?(ruminations) do
-      Status.render(:amber, "No active ruminations")
-    else
-      ruminations
-      |> Enum.take(5)
-      |> Enum.map_join("\n", fn t ->
-        color = rumination_color(t.status)
-        Status.render(color, "#{t.name}  [#{t.status}]")
-      end)
-    end
-  rescue
-    _ -> Status.render(:red, "Unavailable — DB not connected")
+  @impl true
+  def render(state) do
+    [
+      Owl.Box.new(render_ruminations(state.ruminations), title: "Active Ruminations", min_width: 60),
+      "\n",
+      Owl.Box.new(render_signals(state.signals), title: "Recent Signals", min_width: 60),
+      "\n",
+      Owl.Box.new(render_clusters(state.clusters), title: "Cluster Health", min_width: 60),
+      "\n",
+      Owl.Box.new(render_memory(state.engrams), title: "Recent Memory", min_width: 60)
+    ]
   end
 
-  defp fetch_signals do
-    signals = ExCortex.Signals.list_signals(limit: 5)
+  @impl true
+  def handle_key(_key, state), do: {:noreply, state}
 
-    if Enum.empty?(signals) do
-      Status.render(:amber, "No recent signals")
-    else
-      Enum.map_join(signals, "\n", fn s ->
-        "#{format_time(s.inserted_at)}  #{s.source_type}  #{truncate(s.content, 40)}"
-      end)
-    end
-  rescue
-    _ -> Status.render(:red, "Unavailable — DB not connected")
+  @impl true
+  def handle_info(_msg, _state), do: {:noreply, fetch_all()}
+
+  # -- Data fetching --
+
+  defp fetch_all do
+    %{
+      ruminations: safe_fetch(fn -> ExCortex.Ruminations.list_ruminations() end),
+      signals: safe_fetch(fn -> ExCortex.Signals.list_signals(limit: 5) end),
+      clusters: safe_fetch(fn -> ExCortex.Clusters.list_pathways() end),
+      engrams: safe_fetch(fn -> ExCortex.Memory.list_engrams(limit: 5) end)
+    }
   end
 
-  defp fetch_clusters do
-    clusters = ExCortex.Clusters.list_pathways()
-
-    if Enum.empty?(clusters) do
-      Status.render(:amber, "No clusters installed")
-    else
-      Enum.map_join(clusters, "\n", fn c ->
-        neuron_count = length(Map.get(c, :neurons, []))
-        Status.render(:green, "#{c.name}  (#{neuron_count} neurons)")
-      end)
-    end
+  defp safe_fetch(fun) do
+    fun.()
   rescue
-    _ -> Status.render(:red, "Unavailable — DB not connected")
+    _ -> []
   end
 
-  defp fetch_memory do
-    engrams = ExCortex.Memory.list_engrams(limit: 5)
+  # -- Rendering --
 
-    if Enum.empty?(engrams) do
-      Status.render(:amber, "No engrams stored")
-    else
-      Enum.map_join(engrams, "\n", fn e ->
-        importance = String.duplicate("★", min(e.importance || 1, 5))
-        "#{importance}  #{truncate(e.title, 44)}  [#{e.category}]"
-      end)
-    end
-  rescue
-    _ -> Status.render(:red, "Unavailable — DB not connected")
+  defp render_ruminations([]), do: Owl.Data.tag("No active ruminations", :yellow)
+
+  defp render_ruminations(ruminations) do
+    ruminations
+    |> Enum.take(5)
+    |> Enum.map_intersperse("\n", fn t ->
+      color = rumination_color(t.status)
+      [Owl.Data.tag("● ", color), "#{t.name}  ", Owl.Data.tag("[#{t.status}]", color)]
+    end)
+  end
+
+  defp render_signals([]), do: Owl.Data.tag("No recent signals", :yellow)
+
+  defp render_signals(signals) do
+    Enum.map_intersperse(signals, "\n", fn s ->
+      [Owl.Data.tag(format_time(s.inserted_at), :faint), "  #{s.source_type}  #{truncate(s.content, 40)}"]
+    end)
+  end
+
+  defp render_clusters([]), do: Owl.Data.tag("No clusters installed", :yellow)
+
+  defp render_clusters(clusters) do
+    Enum.map_intersperse(clusters, "\n", fn c ->
+      neuron_count = length(Map.get(c, :neurons, []))
+      [Owl.Data.tag("● ", :green), "#{c.name}  ", Owl.Data.tag("(#{neuron_count} neurons)", :faint)]
+    end)
+  end
+
+  defp render_memory([]), do: Owl.Data.tag("No engrams stored", :yellow)
+
+  defp render_memory(engrams) do
+    Enum.map_intersperse(engrams, "\n", fn e ->
+      importance = String.duplicate("★", min(e.importance || 1, 5))
+      [Owl.Data.tag(importance, :yellow), "  #{truncate(e.title, 44)}  ", Owl.Data.tag("[#{e.category}]", :faint)]
+    end)
   end
 
   defp rumination_color("active"), do: :green
   defp rumination_color("running"), do: :cyan
   defp rumination_color("failed"), do: :red
-  defp rumination_color(_), do: :amber
+  defp rumination_color(_), do: :yellow
 
-  defp truncate(nil, _), do: ""
+  defp truncate(nil, _max), do: ""
   defp truncate(s, max) when byte_size(s) <= max, do: s
   defp truncate(s, max), do: String.slice(s, 0, max - 1) <> "…"
 
