@@ -79,6 +79,14 @@ defmodule ExCortex.Muse do
   - Reference data (teams, tickers, standards) → query_axiom
   - Current web content → fetch_url or web_search
 
+  DAILY NOTE SECTIONS:
+  The user's daily notes have these sections:
+  - "## what's happening" — scattered todos rolled up from across the vault. Items are checkboxes (- [ ] or - [x]).
+  - "## what happened" — a running work log for standup. Items are completed checkboxes (- [x]).
+  - brain dump — a callout section for raw captured thoughts.
+  When answering "what did I get done": combine completed todos from "what's happening" (- [x] items) with the "what happened" work log. Group them sensibly — e.g. "Completed Todos" and "Work Log" as separate sections.
+  When answering "what should I do": show only unchecked items from "what's happening".
+
   RULES:
   - USE YOUR TOOLS. Never say "I can't access that" without trying the relevant tool first.
   - When context includes links, include them in your answer.

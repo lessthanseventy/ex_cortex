@@ -40,8 +40,8 @@ defmodule ExCortex.Muse.Classifier do
   - "today" → time_range: today
   - "yesterday" → time_range: yesterday
   - "brain dump" → obsidian_sections: ["brain_dump"]
-  - PAST TENSE / retrospective ("what did I do", "what did I get done", "accomplished", "completed", "standup", "work log", "what I did") → obsidian_sections: ["what_happened"]. This is a work log, NOT the todo list.
-  - FUTURE TENSE / prospective ("what should I do", "what's on my plate", "what's happening", "what do I need to do") → obsidian_sections: ["whats_happening"]. This is the todo/task list.
+  - PAST TENSE / retrospective ("what did I do", "what did I get done", "accomplished", "completed", "standup", "work log", "what I did") → obsidian_sections: ["what_happened", "whats_happening"]. Include BOTH the work log AND the todo list so completed todos are visible.
+  - FUTURE TENSE / prospective ("what should I do", "what's on my plate", "what's happening", "what do I need to do") → obsidian_sections: ["whats_happening"]. This is the todo/task list only.
   - "todos", "tasks", "to do" → obsidian + todos mode
   - Dashboard, metrics, status → signals
   - Memory, past knowledge, "remember when" → engrams
