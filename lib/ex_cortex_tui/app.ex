@@ -115,10 +115,25 @@ defmodule ExCortexTUI.App do
 
   @impl true
   def render(model) do
-    view do
-      label(content: "ExCortex TUI — screen: #{model.screen}")
-      label(content: "Press q to quit, a/c/d/p/w/m/h/l/? to switch screens")
-      label(content: "")
+    nav_text =
+      @nav_items
+      |> Enum.map_join(" ", fn {ch, screen, name} ->
+        if screen == model.screen, do: "[#{<<ch>>}]#{name}", else: " #{<<ch>>} #{name}"
+      end)
+
+    top =
+      bar do
+        label(content: "ExCortex  #{nav_text}")
+      end
+
+    status = "● daydreams:#{model.daydream_count}  proposals:#{model.proposal_count}  [q]quit [esc]back"
+
+    bottom =
+      bar do
+        label(content: status)
+      end
+
+    view top_bar: top, bottom_bar: bottom do
       render_screen(model)
     end
   rescue
@@ -313,7 +328,7 @@ defmodule ExCortexTUI.App do
           label(content: "  Brain Dump:", attributes: [:bold])
 
           for item <- brain_dump do
-            label(content: "    - #{item}")
+            label(content: "    - #{item_text(item)}")
           end
         end
 
@@ -322,7 +337,8 @@ defmodule ExCortexTUI.App do
           label(content: "  What Happened:", attributes: [:bold])
 
           for item <- what_happened do
-            label(content: "    - #{item}")
+            checked = if is_map(item) && item["checked"], do: "[x] ", else: "    "
+            label(content: "  #{checked}#{item_text(item)}")
           end
         end
 
@@ -802,4 +818,9 @@ defmodule ExCortexTUI.App do
   defp truncate(s, len) when is_binary(s) and byte_size(s) <= len, do: s
   defp truncate(s, len) when is_binary(s), do: String.slice(s, 0, len) <> "..."
   defp truncate(s, len), do: truncate(inspect(s), len)
+
+  defp item_text(%{"text" => text}), do: text
+  defp item_text(%{"title" => title}), do: title
+  defp item_text(item) when is_binary(item), do: item
+  defp item_text(item), do: inspect(item)
 end
