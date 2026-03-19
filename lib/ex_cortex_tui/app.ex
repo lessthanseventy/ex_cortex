@@ -144,8 +144,9 @@ defmodule ExCortexTUI.App do
   end
 
   defp restore_terminal do
-    port = Port.open({:spawn, "stty sane"}, [:binary, :use_stdio])
-    Port.close(port)
+    beam_pid = :os.getpid() |> List.to_string()
+    tty_path = "/proc/#{beam_pid}/fd/0"
+    :os.cmd(~c"stty sane < #{tty_path} 2>/dev/null")
     IO.write(["\e[?25h", "\e[?1049l"])
   end
 
@@ -242,12 +243,14 @@ defmodule ExCortexTUI.App do
   defp start_keyboard_reader do
     app_pid = self()
 
-    # Set raw mode — use Port with :use_stdio so stty sees the real terminal
-    raw_port = Port.open({:spawn, "stty raw -echo"}, [:binary, :use_stdio])
-    Port.close(raw_port)
+    # Get the BEAM's PID so we can access its terminal fd
+    beam_pid = :os.getpid() |> List.to_string()
+    tty_path = "/proc/#{beam_pid}/fd/0"
 
-    # Read raw bytes from stdin fd
-    port = Port.open({:fd, 0, 1}, [:binary, :eof])
+    # Spawn a shell that sets the BEAM's terminal to raw mode and reads from it
+    cmd = "stty raw -echo < #{tty_path} 2>/dev/null; exec cat < #{tty_path}"
+    port = Port.open({:spawn, "sh -c '#{cmd}'"}, [:binary, :eof])
+
     Task.start_link(fn -> read_port_loop(port, app_pid) end)
   end
 
