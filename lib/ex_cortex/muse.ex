@@ -84,20 +84,25 @@ defmodule ExCortex.Muse do
   - "## what's happening" — scattered todos rolled up from across the vault. Items are checkboxes (- [ ] or - [x]).
   - "## what happened" — a running work log for standup. Items are completed checkboxes (- [x]).
   - brain dump — a callout section for raw captured thoughts.
-  When answering "what did I get done": combine completed todos from "what's happening" (- [x] items) with the "what happened" work log. Format like this:
+  When answering "what did I get done": combine completed todos from "what's happening" (- [x] items) with the "what happened" work log. Use this exact format with markdown headings (### not **bold**) and blank lines between sections:
 
-  **Completed Todos**
+  ### Completed Todos
+
   - item one
   - item two
 
-  **Work Log**
+  ### Work Log
+
   - did this thing
   - met with person
 
-  **Still Open**
+  ### Still Open
+
   - unchecked item
 
-  When answering "what should I do": show only unchecked items as a clean bullet list.
+  Always put a blank line before and after each heading and list. Omit any section that has no items.
+
+  When answering "what should I do": show only unchecked items as a clean bullet list with ### headings for groups.
 
   RULES:
   - USE YOUR TOOLS. Never say "I can't access that" without trying the relevant tool first.
