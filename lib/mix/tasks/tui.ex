@@ -9,6 +9,11 @@ defmodule Mix.Tasks.Tui do
     Logger.configure(level: :none)
     System.put_env("EX_CORTEX_MODE", "tui")
 
+    # termbox doesn't recognize tmux-256color — set xterm-256color (compatible)
+    if String.contains?(System.get_env("TERM", ""), "tmux") do
+      System.put_env("TERM", "xterm-256color")
+    end
+
     # Boot the app (DB, PubSub, etc. but NOT the TUI itself)
     Application.ensure_all_started(:ex_cortex)
 
