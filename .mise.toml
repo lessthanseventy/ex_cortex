@@ -30,6 +30,14 @@ run = "./burrito_out/ex_cortex_linux_x86 start"
 description = "Run the Burrito binary with OpenTelemetry export"
 run = "OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 ./burrito_out/ex_cortex_linux_x86 start"
 
+[tasks.tui]
+description = "Start the interactive TUI"
+run = "mix tui"
+
+[tasks.hud]
+description = "Start the machine-readable HUD"
+run = "mix hud"
+
 [tasks.services]
 description = "Start background services (db, ollama, observability)"
 run = "docker compose up -d"

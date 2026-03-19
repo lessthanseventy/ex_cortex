@@ -112,7 +112,7 @@ defmodule ExCortexTUI.Screens.Proposals do
   # -- Rendering --
 
   defp render_collapsed(proposal, _idx, selected) do
-    prefix = if selected, do: Owl.Data.tag("▸ ", :bright_cyan), else: "  "
+    prefix = if selected, do: Owl.Data.tag("▸ ", [:bright, :cyan]), else: "  "
     type_color = type_color(proposal.type)
     confidence = get_confidence(proposal)
     age = relative_time(proposal.inserted_at)
@@ -130,7 +130,7 @@ defmodule ExCortexTUI.Screens.Proposals do
   end
 
   defp render_expanded(proposal, _idx, selected) do
-    prefix = if selected, do: Owl.Data.tag("▾ ", :bright_cyan), else: "  "
+    prefix = if selected, do: Owl.Data.tag("▾ ", [:bright, :cyan]), else: "  "
     type_color = type_color(proposal.type)
     confidence = get_confidence(proposal)
     age = relative_time(proposal.inserted_at)

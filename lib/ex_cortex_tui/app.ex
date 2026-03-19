@@ -174,7 +174,7 @@ defmodule ExCortexTUI.App do
       Enum.map_intersperse(@nav_items, " ", fn {key, screen, label} ->
         styled_label =
           if screen == state.screen do
-            Owl.Data.tag("[#{key}]#{label}", :bright_cyan)
+            Owl.Data.tag("[#{key}]#{label}", [:bright, :cyan])
           else
             Owl.Data.tag("[#{key}]#{label}", :faint)
           end

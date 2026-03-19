@@ -95,7 +95,7 @@ defmodule ExCortexTUI.Screens.Daydreams do
             age = relative_time(daydream.inserted_at)
 
             line = [
-              if(selected, do: Owl.Data.tag("▸ ", :bright_cyan), else: "  "),
+              if(selected, do: Owl.Data.tag("▸ ", [:bright, :cyan]), else: "  "),
               Owl.Data.tag("● ", dot_color),
               String.pad_trailing(daydream.status || "?", 6),
               "  ",
@@ -107,7 +107,7 @@ defmodule ExCortexTUI.Screens.Daydreams do
             ]
 
             if selected do
-              [Owl.Data.tag("", :bright_cyan) | line]
+              [Owl.Data.tag("", [:bright, :cyan]) | line]
             else
               line
             end
@@ -151,7 +151,7 @@ defmodule ExCortexTUI.Screens.Daydreams do
     daydream = state.daydream
 
     header_line = [
-      Owl.Data.tag("Daydream ##{daydream.id}", :bright_cyan),
+      Owl.Data.tag("Daydream ##{daydream.id}", [:bright, :cyan]),
       "  ",
       Owl.Data.tag("● ", status_color(daydream.status)),
       daydream.status || "?"
