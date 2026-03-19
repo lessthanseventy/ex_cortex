@@ -133,9 +133,9 @@ defmodule ExCortex.Tools.DailyNoteWrite do
           top ++ ["- #{content}"] ++ bottom
 
         nil ->
-          # Trim trailing blank lines so the first bullet sits right after the heading
+          # Keep exactly one blank line between heading and first bullet
           trimmed = Enum.reverse(Enum.drop_while(Enum.reverse(section_lines), &(String.trim(&1) == "")))
-          trimmed ++ ["- #{content}"]
+          trimmed ++ ["", "- #{content}"]
       end
     end
   end
