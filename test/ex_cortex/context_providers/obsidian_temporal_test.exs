@@ -5,19 +5,19 @@ defmodule ExCortex.ContextProviders.ObsidianTemporalTest do
 
   describe "date_range_for/1" do
     test "today returns single date matching utc_today" do
-      assert Obsidian.date_range_for("today") == [Date.utc_today()]
+      assert Obsidian.date_range_for("today") == [ExCortex.LocalDate.today()]
     end
 
     test "yesterday returns previous day" do
-      assert Obsidian.date_range_for("yesterday") == [Date.add(Date.utc_today(), -1)]
+      assert Obsidian.date_range_for("yesterday") == [Date.add(ExCortex.LocalDate.today(), -1)]
     end
 
     test "week returns 7 dates oldest first ending with today" do
       dates = Obsidian.date_range_for("week")
 
       assert length(dates) == 7
-      assert List.last(dates) == Date.utc_today()
-      assert hd(dates) == Date.add(Date.utc_today(), -6)
+      assert List.last(dates) == ExCortex.LocalDate.today()
+      assert hd(dates) == Date.add(ExCortex.LocalDate.today(), -6)
       assert dates == Enum.sort(dates, Date)
     end
 
@@ -25,14 +25,14 @@ defmodule ExCortex.ContextProviders.ObsidianTemporalTest do
       dates = Obsidian.date_range_for("month")
 
       assert length(dates) == 30
-      assert List.last(dates) == Date.utc_today()
-      assert hd(dates) == Date.add(Date.utc_today(), -29)
+      assert List.last(dates) == ExCortex.LocalDate.today()
+      assert hd(dates) == Date.add(ExCortex.LocalDate.today(), -29)
       assert dates == Enum.sort(dates, Date)
     end
 
     test "unknown value defaults to today" do
-      assert Obsidian.date_range_for("bogus") == [Date.utc_today()]
-      assert Obsidian.date_range_for("") == [Date.utc_today()]
+      assert Obsidian.date_range_for("bogus") == [ExCortex.LocalDate.today()]
+      assert Obsidian.date_range_for("") == [ExCortex.LocalDate.today()]
     end
   end
 
@@ -74,7 +74,7 @@ defmodule ExCortex.ContextProviders.ObsidianTemporalTest do
       result = Obsidian.build(config, %{}, "anything")
 
       if result != "" do
-        today = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
+        today = Calendar.strftime(ExCortex.LocalDate.today(), "%Y-%m-%d")
         assert result =~ "## Daily Notes (today)"
         assert result =~ "### #{today}"
       end

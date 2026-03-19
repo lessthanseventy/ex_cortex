@@ -165,14 +165,7 @@ defmodule ExCortex.Tools.DailyNoteWrite do
   end
 
   defp resolve_today do
-    today = Date.to_iso8601(Date.utc_today())
-    yesterday = Date.to_iso8601(Date.add(Date.utc_today(), -1))
-
-    cond do
-      File.exists?(daily_note_path(today)) -> today
-      File.exists?(daily_note_path(yesterday)) -> yesterday
-      true -> today
-    end
+    Date.to_iso8601(ExCortex.LocalDate.today())
   end
 
   defp vault_path do

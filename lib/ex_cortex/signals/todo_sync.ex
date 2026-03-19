@@ -12,21 +12,12 @@ defmodule ExCortex.Signals.TodoSync do
   @pin_slug "daily-todos"
 
   def sync do
-    # Use local date, not UTC — daily notes follow the user's timezone
-    today = Date.utc_today()
-    yesterday = Date.add(today, -1)
-    # Try today first, then yesterday (handles UTC rollover)
+    today = ExCortex.LocalDate.today()
 
     {date, content} =
       case File.read(daily_note_path(Date.to_iso8601(today))) do
-        {:ok, c} ->
-          {today, c}
-
-        _ ->
-          case File.read(daily_note_path(Date.to_iso8601(yesterday))) do
-            {:ok, c} -> {yesterday, c}
-            _ -> {today, nil}
-          end
+        {:ok, c} -> {today, c}
+        _ -> {today, nil}
       end
 
     if content do

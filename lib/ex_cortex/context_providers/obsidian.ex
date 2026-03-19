@@ -117,20 +117,20 @@ defmodule ExCortex.ContextProviders.Obsidian do
   @doc """
   Returns a list of `Date` structs for the given time range keyword.
 
-  - `"today"` → `[Date.utc_today()]`
-  - `"yesterday"` → `[Date.add(Date.utc_today(), -1)]`
+  - `"today"` → `[ExCortex.LocalDate.today()]`
+  - `"yesterday"` → `[Date.add(ExCortex.LocalDate.today(), -1)]`
   - `"week"` → last 7 dates (oldest first)
   - `"month"` → last 30 dates (oldest first)
-  - anything else → `[Date.utc_today()]`
+  - anything else → `[ExCortex.LocalDate.today()]`
   """
-  def date_range_for("today"), do: [Date.utc_today()]
-  def date_range_for("yesterday"), do: [Date.add(Date.utc_today(), -1)]
+  def date_range_for("today"), do: [ExCortex.LocalDate.today()]
+  def date_range_for("yesterday"), do: [Date.add(ExCortex.LocalDate.today(), -1)]
   def date_range_for("week"), do: date_list(6)
   def date_range_for("month"), do: date_list(29)
-  def date_range_for(_), do: [Date.utc_today()]
+  def date_range_for(_), do: [ExCortex.LocalDate.today()]
 
   defp date_list(days_back) do
-    today = Date.utc_today()
+    today = ExCortex.LocalDate.today()
     Enum.map(days_back..0//-1, &Date.add(today, -&1))
   end
 
@@ -270,7 +270,7 @@ defmodule ExCortex.ContextProviders.Obsidian do
   end
 
   defp gather_daily do
-    today = Calendar.strftime(Date.utc_today(), "%Y-%m-%d")
+    today = Calendar.strftime(ExCortex.LocalDate.today(), "%Y-%m-%d")
 
     case ReadObsidian.call(%{"title" => "journal/#{today}.md"}) do
       {:ok, content} when content != "" -> "### Daily Note (#{today})\n#{content}"
