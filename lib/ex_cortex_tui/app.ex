@@ -75,9 +75,7 @@ defmodule ExCortexTUI.App do
 
   @impl true
   def terminate(_reason, _state) do
-    # Restore terminal
-    System.cmd("stty", ["sane"], into: IO.stream())
-    IO.write(["\e[?25h", "\e[?1049l"])
+    restore_terminal()
     :ok
   end
 
@@ -140,10 +138,14 @@ defmodule ExCortexTUI.App do
 
   defp cleanup_and_quit do
     Owl.LiveScreen.flush()
-    System.cmd("stty", ["sane"], into: IO.stream())
-    IO.write(["\e[?25h", "\e[?1049l"])
+    restore_terminal()
     Logger.configure(level: :debug)
     System.stop(0)
+  end
+
+  defp restore_terminal do
+    :os.cmd(~c"stty sane </dev/tty")
+    IO.write(["\e[?25h", "\e[?1049l"])
   end
 
   defp switch_screen(state, target) do
@@ -239,15 +241,14 @@ defmodule ExCortexTUI.App do
   defp start_keyboard_reader do
     app_pid = self()
 
-    # Put terminal in raw mode via stty
-    System.cmd("stty", ["raw", "-echo"], into: IO.stream())
+    # Put terminal in raw mode
+    :os.cmd(~c"stty raw -echo </dev/tty")
 
-    # Use a Port to read raw stdin
+    # Read raw bytes from stdin via fd Port
     Task.start_link(fn -> keyboard_loop(app_pid) end)
   end
 
   defp keyboard_loop(app_pid) do
-    # Read raw bytes from stdin via Port
     port = Port.open({:fd, 0, 1}, [:binary, :eof])
     read_port_loop(port, app_pid)
   end

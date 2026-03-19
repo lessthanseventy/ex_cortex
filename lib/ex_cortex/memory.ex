@@ -10,12 +10,14 @@ defmodule ExCortex.Memory do
     tags = Keyword.get(opts, :tags, [])
     rumination_id = Keyword.get(opts, :rumination_id)
     sort = Keyword.get(opts, :sort, "newest")
+    limit = Keyword.get(opts, :limit)
 
     query =
       from(e in Engram)
       |> filter_tags(tags)
       |> filter_rumination(rumination_id)
       |> apply_sort(sort)
+      |> maybe_limit(limit)
 
     Repo.all(query)
   end
@@ -195,4 +197,7 @@ defmodule ExCortex.Memory do
   defp apply_sort(query, _newest) do
     from e in query, order_by: [desc: e.inserted_at]
   end
+
+  defp maybe_limit(query, nil), do: query
+  defp maybe_limit(query, limit), do: from(e in query, limit: ^limit)
 end
