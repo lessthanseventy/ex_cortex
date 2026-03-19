@@ -74,8 +74,8 @@ defmodule ExCortexTUI.Screens.Cortex do
 
   defp render_clusters(clusters) do
     Enum.map_intersperse(clusters, "\n", fn c ->
-      neuron_count = length(Map.get(c, :neurons, []))
-      [Owl.Data.tag("● ", :green), "#{c.name}  ", Owl.Data.tag("(#{neuron_count} neurons)", :faint)]
+      name = Map.get(c, :cluster_name) || Map.get(c, :name) || "?"
+      [Owl.Data.tag("● ", :green), name, "  ", Owl.Data.tag(truncate(c.pathway_text || "", 50), :faint)]
     end)
   end
 
