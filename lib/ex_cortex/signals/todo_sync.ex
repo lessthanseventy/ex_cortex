@@ -125,7 +125,8 @@ defmodule ExCortex.Signals.TodoSync do
     |> elem(0)
   end
 
-  # Parse plain bullet items from a heading section (## what happened, etc.)
+  # Parse bullet items from a heading section (## what happened, etc.)
+  # Strips checkbox syntax: "- [x] did a thing" → "did a thing"
   defp parse_heading_bullets(content, heading_regex) do
     content
     |> String.split("\n")
@@ -140,11 +141,18 @@ defmodule ExCortex.Signals.TodoSync do
         in_section and String.match?(line, ~r/^>\s*\[!/) ->
           {items, false}
 
+        in_section and String.match?(line, ~r/^---\s*$/) ->
+          {items, false}
+
         in_section ->
-          case parse_bullet(line) do
-            nil -> {items, in_section}
-            text -> {items ++ [text], true}
-          end
+          text =
+            line
+            |> String.trim()
+            |> String.replace(~r/^-\s*\[.\]\s*/, "")
+            |> String.replace(~r/^-\s*/, "")
+            |> String.trim()
+
+          if text == "", do: {items, in_section}, else: {items ++ [text], true}
 
         true ->
           {items, in_section}
@@ -199,7 +207,7 @@ defmodule ExCortex.Signals.TodoSync do
           },
           "what_happened" => %{
             "tool" => "daily_note_write",
-            "args_template" => %{"content" => "{input}", "section" => "what happened"}
+            "args_template" => %{"content" => "[x] {input}", "section" => "what happened"}
           }
         }
       }
