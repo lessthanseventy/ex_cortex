@@ -12,7 +12,7 @@ defmodule ExCortex.MixProject do
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
-      elixirc_options: [warnings_as_errors: Mix.env() == :test],
+      elixirc_options: [warnings_as_errors: Mix.env() in [:test, :dev]],
       releases: releases()
     ]
   end
@@ -83,7 +83,7 @@ defmodule ExCortex.MixProject do
       {:burrito, "~> 1.5", only: :prod},
       # Accessibility
       {:excessibility, "~> 0.10", only: [:dev, :test]},
-      {:ex_compact, "~> 0.1", path: "/home/andrew/projects/ex_compact"}
+      {:ex_compact, "~> 0.1", path: "../ex_compact"}
     ]
   end
 

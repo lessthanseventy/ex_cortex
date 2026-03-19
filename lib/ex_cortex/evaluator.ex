@@ -113,12 +113,20 @@ defmodule ExCortex.Evaluator do
     role_names
   end
 
-  # Serialize module creation through a single caller. The first process to
-  # register wins and builds; all others block until it's done.
+  # Serialize module creation via ETS insert_new as a lock.
+  # First process to insert wins and builds; others wait and retry.
   defp ensure_roles_built(meta, role_names, lobe_prompt) do
-    case :global.register_name(:evaluator_role_builder, self()) do
-      :yes ->
-        # We won — build all modules
+    # Ensure the lock table exists (idempotent)
+    if :ets.whereis(:evaluator_locks) == :undefined do
+      try do
+        :ets.new(:evaluator_locks, [:set, :public, :named_table])
+      rescue
+        ArgumentError -> :ok
+      end
+    end
+
+    if :ets.insert_new(:evaluator_locks, {:role_builder, self()}) do
+      try do
         meta.roles
         |> Enum.zip(role_names)
         |> Enum.each(fn {role_def, mod_name} ->
@@ -126,17 +134,15 @@ defmodule ExCortex.Evaluator do
             create_role_module(mod_name, role_def, lobe_prompt)
           end
         end)
+      after
+        :ets.delete(:evaluator_locks, :role_builder)
+      end
+    else
+      Process.sleep(50)
 
-        :global.unregister_name(:evaluator_role_builder)
-
-      :no ->
-        # Another process is building — wait for it to finish
-        Process.sleep(100)
-
-        if !Enum.all?(role_names, &Code.ensure_loaded?/1) do
-          # Still not done, try again (will either build or wait)
-          ensure_roles_built(meta, role_names, lobe_prompt)
-        end
+      if !Enum.all?(role_names, &Code.ensure_loaded?/1) do
+        ensure_roles_built(meta, role_names, lobe_prompt)
+      end
     end
   end
 
