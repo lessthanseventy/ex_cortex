@@ -235,13 +235,10 @@ defmodule ExCortexWeb.CortexLive do
   defp build_tool_args(%{"args_template" => template}, _card, params) do
     Enum.reduce(template, %{}, fn {key, value}, acc ->
       resolved =
-        cond do
-          value == "{input}" -> params["value"] || ""
-          value == "{item.text}" -> params["text"] || ""
-          value == "{item.index}" -> params["index"] || ""
-          String.starts_with?(value, "{") -> params[String.trim(value, "{}")] || ""
-          true -> value
-        end
+        value
+        |> String.replace("{input}", params["value"] || "")
+        |> String.replace("{item.text}", params["text"] || "")
+        |> String.replace("{item.index}", params["index"] || "")
 
       Map.put(acc, key, resolved)
     end)
