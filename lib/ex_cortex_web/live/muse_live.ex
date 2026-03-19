@@ -142,7 +142,7 @@ defmodule ExCortexWeb.MuseLive do
             )
           ]}
         >
-          <div class="prose prose-invert prose-sm max-w-none">
+          <div class="prose prose-invert max-w-none prose-headings:text-sm prose-headings:font-semibold prose-headings:text-zinc-200 prose-headings:mt-4 prose-headings:mb-2 prose-p:text-sm prose-p:my-2 prose-li:text-sm prose-ul:my-1 first:prose-headings:mt-0">
             {Phoenix.HTML.raw(render_markdown(msg.content))}
           </div>
           <button
