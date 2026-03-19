@@ -126,7 +126,7 @@ defmodule ExCortex.Signals.TodoSync do
   end
 
   # Parse bullet items from a heading section (## what happened, etc.)
-  # Strips checkbox syntax: "- [x] did a thing" → "did a thing"
+  # Returns maps: %{"text" => "thing", "checked" => true/false}
   defp parse_heading_bullets(content, heading_regex) do
     content
     |> String.split("\n")
@@ -145,14 +145,24 @@ defmodule ExCortex.Signals.TodoSync do
           {items, false}
 
         in_section ->
-          text =
-            line
-            |> String.trim()
-            |> String.replace(~r/^-\s*\[.\]\s*/, "")
-            |> String.replace(~r/^-\s*/, "")
-            |> String.trim()
+          trimmed = String.trim(line)
 
-          if text == "", do: {items, in_section}, else: {items ++ [text], true}
+          cond do
+            String.match?(trimmed, ~r/^-\s*\[x\]/i) ->
+              text = trimmed |> String.replace(~r/^-\s*\[x\]\s*/i, "") |> String.trim()
+              if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => true}], true}
+
+            String.match?(trimmed, ~r/^-\s*\[ \]/) ->
+              text = trimmed |> String.replace(~r/^-\s*\[ \]\s*/, "") |> String.trim()
+              if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
+
+            String.match?(trimmed, ~r/^-\s+\S/) ->
+              text = trimmed |> String.replace(~r/^-\s+/, "") |> String.trim()
+              if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
+
+            true ->
+              {items, in_section}
+          end
 
         true ->
           {items, in_section}

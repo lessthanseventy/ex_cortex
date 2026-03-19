@@ -85,8 +85,12 @@ defmodule ExCortexWeb.Components.SignalCards do
             <ul class="space-y-1 mb-2">
               <%= for item <- @what_happened do %>
                 <li class="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span class="text-emerald-500">✓</span>
-                  <span>{item}</span>
+                  <span class={
+                    if item["checked"], do: "text-emerald-500", else: "text-muted-foreground"
+                  }>
+                    {if item["checked"], do: "✓", else: "○"}
+                  </span>
+                  <span>{item["text"]}</span>
                 </li>
               <% end %>
             </ul>
