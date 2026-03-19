@@ -241,16 +241,15 @@ defmodule ExCortexTUI.App do
   defp start_keyboard_reader do
     app_pid = self()
 
-    # Put terminal in raw mode
-    :os.cmd(~c"stty raw -echo </dev/tty")
+    # Spawn a shell that sets raw mode on /dev/tty and reads bytes from it
+    # This bypasses Erlang's IO layer entirely
+    port =
+      Port.open(
+        {:spawn, "sh -c 'stty raw -echo < /dev/tty; while true; do dd bs=1 count=1 < /dev/tty 2>/dev/null; done'"},
+        [:binary, :eof, :use_stdio]
+      )
 
-    # Read raw bytes from stdin via fd Port
-    Task.start_link(fn -> keyboard_loop(app_pid) end)
-  end
-
-  defp keyboard_loop(app_pid) do
-    port = Port.open({:fd, 0, 1}, [:binary, :eof])
-    read_port_loop(port, app_pid)
+    Task.start_link(fn -> read_port_loop(port, app_pid) end)
   end
 
   defp read_port_loop(port, app_pid) do
