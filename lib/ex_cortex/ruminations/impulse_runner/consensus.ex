@@ -33,11 +33,15 @@ defmodule ExCortex.Ruminations.ImpulseRunner.Consensus do
 
   # Right hemisphere (divergent): if any neuron has high confidence, their verdict
   # can pull the group — novel insights win over consensus.
+  # Trust score weights the effective confidence: a low-trust neuron's "high confidence"
+  # is discounted, so it's less likely to pull the group.
   def aggregate(results, "consensus", %{hemisphere: :right, confidence_threshold: threshold}) do
     verdicts = Enum.map(results, & &1.verdict)
 
-    # Check for a high-confidence outlier
-    high_confidence = Enum.find(results, fn r -> (r[:confidence] || 0.0) >= threshold end)
+    high_confidence =
+      Enum.find(results, fn r ->
+        effective_confidence(r) >= threshold
+      end)
 
     cond do
       Enum.uniq(verdicts) == [hd(verdicts)] -> hd(verdicts)
@@ -61,6 +65,13 @@ defmodule ExCortex.Ruminations.ImpulseRunner.Consensus do
   def aggregate(results, _majority, _laterality) do
     verdicts = Enum.map(results, & &1.verdict)
     verdicts |> Enum.frequencies() |> Enum.max_by(fn {_, count} -> count end) |> elem(0)
+  end
+
+  @doc "Compute effective confidence: raw confidence × trust score."
+  def effective_confidence(result) do
+    raw = result[:confidence] || 0.0
+    trust = ExCortex.TrustScorer.get_score(result[:neuron] || "")
+    raw * trust
   end
 
   def worst_verdict(verdicts) do
