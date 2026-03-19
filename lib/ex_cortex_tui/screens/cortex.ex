@@ -64,7 +64,9 @@ defmodule ExCortexTUI.Screens.Cortex do
 
   defp render_signals(signals) do
     Enum.map_intersperse(signals, "\n", fn s ->
-      [Owl.Data.tag(format_time(s.inserted_at), :faint), "  #{s.source_type}  #{truncate(s.content, 40)}"]
+      source = s.source || s.type || "?"
+      title = truncate(s.title || s.body || "", 40)
+      [Owl.Data.tag(format_time(s.inserted_at), :faint), "  ", Owl.Data.tag(source, :cyan), "  ", title]
     end)
   end
 

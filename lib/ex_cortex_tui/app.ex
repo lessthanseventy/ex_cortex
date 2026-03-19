@@ -40,9 +40,10 @@ defmodule ExCortexTUI.App do
     # Route logs to ring buffer instead of console
     ExCortexTUI.LogBuffer.start_link()
 
-    # Install our log handler and suppress console output
+    # Install our log handler, suppress default console handler, re-enable logging
     :logger.add_handler(:tui_buffer, ExCortexTUI.LogHandler, %{})
     :logger.set_handler_config(:default, %{level: :none})
+    Logger.configure(level: :debug)
 
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "daydreams")
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
