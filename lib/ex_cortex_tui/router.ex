@@ -8,6 +8,7 @@ defmodule ExCortexTUI.Router do
     "w" => :wonder,
     "m" => :muse,
     "h" => :hud,
+    "l" => :logs,
     "?" => :help
   }
 

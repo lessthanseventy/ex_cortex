@@ -7,6 +7,8 @@ defmodule ExCortexTUI.App do
 
   alias ExCortexTUI.Router
 
+  require Logger
+
   @screens %{
     cortex: ExCortexTUI.Screens.Cortex,
     daydreams: ExCortexTUI.Screens.Daydreams,
@@ -14,6 +16,7 @@ defmodule ExCortexTUI.App do
     wonder: ExCortexTUI.Screens.Wonder,
     muse: ExCortexTUI.Screens.Muse,
     hud: ExCortexTUI.Screens.HUD,
+    logs: ExCortexTUI.Screens.Logs,
     help: ExCortexTUI.Screens.Help
   }
 
@@ -24,6 +27,7 @@ defmodule ExCortexTUI.App do
     {"w", :wonder, "Wonder"},
     {"m", :muse, "Muse"},
     {"h", :hud, "HUD"},
+    {"l", :logs, "Logs"},
     {"?", :help, "Help"}
   ]
 
@@ -33,9 +37,19 @@ defmodule ExCortexTUI.App do
 
   @impl true
   def init(_opts) do
+    # Route logs to ring buffer instead of console
+    ExCortexTUI.LogBuffer.start_link()
+
+    # Install our log handler and suppress console output
+    :logger.add_handler(:tui_buffer, ExCortexTUI.LogHandler, %{})
+    :logger.set_handler_config(:default, %{level: :none})
+
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "daydreams")
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "memory")
+
+    # Switch to alternate screen buffer
+    IO.write([IO.ANSI.clear(), "\e[?1049h", "\e[?25l"])
 
     ensure_live_screen()
 
@@ -59,6 +73,13 @@ defmodule ExCortexTUI.App do
   end
 
   @impl true
+  def terminate(_reason, _state) do
+    # Restore terminal
+    IO.write(["\e[?25h", "\e[?1049l"])
+    :ok
+  end
+
+  @impl true
   def handle_info({:key, "\e"}, %{screen: :cortex} = state) do
     {:noreply, state}
   end
@@ -68,8 +89,7 @@ defmodule ExCortexTUI.App do
   end
 
   def handle_info({:key, "q"}, %{screen: screen} = state) when screen not in [:wonder, :muse] do
-    Owl.LiveScreen.stop()
-    System.stop(0)
+    cleanup_and_quit()
     {:noreply, state}
   end
 
@@ -89,8 +109,7 @@ defmodule ExCortexTUI.App do
             {:noreply, switch_screen(state, target)}
 
           {:quit, _screen_state} ->
-            Owl.LiveScreen.stop()
-            System.stop(0)
+            cleanup_and_quit()
             {:noreply, state}
         end
     end
@@ -109,6 +128,13 @@ defmodule ExCortexTUI.App do
         update_blocks(state)
         {:noreply, state}
     end
+  end
+
+  defp cleanup_and_quit do
+    Owl.LiveScreen.flush()
+    IO.write(["\e[?25h", "\e[?1049l"])
+    Logger.configure(level: :debug)
+    System.stop(0)
   end
 
   defp switch_screen(state, target) do
@@ -141,7 +167,7 @@ defmodule ExCortexTUI.App do
   end
 
   defp ensure_live_screen do
-    if !Process.whereis(Owl.LiveScreen) do
+    unless Process.whereis(Owl.LiveScreen) do
       Owl.LiveScreen.start_link(refresh_every: 100)
     end
   end
@@ -172,14 +198,11 @@ defmodule ExCortexTUI.App do
   defp render_header(state) do
     nav =
       Enum.map_intersperse(@nav_items, " ", fn {key, screen, label} ->
-        styled_label =
-          if screen == state.screen do
-            Owl.Data.tag("[#{key}]#{label}", [:bright, :cyan])
-          else
-            Owl.Data.tag("[#{key}]#{label}", :faint)
-          end
-
-        styled_label
+        if screen == state.screen do
+          Owl.Data.tag("[#{key}]#{label}", [:bright, :cyan])
+        else
+          Owl.Data.tag("[#{key}]#{label}", :faint)
+        end
       end)
 
     [Owl.Data.tag("ExCortex", :yellow), "  " | nav]
@@ -207,7 +230,11 @@ defmodule ExCortexTUI.App do
   defp start_keyboard_reader do
     app_pid = self()
 
-    Task.start(fn -> keyboard_loop(app_pid) end)
+    # Put terminal in raw mode for single-keypress capture
+    Task.start(fn ->
+      :io.setopts(:stdio, binary: true, echo: false)
+      keyboard_loop(app_pid)
+    end)
   end
 
   defp keyboard_loop(app_pid) do
@@ -231,26 +258,27 @@ defmodule ExCortexTUI.App do
   # Safe wrappers that handle screens not implementing the behaviour yet
 
   defp safe_init(module, args) do
+    Code.ensure_loaded(module)
+
     if function_exported?(module, :init, 1) do
       module.init(args)
     else
       %{}
     end
   rescue
-    _ -> %{}
+    e ->
+      Logger.warning("[TUI] Screen init failed: #{inspect(module)} — #{Exception.message(e)}")
+      %{}
   end
 
   defp safe_render(module, screen_state) do
-    if function_exported?(module, :render, 1) do
-      result = module.render(screen_state)
+    # Ensure module is loaded (may not be loaded yet in release mode)
+    Code.ensure_loaded(module)
 
-      if is_binary(result) do
-        result
-      else
-        result
-      end
+    if function_exported?(module, :render, 1) do
+      module.render(screen_state)
     else
-      Owl.Data.tag("  Coming soon...", :faint)
+      Owl.Data.tag("  Coming soon... (#{inspect(module)})", :faint)
     end
   rescue
     e -> Owl.Data.tag("  Screen error: #{Exception.message(e)}", :red)
