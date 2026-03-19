@@ -34,7 +34,7 @@ defmodule ExCortexTUI.HUD.Formatter do
   def format_daydream(d) do
     name = truncate(d.rumination.name, 25)
     completed = map_size(d.synapse_results || %{})
-    total = length(d.rumination[:steps] || d.rumination.steps)
+    total = length(Map.get(d.rumination, :steps, []))
     age = relative_time(d.inserted_at)
 
     pad(d.status, 10) <> pad(name, 27) <> "#{completed}/#{total} impulses  #{age}"
