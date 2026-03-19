@@ -50,7 +50,8 @@ defmodule ExCortex.Application do
           else: [
             ExCortex.Ruminations.Scheduler,
             ExCortex.Memory.EngramTriggerRunner,
-            ExCortex.Signals.TriggerRunner
+            ExCortex.Signals.TriggerRunner,
+            ExCortex.Senses.Feedback
           ]
         )
 
