@@ -18,6 +18,7 @@ defmodule ExCortex.Memory.Engram do
     field :category, :string, default: "semantic"
     field :cluster_name, :string
     field :daydream_id, :integer
+    field :embedding, Pgvector.Ecto.Vector
 
     timestamps()
   end
@@ -33,7 +34,8 @@ defmodule ExCortex.Memory.Engram do
     :recall,
     :category,
     :cluster_name,
-    :daydream_id
+    :daydream_id,
+    :embedding
   ]
 
   def changeset(entry, attrs) do
@@ -41,7 +43,7 @@ defmodule ExCortex.Memory.Engram do
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> validate_inclusion(:source, ~w(rumination manual step extraction muse wonder))
-    |> validate_inclusion(:category, ~w(semantic episodic procedural))
+    |> validate_inclusion(:category, ~w(semantic episodic procedural conversational))
     |> validate_number(:importance, greater_than_or_equal_to: 1, less_than_or_equal_to: 5)
   end
 end

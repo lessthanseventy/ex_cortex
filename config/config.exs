@@ -49,6 +49,8 @@ config :ex_cortex,
   ecto_repos: [ExCortex.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :ex_cortex, ExCortex.Repo, types: ExCortex.PostgrexTypes
+
 config :ex_cortex,
   nextcloud_url: System.get_env("NEXTCLOUD_URL", "http://localhost:8080"),
   nextcloud_user: System.get_env("NEXTCLOUD_USER", "admin"),
