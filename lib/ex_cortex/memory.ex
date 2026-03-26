@@ -39,7 +39,14 @@ defmodule ExCortex.Memory do
   def get_engram!(id), do: Repo.get!(Engram, id)
 
   def create_engram(attrs) do
-    %Engram{} |> Engram.changeset(attrs) |> Repo.insert()
+    case %Engram{} |> Engram.changeset(attrs) |> Repo.insert() do
+      {:ok, engram} = result ->
+        ExCortex.Memory.Embeddings.embed_engram_async(engram)
+        result
+
+      error ->
+        error
+    end
   end
 
   def update_engram(%Engram{} = engram, attrs) do
