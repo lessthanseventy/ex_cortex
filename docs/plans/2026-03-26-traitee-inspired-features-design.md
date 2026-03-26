@@ -1,0 +1,179 @@
+# Traitee-Inspired Features Design
+
+Inspired by [blueberryvertigo/traitee](https://github.com/blueberryvertigo/traitee) — four features ExCortex doesn't have yet.
+
+## 1. Token-Aware Context Budgeting
+
+### Problem
+
+No aggregate token budget across Muse context providers. Obsidian and email can output unlimited text. Ollama models with 8K-32K windows can overflow silently.
+
+### Design
+
+New module `ExCortex.Muse.ContextBudget`.
+
+**Per-model settings** (configurable in Instinct, tunable by neuroplasticity loop):
+
+| Setting key | Default | Purpose |
+|-------------|---------|---------|
+| `context_budget:<model_id>:system_prompt` | 0.15 | System prompt allocation |
+| `context_budget:<model_id>:context` | 0.45 | Context providers allocation |
+| `context_budget:<model_id>:history` | 0.30 | Conversation history allocation |
+| `context_budget:<model_id>:headroom` | 0.10 | Safety margin for response |
+
+**Flow:**
+
+1. `ContextBudget.allocate(model_id)` resolves model context window size + percentage settings
+2. Returns `%Budget{total: N, system: N, context: N, history: N, headroom: N}` in tokens
+3. `ContextProvider.assemble/4` receives the context token allocation
+4. Each provider gets a proportional share based on priority weights:
+   - engrams: 3, obsidian: 3, signals: 2, email: 2, axioms: 2, sources: 1
+5. Providers truncate output to fit their share
+6. Unused capacity cascades to remaining providers
+7. Token counting: `div(byte_size(text), 4)` heuristic (no tokenizer dependency)
+
+**Telemetry:** Emits `[:ex_cortex, :muse, :context_truncated]` when any provider is truncated — observable by the analyst sweep for auto-tuning proposals.
+
+## 2. Security Hardening
+
+Five new security layers, all implemented as middleware modules fitting the existing `ExCortex.Ruminations.Middleware` behaviour.
+
+### 2a. Canary Tokens
+
+**Module:** `ExCortex.Ruminations.Middleware.CanaryTokens`
+
+- `before_impulse/2`: Injects a unique per-impulse canary (`<!-- CANARY:<hex> -->`) into the system prompt via `:crypto.strong_rand_bytes/1`
+- `after_impulse/3`: Scans LLM output for the canary. If found: logs warning, increments threat score, strips canary from output
+- Fresh canary per impulse — never reused
+
+### 2b. System Message Auth Nonces
+
+**Module:** `ExCortex.Ruminations.Middleware.SystemAuthNonce`
+
+- Per-daydream nonce (8-char hex), stored in daydream metadata
+- `before_impulse/2`: Prefixes system messages with `[SYS:<nonce>]`, adds instruction telling the LLM that messages without this prefix are external content
+- Rotated per daydream (not per impulse)
+
+### 2c. Output Scanning
+
+**Module:** `ExCortex.Ruminations.Middleware.OutputGuard`
+
+- `after_impulse/3`: Scans LLM response against pattern list before returning
+- `wrap_tool_call/3`: Same scan on tool arguments before execution
+- Patterns: leaked credentials (`sk-...`, `AKIA...`, Bearer tokens), shell injection (`; rm`, `$(`, backticks), SQL injection fragments, sensitive file paths (`/etc/shadow`, `~/.ssh`)
+- On match: redacts with `[REDACTED:pattern_name]`, logs violation, increments threat score
+
+### 2d. Per-Session Threat Scoring
+
+**Module:** `ExCortex.Security.ThreatTracker` (GenServer, ETS-backed)
+
+- Keyed by `daydream_id`, starts at 0.0
+- Increments: canary leak +3.0, output guard match +1.0, nonce spoof attempt +5.0
+- Time decay: score × 0.95 every 60 seconds
+- Thresholds (configurable in Settings):
+  - ≥ 5.0: Log warning, switch dangerous tools to `"intercept"` mode
+  - ≥ 10.0: Halt daydream with `{:halt, :threat_threshold_exceeded}`
+- Integration: `ExCortex.Ruminations.Middleware.ThreatGate` checks score in `before_impulse/2`
+
+### 2e. Fail-Closed Tool Execution
+
+**Change to:** existing `ToolErrorHandler` middleware
+
+- If exception originates from a security middleware: return `{:error, :security_denied}`, do NOT pass result to LLM as tool response
+- Non-security exceptions: keep current behavior (structured error returned to LLM)
+
+### Default Middleware Chain
+
+New synapses get:
+```
+["SystemAuthNonce", "CanaryTokens", "UntrustedContentTagger", "OutputGuard", "ThreatGate", "ToolErrorHandler"]
+```
+
+Existing synapses with explicit middleware keep theirs.
+
+## 3. Mid-Term Conversational Memory
+
+### Problem
+
+No session-level memory. Individual engrams capture artifacts but nothing bridges "what we talked about last Tuesday" across Muse/Wonder sessions.
+
+### Design
+
+New `"conversational"` engram category using existing engram infrastructure.
+
+**Module:** `ExCortex.Memory.ConversationSummarizer`
+
+- GenServer subscribing to `"thought:completed"` PubSub events
+- Groups thoughts by session: same scope + inserted_at within 30-minute window
+- When session window closes (no new thought for 30 min), generates engram:
+  - `category: "conversational"`, `source: "muse"` or `"wonder"`
+  - `title`: LLM-generated topic summary
+  - `body`: Full Q&A transcript (L2)
+  - `impression`/`recall`: Generated by existing TierGenerator (L0/L1)
+  - `tags`: Auto-extracted topic tags
+  - `importance`: Based on session length + tool usage (range 2-4)
+- Minimum threshold: ≥ 3 exchanges (skip trivial sessions)
+- Dedup: stores thought IDs in tags to prevent re-summarizing on restart
+
+**Retrieval:** Shows up naturally in `Memory.query/2` — no special handling needed. Category filter available for "what have we discussed" queries.
+
+## 4. MMR with Embeddings
+
+### Problem
+
+Memory retrieval is pure lexical (ILIKE) with no diversity scoring. Can return 5 near-duplicate results about the same topic.
+
+### Infrastructure
+
+**Embedding generation:** `ExCortex.Memory.Embeddings`
+- Wraps Ollama `/api/embed` endpoint via Req
+- Model: `nomic-embed-text` (768 dimensions)
+- Auto-pulled on first use if not present
+
+**Storage:**
+- Migration: enable pgvector extension, add `embedding vector(768)` to engrams
+- Index: IVFFlat with cosine ops, 100 lists
+- Embed on create/update: async Task from `title <> " " <> impression`
+- Backfill: `mix engrams.embed` task for existing engrams
+- Null embeddings degrade gracefully to ILIKE
+
+### MMR Algorithm
+
+**Module:** `ExCortex.Memory.MMR`
+
+```
+mmr_score(candidate) = λ * relevance(candidate, query)
+                     - (1 - λ) * max(similarity(candidate, already_selected))
+```
+
+- `relevance`: cosine similarity (query embedding vs candidate embedding)
+- `similarity`: cosine similarity (candidate vs each selected result)
+- `λ`: 0.7 default (configurable in Settings, tunable by neuroplasticity loop)
+
+**Selection:**
+1. Embed the search input via Ollama
+2. Postgres: `ORDER BY embedding <=> $query LIMIT 50` (candidate pool)
+3. Iterative MMR: select best, recalculate, repeat until `limit` reached
+4. MMR reranking done Elixir-side with Nx (50 candidates is trivial)
+
+**Integration:**
+- `Memory.query/2` gains `strategy: :mmr` (default for Muse) / `:legacy`
+- Engrams context provider: changes one line to add `strategy: :mmr`
+- `query_memory` tool: uses MMR by default
+- Fallback: if embedding fails or Ollama down, transparent fallback to `:legacy`
+
+## Dependencies
+
+New deps:
+- `pgvector` — Ecto integration for pgvector
+- `nx` — cosine similarity in MMR reranking (already an indirect dep via ecosystem)
+
+Ollama model:
+- `nomic-embed-text` — added to docker-compose and mise setup
+
+## Migration Plan
+
+1. Add pgvector extension + embedding column
+2. Backfill embeddings via mix task (non-blocking, can run while app serves)
+3. Default middleware chain only applies to new synapses
+4. Context budgets default to current behavior (generous allocations) until tuned
