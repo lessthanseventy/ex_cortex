@@ -250,13 +250,17 @@ defmodule ExCortex.Muse do
   end
 
   defp gather_context_from_classification(classification, question, filters) do
+    alias ExCortex.Muse.ContextBudget
+
     providers =
       classification
       |> Classifier.build_providers_from_classification()
       |> maybe_apply_filters(filters)
 
     thought = %{name: "Muse", id: nil}
-    ContextProvider.assemble(providers, thought, question)
+    model = resolve_model()
+    budget = ContextBudget.allocate(model)
+    ContextProvider.assemble(providers, thought, question, budget.context)
   end
 
   defp tools_for_classification(classification) do

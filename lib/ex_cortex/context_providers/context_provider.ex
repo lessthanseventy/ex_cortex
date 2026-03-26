@@ -27,6 +27,36 @@ defmodule ExCortex.ContextProviders.ContextProvider do
 
   def assemble(_, _, _), do: ""
 
+  @doc """
+  Assemble context with token-aware budgeting.
+  Each provider gets a weighted share of the total budget, with unused
+  tokens cascading to subsequent providers.
+  """
+  def assemble(providers, thought, input, budget_tokens) when is_list(providers) and is_integer(budget_tokens) do
+    alias ExCortex.Muse.ContextBudget
+
+    budgets = ContextBudget.provider_budgets(providers, budget_tokens)
+
+    {results, _remaining} =
+      Enum.reduce(providers, {[], budget_tokens}, fn provider, {acc, remaining} ->
+        type = Map.get(provider, "type", "unknown")
+        provider_budget = Map.get(budgets, type, remaining)
+        text = build_one(provider, thought, input)
+
+        if text == "" do
+          {acc, remaining}
+        else
+          truncated = ContextBudget.truncate_to_budget(text, min(provider_budget, remaining))
+          used = ContextBudget.estimate_tokens(truncated)
+          {[truncated | acc], remaining - used}
+        end
+      end)
+
+    results
+    |> Enum.reverse()
+    |> Enum.join("\n\n")
+  end
+
   defp build_one(%{"type" => type} = config, thought, input) do
     mod = module_for(type)
 
