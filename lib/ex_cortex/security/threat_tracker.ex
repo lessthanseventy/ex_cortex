@@ -51,9 +51,23 @@ defmodule ExCortex.Security.ThreatTracker do
     ArgumentError -> :ok
   end
 
+  def handle_telemetry([:ex_cortex, :security, :threat], %{score: score}, metadata, _config) do
+    if daydream_id = Map.get(metadata, :daydream_id) do
+      increment(daydream_id, score)
+    end
+  end
+
   @impl true
   def init(_opts) do
     table = :ets.new(@table, [:named_table, :public, :set])
+
+    :telemetry.attach(
+      "threat-tracker",
+      [:ex_cortex, :security, :threat],
+      &__MODULE__.handle_telemetry/4,
+      nil
+    )
+
     schedule_decay()
     {:ok, %{table: table}}
   end

@@ -88,7 +88,8 @@ defmodule ExCortex.Application do
       ExCortex.Memory.EngramTriggerRunner,
       ExCortex.Signals.TriggerRunner,
       ExCortex.Senses.Feedback,
-      ExCortex.Memory.ConversationSummarizer
+      ExCortex.Memory.ConversationSummarizer,
+      ExCortex.Security.ThreatTracker
     ]
   end
 
