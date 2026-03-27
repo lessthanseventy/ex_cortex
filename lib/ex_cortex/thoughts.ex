@@ -27,9 +27,14 @@ defmodule ExCortex.Thoughts do
   def get_thought!(id), do: Repo.get!(Thought, id)
 
   def create_thought(attrs) do
-    %Thought{}
-    |> Thought.changeset(attrs)
-    |> Repo.insert()
+    case %Thought{} |> Thought.changeset(attrs) |> Repo.insert() do
+      {:ok, thought} = result ->
+        Phoenix.PubSub.broadcast(ExCortex.PubSub, "thoughts", {:thought_created, thought})
+        result
+
+      error ->
+        error
+    end
   end
 
   def update_thought(%Thought{} = t, attrs) do

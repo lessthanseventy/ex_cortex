@@ -87,7 +87,8 @@ defmodule ExCortex.Application do
       ExCortex.Ruminations.Scheduler,
       ExCortex.Memory.EngramTriggerRunner,
       ExCortex.Signals.TriggerRunner,
-      ExCortex.Senses.Feedback
+      ExCortex.Senses.Feedback,
+      ExCortex.Memory.ConversationSummarizer
     ]
   end
 
