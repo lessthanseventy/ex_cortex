@@ -83,10 +83,12 @@ The **Analyst Sweep** runs every 4 hours. Three steps — a Code Auditor runs `m
 The **Self-Improvement Loop** picks up those issues:
 
 ```
-Issue filed → PM Triage → Code Writer → Code Reviewer → QA → UX Review → PM Merge Decision
+Issue filed → PM Triage → Planning Consensus → Code Writer → Code Reviewer → QA → UX Review → PM Merge Decision
 ```
 
-The Code Writer works in an isolated git worktree — never touches the main repo directly. It reads files, makes changes, runs `mix test` and `mix credo`, commits, and opens a real PR. The Code Reviewer and QA gate the pipeline — if tests fail, nothing merges. The PM makes the final call: low-risk changes auto-merge, anything touching core logic creates a Proposal for you.
+After PM Triage selects an issue, a **Planning Consensus** step runs three perspectives in parallel — a Software Architect, a Devil's Advocate, and a Technical PM — each evaluating the implementation approach. If all three reject the issue, the gate blocks the Code Writer from running. This prevents low-value work from consuming compute.
+
+The Code Writer works in an isolated git worktree — never touches the main repo directly. It reads files, makes changes, runs `mix test` and `mix credo`, commits, and opens a real PR with structured commit trailers (`Constraint`, `Rejected`, `Confidence`, `Scope-risk`, `Not-tested`) for audit trails. The Code Reviewer and QA gate the pipeline — if tests fail, nothing merges. The PM makes the final call: low-risk changes auto-merge, anything touching core logic creates a Proposal for you.
 
 Re-seed the pipeline anytime:
 
@@ -127,6 +129,10 @@ Pathways are cluster blueprints that seed a full team of neurons in one step. Ex
 | **Dev Team** | The self-improvement cluster — code, review, test, merge |
 
 Seed pathways from the Genesis page. Each pathway creates a cluster with its neurons in the database and wires them to the evaluation pipeline. Or build your own — pathways are just Elixir modules with metadata functions. There's nothing special about the built-in ones.
+
+### Markdown Neuron Definitions
+
+Neurons can also be defined as version-controlled markdown files in `priv/neurons/`. Each file uses YAML frontmatter for metadata (id, name, category, lobe, ranks) and the body becomes the system prompt. Markdown-defined neurons merge with the code-defined builtins at runtime — markdown wins on id collision, making it easy for the neuroplasticity loop to propose prompt changes as git-diffable PRs.
 
 ---
 
@@ -195,6 +201,18 @@ A synapse can:
 - Trigger other ruminations (recursive pipelines)
 
 Each tool call that modifies the outside world goes through the **Proposal** system — an approval record you can review, approve, or reject from the dashboard. Safe tools (read, search, fetch) execute immediately. Write and dangerous tools wait for approval.
+
+### Bounded Loops & Convergence
+
+Ruminations support iterative execution. Set `max_iterations` on a rumination and `convergence_verdict` on its final synapse — the pipeline repeats until the last step's verdict matches the target or the iteration limit is reached. Useful for fix-test-fix cycles where you want the pipeline to keep trying until tests pass.
+
+### Keyword Triggers
+
+Ruminations can fire automatically when specific keywords appear in system events. Set `trigger: "keyword"` and provide `keyword_patterns` — the `KeywordTriggerRunner` watches signals, engrams, and sense items for case-insensitive substring matches and fires the pipeline with the matched content as input.
+
+### Scratchpad Middleware
+
+Enable the `Scratchpad` middleware on a synapse to give its pipeline a persistent key:value store that survives across impulses within a daydream. Models write `SCRATCHPAD: ... END_SCRATCHPAD` blocks in their output to persist data; subsequent steps see the accumulated scratchpad prepended to their input.
 
 Build and manage ruminations from the pipeline builder at `/ruminations`.
 
@@ -303,7 +321,9 @@ flowchart LR
     every 4h"] --> Issues["GitHub Issues
     labeled self-improvement"]
     Issues --> PM["PM Triage"]
-    PM --> Writer["Code Writer
+    PM --> Plan["Planning Consensus
+    architect · advocate · PM"]
+    Plan --> Writer["Code Writer
     read · write · test"]
     Writer --> Reviewer["Code Reviewer
     diff · credo · test"]
