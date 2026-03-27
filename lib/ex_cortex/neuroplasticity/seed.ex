@@ -13,6 +13,7 @@ defmodule ExCortex.Neuroplasticity.Seed do
   # Old names kept here so cleanup deletes them on re-seed
   @si_step_names [
     "SI: PM Triage",
+    "SI: Planning Consensus",
     "SI: Code Writer",
     "SI: Code Reviewer",
     "SI: QA",
@@ -121,6 +122,72 @@ defmodule ExCortex.Neuroplasticity.Seed do
         ]
       },
       %{
+        name: "SI: Planning Consensus",
+        description: """
+        You are participating in a multi-perspective planning review before any code is written.
+
+        The PM Triage step has already selected a GitHub issue and written an implementation plan.
+        Review the DECISION line and the plan from PM Triage in your context.
+
+        If PM Triage output "DECISION: REJECT", output exactly:
+          ACTION: pass
+          CONFIDENCE: 1.0
+          REASON: PM rejected this issue — nothing to plan.
+
+        ## Your role and perspective
+
+        Review the PM's proposed plan from your assigned perspective and propose how you would
+        approach the implementation. Be concrete about files, functions, and constraints.
+
+        ## Output format (required)
+
+        End your response with EXACTLY these lines:
+          ACTION: pass | warn | fail
+          CONFIDENCE: 0.0-1.0
+          REASON: one sentence
+
+        Then include a "## Plan" section with:
+        - **Files to modify**: list each file and what changes are needed
+        - **Approach**: how you would implement this change
+        - **Constraints**: what must NOT be changed or broken
+        - **Rejected alternatives**: at least one approach you considered and rejected, and why
+
+        Use ACTION: fail only if you believe the issue is not worth implementing at all.
+        Use ACTION: warn if you have significant concerns but implementation could proceed.
+        Use ACTION: pass if the plan is sound from your perspective.
+        """,
+        trigger: "manual",
+        output_type: "verdict",
+        dangerous_tool_mode: "intercept",
+        loop_tools: [],
+        roster: [
+          %{
+            "who" => "claude_haiku",
+            "role" => "Software Architect",
+            "how" => "consensus",
+            "when" => "parallel",
+            "system" =>
+              "You are a Software Architect. Focus on code structure, design patterns, and where changes should go. Identify the cleanest integration point and ensure the proposed change fits the existing architecture."
+          },
+          %{
+            "who" => "claude_haiku",
+            "role" => "Devil's Advocate",
+            "how" => "consensus",
+            "when" => "parallel",
+            "system" =>
+              "You are a Devil's Advocate. Challenge assumptions, identify risks, and flag scope creep. Ask whether this issue is actually worth fixing, whether the PM's plan introduces new complexity, and what could go wrong."
+          },
+          %{
+            "who" => "claude_haiku",
+            "role" => "Technical PM",
+            "how" => "consensus",
+            "when" => "parallel",
+            "system" =>
+              "You are a Technical PM. Prioritize simplicity and alignment with the issue. Estimate effort, flag if the proposed plan exceeds the scope of the issue, and confirm the deliverable matches what was asked for."
+          }
+        ]
+      },
+      %{
         name: "SI: Code Writer",
         description: """
         You are the Code Writer for the ExCortex self-improvement pipeline.
@@ -150,8 +217,21 @@ defmodule ExCortex.Neuroplasticity.Seed do
         **Step 5 — run_sandbox("mix credo --all")**
         Fix any NEW credo warnings your change introduced.
 
-        **Step 6 — git_commit(files: [...], message: "fix: ...(closes #N)", working_dir: "<worktree_path>")**
+        **Step 6 — git_commit(files: [...], message: "...", working_dir: "<worktree_path>")**
         Always pass working_dir. Commits go to the branch, never main.
+
+        At the end of your commit message, append a TRAILERS block:
+        ```
+        TRAILERS:
+        Constraint: <what shaped the decision — e.g. "must not change public API">
+        Rejected: <alternative considered> | <why rejected>
+        Confidence: high | medium | low
+        Scope-risk: narrow | moderate | broad
+        Not-tested: <edge case not covered by tests, or "none">
+        END_TRAILERS
+        ```
+        Only include lines that apply. The git_commit tool will parse this block and
+        convert it to proper git trailers — do not include it as part of the PR body.
 
         **Step 7 — git_push(branch: "self-improve/N", working_dir: "<worktree_path>")**
 
@@ -313,8 +393,8 @@ defmodule ExCortex.Neuroplasticity.Seed do
   end
 
   defp create_rumination(source, steps) do
-    # Gate flags: Code Reviewer (index 2) and QA (index 3) are verdict gates
-    gate_indices = MapSet.new([2, 3])
+    # Gate flags: Planning Consensus (index 2), Code Reviewer (index 4), QA (index 5) are verdict gates
+    gate_indices = MapSet.new([2, 4, 5])
 
     step_entries =
       steps

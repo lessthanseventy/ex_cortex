@@ -8,7 +8,7 @@ defmodule ExCortex.Neuroplasticity.SeedTest do
     assert result.rumination
     assert result.source
     assert result.sweep_rumination
-    assert length(result.steps) == 6
+    assert length(result.steps) == 7
   end
 
   test "seed creates source with correct config" do
@@ -24,13 +24,13 @@ defmodule ExCortex.Neuroplasticity.SeedTest do
     assert to_string(source.id) in rumination.source_ids
   end
 
-  test "seed links all 6 steps to the rumination in order" do
+  test "seed links all 7 steps to the rumination in order" do
     assert {:ok, %{rumination: rumination, steps: steps}} = Seed.seed(%{repo: "owner/repo"})
     step_ids = Enum.map(steps, & &1.id)
     rumination_step_ids = Enum.map(rumination.steps, & &1["step_id"])
     assert Enum.sort(step_ids) == Enum.sort(rumination_step_ids)
     orders = rumination.steps |> Enum.map(& &1["order"]) |> Enum.sort()
-    assert orders == [1, 2, 3, 4, 5, 6]
+    assert orders == [1, 2, 3, 4, 5, 6, 7]
   end
 
   test "seed creates a scheduled sweep rumination with 3 steps" do

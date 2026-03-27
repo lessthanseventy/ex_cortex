@@ -17,6 +17,8 @@ defmodule ExCortex.Ruminations.Rumination do
     field :signal_trigger_types, {:array, :string}, default: []
     field :signal_trigger_tags, {:array, :string}, default: []
     field :dedup_strategy, :string, default: "none"
+    field :max_iterations, :integer, default: 1
+    field :keyword_patterns, {:array, :string}, default: []
     timestamps()
   end
 
@@ -31,7 +33,9 @@ defmodule ExCortex.Ruminations.Rumination do
     :engram_trigger_tags,
     :signal_trigger_types,
     :signal_trigger_tags,
-    :dedup_strategy
+    :dedup_strategy,
+    :max_iterations,
+    :keyword_patterns
   ]
 
   def changeset(rumination, attrs) do
@@ -39,7 +43,7 @@ defmodule ExCortex.Ruminations.Rumination do
     |> cast(attrs, @required ++ @optional)
     |> validate_required(@required)
     |> validate_inclusion(:status, ["active", "paused", "done"])
-    |> validate_inclusion(:trigger, ["manual", "source", "scheduled", "once", "memory", "cortex"])
+    |> validate_inclusion(:trigger, ["manual", "source", "scheduled", "once", "memory", "cortex", "keyword"])
     |> validate_inclusion(:dedup_strategy, ["none", "concurrent"])
     |> unique_constraint(:name)
   end

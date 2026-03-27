@@ -37,6 +37,7 @@ defmodule ExCortex.Ruminations.Synapse do
     field :dangerous_tool_mode, :string, default: "execute"
     field :max_tool_iterations, :integer, default: 15
     field :middleware, {:array, :string}, default: []
+    field :convergence_verdict, :string
     timestamps()
   end
 
@@ -69,7 +70,8 @@ defmodule ExCortex.Ruminations.Synapse do
     :cluster_name,
     :dangerous_tool_mode,
     :max_tool_iterations,
-    :middleware
+    :middleware,
+    :convergence_verdict
   ]
 
   def changeset(step, attrs) do
