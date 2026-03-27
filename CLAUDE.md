@@ -22,8 +22,10 @@ tmux-cli send 'cd /home/andrew/projects/ex_cortex && mix phx.server' --pane=main
 ```
 
 ## Git Workflow
-- Commit directly to `main` — no feature branches
-- Never propose PRs or merges
+- Work on feature branches, PR into `main`
+- Branch naming: `feat/<topic>`, `fix/<topic>`, `chore/<topic>`
+- CI runs on every PR (GitHub Actions: compile, format, credo, test)
+- Branch protection on `main` — PRs required, CI must pass
 
 ## Project Overview
 Standalone Phoenix app — an AI agent orchestration platform with brain/consciousness vocabulary.

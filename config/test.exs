@@ -7,12 +7,19 @@ alias Ecto.Adapters.SQL.Sandbox
 # The MIX_TEST_PARTITION environment variable can be used
 # to provide built-in test partitioning in CI environment.
 # Run `mix help test` for more information.
-config :ex_cortex, ExCortex.Repo,
-  username: "andrew",
-  hostname: "localhost",
-  database: "ex_cortex_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Sandbox,
-  pool_size: 5
+if database_url = System.get_env("DATABASE_URL") do
+  config :ex_cortex, ExCortex.Repo,
+    url: database_url <> (System.get_env("MIX_TEST_PARTITION") || ""),
+    pool: Sandbox,
+    pool_size: 5
+else
+  config :ex_cortex, ExCortex.Repo,
+    username: "andrew",
+    hostname: "localhost",
+    database: "ex_cortex_test#{System.get_env("MIX_TEST_PARTITION")}",
+    pool: Sandbox,
+    pool_size: 5
+end
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
