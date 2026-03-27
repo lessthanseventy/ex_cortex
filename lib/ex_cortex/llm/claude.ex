@@ -166,20 +166,19 @@ defmodule ExCortex.LLM.Claude do
             []
 
           json ->
-            case Jason.decode(json) do
-              {:ok, %{"type" => "content_block_delta", "delta" => %{"text" => text}}} ->
-                [{:token, text}]
-
-              {:ok, %{"type" => "message_stop"}} ->
-                [{:done, ""}]
-
-              _ ->
-                []
-            end
+            parse_sse_event(json)
         end
       end)
 
     {events, rest}
+  end
+
+  defp parse_sse_event(json) do
+    case Jason.decode(json) do
+      {:ok, %{"type" => "content_block_delta", "delta" => %{"text" => text}}} -> [{:token, text}]
+      {:ok, %{"type" => "message_stop"}} -> [{:done, ""}]
+      _ -> []
+    end
   end
 
   @impl true

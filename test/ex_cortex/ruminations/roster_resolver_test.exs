@@ -195,7 +195,7 @@ defmodule ExCortex.Ruminations.RosterResolverTest do
       assert [first, second] = result
       assert first.when == "sequential"
       assert first.how == "consensus"
-      assert length(first.neurons) >= 1
+      assert first.neurons != []
 
       assert second.when == "parallel"
       assert second.how == "solo"

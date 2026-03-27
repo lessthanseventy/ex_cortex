@@ -41,79 +41,58 @@ defmodule ExCortex.Signals.TodoSync do
   defp parse_whats_happening(content) do
     content
     |> String.split("\n")
-    |> Enum.reduce({[], false}, fn line, {items, in_section} ->
-      cond do
-        # Start of our section
-        String.match?(line, ~r/^##\s+what's happening/i) ->
-          {items, true}
-
-        # Next heading — stop
-        in_section and String.match?(line, ~r/^##\s/) ->
-          {items, false}
-
-        # Next callout header that isn't a todo continuation — stop
-        in_section and String.match?(line, ~r/^>\s*\[!(?!todo)/) ->
-          {items, false}
-
-        # Open todo (bare or callout-prefixed)
-        in_section and String.match?(line, ~r/- \[ \]/) ->
-          text = line |> String.replace(~r/.*- \[ \]\s*/, "") |> String.trim()
-          if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
-
-        # Done todo
-        in_section and String.match?(line, ~r/- \[x\]/) ->
-          text = line |> String.replace(~r/.*- \[x\]\s*/, "") |> String.trim()
-          if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => true}], true}
-
-        true ->
-          {items, in_section}
-      end
-    end)
+    |> Enum.reduce({[], false}, &accumulate_whats_happening/2)
     |> elem(0)
+  end
+
+  defp accumulate_whats_happening(line, {items, in_section}) do
+    cond do
+      String.match?(line, ~r/^##\s+what's happening/i) -> {items, true}
+      in_section -> accumulate_in_section(items, line, in_section)
+      true -> {items, in_section}
+    end
+  end
+
+  defp accumulate_in_section(items, line, in_section) do
+    cond do
+      String.match?(line, ~r/^##\s/) -> {items, false}
+      String.match?(line, ~r/^>\s*\[!(?!todo)/) -> {items, false}
+      String.match?(line, ~r/- \[ \]/) -> accumulate_todo(items, line, ~r/.*- \[ \]\s*/, false)
+      String.match?(line, ~r/- \[x\]/) -> accumulate_todo(items, line, ~r/.*- \[x\]\s*/, true)
+      true -> {items, in_section}
+    end
   end
 
   # Parse bullet items from a callout section (brain dump, stuff that came up, etc.)
   defp parse_section_bullets(content, section_regex) do
     content
     |> String.split("\n")
-    |> Enum.reduce({[], false, false}, fn line, {items, in_callout, past_callout} ->
-      cond do
-        # Found the callout header
-        not in_callout and not past_callout and Regex.match?(section_regex, line) ->
-          {items, true, false}
-
-        # Still inside the callout (> prefixed lines) — skip
-        in_callout and String.starts_with?(String.trim(line), ">") ->
-          {items, true, false}
-
-        # Just left the callout — now in the bullet area
-        in_callout and not String.starts_with?(String.trim(line), ">") ->
-          case parse_bullet(line) do
-            nil -> {items, false, true}
-            text -> {items ++ [text], false, true}
-          end
-
-        # In the post-callout area, collecting bullets
-        past_callout ->
-          cond do
-            String.match?(line, ~r/^>\s*\[!/) ->
-              {items, false, false}
-
-            String.match?(line, ~r/^##\s/) ->
-              {items, false, false}
-
-            true ->
-              case parse_bullet(line) do
-                nil -> {items, false, past_callout}
-                text -> {items ++ [text], false, true}
-              end
-          end
-
-        true ->
-          {items, in_callout, past_callout}
-      end
-    end)
+    |> Enum.reduce({[], false, false}, fn line, acc -> accumulate_section_bullet(line, acc, section_regex) end)
     |> elem(0)
+  end
+
+  defp accumulate_section_bullet(line, {items, in_callout, past_callout}, section_regex) do
+    cond do
+      not in_callout and not past_callout and Regex.match?(section_regex, line) -> {items, true, false}
+      in_callout -> accumulate_in_callout(items, line)
+      past_callout -> handle_past_callout_line(items, line)
+      true -> {items, in_callout, past_callout}
+    end
+  end
+
+  defp accumulate_in_callout(items, line) do
+    if String.starts_with?(String.trim(line), ">") do
+      {items, true, false}
+    else
+      left_callout_line(items, line)
+    end
+  end
+
+  defp left_callout_line(items, line) do
+    case parse_bullet(line) do
+      nil -> {items, false, true}
+      text -> {items ++ [text], false, true}
+    end
   end
 
   # Parse bullet items from a heading section (## what happened, etc.)
@@ -121,45 +100,65 @@ defmodule ExCortex.Signals.TodoSync do
   defp parse_heading_bullets(content, heading_regex) do
     content
     |> String.split("\n")
-    |> Enum.reduce({[], false}, fn line, {items, in_section} ->
-      cond do
-        Regex.match?(heading_regex, line) ->
-          {items, true}
-
-        in_section and String.match?(line, ~r/^##\s/) ->
-          {items, false}
-
-        in_section and String.match?(line, ~r/^>\s*\[!/) ->
-          {items, false}
-
-        in_section and String.match?(line, ~r/^---\s*$/) ->
-          {items, false}
-
-        in_section ->
-          trimmed = String.trim(line)
-
-          cond do
-            String.match?(trimmed, ~r/^-\s*\[x\]/i) ->
-              text = trimmed |> String.replace(~r/^-\s*\[x\]\s*/i, "") |> String.trim()
-              if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => true}], true}
-
-            String.match?(trimmed, ~r/^-\s*\[ \]/) ->
-              text = trimmed |> String.replace(~r/^-\s*\[ \]\s*/, "") |> String.trim()
-              if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
-
-            String.match?(trimmed, ~r/^-\s+\S/) ->
-              text = trimmed |> String.replace(~r/^-\s+/, "") |> String.trim()
-              if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
-
-            true ->
-              {items, in_section}
-          end
-
-        true ->
-          {items, in_section}
-      end
-    end)
+    |> Enum.reduce({[], false}, &accumulate_heading_bullet(&1, &2, heading_regex))
     |> elem(0)
+  end
+
+  defp accumulate_heading_bullet(line, {items, in_section}, heading_regex) do
+    cond do
+      Regex.match?(heading_regex, line) -> {items, true}
+      in_section -> accumulate_in_section_heading(items, line)
+      true -> {items, in_section}
+    end
+  end
+
+  defp accumulate_in_section_heading(items, line) do
+    cond do
+      String.match?(line, ~r/^##\s/) -> {items, false}
+      String.match?(line, ~r/^>\s*\[!/) -> {items, false}
+      String.match?(line, ~r/^---\s*$/) -> {items, false}
+      true -> accumulate_heading_item(items, String.trim(line))
+    end
+  end
+
+  defp accumulate_todo(items, line, regex, checked) do
+    text = line |> String.replace(regex, "") |> String.trim()
+    if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => checked}], true}
+  end
+
+  defp handle_past_callout_line(items, line) do
+    cond do
+      String.match?(line, ~r/^>\s*\[!/) ->
+        {items, false, false}
+
+      String.match?(line, ~r/^##\s/) ->
+        {items, false, false}
+
+      true ->
+        case parse_bullet(line) do
+          nil -> {items, false, true}
+          text -> {items ++ [text], false, true}
+        end
+    end
+  end
+
+  defp accumulate_heading_item(items, trimmed) do
+    cond do
+      String.match?(trimmed, ~r/^-\s*\[x\]/i) ->
+        text = trimmed |> String.replace(~r/^-\s*\[x\]\s*/i, "") |> String.trim()
+        if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => true}], true}
+
+      String.match?(trimmed, ~r/^-\s*\[ \]/) ->
+        text = trimmed |> String.replace(~r/^-\s*\[ \]\s*/, "") |> String.trim()
+        if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
+
+      String.match?(trimmed, ~r/^-\s+\S/) ->
+        text = trimmed |> String.replace(~r/^-\s+/, "") |> String.trim()
+        if text == "", do: {items, true}, else: {items ++ [%{"text" => text, "checked" => false}], true}
+
+      true ->
+        {items, true}
+    end
   end
 
   defp parse_bullet(line) do

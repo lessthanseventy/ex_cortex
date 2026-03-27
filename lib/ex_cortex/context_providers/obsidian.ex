@@ -71,29 +71,32 @@ defmodule ExCortex.ContextProviders.Obsidian do
         end
 
       :not_section ->
-        case current do
-          {:collecting, :callout} ->
-            if String.starts_with?(line, ">") do
-              stripped = line |> String.replace_prefix("> ", "") |> String.replace_prefix(">", "")
-              collect_sections(rest, targets, current, current_lines ++ [stripped], acc)
-            else
-              acc = finalize_section(current_lines, acc)
-              collect_sections(rest, targets, nil, [], acc)
-            end
-
-          {:collecting, :heading} ->
-            # Heading sections collect until next heading, callout, or horizontal rule
-            if String.match?(line, ~r/^---\s*$/) do
-              acc = finalize_section(current_lines, acc)
-              collect_sections(rest, targets, nil, [], acc)
-            else
-              collect_sections(rest, targets, current, current_lines ++ [line], acc)
-            end
-
-          _ ->
-            collect_sections(rest, targets, nil, current_lines, acc)
-        end
+        handle_not_section_line(line, rest, targets, current, current_lines, acc)
     end
+  end
+
+  defp handle_not_section_line(line, rest, targets, {:collecting, :callout}, current_lines, acc) do
+    if String.starts_with?(line, ">") do
+      stripped = line |> String.replace_prefix("> ", "") |> String.replace_prefix(">", "")
+      collect_sections(rest, targets, {:collecting, :callout}, current_lines ++ [stripped], acc)
+    else
+      acc = finalize_section(current_lines, acc)
+      collect_sections(rest, targets, nil, [], acc)
+    end
+  end
+
+  defp handle_not_section_line(line, rest, targets, {:collecting, :heading}, current_lines, acc) do
+    # Heading sections collect until next heading, callout, or horizontal rule
+    if String.match?(line, ~r/^---\s*$/) do
+      acc = finalize_section(current_lines, acc)
+      collect_sections(rest, targets, nil, [], acc)
+    else
+      collect_sections(rest, targets, {:collecting, :heading}, current_lines ++ [line], acc)
+    end
+  end
+
+  defp handle_not_section_line(_line, rest, targets, _current, current_lines, acc) do
+    collect_sections(rest, targets, nil, current_lines, acc)
   end
 
   defp parse_section_header(line) do
@@ -245,25 +248,31 @@ defmodule ExCortex.ContextProviders.Obsidian do
 
   defp maybe_gather_search(results, q_lower) do
     if results == [] do
-      search_terms =
-        q_lower
-        |> String.replace(~r/\b(how|many|what|are|the|my|in|do|i|have|of|a|an|is)\b/, "")
-        |> String.replace(~r/\b(obsidian|notes?|vault)\b/, "")
-        |> String.trim()
-
-      if search_terms == "" do
-        case gather_list() do
-          "" -> results
-          content -> results ++ [content]
-        end
-      else
-        case SearchObsidianContent.call(%{"query" => search_terms}) do
-          {:ok, content} when content != "" -> results ++ ["### Obsidian Search: #{search_terms}\n#{content}"]
-          _ -> results
-        end
-      end
+      search_terms = extract_search_terms(q_lower)
+      search_fallback(results, search_terms)
     else
       results
+    end
+  end
+
+  defp extract_search_terms(q_lower) do
+    q_lower
+    |> String.replace(~r/\b(how|many|what|are|the|my|in|do|i|have|of|a|an|is)\b/, "")
+    |> String.replace(~r/\b(obsidian|notes?|vault)\b/, "")
+    |> String.trim()
+  end
+
+  defp search_fallback(results, "") do
+    case gather_list() do
+      "" -> results
+      content -> results ++ [content]
+    end
+  end
+
+  defp search_fallback(results, search_terms) do
+    case SearchObsidianContent.call(%{"query" => search_terms}) do
+      {:ok, content} when content != "" -> results ++ ["### Obsidian Search: #{search_terms}\n#{content}"]
+      _ -> results
     end
   end
 
@@ -292,26 +301,24 @@ defmodule ExCortex.ContextProviders.Obsidian do
 
   defp gather_daily_range(time_range, sections) do
     dates = date_range_for(time_range)
-
-    results =
-      Enum.flat_map(dates, fn date ->
-        date_str = Calendar.strftime(date, "%Y-%m-%d")
-
-        case ReadObsidian.call(%{"title" => "journal/#{date_str}.md"}) do
-          {:ok, content} when content != "" ->
-            filtered =
-              if sections == ["all"], do: content, else: extract_sections(content, sections)
-
-            if filtered == "", do: [], else: ["### #{date_str}\n#{filtered}"]
-
-          _ ->
-            []
-        end
-      end)
+    results = Enum.flat_map(dates, &fetch_daily_note(&1, sections))
 
     if results == [],
       do: "",
       else: "## Daily Notes (#{time_range})\n\n" <> Enum.join(results, "\n\n---\n\n")
+  end
+
+  defp fetch_daily_note(date, sections) do
+    date_str = Calendar.strftime(date, "%Y-%m-%d")
+
+    case ReadObsidian.call(%{"title" => "journal/#{date_str}.md"}) do
+      {:ok, content} when content != "" ->
+        filtered = extract_sections(content, sections)
+        if filtered == "", do: [], else: ["### #{date_str}\n#{filtered}"]
+
+      _ ->
+        []
+    end
   end
 
   defp gather_search(query) do

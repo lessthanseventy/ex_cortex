@@ -125,13 +125,7 @@ defmodule ExCortex.Ruminations.Runner do
       end
 
     # Determine final status and record step results
-    final_status =
-      cond do
-        dry_run? -> "dry_run"
-        gated? -> "gated"
-        match?({:ok, _}, List.last(results)) -> "complete"
-        true -> "failed"
-      end
+    final_status = determine_final_status(dry_run?, gated?, results)
 
     synapse_results =
       results
@@ -143,22 +137,7 @@ defmodule ExCortex.Ruminations.Runner do
     {:ok, daydream} = Ruminations.update_daydream(daydream, %{status: final_status, synapse_results: synapse_results})
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_completed, daydream})
 
-    if !Application.get_env(:ex_cortex, :sql_sandbox, false) do
-      Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-        # Skip side effects (signals, artifacts) in dry run, but still extract memory
-        if !dry_run?, do: post_artifacts(synapse_results, thought, daydream)
-
-        ExCortex.Memory.Extractor.extract(%{
-          id: daydream.id,
-          rumination_name: thought.name,
-          cluster_name: Map.get(thought, :cluster_name),
-          dry_run: dry_run?,
-          status: final_status,
-          results: synapse_results,
-          impulses: results |> Enum.with_index() |> Enum.map(fn {r, i} -> %{step: i, results: r} end)
-        })
-      end)
-    end
+    maybe_run_post_daydream_tasks(synapse_results, results, thought, daydream, dry_run?, final_status)
 
     Tracer.set_attributes(%{"thought.status" => final_status, "thought.run_id" => daydream.id})
 
@@ -249,13 +228,7 @@ defmodule ExCortex.Ruminations.Runner do
         )
 
         # Async learning loop — runs retrospect without blocking the thought (skip in dry run)
-        if !ctx.dry_run do
-          step_run_data = %{id: ctx.daydream.id, results: inspect_result(result), input: current_input}
-
-          Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-            Loop.retrospect(resolved_step, step_run_data)
-          end)
-        end
+        maybe_start_retrospect(resolved_step, result, ctx, current_input)
 
         handle_gate_result(step, result, resolved_step, current_input, acc_results, next_step_name, ctx.ordered_steps)
     end
@@ -534,9 +507,58 @@ defmodule ExCortex.Ruminations.Runner do
 
   defp extract_tool_calls(_), do: []
 
+  defp determine_final_status(true, _gated?, _results), do: "dry_run"
+  defp determine_final_status(_dry_run?, true, _results), do: "gated"
+
+  defp determine_final_status(_dry_run?, _gated?, results) do
+    if match?({:ok, _}, List.last(results)), do: "complete", else: "failed"
+  end
+
   # ---------------------------------------------------------------------------
   # Source data gathering — for ruminations with source_ids
   # ---------------------------------------------------------------------------
+
+  defp maybe_run_post_daydream_tasks(synapse_results, results, thought, daydream, dry_run?, final_status) do
+    if !Application.get_env(:ex_cortex, :sql_sandbox, false) do
+      impulses = results |> Enum.with_index() |> Enum.map(fn {r, i} -> %{step: i, results: r} end)
+
+      Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
+        run_daydream_side_effects(synapse_results, thought, daydream, dry_run?, final_status, impulses)
+      end)
+    end
+  end
+
+  defp run_daydream_side_effects(synapse_results, thought, daydream, dry_run?, final_status, impulses) do
+    # Skip side effects (signals, artifacts) in dry run, but still extract memory
+    if !dry_run?, do: post_artifacts(synapse_results, thought, daydream)
+
+    ExCortex.Memory.Extractor.extract(%{
+      id: daydream.id,
+      rumination_name: thought.name,
+      cluster_name: Map.get(thought, :cluster_name),
+      dry_run: dry_run?,
+      status: final_status,
+      results: synapse_results,
+      impulses: impulses
+    })
+  end
+
+  defp maybe_start_retrospect(resolved_step, result, ctx, current_input) do
+    if !ctx.dry_run do
+      step_run_data = %{id: ctx.daydream.id, results: inspect_result(result), input: current_input}
+
+      Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
+        Loop.retrospect(resolved_step, step_run_data)
+      end)
+    end
+  end
+
+  defp format_feed_item(item, idx) do
+    link = get_in(item.metadata, [:link]) || ""
+    title = get_in(item.metadata, [:title]) || ""
+    link_line = if link == "", do: "", else: "\nURL: #{link}"
+    "### Item #{idx}: #{title}#{link_line}\n#{item.content}"
+  end
 
   defp has_source_ids?(%{source_ids: ids}) when is_list(ids) and ids != [], do: true
   defp has_source_ids?(_), do: false
@@ -570,12 +592,7 @@ defmodule ExCortex.Ruminations.Runner do
         items
         |> Enum.take(50)
         |> Enum.with_index(1)
-        |> Enum.map_join("\n\n---\n\n", fn {item, idx} ->
-          link = get_in(item.metadata, [:link]) || ""
-          title = get_in(item.metadata, [:title]) || ""
-          link_line = if link == "", do: "", else: "\nURL: #{link}"
-          "### Item #{idx}: #{title}#{link_line}\n#{item.content}"
-        end)
+        |> Enum.map_join("\n\n---\n\n", fn {item, idx} -> format_feed_item(item, idx) end)
 
       header <> body
     end

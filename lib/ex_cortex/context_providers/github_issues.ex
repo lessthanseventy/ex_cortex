@@ -48,12 +48,7 @@ defmodule ExCortex.ContextProviders.GithubIssues do
             "#{header}\n\nNo open issues with label '#{label}'."
 
           {:ok, issues} ->
-            lines =
-              Enum.map(issues, fn issue ->
-                "##{issue["number"]}: #{issue["title"]}\n#{issue["url"]}"
-              end)
-
-            "#{header}\n\n#{Enum.join(lines, "\n\n")}"
+            format_issues(header, issues)
 
           {:error, _} ->
             Logger.warning("[GithubIssuesCtx] Could not parse gh output")
@@ -64,5 +59,10 @@ defmodule ExCortex.ContextProviders.GithubIssues do
         Logger.warning("[GithubIssuesCtx] gh command failed: #{String.slice(error, 0, 200)}")
         "#{header}\n\n(Could not fetch issues: gh CLI not available or not configured)"
     end
+  end
+
+  defp format_issues(header, issues) do
+    lines = Enum.map(issues, fn issue -> "##{issue["number"]}: #{issue["title"]}\n#{issue["url"]}" end)
+    "#{header}\n\n#{Enum.join(lines, "\n\n")}"
   end
 end

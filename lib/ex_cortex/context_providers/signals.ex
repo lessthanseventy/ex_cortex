@@ -31,7 +31,7 @@ defmodule ExCortex.ContextProviders.Signals do
         Enum.map(scored, fn s ->
           age = format_age(s.inserted_at)
           body = String.slice(s.body || "", 0, 2000)
-          tags = if s.tags == [], do: "", else: " [#{Enum.join(s.tags, ", ")}]"
+          tags = format_tags(s.tags)
           "### #{s.title}#{tags}\n*#{age} · #{s.source || "system"}*\n\n#{body}"
         end)
 
@@ -61,6 +61,9 @@ defmodule ExCortex.ContextProviders.Signals do
     |> Enum.take(limit)
     |> Enum.map(fn {s, _score} -> s end)
   end
+
+  defp format_tags([]), do: ""
+  defp format_tags(tags), do: " [#{Enum.join(tags, ", ")}]"
 
   defp format_age(nil), do: "unknown"
 

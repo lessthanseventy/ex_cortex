@@ -112,7 +112,7 @@ defmodule ExCortex.Integration.TraiteeFeaturesTest do
 
       results = Memory.query("integration test", strategy: :legacy, tier: :L0)
       assert is_list(results)
-      assert length(results) > 0
+      assert results != []
     end
 
     test "memory query with mmr strategy falls back gracefully" do

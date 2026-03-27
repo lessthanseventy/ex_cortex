@@ -279,6 +279,8 @@ defmodule ExCortex.AppTelemetry do
     end
   rescue
     _ -> "Rumination ##{rumination_id}"
+  catch
+    :exit, _ -> "Rumination ##{rumination_id}"
   end
 
   defp extract_failed_synapse(synapse_results) when is_map(synapse_results) do

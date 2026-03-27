@@ -52,15 +52,19 @@ defmodule ExCortex.Senses.Feedback do
     rumination = Repo.get(Rumination, daydream.rumination_id)
 
     if rumination && rumination.trigger == "source" && rumination.source_ids != [] do
-      verdicts = recent_verdicts(rumination.id, @verdict_window)
-
-      if length(verdicts) >= @verdict_window do
-        adjustment = analyze_verdicts(verdicts)
-        if adjustment != :no_change, do: adjust_sources(rumination.source_ids, adjustment)
-      end
+      check_verdict_feedback(rumination)
     end
   rescue
     e -> Logger.debug("[SenseFeedback] Error processing completion: #{Exception.message(e)}")
+  end
+
+  defp check_verdict_feedback(rumination) do
+    verdicts = recent_verdicts(rumination.id, @verdict_window)
+
+    if length(verdicts) >= @verdict_window do
+      adjustment = analyze_verdicts(verdicts)
+      if adjustment != :no_change, do: adjust_sources(rumination.source_ids, adjustment)
+    end
   end
 
   defp recent_verdicts(rumination_id, limit) do
@@ -75,12 +79,7 @@ defmodule ExCortex.Senses.Feedback do
       results
       |> Map.values()
       |> Enum.map(&Map.get(&1, "data", ""))
-      |> Enum.flat_map(fn data ->
-        case Regex.run(~r/verdict:\s*"(\w+)"/, data) do
-          [_, v] -> [v]
-          _ -> []
-        end
-      end)
+      |> Enum.flat_map(&extract_verdict_from_data/1)
     end)
   end
 
@@ -113,18 +112,29 @@ defmodule ExCortex.Senses.Feedback do
         end
 
       if new_interval != current_interval do
-        new_config = Map.put(sense.config, "interval", new_interval)
-
-        case sense |> Sense.changeset(%{config: new_config}) |> Repo.update() do
-          {:ok, _} ->
-            Logger.info(
-              "[SenseFeedback] Adjusted #{sense.name} interval: #{current_interval}ms → #{new_interval}ms (#{adjustment})"
-            )
-
-          {:error, _} ->
-            :ok
-        end
+        apply_interval_change(sense, current_interval, new_interval, adjustment)
       end
     end)
+  end
+
+  defp apply_interval_change(sense, current_interval, new_interval, adjustment) do
+    new_config = Map.put(sense.config, "interval", new_interval)
+
+    case sense |> Sense.changeset(%{config: new_config}) |> Repo.update() do
+      {:ok, _} ->
+        Logger.info(
+          "[SenseFeedback] Adjusted #{sense.name} interval: #{current_interval}ms → #{new_interval}ms (#{adjustment})"
+        )
+
+      {:error, _} ->
+        :ok
+    end
+  end
+
+  defp extract_verdict_from_data(data) do
+    case Regex.run(~r/verdict:\s*"(\w+)"/, data) do
+      [_, v] -> [v]
+      _ -> []
+    end
   end
 end

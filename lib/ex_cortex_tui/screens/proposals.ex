@@ -16,13 +16,7 @@ defmodule ExCortexTUI.Screens.Proposals do
       else
         state.proposals
         |> Enum.with_index()
-        |> Enum.map_intersperse("\n", fn {proposal, idx} ->
-          if state.expanded == idx do
-            render_expanded(proposal, idx, idx == state.cursor)
-          else
-            render_collapsed(proposal, idx, idx == state.cursor)
-          end
-        end)
+        |> Enum.map_intersperse("\n", &render_proposal_row(&1, state.expanded, state.cursor))
       end
 
     hints = [
@@ -110,6 +104,14 @@ defmodule ExCortexTUI.Screens.Proposals do
   def handle_key(_key, state), do: {:noreply, state}
 
   # -- Rendering --
+
+  defp render_proposal_row({proposal, idx}, expanded, cursor) do
+    if expanded == idx do
+      render_expanded(proposal, idx, idx == cursor)
+    else
+      render_collapsed(proposal, idx, idx == cursor)
+    end
+  end
 
   defp render_collapsed(proposal, _idx, selected) do
     prefix = if selected, do: Owl.Data.tag("▸ ", [:bright, :cyan]), else: "  "

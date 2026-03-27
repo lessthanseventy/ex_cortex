@@ -22,19 +22,19 @@ defmodule ExCortex.TrustScorer do
   end
 
   defp process_step_results(step) do
-    step_verdict = step.verdict
+    Enum.each(step.results || [], &update_trust(&1, step.verdict))
+  end
 
-    Enum.each(step.results || [], fn result ->
-      neuron_name = result[:neuron] || result.neuron
+  defp update_trust(result, step_verdict) do
+    neuron_name = result[:neuron] || result.neuron
 
-      if neuron_name do
-        if result.verdict == step_verdict do
-          boost(neuron_name)
-        else
-          decay(neuron_name)
-        end
+    if neuron_name do
+      if result.verdict == step_verdict do
+        boost(neuron_name)
+      else
+        decay(neuron_name)
       end
-    end)
+    end
   end
 
   @doc "Get a neuron's trust score. Returns 1.0 (default) if not tracked."

@@ -208,22 +208,25 @@ defmodule ExCortex.Evaluator do
         Module.create(mod_name, contents, Macro.Env.location(__ENV__))
       rescue
         _error in [Code.LoadError] ->
-          Logger.error("Failed to load dependencies for actions module #{inspect(mod_name)}",
-            context: %{actions: meta.actions, error_type: "LoadError"}
+          Logger.error(
+            "Failed to load dependencies for actions module #{inspect(mod_name)} " <>
+              "(actions: #{inspect(meta.actions)}, error_type: LoadError)"
           )
 
           Template
 
         _error in [CompileError] ->
-          Logger.error("Failed to compile actions module #{inspect(mod_name)}",
-            context: %{actions: meta.actions, error_type: "CompileError"}
+          Logger.error(
+            "Failed to compile actions module #{inspect(mod_name)} " <>
+              "(actions: #{inspect(meta.actions)}, error_type: CompileError)"
           )
 
           Template
 
         error ->
-          Logger.error("Failed to create dynamic actions module #{inspect(mod_name)}: #{inspect(error)}",
-            context: %{actions: meta.actions, error_type: Exception.message(error)}
+          Logger.error(
+            "Failed to create dynamic actions module #{inspect(mod_name)}: #{inspect(error)} " <>
+              "(actions: #{inspect(meta.actions)}, error_type: #{Exception.message(error)})"
           )
 
           Template

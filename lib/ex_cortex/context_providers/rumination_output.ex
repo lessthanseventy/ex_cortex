@@ -26,7 +26,7 @@ defmodule ExCortex.ContextProviders.RuminationOutput do
 
   @impl true
   def build(config, _rumination, _input) do
-    case Map.get(config, "rumination") || Map.get(config, "rumination") do
+    case Map.get(config, "rumination") do
       nil ->
         Logger.warning("[RuminationOutputCtx] No 'rumination' name in config")
         ""
@@ -75,9 +75,7 @@ defmodule ExCortex.ContextProviders.RuminationOutput do
       Enum.flat_map(indices, fn idx ->
         case Map.get(synapse_results, to_string(idx)) do
           %{"data" => data, "status" => status} when is_binary(data) ->
-            truncated = String.slice(data, 0, max_bytes)
-            suffix = if byte_size(data) > max_bytes, do: "\n... (truncated)", else: ""
-            ["### Synapse #{idx} (#{status})\n#{truncated}#{suffix}"]
+            [format_synapse_section(idx, data, status, max_bytes)]
 
           _ ->
             []
@@ -89,5 +87,11 @@ defmodule ExCortex.ContextProviders.RuminationOutput do
     else
       "#{label}\n\n#{Enum.join(sections, "\n\n")}"
     end
+  end
+
+  defp format_synapse_section(idx, data, status, max_bytes) do
+    truncated = String.slice(data, 0, max_bytes)
+    suffix = if byte_size(data) > max_bytes, do: "\n... (truncated)", else: ""
+    "### Synapse #{idx} (#{status})\n#{truncated}#{suffix}"
   end
 end

@@ -342,19 +342,17 @@ defmodule ExCortex.LLM.Ollama do
   # `complete` uses atom roles (:user, :assistant), `complete_with_tools` uses string roles.
   defp normalize_history(history, role_type) do
     Enum.map(history, fn msg ->
-      role =
-        case {msg[:role] || msg["role"], role_type} do
-          {"user", :atom} -> :user
-          {"assistant", :atom} -> :assistant
-          {role, :atom} when is_atom(role) -> role
-          {role, :string} when is_binary(role) -> role
-          {role, :string} when is_atom(role) -> Atom.to_string(role)
-          {role, :atom} when is_binary(role) -> String.to_existing_atom(role)
-        end
-
+      role = normalize_role(msg[:role] || msg["role"], role_type)
       %{role: role, content: msg[:content] || msg["content"] || ""}
     end)
   end
+
+  defp normalize_role("user", :atom), do: :user
+  defp normalize_role("assistant", :atom), do: :assistant
+  defp normalize_role(role, :atom) when is_atom(role), do: role
+  defp normalize_role(role, :string) when is_binary(role), do: role
+  defp normalize_role(role, :string) when is_atom(role), do: Atom.to_string(role)
+  defp normalize_role(role, :atom) when is_binary(role), do: String.to_existing_atom(role)
 
   defp client(opts) do
     url =

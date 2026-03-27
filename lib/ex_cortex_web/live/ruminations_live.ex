@@ -73,9 +73,7 @@ defmodule ExCortexWeb.RuminationsLive do
 
     daydreams =
       if socket.assigns.selected_id == run.rumination_id do
-        Enum.map(socket.assigns.daydreams, fn d ->
-          if d.id == run.id, do: run, else: d
-        end)
+        replace_daydream(socket.assigns.daydreams, run)
       else
         socket.assigns.daydreams
       end
@@ -1207,20 +1205,19 @@ defmodule ExCortexWeb.RuminationsLive do
     """
   end
 
+  defp replace_daydream(daydreams, run) do
+    Enum.map(daydreams, fn d -> if d.id == run.id, do: run, else: d end)
+  end
+
   defp group_steps(steps) do
     steps
     |> Enum.with_index()
     |> Enum.chunk_by(fn {step, _idx} -> step["type"] == "branch" end)
-    |> Enum.flat_map(fn chunk ->
-      case chunk do
-        [{%{"type" => "branch"}, _} | _] = branches ->
-          [{:branch, branches, nil}]
-
-        linear_steps ->
-          Enum.map(linear_steps, fn {step, idx} -> {:linear, step, idx} end)
-      end
-    end)
+    |> Enum.flat_map(&classify_chunk/1)
   end
+
+  defp classify_chunk([{%{"type" => "branch"}, _} | _] = branches), do: [{:branch, branches, nil}]
+  defp classify_chunk(linear_steps), do: Enum.map(linear_steps, fn {step, idx} -> {:linear, step, idx} end)
 
   attr :position, :integer, required: true
   attr :picker, :any, default: nil

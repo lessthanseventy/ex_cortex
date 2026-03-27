@@ -38,23 +38,20 @@ defmodule ExCortex.ContextProviders.NeuronRoster do
     if neurons == [] do
       ""
     else
-      rows =
-        Enum.map(neurons, fn m ->
-          rank = m.config["rank"] || "?"
-          model = m.config["model"] || "?"
-
-          tools =
-            case m.config["tools"] do
-              nil -> "none"
-              list when is_list(list) -> Enum.join(list, ", ")
-              preset when is_binary(preset) -> preset
-              _ -> "?"
-            end
-
-          "- **#{m.name}** (#{rank}) — #{model} — tools: #{tools}"
-        end)
-
+      rows = Enum.map(neurons, &format_neuron_row/1)
       "#{label}\n\n#{Enum.join(rows, "\n")}"
     end
   end
+
+  defp format_neuron_row(m) do
+    rank = m.config["rank"] || "?"
+    model = m.config["model"] || "?"
+    tools = format_tools(m.config["tools"])
+    "- **#{m.name}** (#{rank}) — #{model} — tools: #{tools}"
+  end
+
+  defp format_tools(nil), do: "none"
+  defp format_tools(list) when is_list(list), do: Enum.join(list, ", ")
+  defp format_tools(preset) when is_binary(preset), do: preset
+  defp format_tools(_), do: "?"
 end

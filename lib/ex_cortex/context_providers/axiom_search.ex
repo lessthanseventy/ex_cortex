@@ -15,14 +15,15 @@ defmodule ExCortex.ContextProviders.AxiomSearch do
     ExCortex.Lexicon.list_axioms()
     |> Enum.map(fn axiom ->
       case ExCortex.Tools.QueryAxiom.call(%{"axiom" => axiom.name, "query" => input}) do
-        {:ok, result} ->
-          if String.contains?(result, "No matches"), do: nil, else: "## #{axiom.name}\n#{result}"
-
-        _ ->
-          nil
+        {:ok, result} -> format_axiom_result(axiom, result)
+        _ -> nil
       end
     end)
     |> Enum.reject(&is_nil/1)
     |> Enum.join("\n\n")
+  end
+
+  defp format_axiom_result(axiom, result) do
+    if String.contains?(result, "No matches"), do: nil, else: "## #{axiom.name}\n#{result}"
   end
 end

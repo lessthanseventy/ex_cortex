@@ -12,12 +12,16 @@ defmodule ExCortex.Obsidian.Sync do
     Settings.get(:obsidian_sync_enabled) == true
   rescue
     _ -> false
+  catch
+    :exit, _ -> false
   end
 
   def vault_path do
     Settings.get(:obsidian_vault_path)
   rescue
     _ -> nil
+  catch
+    :exit, _ -> nil
   end
 
   @doc """
