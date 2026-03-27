@@ -84,7 +84,6 @@ defmodule ExCortex.MixProject do
       {:burrito, "~> 1.5", only: :prod},
       # Accessibility
       {:excessibility, "~> 0.10", only: [:dev, :test]},
-      {:ex_compact, "~> 0.1", path: "../ex_compact"},
       # Vector search
       {:pgvector, "~> 0.3"},
       {:nx, "~> 0.9"}
