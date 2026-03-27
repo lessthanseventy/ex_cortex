@@ -1,5 +1,5 @@
 defmodule ExCortex.Security.ThreatTrackerTest do
-  use ExUnit.Case, async: false
+  use ExCortex.DataCase, async: false
 
   alias ExCortex.Security.ThreatTracker
 
