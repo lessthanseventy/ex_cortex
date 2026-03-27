@@ -10,9 +10,17 @@ defmodule ExCortex.Ruminations.Middleware.ToolErrorHandler do
   @impl true
   def after_impulse(%Context{}, result, _opts), do: result
 
+  @security_error_types ["SecurityDenied"]
+
   @impl true
   def wrap_tool_call(tool_name, _tool_args, execute_fn) do
-    execute_fn.()
+    case execute_fn.() do
+      {:error, %{error_type: type}} when type in @security_error_types ->
+        {:error, :security_denied}
+
+      result ->
+        result
+    end
   catch
     kind, reason ->
       {error_msg, error_type} = format_error(kind, reason)
