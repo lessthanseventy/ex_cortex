@@ -2,11 +2,13 @@ defmodule ExCortexTUI.Screens.Daily do
   @moduledoc "Daily notes screen — Obsidian todos, brain dump, what happened."
   @behaviour ExCortexTUI.Screen
 
+  alias ExCortex.Signals.TodoSync
+  alias ExCortex.Tools.DailyNoteWrite
   alias ExCortex.Tools.ObsidianTodos
 
   @impl true
   def init(_opts) do
-    Task.start(fn -> ExCortex.Signals.TodoSync.sync() end)
+    Task.start(fn -> TodoSync.sync() end)
     Phoenix.PubSub.subscribe(ExCortex.PubSub, "signals")
     %{signal: load_daily_signal(), scroll: 0, mode: :browse, input: "", input_target: nil}
   end
@@ -17,8 +19,14 @@ defmodule ExCortexTUI.Screens.Daily do
     prompt = input_prompt(state.input_target)
 
     browse_lines ++
-      ["\n", Owl.Data.tag(String.duplicate("─", 60), :faint),
-       "\n", Owl.Data.tag(prompt, :cyan), state.input, Owl.Data.tag("▌", :faint)]
+      [
+        "\n",
+        Owl.Data.tag(String.duplicate("─", 60), :faint),
+        "\n",
+        Owl.Data.tag(prompt, :cyan),
+        state.input,
+        Owl.Data.tag("▌", :faint)
+      ]
   end
 
   def render(state) do
@@ -48,8 +56,9 @@ defmodule ExCortexTUI.Screens.Daily do
   # -- Browse mode keys --
   def handle_key("j", state), do: {:noreply, %{state | scroll: state.scroll + 3}}
   def handle_key("k", state), do: {:noreply, %{state | scroll: max(state.scroll - 3, 0)}}
+
   def handle_key("r", state) do
-    Task.start(fn -> ExCortex.Signals.TodoSync.sync() end)
+    Task.start(fn -> TodoSync.sync() end)
     {:noreply, %{state | signal: load_daily_signal(), scroll: 0}}
   end
 
@@ -76,8 +85,7 @@ defmodule ExCortexTUI.Screens.Daily do
   # -- Data --
 
   defp load_daily_signal do
-    ExCortex.Signals.list_signals()
-    |> Enum.find(fn s -> s.pin_slug == "daily-todos" end)
+    Enum.find(ExCortex.Signals.list_signals(), fn s -> s.pin_slug == "daily-todos" end)
   rescue
     _ -> nil
   end
@@ -91,7 +99,7 @@ defmodule ExCortexTUI.Screens.Daily do
       %{"text" => text, "checked" => checked} ->
         Task.start(fn ->
           ObsidianTodos.toggle_todo(%{"text" => text, "done" => !checked})
-          ExCortex.Signals.TodoSync.sync()
+          TodoSync.sync()
         end)
 
         # Optimistic update
@@ -113,13 +121,13 @@ defmodule ExCortexTUI.Screens.Daily do
           ObsidianTodos.add_todo(%{"text" => text})
 
         :brain_dump ->
-          ExCortex.Tools.DailyNoteWrite.call(%{"content" => text, "section" => "brain dump"})
+          DailyNoteWrite.call(%{"content" => text, "section" => "brain dump"})
 
         :what_happened ->
-          ExCortex.Tools.DailyNoteWrite.call(%{"content" => text, "section" => "what happened"})
+          DailyNoteWrite.call(%{"content" => text, "section" => "what happened"})
       end
 
-      ExCortex.Signals.TodoSync.sync()
+      TodoSync.sync()
     end)
 
     {:noreply, %{state | mode: :browse, input: "", input_target: nil}}
@@ -128,7 +136,7 @@ defmodule ExCortexTUI.Screens.Daily do
   # -- Rendering --
 
   defp render_browse(state) do
-    all_lines = render_content(state.signal) |> to_lines()
+    all_lines = state.signal |> render_content() |> to_lines()
     height = terminal_height() - 4
     # Clamp scroll
     max_scroll = max(length(all_lines) - height, 0)
@@ -246,11 +254,10 @@ defmodule ExCortexTUI.Screens.Daily do
   defp to_lines(data) do
     data
     |> List.flatten()
-    |> Enum.map(fn
+    |> Enum.map_join(fn
       item when is_binary(item) -> item
-      item -> Owl.Data.to_chardata(item) |> IO.chardata_to_string()
+      item -> item |> Owl.Data.to_chardata() |> IO.chardata_to_string()
     end)
-    |> Enum.join()
     |> String.split("\n")
   end
 

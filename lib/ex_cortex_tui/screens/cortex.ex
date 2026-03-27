@@ -15,7 +15,8 @@ defmodule ExCortexTUI.Screens.Cortex do
   def render(state) do
     # Render all panels into lines, then apply scroll offset
     lines =
-      render_all_panels(state)
+      state
+      |> render_all_panels()
       |> Owl.Data.to_chardata()
       |> IO.chardata_to_string()
       |> String.split("\n")
@@ -55,9 +56,9 @@ defmodule ExCortexTUI.Screens.Cortex do
 
   defp fetch_all do
     %{
-      ruminations: safe_fetch(fn -> ExCortex.Ruminations.list_ruminations() |> Enum.take(5) end),
+      ruminations: safe_fetch(fn -> Enum.take(ExCortex.Ruminations.list_ruminations(), 5) end),
       signals: safe_fetch(fn -> ExCortex.Signals.list_signals(limit: 5) end),
-      clusters: safe_fetch(fn -> ExCortex.Clusters.list_pathways() |> Enum.take(5) end),
+      clusters: safe_fetch(fn -> Enum.take(ExCortex.Clusters.list_pathways(), 5) end),
       engrams: safe_fetch(fn -> ExCortex.Memory.list_engrams(limit: 5) end)
     }
   end

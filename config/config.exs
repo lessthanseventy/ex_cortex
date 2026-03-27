@@ -20,6 +20,8 @@ config :esbuild,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
+config :ex_cortex, ExCortex.Repo, types: ExCortex.PostgrexTypes
+
 # Configure the endpoint
 config :ex_cortex, ExCortexWeb.Endpoint,
   url: [host: "localhost"],
@@ -48,8 +50,6 @@ config :ex_cortex, :nextcloud_roles, %{
 config :ex_cortex,
   ecto_repos: [ExCortex.Repo],
   generators: [timestamp_type: :utc_datetime]
-
-config :ex_cortex, ExCortex.Repo, types: ExCortex.PostgrexTypes
 
 config :ex_cortex,
   nextcloud_url: System.get_env("NEXTCLOUD_URL", "http://localhost:8080"),

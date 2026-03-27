@@ -67,19 +67,44 @@ defmodule ExCortexTUI.App do
       :tick ->
         %{model | daydream_count: safe_daydream_count(), proposal_count: safe_proposal_count()}
 
-      {:daydream_started, _} -> refresh_screen_data(model)
-      {:daydream_completed, _} -> refresh_screen_data(model)
-      {:signal_posted, _} -> refresh_screen_data(model)
-      {:engram_updated, _} -> refresh_screen_data(model)
-      {:daily_signal_loaded, signal} -> %{model | daily_signal: signal}
-      {:screen_data, data} -> Map.merge(model, data)
-      {:todo_synced, _} -> {%{model | daily_signal: load_daily_signal()}, load_daily_cmd()}
-      {:chat_token, token} -> %{model | chat_response: model.chat_response <> token}
-      {:chat_done, _} -> finish_chat(model)
-      {:chat_error, err} -> finish_chat_error(model, err)
-      {:event, event} -> handle_key(model, event)
-      {:resize, _event} -> model
-      _ -> model
+      {:daydream_started, _} ->
+        refresh_screen_data(model)
+
+      {:daydream_completed, _} ->
+        refresh_screen_data(model)
+
+      {:signal_posted, _} ->
+        refresh_screen_data(model)
+
+      {:engram_updated, _} ->
+        refresh_screen_data(model)
+
+      {:daily_signal_loaded, signal} ->
+        %{model | daily_signal: signal}
+
+      {:screen_data, data} ->
+        Map.merge(model, data)
+
+      {:todo_synced, _} ->
+        {%{model | daily_signal: load_daily_signal()}, load_daily_cmd()}
+
+      {:chat_token, token} ->
+        %{model | chat_response: model.chat_response <> token}
+
+      {:chat_done, _} ->
+        finish_chat(model)
+
+      {:chat_error, err} ->
+        finish_chat_error(model, err)
+
+      {:event, event} ->
+        handle_key(model, event)
+
+      {:resize, _event} ->
+        model
+
+      _ ->
+        model
     end
   end
 
@@ -884,44 +909,66 @@ defmodule ExCortexTUI.App do
   end
 
   defp todo_add_cmd(text) do
-    Command.new(fn ->
-      ObsidianTodos.add_todo(%{"text" => text})
-      TodoSync.sync()
-    end, {:todo_synced, nil})
+    Command.new(
+      fn ->
+        ObsidianTodos.add_todo(%{"text" => text})
+        TodoSync.sync()
+      end,
+      {:todo_synced, nil}
+    )
   end
 
   defp daily_write_cmd(text, section) do
-    Command.new(fn ->
-      ExCortex.Tools.DailyNoteWrite.call(%{"content" => text, "section" => section})
-      TodoSync.sync()
-    end, {:todo_synced, nil})
+    Command.new(
+      fn ->
+        ExCortex.Tools.DailyNoteWrite.call(%{"content" => text, "section" => section})
+        TodoSync.sync()
+      end,
+      {:todo_synced, nil}
+    )
   end
 
   defp approve_current_proposal(model) do
     case Enum.at(model.proposals, model.cursor) do
-      nil -> model
+      nil ->
+        model
+
       proposal ->
-        cmd = Command.new(fn ->
-          ExCortex.Ruminations.approve_proposal(proposal)
-        end, {:screen_data, %{proposals: load_proposals()}})
+        cmd =
+          Command.new(
+            fn ->
+              ExCortex.Ruminations.approve_proposal(proposal)
+            end,
+            {:screen_data, %{proposals: load_proposals()}}
+          )
+
         {model, cmd}
     end
   end
 
   defp reject_current_proposal(model) do
     case Enum.at(model.proposals, model.cursor) do
-      nil -> model
+      nil ->
+        model
+
       proposal ->
-        cmd = Command.new(fn ->
-          ExCortex.Ruminations.reject_proposal(proposal)
-        end, {:screen_data, %{proposals: load_proposals()}})
+        cmd =
+          Command.new(
+            fn ->
+              ExCortex.Ruminations.reject_proposal(proposal)
+            end,
+            {:screen_data, %{proposals: load_proposals()}}
+          )
+
         {model, cmd}
     end
   end
 
   defp show_daydream_detail(model) do
     case Enum.at(model.daydreams, model.cursor) do
-      nil -> model
+      nil ->
+        model
+
       d ->
         detail = %{
           rumination_name: (d.rumination && d.rumination.name) || "?",
@@ -930,6 +977,7 @@ defmodule ExCortexTUI.App do
           input: d.input,
           synapse_results: d.synapse_results
         }
+
         %{model | detail: detail}
     end
   end

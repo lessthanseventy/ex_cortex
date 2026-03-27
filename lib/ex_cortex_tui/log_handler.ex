@@ -4,7 +4,7 @@ defmodule ExCortexTUI.LogHandler do
   def log(%{level: level, msg: msg, meta: meta}, _config) do
     message = format_message(msg)
     time = format_time(meta)
-    module = Map.get(meta, :mfa, {nil, nil, nil}) |> elem(0) |> format_module()
+    module = meta |> Map.get(:mfa, {nil, nil, nil}) |> elem(0) |> format_module()
     line = "#{time} [#{level}]#{module} #{message}"
 
     if Process.whereis(ExCortexTUI.LogBuffer) do
@@ -29,5 +29,5 @@ defmodule ExCortexTUI.LogHandler do
   defp pad(n), do: to_string(n)
 
   defp format_module(nil), do: ""
-  defp format_module(mod), do: " [#{inspect(mod) |> String.replace("Elixir.", "")}]"
+  defp format_module(mod), do: " [#{mod |> inspect() |> String.replace("Elixir.", "")}]"
 end

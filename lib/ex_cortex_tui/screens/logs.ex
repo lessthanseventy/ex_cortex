@@ -17,7 +17,7 @@ defmodule ExCortexTUI.Screens.Logs do
       if Enum.empty?(lines) do
         [Owl.Data.tag("  No log output yet", :faint)]
       else
-        Enum.map(lines, fn line ->
+        Enum.map_intersperse(lines, "\n", fn line ->
           cond do
             String.contains?(line, "[error]") -> Owl.Data.tag(line, :red)
             String.contains?(line, "[warning]") -> Owl.Data.tag(line, :yellow)
@@ -25,7 +25,6 @@ defmodule ExCortexTUI.Screens.Logs do
             true -> Owl.Data.tag(line, :faint)
           end
         end)
-        |> Enum.intersperse("\n")
       end
 
     List.flatten([header | log_lines])
