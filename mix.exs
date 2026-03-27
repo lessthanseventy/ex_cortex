@@ -79,7 +79,7 @@ defmodule ExCortex.MixProject do
       {:fresh, "~> 0.4"},
       # TUI
       {:owl, "~> 0.13"},
-      {:ratatouille, "~> 0.5"},
+      {:ratatouille, "~> 0.5", only: [:dev, :prod]},
       # Packaging
       {:burrito, "~> 1.5", only: :prod},
       # Accessibility
