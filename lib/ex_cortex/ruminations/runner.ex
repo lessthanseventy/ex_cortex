@@ -112,20 +112,11 @@ defmodule ExCortex.Ruminations.Runner do
       trust_level: Keyword.get(opts, :trust_level)
     }
 
-    {results, gated?} =
-      try do
-        {results, _} =
-          Enum.reduce(steps_with_next, {[], input}, fn {step, next_step}, {acc_results, current_input} ->
-            run_step_entry(step, next_step, current_input, acc_results, run_ctx)
-          end)
-
-        {results, false}
-      catch
-        {:gated, gated_results} -> {gated_results, true}
-      end
+    {results, gated?, converged?, iteration_count} =
+      run_pipeline_loop(thought, input, run_ctx, steps_with_next)
 
     # Determine final status and record step results
-    final_status = determine_final_status(dry_run?, gated?, results)
+    final_status = determine_final_status(dry_run?, gated?, converged?, results)
 
     synapse_results =
       results
@@ -134,7 +125,13 @@ defmodule ExCortex.Ruminations.Runner do
         {to_string(idx), inspect_result(result)}
       end)
 
-    {:ok, daydream} = Ruminations.update_daydream(daydream, %{status: final_status, synapse_results: synapse_results})
+    {:ok, daydream} =
+      Ruminations.update_daydream(daydream, %{
+        status: final_status,
+        synapse_results: synapse_results,
+        iteration_count: iteration_count
+      })
+
     Phoenix.PubSub.broadcast(ExCortex.PubSub, "daydreams", {:daydream_completed, daydream})
 
     maybe_run_post_daydream_tasks(synapse_results, results, thought, daydream, dry_run?, final_status)
@@ -271,6 +268,69 @@ defmodule ExCortex.Ruminations.Runner do
           end
 
         {acc_results ++ [result], next_input}
+    end
+  end
+
+  defp run_pipeline_loop(thought, input, run_ctx, steps_with_next, iteration \\ 1) do
+    max_iter = Map.get(thought, :max_iterations) || 1
+
+    {results, gated?} =
+      try do
+        {results, _} =
+          Enum.reduce(steps_with_next, {[], input}, fn {step, next_step}, {acc_results, current_input} ->
+            run_step_entry(step, next_step, current_input, acc_results, run_ctx)
+          end)
+
+        {results, false}
+      catch
+        {:gated, gated_results} -> {gated_results, true}
+      end
+
+    if gated? do
+      {results, true, false, iteration}
+    else
+      converged? = pipeline_converged?(results, steps_with_next)
+
+      if converged? or iteration >= max_iter do
+        {results, false, converged?, iteration}
+      else
+        next_input = build_next_iteration_input(results, input, run_ctx)
+        run_pipeline_loop(thought, next_input, run_ctx, steps_with_next, iteration + 1)
+      end
+    end
+  end
+
+  defp pipeline_converged?([], _), do: false
+
+  defp pipeline_converged?(results, steps_with_next) do
+    {last_step_def, _} = List.last(steps_with_next)
+    last_step_id = last_step_def["step_id"] || last_step_def["thought_id"]
+
+    case resolve_step(last_step_id) do
+      %{convergence_verdict: cv} when is_binary(cv) and cv != "" ->
+        case List.last(results) do
+          {:ok, %{verdict: verdict}} -> verdict == cv
+          _ -> false
+        end
+
+      _ ->
+        false
+    end
+  end
+
+  defp build_next_iteration_input(results, original_input, run_ctx) do
+    case List.last(results) do
+      {:ok, _} = last_result ->
+        last_step_def = List.last(run_ctx.ordered_steps)
+        step_name = resolve_step_name(last_step_def["step_id"] || last_step_def["thought_id"]) || "Previous Step"
+
+        case result_to_text(last_result, step_name, nil) do
+          "" -> original_input
+          text -> "#{original_input}\n\n#{text}"
+        end
+
+      _ ->
+        original_input
     end
   end
 
@@ -507,10 +567,11 @@ defmodule ExCortex.Ruminations.Runner do
 
   defp extract_tool_calls(_), do: []
 
-  defp determine_final_status(true, _gated?, _results), do: "dry_run"
-  defp determine_final_status(_dry_run?, true, _results), do: "gated"
+  defp determine_final_status(true, _gated?, _converged?, _results), do: "dry_run"
+  defp determine_final_status(_dry_run?, true, _converged?, _results), do: "gated"
+  defp determine_final_status(_dry_run?, _gated?, true, _results), do: "converged"
 
-  defp determine_final_status(_dry_run?, _gated?, results) do
+  defp determine_final_status(_dry_run?, _gated?, _converged?, results) do
     if match?({:ok, _}, List.last(results)), do: "complete", else: "failed"
   end
 

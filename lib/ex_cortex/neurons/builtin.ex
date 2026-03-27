@@ -8,7 +8,50 @@ defmodule ExCortex.Neurons.Builtin do
     master: %{model: "deepseek-v3.2", strategy: "cod"}
   }
 
-  def all, do: editors() ++ analysts() ++ specialists() ++ advisors() ++ validators() ++ wildcards() ++ life_use()
+  def all do
+    code_defined =
+      editors() ++ analysts() ++ specialists() ++ advisors() ++ validators() ++ wildcards() ++ life_use()
+
+    markdown_neurons = ExCortex.Neurons.MarkdownLoader.load_all()
+    markdown_by_id = Map.new(markdown_neurons, &{&1.id, &1})
+    markdown_ids = MapSet.new(Map.keys(markdown_by_id))
+
+    # Replace code-defined with markdown version on id collision (markdown wins)
+    merged =
+      Enum.map(code_defined, fn n ->
+        if MapSet.member?(markdown_ids, n.id), do: markdown_by_id[n.id], else: n
+      end)
+
+    # Append markdown-only neurons (no code-defined counterpart)
+    code_ids = MapSet.new(code_defined, & &1.id)
+    markdown_only = Enum.reject(markdown_neurons, &MapSet.member?(code_ids, &1.id))
+
+    merged ++ markdown_only
+  end
+
+  def from_markdown(attrs, system_prompt) do
+    lobe = attrs |> Map.get("lobe", "frontal") |> String.to_atom()
+    category = attrs |> Map.get("category", "specialist") |> String.to_atom()
+
+    ranks =
+      attrs
+      |> Map.get(:ranks, %{})
+      |> Enum.reduce(%{}, fn {rank_atom, rank_map}, acc ->
+        Map.put(acc, rank_atom, rank_map)
+      end)
+
+    neuron = %__MODULE__{
+      id: Map.get(attrs, "id"),
+      name: Map.get(attrs, "name"),
+      description: Map.get(attrs, "description", ""),
+      category: category,
+      lobe: lobe,
+      ranks: ranks,
+      system_prompt: system_prompt
+    }
+
+    if neuron.id && neuron.name, do: {:ok, neuron}, else: {:error, :missing_required_fields}
+  end
 
   def filter_by_lobe(lobe) do
     Enum.filter(all(), &(&1.lobe == lobe))
