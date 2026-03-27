@@ -1,3 +1,4 @@
+if Code.ensure_loaded?(Ratatouille) do
 defmodule Mix.Tasks.Cortex do
   @shortdoc "Start ExCortex terminal UI"
 
@@ -8,4 +9,5 @@ defmodule Mix.Tasks.Cortex do
   def run(args) do
     Mix.Tasks.Tui.run(args)
   end
+end
 end
