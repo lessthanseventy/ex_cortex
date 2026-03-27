@@ -96,7 +96,7 @@ The app improves itself via two systems seeded by the Dev Team pathway:
 **SI: Analyst Sweep** (every 4h) — reads codebase, runs credo, files GitHub issues labeled `self-improvement`
 
 **Neuroplasticity Loop** (triggered by those issues):
-PM Triage → Code Writer → Code Reviewer → QA → UX Designer → PM Merge Decision
+PM Triage → Planning Consensus → Code Writer → Code Reviewer → QA → UX Designer → PM Merge Decision
 
 Re-seed with: `ExCortex.Neuroplasticity.Seed.seed(%{repo: "owner/repo"})`
 
@@ -185,7 +185,8 @@ docker compose up -d             # full stack: db, ollama, jaeger, prometheus, g
 - Synapse schema has `middleware` field (list of module name strings)
 - ImpulseRunner resolves middleware from synapse, runs before/after chain around each impulse
 - `ExCortex.LLM.ToolExecutor` — shared tool execution for Claude + Ollama, supports middleware wrapping
-- Built-in middleware: `ToolErrorHandler`, `UntrustedContentTagger`, `MessageQueueInjector`
+- Built-in middleware: `ToolErrorHandler`, `UntrustedContentTagger`, `MessageQueueInjector`, `Scratchpad` (opt-in)
+- `Scratchpad` middleware: persistent key:value store across impulses within a daydream — models write `SCRATCHPAD:...END_SCRATCHPAD` blocks
 
 ## Bidirectional Expressions
 - Expressions return `{:ok, external_ref}` on delivery (webhook, slack)
@@ -198,6 +199,25 @@ docker compose up -d             # full stack: db, ollama, jaeger, prometheus, g
 - Daydream schema has `fingerprint` (sha256 of rumination_id + normalized input)
 - `concurrent` mode skips creating a new daydream if one with the same fingerprint is already running
 - `Ruminations.latest_daydream/1` returns most recent daydream for a rumination (used by pinned signal cards)
+
+## Bounded Pipeline Loops
+- Rumination schema has `max_iterations` (default 1 — single pass)
+- Synapse schema has `convergence_verdict` (e.g., `"pass"`)
+- Runner loops: run all steps, check last verdict against `convergence_verdict`, repeat or stop
+- Daydream tracks `iteration_count` and can have status `"converged"`
+- Gates still halt immediately regardless of loop iteration
+
+## Keyword-Triggered Ruminations
+- Rumination trigger type `"keyword"` with `keyword_patterns` field (list of strings)
+- `KeywordTriggerRunner` GenServer subscribes to signals, engrams, and senses PubSub topics
+- Case-insensitive substring matching against content; fires `Runner.run/2` on match
+- Uses existing dedup to prevent re-triggering
+
+## Markdown Neuron Definitions
+- Neurons can be defined as `.md` files in `priv/neurons/` with YAML frontmatter
+- `MarkdownLoader.load_all/0` parses frontmatter (id, name, category, lobe, ranks) + body (system_prompt)
+- `Builtin.all/0` merges code-defined + markdown-defined neurons (markdown wins on id collision)
+- Enables git-diffable neuron prompt changes via neuroplasticity PRs
 
 ## Trust Levels
 - Sense schema has `trust_level`: `"trusted"` or `"untrusted"` (default)
