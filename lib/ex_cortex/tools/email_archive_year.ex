@@ -61,19 +61,7 @@ defmodule ExCortex.Tools.EmailArchiveYear do
     if files == [] do
       {:ok, "No emails to archive for #{year}."}
     else
-      count =
-        Enum.reduce(files, 0, fn src, acc ->
-          filename = Path.basename(src)
-          clean = Regex.replace(~r/,U=\d+/, filename, "")
-          dest = Path.join(dest_cur, clean)
-
-          if src != dest and not File.exists?(dest) do
-            File.rename!(src, dest)
-            acc + 1
-          else
-            acc
-          end
-        end)
+      count = Enum.reduce(files, 0, fn src, acc -> archive_file_to(src, dest_cur, acc) end)
 
       Logger.info("[EmailArchiveYear] Archived #{count} files → #{folder}/")
       System.cmd("notmuch", ["new", "--quiet"], stderr_to_stdout: true)
@@ -85,5 +73,18 @@ defmodule ExCortex.Tools.EmailArchiveYear do
 
   def call(%{"year" => year}) when is_binary(year) do
     call(%{"year" => String.to_integer(year)})
+  end
+
+  defp archive_file_to(src, dest_cur, acc) do
+    filename = Path.basename(src)
+    clean = Regex.replace(~r/,U=\d+/, filename, "")
+    dest = Path.join(dest_cur, clean)
+
+    if src != dest and not File.exists?(dest) do
+      File.rename!(src, dest)
+      acc + 1
+    else
+      acc
+    end
   end
 end

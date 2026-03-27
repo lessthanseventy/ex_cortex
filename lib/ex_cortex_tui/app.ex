@@ -65,47 +65,26 @@ if Code.ensure_loaded?(Ratatouille.View) do
     @impl true
     def update(model, msg) do
       case msg do
-        :tick ->
-          %{model | daydream_count: safe_daydream_count(), proposal_count: safe_proposal_count()}
+        :tick -> %{model | daydream_count: safe_daydream_count(), proposal_count: safe_proposal_count()}
+        {:chat_token, token} -> %{model | chat_response: model.chat_response <> token}
+        {:chat_done, _} -> finish_chat(model)
+        {:chat_error, err} -> finish_chat_error(model, err)
+        {:event, event} -> handle_key(model, event)
+        {:resize, _event} -> model
+        _ -> handle_pubsub_msg(model, msg)
+      end
+    end
 
-        {:daydream_started, _} ->
-          refresh_screen_data(model)
-
-        {:daydream_completed, _} ->
-          refresh_screen_data(model)
-
-        {:signal_posted, _} ->
-          refresh_screen_data(model)
-
-        {:engram_updated, _} ->
-          refresh_screen_data(model)
-
-        {:daily_signal_loaded, signal} ->
-          %{model | daily_signal: signal}
-
-        {:screen_data, data} ->
-          Map.merge(model, data)
-
-        {:todo_synced, _} ->
-          {%{model | daily_signal: load_daily_signal()}, load_daily_cmd()}
-
-        {:chat_token, token} ->
-          %{model | chat_response: model.chat_response <> token}
-
-        {:chat_done, _} ->
-          finish_chat(model)
-
-        {:chat_error, err} ->
-          finish_chat_error(model, err)
-
-        {:event, event} ->
-          handle_key(model, event)
-
-        {:resize, _event} ->
-          model
-
-        _ ->
-          model
+    defp handle_pubsub_msg(model, msg) do
+      case msg do
+        {:daydream_started, _} -> refresh_screen_data(model)
+        {:daydream_completed, _} -> refresh_screen_data(model)
+        {:signal_posted, _} -> refresh_screen_data(model)
+        {:engram_updated, _} -> refresh_screen_data(model)
+        {:daily_signal_loaded, signal} -> %{model | daily_signal: signal}
+        {:screen_data, data} -> Map.merge(model, data)
+        {:todo_synced, _} -> {%{model | daily_signal: load_daily_signal()}, load_daily_cmd()}
+        _ -> model
       end
     end
 
@@ -323,7 +302,7 @@ if Code.ensure_loaded?(Ratatouille.View) do
         row do
           column size: 12 do
             panel title: title_text, color: :cyan do
-              # Todos
+              # Task items
               label(content: " what's happening", color: :cyan, attributes: [:bold])
               label(content: "")
 
@@ -384,48 +363,21 @@ if Code.ensure_loaded?(Ratatouille.View) do
         row do
           column size: 6 do
             panel title: "Ruminations", color: :cyan do
-              for r <- ruminations do
-                color = status_color(r.status)
-
-                label do
-                  text(content: "  ● ", color: color)
-                  text(content: r.name)
-                  text(content: "  [#{r.status}]", color: color)
-                end
-              end
+              for r <- ruminations, do: render_rumination_row(r)
             end
 
             panel title: "Signals", color: :yellow do
-              for s <- signals do
-                label do
-                  text(content: "  #{format_time(s.inserted_at)} ", color: :white)
-                  text(content: "[#{s.source || s.type || "?"}] ", color: :cyan)
-                  text(content: truncate(s.title || "", 40))
-                end
-              end
+              for s <- signals, do: render_signal_row(s)
             end
           end
 
           column size: 6 do
             panel title: "Clusters", color: :green do
-              for c <- clusters do
-                label do
-                  text(content: "  ● ", color: :green)
-                  text(content: c.cluster_name)
-                end
-              end
+              for c <- clusters, do: render_cluster_row(c)
             end
 
             panel title: "Memory", color: :magenta do
-              for e <- engrams do
-                importance = String.duplicate("★", min(e.importance || 1, 5))
-
-                label do
-                  text(content: "  #{importance} ", color: :yellow)
-                  text(content: truncate(e.title || "untitled", 30))
-                  text(content: "  [#{e.category}]", color: :white)
-                end
-              end
+              for e <- engrams, do: render_engram_row(e)
             end
           end
         end
@@ -478,22 +430,7 @@ if Code.ensure_loaded?(Ratatouille.View) do
           label(content: "  No recent daydreams.", color: :white)
         else
           for {d, idx} <- Enum.with_index(model.daydreams) do
-            name = (d.rumination && d.rumination.name) || "?"
-            color = status_color(d.status)
-            selected = idx == model.cursor
-
-            label do
-              if selected do
-                text(content: " ▸ ", color: :cyan, attributes: [:bold])
-              else
-                text(content: "   ")
-              end
-
-              text(content: "● ", color: color)
-              text(content: String.pad_trailing(d.status || "?", 12), color: color)
-              text(content: name)
-              text(content: "  #{format_time(d.inserted_at)}", color: :white)
-            end
+            render_daydream_row(d, idx, model.cursor)
           end
         end
 
@@ -516,21 +453,7 @@ if Code.ensure_loaded?(Ratatouille.View) do
           label(content: "  No pending proposals.", color: :white)
         else
           for {p, idx} <- Enum.with_index(model.proposals) do
-            selected = idx == model.cursor
-            confidence = get_in(p.details || %{}, ["confidence"])
-            conf_str = if confidence, do: " (#{Float.round(confidence * 100, 0)}%)", else: ""
-
-            label do
-              if selected do
-                text(content: " ▸ ", color: :cyan, attributes: [:bold])
-              else
-                text(content: "   ")
-              end
-
-              text(content: "[#{p.type || "?"}]", color: :yellow)
-              text(content: " #{truncate(p.description || "?", 50)}")
-              text(content: conf_str, color: :cyan)
-            end
+            render_proposal_row(p, idx, model.cursor)
           end
         end
 
@@ -634,15 +557,7 @@ if Code.ensure_loaded?(Ratatouille.View) do
             label(content: "  No log entries.", color: :white)
           else
             for line <- lines do
-              color =
-                cond do
-                  String.contains?(line, "[error]") -> :red
-                  String.contains?(line, "[warning]") -> :yellow
-                  String.contains?(line, "[info]") -> :green
-                  true -> :white
-                end
-
-              label(content: "  #{line}", color: color)
+              label(content: "  #{line}", color: log_line_color(line))
             end
           end
         end
@@ -765,6 +680,91 @@ if Code.ensure_loaded?(Ratatouille.View) do
         label(content: "  CHAT (Wonder/Muse)", color: :yellow, attributes: [:bold])
         label(content: "")
         label(content: "    Type to start input. Enter sends. Esc cancels.")
+      end
+    end
+
+    # ── Cortex row helpers ─────────────────────────────────────────────
+
+    defp render_rumination_row(r) do
+      color = status_color(r.status)
+
+      label do
+        text(content: "  ● ", color: color)
+        text(content: r.name)
+        text(content: "  [#{r.status}]", color: color)
+      end
+    end
+
+    defp render_signal_row(s) do
+      label do
+        text(content: "  #{format_time(s.inserted_at)} ", color: :white)
+        text(content: "[#{s.source || s.type || "?"}] ", color: :cyan)
+        text(content: truncate(s.title || "", 40))
+      end
+    end
+
+    defp render_cluster_row(c) do
+      label do
+        text(content: "  ● ", color: :green)
+        text(content: c.cluster_name)
+      end
+    end
+
+    defp render_engram_row(e) do
+      importance = String.duplicate("★", min(e.importance || 1, 5))
+
+      label do
+        text(content: "  #{importance} ", color: :yellow)
+        text(content: truncate(e.title || "untitled", 30))
+        text(content: "  [#{e.category}]", color: :white)
+      end
+    end
+
+    # ── Daydream / proposal row helpers ───────────────────────────────
+
+    defp render_daydream_row(d, idx, cursor) do
+      name = (d.rumination && d.rumination.name) || "?"
+      color = status_color(d.status)
+      selected = idx == cursor
+
+      label do
+        if selected do
+          text(content: " ▸ ", color: :cyan, attributes: [:bold])
+        else
+          text(content: "   ")
+        end
+
+        text(content: "● ", color: color)
+        text(content: String.pad_trailing(d.status || "?", 12), color: color)
+        text(content: name)
+        text(content: "  #{format_time(d.inserted_at)}", color: :white)
+      end
+    end
+
+    defp render_proposal_row(p, idx, cursor) do
+      selected = idx == cursor
+      confidence = get_in(p.details || %{}, ["confidence"])
+      conf_str = if confidence, do: " (#{Float.round(confidence * 100, 0)}%)", else: ""
+
+      label do
+        if selected do
+          text(content: " ▸ ", color: :cyan, attributes: [:bold])
+        else
+          text(content: "   ")
+        end
+
+        text(content: "[#{p.type || "?"}]", color: :yellow)
+        text(content: " #{truncate(p.description || "?", 50)}")
+        text(content: conf_str, color: :cyan)
+      end
+    end
+
+    defp log_line_color(line) do
+      cond do
+        String.contains?(line, "[error]") -> :red
+        String.contains?(line, "[warning]") -> :yellow
+        String.contains?(line, "[info]") -> :green
+        true -> :white
       end
     end
 

@@ -624,14 +624,7 @@ defmodule ExCortex.Seeds do
         }
       }
 
-      if Repo.exists?(from nr in Neuron, where: nr.name == ^n.name and nr.team == ^n.team) do
-        Logger.info("[Seeds] Neuron already exists: #{n.name} (#{n.team})")
-      else
-        case Repo.insert(Neuron.changeset(%Neuron{}, attrs)) do
-          {:ok, _} -> Logger.info("[Seeds] Neuron seeded: #{n.name} (#{n.team})")
-          {:error, cs} -> Logger.warning("[Seeds] Neuron #{n.name} failed: #{inspect(cs.errors)}")
-        end
-      end
+      insert_neuron_if_new(n, attrs)
     end
   end
 
@@ -1888,14 +1881,7 @@ defmodule ExCortex.Seeds do
     for engram_attrs <- engrams do
       title = engram_attrs.title
 
-      if Repo.exists?(from(e in Engram, where: e.title == ^title)) do
-        Logger.info("[Seeds] Engram already exists: #{title}")
-      else
-        case Memory.create_engram(engram_attrs) do
-          {:ok, _} -> Logger.info("[Seeds] Engram seeded: #{title}")
-          {:error, cs} -> Logger.warning("[Seeds] Engram #{title} failed: #{inspect(cs.errors)}")
-        end
-      end
+      insert_engram_if_new(title, engram_attrs)
     end
   end
 
@@ -2284,14 +2270,7 @@ defmodule ExCortex.Seeds do
     for signal_attrs <- signals do
       title = signal_attrs.title
 
-      if Repo.exists?(from(s in Signal, where: s.title == ^title and s.source == "seed")) do
-        Logger.info("[Seeds] Signal already exists: #{title}")
-      else
-        case Signals.create_signal(signal_attrs) do
-          {:ok, _} -> Logger.info("[Seeds] Signal seeded: #{title}")
-          {:error, cs} -> Logger.warning("[Seeds] Signal #{title} failed: #{inspect(cs.errors)}")
-        end
-      end
+      insert_signal_if_new(title, signal_attrs)
     end
   end
 
@@ -2348,14 +2327,7 @@ defmodule ExCortex.Seeds do
     for sense_attrs <- senses do
       name = sense_attrs.name
 
-      if Repo.exists?(from(s in Sense, where: s.name == ^name)) do
-        Logger.info("[Seeds] Sense already exists: #{name}")
-      else
-        case Repo.insert(Sense.changeset(%Sense{}, sense_attrs)) do
-          {:ok, _} -> Logger.info("[Seeds] Sense seeded: #{name}")
-          {:error, cs} -> Logger.warning("[Seeds] Sense #{name} failed: #{inspect(cs.errors)}")
-        end
-      end
+      insert_sense_if_new(name, sense_attrs)
     end
   end
 
@@ -2368,19 +2340,16 @@ defmodule ExCortex.Seeds do
 
     if email_sense do
       sense_id = to_string(email_sense.id)
+      for name <- ["Email Management Pipeline", "Email Backlog Cleanup"], do: wire_email_rumination(sense_id, name)
+    end
+  end
 
-      for name <- ["Email Management Pipeline", "Email Backlog Cleanup"] do
-        rumination = Repo.one(from(r in Rumination, where: r.name == ^name))
+  defp wire_email_rumination(sense_id, name) do
+    rumination = Repo.one(from(r in Rumination, where: r.name == ^name))
 
-        if rumination && rumination.source_ids == [] do
-          Ruminations.update_rumination(rumination, %{
-            trigger: "source",
-            source_ids: [sense_id]
-          })
-
-          Logger.info("[Seeds] Wired Email Inbox sense → #{name}")
-        end
-      end
+    if rumination && rumination.source_ids == [] do
+      Ruminations.update_rumination(rumination, %{trigger: "source", source_ids: [sense_id]})
+      Logger.info("[Seeds] Wired Email Inbox sense → #{name}")
     end
   end
 
@@ -2389,15 +2358,16 @@ defmodule ExCortex.Seeds do
 
     if cortex_sense do
       sense_id = to_string(cortex_sense.id)
+      for name <- ["Morning Briefing", "Sentinel Sweep"], do: wire_cortex_rumination(sense_id, name)
+    end
+  end
 
-      for name <- ["Morning Briefing", "Sentinel Sweep"] do
-        rumination = Repo.one(from(r in Rumination, where: r.name == ^name))
+  defp wire_cortex_rumination(sense_id, name) do
+    rumination = Repo.one(from(r in Rumination, where: r.name == ^name))
 
-        if rumination && rumination.source_ids == [] do
-          Ruminations.update_rumination(rumination, %{source_ids: [sense_id]})
-          Logger.info("[Seeds] Wired Self-Monitor sense → #{name}")
-        end
-      end
+    if rumination && rumination.source_ids == [] do
+      Ruminations.update_rumination(rumination, %{source_ids: [sense_id]})
+      Logger.info("[Seeds] Wired Self-Monitor sense → #{name}")
     end
   end
 
@@ -2407,139 +2377,193 @@ defmodule ExCortex.Seeds do
     for reflex <- Reflex.digests() do
       # Skip if already installed (any sense has this reflex_id)
       if !Repo.exists?(from(s in Sense, where: s.reflex_id == ^reflex.id)) do
-        sources = get_in(reflex.default_config, ["sources"]) || []
-        tmpl = reflex.rumination_template
-        lobe = ExCortex.Lobe.get(reflex.lobe)
-        lobe_iterations = if lobe, do: lobe.processing.max_tool_iterations, else: 15
-
-        # Create feed senses
-        sense_ids =
-          for %{"name" => name, "url" => url} <- sources do
-            {:ok, sense} =
-              %Sense{}
-              |> Sense.changeset(%{
-                name: name,
-                source_type: "feed",
-                config: %{"url" => url, "interval" => 1_800_000},
-                reflex_id: reflex.id,
-                status: "paused"
-              })
-              |> Repo.insert()
-
-            to_string(sense.id)
-          end
-
-        # Create lobe-shaped pipeline: prepend + core digest + append
-        pipeline = if lobe, do: lobe.pipeline, else: %{prepend_steps: [], append_steps: []}
-        prepend = Map.get(pipeline, :prepend_steps, [])
-        append = Map.get(pipeline, :append_steps, [])
-
-        prepend_synapses =
-          for step_type <- prepend do
-            step_def = ExCortex.Lobe.pipeline_step_def(step_type, tmpl.cluster, tmpl.gatherer)
-
-            {:ok, s} =
-              Ruminations.create_synapse(%{
-                name: "#{reflex.name}: #{step_def.name_suffix}",
-                description: step_def.description,
-                trigger: "manual",
-                output_type: step_def.output_type,
-                cluster_name: step_def.cluster_name,
-                loop_tools: Map.get(step_def, :loop_tools),
-                max_tool_iterations: lobe_iterations,
-                roster: step_def.roster
-              })
-
-            s
-          end
-
-        {:ok, s1} =
-          Ruminations.create_synapse(%{
-            name: "#{reflex.name}: Gather",
-            description:
-              "Collect the latest items from the feed sources. For each item, extract: title, source, URL, and a 1-sentence summary. " <>
-                "IMPORTANT: Always include the original URL for every item — these will be clickable links in the final output. " <>
-                "NEVER invent or fabricate details — only report what the source material actually contains. No made-up CVE numbers, names, or statistics. " <>
-                "Group items by subtopic. Discard duplicates and items older than #{tmpl.window}.",
-            trigger: "manual",
-            output_type: "freeform",
-            cluster_name: tmpl.cluster,
-            loop_tools: ["fetch_url", "web_search"],
-            max_tool_iterations: lobe_iterations,
-            roster: [%{"who" => "all", "preferred_who" => tmpl.gatherer, "how" => "solo", "when" => "sequential"}]
-          })
-
-        {:ok, s2} =
-          Ruminations.create_synapse(%{
-            name: "#{reflex.name}: Analyze",
-            description:
-              "Analyze the gathered items. Identify the top 5-10 most significant stories. " <>
-                "For each, write a 2-3 sentence analysis explaining why it matters. " <>
-                "Preserve the original source URLs — format each story as: **[Title](url)** — analysis. " <>
-                "ONLY use facts from the gathered items. Do not add information from outside the provided content. " <>
-                "If a detail (version number, CVE, statistic) isn't in the source, don't include it. " <>
-                "End with a 'Trends' section noting any patterns across the stories.",
-            trigger: "manual",
-            output_type: "freeform",
-            cluster_name: tmpl.cluster,
-            roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
-          })
-
-        slug = reflex.name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-") |> String.trim("-")
-
-        {:ok, s3} =
-          Ruminations.create_synapse(%{
-            name: "#{reflex.name}: Publish",
-            description:
-              "Format the analysis as a concise dashboard signal card. Use markdown with clickable links. " <>
-                "Structure: brief intro paragraph, then a bulleted list of top stories as **[Title](url)** — one-liner. " <>
-                "Keep it scannable — this is a digest, not an essay.",
-            trigger: "manual",
-            output_type: "signal",
-            cluster_name: tmpl.cluster,
-            pin_slug: slug,
-            pinned: true,
-            roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
-          })
-
-        append_synapses =
-          for step_type <- append do
-            step_def = ExCortex.Lobe.pipeline_step_def(step_type, tmpl.cluster, tmpl.analyst)
-
-            {:ok, s} =
-              Ruminations.create_synapse(%{
-                name: "#{reflex.name}: #{step_def.name_suffix}",
-                description: step_def.description,
-                trigger: "manual",
-                output_type: step_def.output_type,
-                cluster_name: step_def.cluster_name,
-                loop_tools: Map.get(step_def, :loop_tools),
-                roster: step_def.roster
-              })
-
-            s
-          end
-
-        all_synapses = prepend_synapses ++ [s1, s2, s3] ++ append_synapses
-
-        steps =
-          all_synapses
-          |> Enum.with_index(1)
-          |> Enum.map(fn {s, order} -> %{"step_id" => s.id, "order" => order} end)
-
-        {:ok, _} =
-          Ruminations.create_rumination(%{
-            name: reflex.name,
-            description: tmpl.description,
-            trigger: "scheduled",
-            schedule: tmpl.schedule,
-            source_ids: sense_ids,
-            status: "paused",
-            steps: steps
-          })
-
-        Logger.info("[Seeds] Digest installed: #{reflex.name}")
+        install_digest(reflex)
       end
     end
   end
+
+  defp install_digest(reflex) do
+    sources = get_in(reflex.default_config, ["sources"]) || []
+    tmpl = reflex.rumination_template
+    lobe = ExCortex.Lobe.get(reflex.lobe)
+    lobe_iterations = if lobe, do: lobe.processing.max_tool_iterations, else: 15
+
+    # Create feed senses
+    sense_ids =
+      for %{"name" => name, "url" => url} <- sources do
+        {:ok, sense} =
+          %Sense{}
+          |> Sense.changeset(%{
+            name: name,
+            source_type: "feed",
+            config: %{"url" => url, "interval" => 1_800_000},
+            reflex_id: reflex.id,
+            status: "paused"
+          })
+          |> Repo.insert()
+
+        to_string(sense.id)
+      end
+
+    # Create lobe-shaped pipeline: prepend + core digest + append
+    pipeline = if lobe, do: lobe.pipeline, else: %{prepend_steps: [], append_steps: []}
+    prepend = Map.get(pipeline, :prepend_steps, [])
+    append = Map.get(pipeline, :append_steps, [])
+
+    prepend_synapses =
+      for step_type <- prepend do
+        step_def = ExCortex.Lobe.pipeline_step_def(step_type, tmpl.cluster, tmpl.gatherer)
+
+        {:ok, s} =
+          Ruminations.create_synapse(%{
+            name: "#{reflex.name}: #{step_def.name_suffix}",
+            description: step_def.description,
+            trigger: "manual",
+            output_type: step_def.output_type,
+            cluster_name: step_def.cluster_name,
+            loop_tools: Map.get(step_def, :loop_tools),
+            max_tool_iterations: lobe_iterations,
+            roster: step_def.roster
+          })
+
+        s
+      end
+
+    {:ok, s1} =
+      Ruminations.create_synapse(%{
+        name: "#{reflex.name}: Gather",
+        description:
+          "Collect the latest items from the feed sources. For each item, extract: title, source, URL, and a 1-sentence summary. " <>
+            "IMPORTANT: Always include the original URL for every item — these will be clickable links in the final output. " <>
+            "NEVER invent or fabricate details — only report what the source material actually contains. No made-up CVE numbers, names, or statistics. " <>
+            "Group items by subtopic. Discard duplicates and items older than #{tmpl.window}.",
+        trigger: "manual",
+        output_type: "freeform",
+        cluster_name: tmpl.cluster,
+        loop_tools: ["fetch_url", "web_search"],
+        max_tool_iterations: lobe_iterations,
+        roster: [%{"who" => "all", "preferred_who" => tmpl.gatherer, "how" => "solo", "when" => "sequential"}]
+      })
+
+    {:ok, s2} =
+      Ruminations.create_synapse(%{
+        name: "#{reflex.name}: Analyze",
+        description:
+          "Analyze the gathered items. Identify the top 5-10 most significant stories. " <>
+            "For each, write a 2-3 sentence analysis explaining why it matters. " <>
+            "Preserve the original source URLs — format each story as: **[Title](url)** — analysis. " <>
+            "ONLY use facts from the gathered items. Do not add information from outside the provided content. " <>
+            "If a detail (version number, CVE, statistic) isn't in the source, don't include it. " <>
+            "End with a 'Trends' section noting any patterns across the stories.",
+        trigger: "manual",
+        output_type: "freeform",
+        cluster_name: tmpl.cluster,
+        roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
+      })
+
+    slug = reflex.name |> String.downcase() |> String.replace(~r/[^a-z0-9]+/, "-") |> String.trim("-")
+
+    {:ok, s3} =
+      Ruminations.create_synapse(%{
+        name: "#{reflex.name}: Publish",
+        description:
+          "Format the analysis as a concise dashboard signal card. Use markdown with clickable links. " <>
+            "Structure: brief intro paragraph, then a bulleted list of top stories as **[Title](url)** — one-liner. " <>
+            "Keep it scannable — this is a digest, not an essay.",
+        trigger: "manual",
+        output_type: "signal",
+        cluster_name: tmpl.cluster,
+        pin_slug: slug,
+        pinned: true,
+        roster: [%{"who" => "all", "preferred_who" => tmpl.analyst, "how" => "solo", "when" => "sequential"}]
+      })
+
+    append_synapses =
+      for step_type <- append do
+        step_def = ExCortex.Lobe.pipeline_step_def(step_type, tmpl.cluster, tmpl.analyst)
+
+        {:ok, s} =
+          Ruminations.create_synapse(%{
+            name: "#{reflex.name}: #{step_def.name_suffix}",
+            description: step_def.description,
+            trigger: "manual",
+            output_type: step_def.output_type,
+            cluster_name: step_def.cluster_name,
+            loop_tools: Map.get(step_def, :loop_tools),
+            roster: step_def.roster
+          })
+
+        s
+      end
+
+    all_synapses = prepend_synapses ++ [s1, s2, s3] ++ append_synapses
+
+    steps =
+      all_synapses
+      |> Enum.with_index(1)
+      |> Enum.map(&to_step_entry/1)
+
+    {:ok, _} =
+      Ruminations.create_rumination(%{
+        name: reflex.name,
+        description: tmpl.description,
+        trigger: "scheduled",
+        schedule: tmpl.schedule,
+        source_ids: sense_ids,
+        status: "paused",
+        steps: steps
+      })
+
+    Logger.info("[Seeds] Digest installed: #{reflex.name}")
+  end
+
+  # ---------------------------------------------------------------------------
+  # Insert helpers (skip if already exists)
+  # ---------------------------------------------------------------------------
+
+  defp insert_neuron_if_new(n, attrs) do
+    if Repo.exists?(from nr in Neuron, where: nr.name == ^n.name and nr.team == ^n.team) do
+      Logger.info("[Seeds] Neuron already exists: #{n.name} (#{n.team})")
+    else
+      case Repo.insert(Neuron.changeset(%Neuron{}, attrs)) do
+        {:ok, _} -> Logger.info("[Seeds] Neuron seeded: #{n.name} (#{n.team})")
+        {:error, cs} -> Logger.warning("[Seeds] Neuron #{n.name} failed: #{inspect(cs.errors)}")
+      end
+    end
+  end
+
+  defp insert_engram_if_new(title, engram_attrs) do
+    if Repo.exists?(from(e in Engram, where: e.title == ^title)) do
+      Logger.info("[Seeds] Engram already exists: #{title}")
+    else
+      case Memory.create_engram(engram_attrs) do
+        {:ok, _} -> Logger.info("[Seeds] Engram seeded: #{title}")
+        {:error, cs} -> Logger.warning("[Seeds] Engram #{title} failed: #{inspect(cs.errors)}")
+      end
+    end
+  end
+
+  defp insert_signal_if_new(title, signal_attrs) do
+    if Repo.exists?(from(s in Signal, where: s.title == ^title and s.source == "seed")) do
+      Logger.info("[Seeds] Signal already exists: #{title}")
+    else
+      case Signals.create_signal(signal_attrs) do
+        {:ok, _} -> Logger.info("[Seeds] Signal seeded: #{title}")
+        {:error, cs} -> Logger.warning("[Seeds] Signal #{title} failed: #{inspect(cs.errors)}")
+      end
+    end
+  end
+
+  defp insert_sense_if_new(name, sense_attrs) do
+    if Repo.exists?(from(s in Sense, where: s.name == ^name)) do
+      Logger.info("[Seeds] Sense already exists: #{name}")
+    else
+      case Repo.insert(Sense.changeset(%Sense{}, sense_attrs)) do
+        {:ok, _} -> Logger.info("[Seeds] Sense seeded: #{name}")
+        {:error, cs} -> Logger.warning("[Seeds] Sense #{name} failed: #{inspect(cs.errors)}")
+      end
+    end
+  end
+
+  defp to_step_entry({s, order}), do: %{"step_id" => s.id, "order" => order}
 end

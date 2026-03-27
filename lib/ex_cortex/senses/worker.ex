@@ -59,46 +59,7 @@ defmodule ExCortex.Senses.Worker do
         {:noreply, %{state | source: source, worker_state: new_worker_state, timer: timer}}
 
       {:ok, items, new_worker_state} ->
-        maybe_write_to_memory(items, state.source)
-        steps = Ruminations.list_synapses_for_source(to_string(state.source.id))
-        ruminations = Ruminations.list_ruminations_for_source(to_string(state.source.id))
-        # Only run per-item evaluation if no ruminations are wired
-        # (ruminations ARE the evaluation — don't double-process)
-        if ruminations == [] do
-          evaluate_items(items, state.source, steps)
-        end
-
-        tasks_started = enqueue_ruminations(items, state.source, ruminations)
-        source = update_source_state(state.source, new_worker_state)
-
-        # If we got a full batch, there's probably more — fetch again soon instead of waiting.
-        # But if the task supervisor is full, back off to avoid a tight retry loop.
-        max_results = state.source.config["max_results"] || 50
-        has_more = length(items) >= max_results
-        backoff = state[:backoff] || 0
-
-        {delay, new_backoff} =
-          cond do
-            not tasks_started ->
-              next_backoff = min((backoff + 1) * 15_000, 120_000)
-              Logger.warning("[SourceWorker] Task supervisor full — backing off #{div(next_backoff, 1000)}s")
-              {next_backoff, backoff + 1}
-
-            has_more ->
-              Logger.info("[SourceWorker] Batch full (#{length(items)}/#{max_results}) — fetching next batch in 5s")
-              {5_000, 0}
-
-            true ->
-              {state.interval, 0}
-          end
-
-        timer = Process.send_after(self(), :fetch, delay)
-
-        new_state =
-          state
-          |> Map.put(:backoff, new_backoff)
-          |> Map.merge(%{source: source, worker_state: new_worker_state, timer: timer})
-
+        new_state = handle_successful_fetch(items, new_worker_state, state)
         {:noreply, new_state}
 
       {:error, reason} ->
@@ -143,49 +104,42 @@ defmodule ExCortex.Senses.Worker do
         "for #{length(ruminations)} rumination(s)#{if batch?, do: " (batch mode)"}"
     )
 
-    results =
-      Enum.map(ruminations, fn rumination ->
-        if batch? do
-          batched_input = batch_items(items)
-          Logger.info("[SourceWorker] Starting batch run for #{rumination.name} (#{byte_size(batched_input)} bytes)")
+    ruminations
+    |> Enum.map(&run_rumination_for_items(&1, items, batch?))
+    |> Enum.all?()
+  end
 
-          case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
-                 try do
-                   Runner.run(rumination, batched_input)
-                 rescue
-                   e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
-                 end
-               end) do
-            {:ok, _pid} ->
-              true
+  defp run_rumination_for_items(rumination, items, true) do
+    batched_input = batch_items(items)
+    Logger.info("[SourceWorker] Starting batch run for #{rumination.name} (#{byte_size(batched_input)} bytes)")
+    start_rumination_task(rumination, batched_input)
+  end
 
-            {:error, reason} ->
-              Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
-              false
-          end
-        else
-          items
-          |> Enum.map(fn item ->
-            case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
-                   try do
-                     Runner.run(rumination, item.content)
-                   rescue
-                     e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
-                   end
-                 end) do
-              {:ok, _pid} ->
-                true
+  defp run_rumination_for_items(rumination, items, false) do
+    items
+    |> Enum.map(&start_item_task(rumination, &1))
+    |> Enum.all?()
+  end
 
-              {:error, reason} ->
-                Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
-                false
-            end
-          end)
-          |> Enum.all?()
-        end
-      end)
+  defp start_item_task(rumination, item) do
+    start_rumination_task(rumination, item.content)
+  end
 
-    Enum.all?(results)
+  defp start_rumination_task(rumination, input) do
+    case Task.Supervisor.start_child(ExCortex.SourceTaskSupervisor, fn ->
+           try do
+             Runner.run(rumination, input)
+           rescue
+             e -> Logger.error("[SourceWorker] Rumination #{rumination.name} failed: #{Exception.message(e)}")
+           end
+         end) do
+      {:ok, _pid} ->
+        true
+
+      {:error, reason} ->
+        Logger.error("[SourceWorker] Could not start task: #{inspect(reason)}")
+        false
+    end
   end
 
   defp batch_items(items) do
@@ -261,6 +215,49 @@ defmodule ExCortex.Senses.Worker do
   def source_module("media"), do: ExCortex.Senses.MediaSense
   def source_module("github_issues"), do: ExCortex.Senses.GithubIssueWatcher
   def source_module("nextcloud"), do: ExCortex.Senses.NextcloudWatcher
+
+  defp handle_successful_fetch(items, new_worker_state, state) do
+    maybe_write_to_memory(items, state.source)
+    steps = Ruminations.list_synapses_for_source(to_string(state.source.id))
+    ruminations = Ruminations.list_ruminations_for_source(to_string(state.source.id))
+
+    # Only run per-item evaluation if no ruminations are wired
+    # (ruminations ARE the evaluation — don't double-process)
+    if ruminations == [] do
+      evaluate_items(items, state.source, steps)
+    end
+
+    tasks_started = enqueue_ruminations(items, state.source, ruminations)
+    source = update_source_state(state.source, new_worker_state)
+
+    # If we got a full batch, there's probably more — fetch again soon instead of waiting.
+    # But if the task supervisor is full, back off to avoid a tight retry loop.
+    max_results = state.source.config["max_results"] || 50
+    has_more = length(items) >= max_results
+    backoff = state[:backoff] || 0
+
+    {delay, new_backoff} = compute_fetch_delay(tasks_started, has_more, backoff, state.interval, items, max_results)
+    timer = Process.send_after(self(), :fetch, delay)
+
+    state
+    |> Map.put(:backoff, new_backoff)
+    |> Map.merge(%{source: source, worker_state: new_worker_state, timer: timer})
+  end
+
+  defp compute_fetch_delay(false, _has_more, backoff, _interval, _items, _max_results) do
+    next_backoff = min((backoff + 1) * 15_000, 120_000)
+    Logger.warning("[SourceWorker] Task supervisor full — backing off #{div(next_backoff, 1000)}s")
+    {next_backoff, backoff + 1}
+  end
+
+  defp compute_fetch_delay(true, true, _backoff, _interval, items, max_results) do
+    Logger.info("[SourceWorker] Batch full (#{length(items)}/#{max_results}) — fetching next batch in 5s")
+    {5_000, 0}
+  end
+
+  defp compute_fetch_delay(true, false, _backoff, interval, _items, _max_results) do
+    {interval, 0}
+  end
 
   defp get_interval(config), do: config["interval"] || 60_000
 

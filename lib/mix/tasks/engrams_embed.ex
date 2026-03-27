@@ -29,17 +29,20 @@ defmodule Mix.Tasks.Engrams.Embed do
     engrams
     |> Enum.with_index(1)
     |> Enum.each(fn {engram, idx} ->
-      case Embeddings.embed_engram(engram) do
-        {:ok, _} ->
-          if rem(idx, 10) == 0, do: Logger.info("[Embed] #{idx}/#{total} done")
-
-        {:error, reason} ->
-          Logger.warning("[Embed] Failed #{engram.id} (#{engram.title}): #{inspect(reason)}")
-      end
-
+      embed_and_log(engram, idx, total)
       Process.sleep(50)
     end)
 
     Logger.info("[Embed] Backfill complete.")
+  end
+
+  defp embed_and_log(engram, idx, total) do
+    case Embeddings.embed_engram(engram) do
+      {:ok, _} ->
+        if rem(idx, 10) == 0, do: Logger.info("[Embed] #{idx}/#{total} done")
+
+      {:error, reason} ->
+        Logger.warning("[Embed] Failed #{engram.id} (#{engram.title}): #{inspect(reason)}")
+    end
   end
 end

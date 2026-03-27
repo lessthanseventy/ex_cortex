@@ -49,13 +49,8 @@ defmodule ExCortex.Core.Actions do
       def conflicts?(a, b) do
         conflicts_map = unquote(Macro.escape(conflicts_map))
         orthogonal = unquote(Macro.escape(orthogonal_set))
-
-        cond do
-          MapSet.member?(orthogonal, a) or MapSet.member?(orthogonal, b) -> false
-          b in Map.get(conflicts_map, a, []) -> true
-          a in Map.get(conflicts_map, b, []) -> true
-          true -> false
-        end
+        not_orthogonal = not MapSet.member?(orthogonal, a) and not MapSet.member?(orthogonal, b)
+        not_orthogonal and (b in Map.get(conflicts_map, a, []) or a in Map.get(conflicts_map, b, []))
       end
 
       def orthogonal?(action) do

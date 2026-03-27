@@ -15,7 +15,7 @@ defmodule ExCortex.Memory.MMRIntegrationTest do
         })
 
       results = Memory.query("pattern matching", strategy: :legacy, tier: :L0)
-      assert length(results) >= 1
+      assert results != []
       assert hd(results).title =~ "pattern matching"
     end
 
@@ -30,7 +30,7 @@ defmodule ExCortex.Memory.MMRIntegrationTest do
         })
 
       results = Memory.query("special_tag", strategy: :legacy, tier: :L0)
-      assert length(results) >= 1
+      assert results != []
     end
   end
 

@@ -65,11 +65,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
         if todos == [] do
           {:ok, "No open todos for #{date}."}
         else
-          formatted =
-            Enum.map_join(todos, "\n", fn {section, items} ->
-              header = if section, do: "**#{section}**\n", else: ""
-              header <> Enum.map_join(items, "\n", fn {line_num, text} -> "  #{line_num}: - [ ] #{text}" end)
-            end)
+          formatted = Enum.map_join(todos, "\n", &format_todo_section/1)
 
           {:ok, "Open todos for #{date}:\n\n#{formatted}"}
         end
@@ -118,8 +114,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
   def toggle_todo(params) do
     date = Map.get(params, "date", resolve_today())
     done = Map.get(params, "done", true)
-    from = if done, do: "- [ ]", else: "- [x]"
-    to = if done, do: "- [x]", else: "- [ ]"
+    {from, to} = todo_markers(done)
 
     case read_daily_note(date) do
       {:ok, content} ->
@@ -135,25 +130,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
         if is_nil(target_line) or target_line < 0 or target_line >= length(lines) do
           {:error, "Could not find the todo to toggle."}
         else
-          line = Enum.at(lines, target_line)
-
-          if String.contains?(line, from) do
-            new_line = String.replace(line, from, to, global: false)
-            new_lines = List.replace_at(lines, target_line, new_line)
-            new_content = Enum.join(new_lines, "\n")
-
-            case write_daily_note(date, new_content) do
-              :ok ->
-                todo_text = line |> String.replace(~r/.*- \[.\]\s*/, "") |> String.trim()
-                action = if done, do: "completed", else: "reopened"
-                {:ok, "Todo #{action}: #{todo_text}"}
-
-              {:error, reason} ->
-                {:error, "Failed to write: #{reason}"}
-            end
-          else
-            {:error, "Line #{target_line + 1} is not a #{if done, do: "open", else: "completed"} todo."}
-          end
+          apply_line_toggle(lines, target_line, from, to, done, date)
         end
 
       {:error, reason} ->
@@ -227,6 +204,51 @@ defmodule ExCortex.Tools.ObsidianTodos do
   # Helpers
   # ---------------------------------------------------------------------------
 
+  defp format_section_header(nil), do: ""
+  defp format_section_header(section), do: "**#{section}**\n"
+
+  defp format_todo_section({section, items}) do
+    format_section_header(section) <>
+      Enum.map_join(items, "\n", fn {line_num, text} -> "  #{line_num}: - [ ] #{text}" end)
+  end
+
+  defp todo_markers(true), do: {"- [ ]", "- [x]"}
+  defp todo_markers(false), do: {"- [x]", "- [ ]"}
+
+  defp todo_action(true), do: "completed"
+  defp todo_action(false), do: "reopened"
+
+  defp todo_state(true), do: "open"
+  defp todo_state(false), do: "completed"
+
+  defp apply_line_toggle(lines, target_line, from, to, done, date) do
+    line = Enum.at(lines, target_line)
+
+    if String.contains?(line, from) do
+      new_line = String.replace(line, from, to, global: false)
+      new_lines = List.replace_at(lines, target_line, new_line)
+      new_content = Enum.join(new_lines, "\n")
+
+      case write_daily_note(date, new_content) do
+        :ok ->
+          todo_text = line |> String.replace(~r/.*- \[.\]\s*/, "") |> String.trim()
+          {:ok, "Todo #{todo_action(done)}: #{todo_text}"}
+
+        {:error, reason} ->
+          {:error, "Failed to write: #{reason}"}
+      end
+    else
+      {:error, "Line #{target_line + 1} is not a #{todo_state(done)} todo."}
+    end
+  end
+
+  defp update_todo_acc(acc, section, line_num, text) do
+    case List.keyfind(acc, section, 0) do
+      nil -> acc ++ [{section, [{line_num, text}]}]
+      {^section, items} -> List.keyreplace(acc, section, 0, {section, items ++ [{line_num, text}]})
+    end
+  end
+
   defp vault_path do
     Settings.get(:obsidian_vault_path) || Path.expand("~/notes/notes")
   end
@@ -290,14 +312,7 @@ defmodule ExCortex.Tools.ObsidianTodos do
 
         if Regex.match?(pattern, line) do
           text = line |> String.replace(~r/.*- \[[ x]\]\s*/, "") |> String.trim()
-          # Group by section
-          updated =
-            case List.keyfind(acc, section, 0) do
-              nil -> acc ++ [{section, [{line_num, text}]}]
-              {^section, items} -> List.keyreplace(acc, section, 0, {section, items ++ [{line_num, text}]})
-            end
-
-          {updated, section}
+          {update_todo_acc(acc, section, line_num, text), section}
         else
           {acc, section}
         end

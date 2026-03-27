@@ -36,9 +36,7 @@ defmodule ExCortex.ContextProviders.FileReader do
 
         case File.read(full_path) do
           {:ok, content} ->
-            truncated = String.slice(content, 0, max_bytes)
-            suffix = if byte_size(content) > max_bytes, do: "\n... (truncated)", else: ""
-            "### #{path}\n```elixir\n#{truncated}#{suffix}\n```"
+            format_file_section(path, content, max_bytes)
 
           {:error, reason} ->
             Logger.debug("[FileReaderCtx] Could not read #{path}: #{inspect(reason)}")
@@ -56,5 +54,11 @@ defmodule ExCortex.ContextProviders.FileReader do
       #{Enum.join(sections, "\n\n")}
       """)
     end
+  end
+
+  defp format_file_section(path, content, max_bytes) do
+    truncated = String.slice(content, 0, max_bytes)
+    suffix = if byte_size(content) > max_bytes, do: "\n... (truncated)", else: ""
+    "### #{path}\n```elixir\n#{truncated}#{suffix}\n```"
   end
 end

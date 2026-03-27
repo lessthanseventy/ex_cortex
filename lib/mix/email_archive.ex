@@ -61,24 +61,25 @@ defmodule Mix.Tasks.Email.Archive do
     if files == [] do
       Mix.shell().info("No emails to archive for #{year}.")
     else
-      count =
-        Enum.reduce(files, 0, fn src, acc ->
-          filename = Path.basename(src)
-          clean = Regex.replace(~r/,U=\d+/, filename, "")
-          dest = Path.join(dest_cur, clean)
-
-          if src == dest do
-            acc
-          else
-            File.rename!(src, dest)
-            acc + 1
-          end
-        end)
+      count = Enum.reduce(files, 0, fn src, acc -> archive_file_to(src, dest_cur, acc) end)
 
       # Reindex notmuch
       System.cmd("notmuch", ["new", "--quiet"], stderr_to_stdout: true)
 
       Mix.shell().info("Archived #{count} files → #{folder}/")
+    end
+  end
+
+  defp archive_file_to(src, dest_cur, acc) do
+    filename = Path.basename(src)
+    clean = Regex.replace(~r/,U=\d+/, filename, "")
+    dest = Path.join(dest_cur, clean)
+
+    if src == dest do
+      acc
+    else
+      File.rename!(src, dest)
+      acc + 1
     end
   end
 

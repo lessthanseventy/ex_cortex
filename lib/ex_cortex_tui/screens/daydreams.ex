@@ -88,29 +88,7 @@ defmodule ExCortexTUI.Screens.Daydreams do
           daydreams
           |> Enum.with_index()
           |> Enum.map(fn {{daydream, rum_name}, idx} ->
-            selected = idx == state.cursor
-            dot_color = status_color(daydream.status)
-            name = truncate(rum_name || "##{daydream.rumination_id}", 24)
-            step_count = map_size(daydream.synapse_results || %{})
-            age = relative_time(daydream.inserted_at)
-
-            line = [
-              if(selected, do: Owl.Data.tag("▸ ", [:bright, :cyan]), else: "  "),
-              Owl.Data.tag("● ", dot_color),
-              String.pad_trailing(daydream.status || "?", 6),
-              "  ",
-              String.pad_trailing(name, 24),
-              "  ",
-              String.pad_trailing("#{step_count}", 8),
-              "  ",
-              Owl.Data.tag(age, :faint)
-            ]
-
-            if selected do
-              [Owl.Data.tag("", [:bright, :cyan]) | line]
-            else
-              line
-            end
+            render_daydream_row({daydream, rum_name}, idx, state.cursor)
           end)
 
         header ++ divider ++ Enum.intersperse(rows, "\n")
@@ -252,6 +230,32 @@ defmodule ExCortexTUI.Screens.Daydreams do
     )
   rescue
     _ -> []
+  end
+
+  defp render_daydream_row({daydream, rum_name}, idx, cursor) do
+    selected = idx == cursor
+    dot_color = status_color(daydream.status)
+    name = truncate(rum_name || "##{daydream.rumination_id}", 24)
+    step_count = map_size(daydream.synapse_results || %{})
+    age = relative_time(daydream.inserted_at)
+
+    line = [
+      if(selected, do: Owl.Data.tag("▸ ", [:bright, :cyan]), else: "  "),
+      Owl.Data.tag("● ", dot_color),
+      String.pad_trailing(daydream.status || "?", 6),
+      "  ",
+      String.pad_trailing(name, 24),
+      "  ",
+      String.pad_trailing("#{step_count}", 8),
+      "  ",
+      Owl.Data.tag(age, :faint)
+    ]
+
+    if selected do
+      [Owl.Data.tag("", [:bright, :cyan]) | line]
+    else
+      line
+    end
   end
 
   # -- Helpers --

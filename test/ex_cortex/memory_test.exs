@@ -21,7 +21,7 @@ defmodule ExCortex.MemoryTest do
 
     test "returns L0 impressions for initial search", %{engram: engram} do
       results = Memory.query("auth", tier: :L0)
-      assert length(results) > 0
+      assert results != []
       result = hd(results)
       assert result.id == engram.id
       assert result.impression

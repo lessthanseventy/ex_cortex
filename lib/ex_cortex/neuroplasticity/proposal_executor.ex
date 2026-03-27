@@ -53,36 +53,31 @@ defmodule ExCortex.Neuroplasticity.ProposalExecutor do
   # Roster changes: parse "Change 'who' from 'all' to 'master'" style suggestions
   defp apply_roster_change(synapse, suggestion) do
     cond do
-      String.contains?(suggestion, "who") ->
-        case Regex.run(~r/to\s+['"]?(\w+)['"]?/i, suggestion) do
-          [_, new_who] ->
-            updated_roster =
-              Enum.map(synapse.roster, fn step ->
-                Map.put(step, "who", new_who)
-              end)
+      String.contains?(suggestion, "who") -> apply_roster_who_change(synapse, suggestion)
+      String.contains?(suggestion, "how") -> apply_roster_how_change(synapse, suggestion)
+      true -> {:skip, "Could not interpret roster change: #{suggestion}"}
+    end
+  end
 
-            Ruminations.update_synapse(synapse, %{roster: updated_roster})
+  defp apply_roster_who_change(synapse, suggestion) do
+    case Regex.run(~r/to\s+['"]?(\w+)['"]?/i, suggestion) do
+      [_, new_who] ->
+        updated_roster = Enum.map(synapse.roster, fn step -> Map.put(step, "who", new_who) end)
+        Ruminations.update_synapse(synapse, %{roster: updated_roster})
 
-          _ ->
-            {:skip, "Could not parse roster 'who' change from: #{suggestion}"}
-        end
+      _ ->
+        {:skip, "Could not parse roster 'who' change from: #{suggestion}"}
+    end
+  end
 
-      String.contains?(suggestion, "how") ->
-        case Regex.run(~r/to\s+['"]?(\w+)['"]?/i, suggestion) do
-          [_, new_how] when new_how in ~w(consensus solo majority) ->
-            updated_roster =
-              Enum.map(synapse.roster, fn step ->
-                Map.put(step, "how", new_how)
-              end)
+  defp apply_roster_how_change(synapse, suggestion) do
+    case Regex.run(~r/to\s+['"]?(\w+)['"]?/i, suggestion) do
+      [_, new_how] when new_how in ~w(consensus solo majority) ->
+        updated_roster = Enum.map(synapse.roster, fn step -> Map.put(step, "how", new_how) end)
+        Ruminations.update_synapse(synapse, %{roster: updated_roster})
 
-            Ruminations.update_synapse(synapse, %{roster: updated_roster})
-
-          _ ->
-            {:skip, "Could not parse roster 'how' change from: #{suggestion}"}
-        end
-
-      true ->
-        {:skip, "Could not interpret roster change: #{suggestion}"}
+      _ ->
+        {:skip, "Could not parse roster 'how' change from: #{suggestion}"}
     end
   end
 

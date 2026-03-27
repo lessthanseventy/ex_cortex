@@ -45,7 +45,6 @@ defmodule ExCortex.Ruminations.ProposalPolicy do
   def sweep_stale_proposals do
     import Ecto.Query
 
-    alias ExCortex.Ruminations
     alias ExCortex.Ruminations.Proposal
 
     policies = load_policies()
@@ -59,25 +58,29 @@ defmodule ExCortex.Ruminations.ProposalPolicy do
             preload: [:synapse]
         )
 
-      Enum.each(pending, fn proposal ->
-        age_hours = DateTime.diff(DateTime.utc_now(), proposal.inserted_at, :hour)
+      Enum.each(pending, &process_stale_proposal(&1, stale_rules))
+    end
+  end
 
-        matching_rule =
-          Enum.find(stale_rules, fn rule ->
-            matches?(rule, proposal) && age_hours >= (rule["max_age_hours"] || 999_999)
-          end)
+  defp process_stale_proposal(proposal, stale_rules) do
+    age_hours = DateTime.diff(DateTime.utc_now(), proposal.inserted_at, :hour)
 
-        if matching_rule do
-          action = action_for(matching_rule)
-          Logger.info("[ProposalPolicy] Stale proposal #{proposal.id}: #{action} (age: #{age_hours}h)")
-
-          case action do
-            :auto_approve -> Ruminations.approve_proposal(proposal)
-            :auto_reject -> Ruminations.reject_proposal(proposal)
-            _ -> :ok
-          end
-        end
+    matching_rule =
+      Enum.find(stale_rules, fn rule ->
+        matches?(rule, proposal) && age_hours >= (rule["max_age_hours"] || 999_999)
       end)
+
+    if matching_rule, do: apply_stale_action(proposal, matching_rule, age_hours)
+  end
+
+  defp apply_stale_action(proposal, rule, age_hours) do
+    action = action_for(rule)
+    Logger.info("[ProposalPolicy] Stale proposal #{proposal.id}: #{action} (age: #{age_hours}h)")
+
+    case action do
+      :auto_approve -> ExCortex.Ruminations.approve_proposal(proposal)
+      :auto_reject -> ExCortex.Ruminations.reject_proposal(proposal)
+      _ -> :ok
     end
   end
 

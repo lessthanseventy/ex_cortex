@@ -114,20 +114,7 @@ defmodule Mix.Tasks.EvalPathway do
     if synapse do
       Mix.shell().info("\nRunning #{length(engrams)} eval(s) for \"#{synapse.name}\"...")
 
-      results =
-        Enum.map(engrams, fn engram ->
-          expected = engram.tags |> get_in([Access.filter(&String.starts_with?(&1, "expect:"))]) |> List.first()
-          expected_verdict = if expected, do: String.replace(expected, "expect:", "")
-
-          case ImpulseRunner.run(synapse, engram.body || "") do
-            {:ok, %{verdict: actual}} ->
-              match = expected_verdict == nil or actual == expected_verdict
-              %{title: engram.title, expected: expected_verdict, actual: actual, match: match}
-
-            {:error, reason} ->
-              %{title: engram.title, expected: expected_verdict, actual: "error: #{inspect(reason)}", match: false}
-          end
-        end)
+      results = Enum.map(engrams, &eval_engram(&1, synapse))
 
       pass_count = Enum.count(results, & &1.match)
       total = length(results)
@@ -155,11 +142,7 @@ defmodule Mix.Tasks.EvalPathway do
       status = if r.rate >= 80, do: "PASS", else: "NEEDS WORK"
       Mix.shell().info("\n#{r.synapse}: #{r.rate}% (#{r.pass_count}/#{r.total}) — #{status}")
 
-      Enum.each(r.results, fn result ->
-        icon = if result.match, do: "  ✓", else: "  ✗"
-        expected = if result.expected, do: " (expected: #{result.expected})", else: ""
-        Mix.shell().info("#{icon} #{result.title} → #{result.actual}#{expected}")
-      end)
+      Enum.each(r.results, &print_result_row/1)
     end)
 
     total_pass = Enum.sum(Enum.map(results, & &1.pass_count))
@@ -169,5 +152,25 @@ defmodule Mix.Tasks.EvalPathway do
     Mix.shell().info("\n" <> String.duplicate("-", 60))
     Mix.shell().info("Overall: #{overall}% (#{total_pass}/#{total})")
     Mix.shell().info(String.duplicate("=", 60))
+  end
+
+  defp eval_engram(engram, synapse) do
+    expected = engram.tags |> get_in([Access.filter(&String.starts_with?(&1, "expect:"))]) |> List.first()
+    expected_verdict = if expected, do: String.replace(expected, "expect:", "")
+
+    case ImpulseRunner.run(synapse, engram.body || "") do
+      {:ok, %{verdict: actual}} ->
+        match = expected_verdict == nil or actual == expected_verdict
+        %{title: engram.title, expected: expected_verdict, actual: actual, match: match}
+
+      {:error, reason} ->
+        %{title: engram.title, expected: expected_verdict, actual: "error: #{inspect(reason)}", match: false}
+    end
+  end
+
+  defp print_result_row(result) do
+    icon = if result.match, do: "  ✓", else: "  ✗"
+    expected = if result.expected, do: " (expected: #{result.expected})", else: ""
+    Mix.shell().info("#{icon} #{result.title} → #{result.actual}#{expected}")
   end
 end

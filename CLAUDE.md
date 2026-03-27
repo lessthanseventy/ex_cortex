@@ -251,4 +251,4 @@ docker compose up -d             # full stack: db, ollama, jaeger, prometheus, g
 - ex_cellence Repo needs its own DB config pointing to our database
 - `test/excessibility/html_snapshots/` are auto-generated — always appear modified, not a real problem
 - `mix format --check-formatted` will always exit 1 if snapshots were regenerated (false alarm)
-- Credo baseline: ~40 pre-existing refactoring opportunities — don't file issues for these
+- Credo must pass clean: `mix credo --all` should report zero issues

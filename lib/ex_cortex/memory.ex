@@ -170,22 +170,26 @@ defmodule ExCortex.Memory do
           Logger.debug("[Memory] No embedded engrams found, falling back to legacy search")
           query_legacy(search_term, tier, limit)
         else
-          lambda =
-            Keyword.get_lazy(opts, :lambda, fn ->
-              Settings.resolve(:mmr_lambda, default: 0.7)
-            end)
-
-          lambda = if is_binary(lambda), do: String.to_float(lambda), else: lambda
-
-          query_embedding
-          |> MMR.rerank(candidates, limit: limit, lambda: lambda)
-          |> Enum.map(&Map.delete(&1, :_relevance))
+          rerank_candidates(query_embedding, candidates, limit, opts)
         end
 
       {:error, reason} ->
         Logger.debug("[Memory] Embedding failed (#{inspect(reason)}), falling back to legacy search")
         query_legacy(search_term, tier, limit)
     end
+  end
+
+  defp rerank_candidates(query_embedding, candidates, limit, opts) do
+    lambda =
+      Keyword.get_lazy(opts, :lambda, fn ->
+        Settings.resolve(:mmr_lambda, default: 0.7)
+      end)
+
+    lambda = if is_binary(lambda), do: String.to_float(lambda), else: lambda
+
+    query_embedding
+    |> MMR.rerank(candidates, limit: limit, lambda: lambda)
+    |> Enum.map(&Map.delete(&1, :_relevance))
   end
 
   def load_recall(engram_id) do
