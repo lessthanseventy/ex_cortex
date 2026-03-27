@@ -1,3 +1,4 @@
+if Code.ensure_loaded?(Ratatouille.View) do
 defmodule ExCortexTUI.App do
   @moduledoc "Ratatouille-based terminal UI for ExCortex."
 
@@ -1075,4 +1076,5 @@ defmodule ExCortexTUI.App do
   defp item_text(%{"title" => title}), do: title
   defp item_text(item) when is_binary(item), do: item
   defp item_text(item), do: inspect(item)
+end
 end

@@ -1,3 +1,4 @@
+if Code.ensure_loaded?(Ratatouille) do
 defmodule Mix.Tasks.Tui do
   @shortdoc "Start TUI"
   @moduledoc "Start ExCortex with the interactive Ratatouille TUI."
@@ -32,4 +33,5 @@ defmodule Mix.Tasks.Tui do
       shutdown: :system
     )
   end
+end
 end
