@@ -29,7 +29,7 @@ defmodule ExCortex.ContextProviders.Engrams do
     entries =
       if tags == [] and input != "" do
         # Query-based search when no tags specified (used by Muse)
-        Memory.query(input, tier: :L1, limit: limit)
+        Memory.query(input, tier: :L1, limit: limit, strategy: :mmr)
       else
         select_entries(tags, sort, limit)
       end

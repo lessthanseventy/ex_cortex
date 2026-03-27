@@ -2,9 +2,14 @@ defmodule ExCortex.Memory do
   @moduledoc "Context for engrams (memories) with tiered loading."
   import Ecto.Query
 
+  alias ExCortex.Memory.Embeddings
   alias ExCortex.Memory.Engram
+  alias ExCortex.Memory.MMR
   alias ExCortex.Memory.RecallPath
   alias ExCortex.Repo
+  alias ExCortex.Settings
+
+  require Logger
 
   def list_engrams(opts \\ []) do
     tags = Keyword.get(opts, :tags, [])
@@ -41,7 +46,7 @@ defmodule ExCortex.Memory do
   def create_engram(attrs) do
     case %Engram{} |> Engram.changeset(attrs) |> Repo.insert() do
       {:ok, engram} = result ->
-        ExCortex.Memory.Embeddings.embed_engram_async(engram)
+        Embeddings.embed_engram_async(engram)
         result
 
       error ->
@@ -120,22 +125,67 @@ defmodule ExCortex.Memory do
   def query(search_term, opts \\ []) do
     tier = Keyword.get(opts, :tier, :L0)
     limit = Keyword.get(opts, :limit, 20)
+    strategy = Keyword.get(opts, :strategy, :legacy)
 
-    select_fields =
-      case tier do
-        :L0 -> [:id, :title, :impression, :tags, :importance, :category, :inserted_at]
-        :L1 -> [:id, :title, :impression, :recall, :tags, :importance, :category, :inserted_at]
-        :L2 -> [:id, :title, :impression, :recall, :body, :tags, :importance, :category, :inserted_at]
-      end
+    case strategy do
+      :mmr -> query_mmr(search_term, tier, limit, opts)
+      _ -> query_legacy(search_term, tier, limit)
+    end
+  end
 
+  defp fields_for_tier(:L0), do: [:id, :title, :impression, :tags, :importance, :category, :inserted_at]
+  defp fields_for_tier(:L1), do: fields_for_tier(:L0) ++ [:recall]
+  defp fields_for_tier(:L2), do: fields_for_tier(:L1) ++ [:body]
+
+  defp query_legacy(search_term, tier, limit) do
     Repo.all(
       from(e in Engram,
-        where: ilike(e.title, ^"%#{search_term}%") or ilike(e.impression, ^"%#{search_term}%") or ^search_term in e.tags,
-        select: struct(e, ^select_fields),
+        where:
+          ilike(e.title, ^"%#{search_term}%") or ilike(e.impression, ^"%#{search_term}%") or
+            ^search_term in e.tags,
+        select: struct(e, ^fields_for_tier(tier)),
         order_by: [desc: e.importance, desc: e.inserted_at],
         limit: ^limit
       )
     )
+  end
+
+  defp query_mmr(search_term, tier, limit, opts) do
+    case Embeddings.embed_text(search_term) do
+      {:ok, query_embedding} ->
+        pool_size = min(limit * 5, 50)
+        select_fields = fields_for_tier(tier) ++ [:embedding]
+
+        candidates =
+          Repo.all(
+            from(e in Engram,
+              where: not is_nil(e.embedding),
+              order_by: fragment("embedding <=> ?", ^Pgvector.new(query_embedding)),
+              select: struct(e, ^select_fields),
+              limit: ^pool_size
+            )
+          )
+
+        if candidates == [] do
+          Logger.debug("[Memory] No embedded engrams found, falling back to legacy search")
+          query_legacy(search_term, tier, limit)
+        else
+          lambda =
+            Keyword.get_lazy(opts, :lambda, fn ->
+              Settings.resolve(:mmr_lambda, default: 0.7)
+            end)
+
+          lambda = if is_binary(lambda), do: String.to_float(lambda), else: lambda
+
+          query_embedding
+          |> MMR.rerank(candidates, limit: limit, lambda: lambda)
+          |> Enum.map(&Map.delete(&1, :_relevance))
+        end
+
+      {:error, reason} ->
+        Logger.debug("[Memory] Embedding failed (#{inspect(reason)}), falling back to legacy search")
+        query_legacy(search_term, tier, limit)
+    end
   end
 
   def load_recall(engram_id) do
