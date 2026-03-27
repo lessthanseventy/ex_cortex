@@ -29,6 +29,7 @@ config :ex_cortex, ExCortexWeb.Endpoint,
   server: false
 
 config :ex_cortex, Oban, testing: :manual
+config :ex_cortex, :async_embeddings, false
 
 # Return a fixed model list in tests to avoid hitting the real Ollama server
 config :ex_cortex, :ollama_models, ["gemma3:4b", "gemma3:12b", "phi4-mini"]

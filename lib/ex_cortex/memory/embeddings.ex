@@ -45,9 +45,13 @@ defmodule ExCortex.Memory.Embeddings do
   end
 
   def embed_engram_async(%Engram{} = engram) do
-    Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
-      embed_engram(engram)
-    end)
+    if Application.get_env(:ex_cortex, :async_embeddings, true) do
+      Task.Supervisor.start_child(ExCortex.AsyncTaskSupervisor, fn ->
+        embed_engram(engram)
+      end)
+    else
+      :ok
+    end
   end
 
   defp embedding_text(%Engram{title: title, impression: impression}) do
