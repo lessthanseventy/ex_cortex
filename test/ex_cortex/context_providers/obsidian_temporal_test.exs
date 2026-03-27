@@ -37,6 +37,8 @@ defmodule ExCortex.ContextProviders.ObsidianTemporalTest do
   end
 
   describe "build/3 with daily_range mode" do
+    @describetag :external
+
     test "daily_range mode accepts config and returns string" do
       config = %{"mode" => "daily_range", "time_range" => "today", "sections" => ["all"]}
       result = Obsidian.build(config, %{}, "anything")
