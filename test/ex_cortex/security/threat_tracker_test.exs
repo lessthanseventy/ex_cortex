@@ -1,59 +1,64 @@
 defmodule ExCortex.Security.ThreatTrackerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias ExCortex.Security.ThreatTracker
 
+  # ThreatTracker starts in application.ex base_children — always available
+
   setup do
-    tracker = start_supervised!(ThreatTracker)
-    %{tracker: tracker}
+    id = System.unique_integer([:positive])
+    on_exit(fn -> ThreatTracker.clear(id) end)
+    %{id: id}
   end
 
   describe "score tracking" do
     test "starts at 0.0 for unknown daydream" do
-      assert ThreatTracker.score(999) == 0.0
+      assert ThreatTracker.score(-1) == 0.0
     end
 
-    test "increments score" do
-      ThreatTracker.increment(1, 3.0)
-      assert ThreatTracker.score(1) == 3.0
+    test "increments score", %{id: id} do
+      ThreatTracker.increment(id, 3.0)
+      assert ThreatTracker.score(id) == 3.0
     end
 
-    test "accumulates multiple increments" do
-      ThreatTracker.increment(1, 3.0)
-      ThreatTracker.increment(1, 1.0)
-      assert ThreatTracker.score(1) == 4.0
+    test "accumulates multiple increments", %{id: id} do
+      ThreatTracker.increment(id, 3.0)
+      ThreatTracker.increment(id, 1.0)
+      assert ThreatTracker.score(id) == 4.0
     end
 
-    test "separate daydreams tracked independently" do
-      ThreatTracker.increment(1, 5.0)
-      ThreatTracker.increment(2, 1.0)
-      assert ThreatTracker.score(1) == 5.0
-      assert ThreatTracker.score(2) == 1.0
+    test "separate daydreams tracked independently", %{id: id} do
+      id2 = id + 1
+      ThreatTracker.increment(id, 5.0)
+      ThreatTracker.increment(id2, 1.0)
+      assert ThreatTracker.score(id) == 5.0
+      assert ThreatTracker.score(id2) == 1.0
+      ThreatTracker.clear(id2)
     end
   end
 
   describe "threshold checks" do
-    test "below threshold returns :ok" do
-      ThreatTracker.increment(1, 2.0)
-      assert ThreatTracker.check(1) == :ok
+    test "below threshold returns :ok", %{id: id} do
+      ThreatTracker.increment(id, 2.0)
+      assert ThreatTracker.check(id) == :ok
     end
 
-    test "at warn threshold returns :warn" do
-      ThreatTracker.increment(1, 5.0)
-      assert ThreatTracker.check(1) == :warn
+    test "at warn threshold returns :warn", %{id: id} do
+      ThreatTracker.increment(id, 5.0)
+      assert ThreatTracker.check(id) == :warn
     end
 
-    test "at halt threshold returns :halt" do
-      ThreatTracker.increment(1, 10.0)
-      assert ThreatTracker.check(1) == :halt
+    test "at halt threshold returns :halt", %{id: id} do
+      ThreatTracker.increment(id, 10.0)
+      assert ThreatTracker.check(id) == :halt
     end
   end
 
   describe "cleanup" do
-    test "clear removes score for daydream" do
-      ThreatTracker.increment(1, 5.0)
-      ThreatTracker.clear(1)
-      assert ThreatTracker.score(1) == 0.0
+    test "clear removes score for daydream", %{id: id} do
+      ThreatTracker.increment(id, 5.0)
+      ThreatTracker.clear(id)
+      assert ThreatTracker.score(id) == 0.0
     end
   end
 end

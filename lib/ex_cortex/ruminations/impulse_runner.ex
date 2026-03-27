@@ -36,6 +36,15 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   @dangerous_tools ~w(send_email create_github_issue comment_github run_rumination merge_pr git_pull restart_app close_issue nextcloud_talk email_archive_year email_classify email_tag email_move)
   @write_tool_names ~w(write_file edit_file git_commit create_obsidian_note daily_note_write)
 
+  @default_middleware [
+    "Elixir.ExCortex.Ruminations.Middleware.SystemAuthNonce",
+    "Elixir.ExCortex.Ruminations.Middleware.CanaryTokens",
+    "Elixir.ExCortex.Ruminations.Middleware.UntrustedContentTagger",
+    "Elixir.ExCortex.Ruminations.Middleware.OutputGuard",
+    "Elixir.ExCortex.Ruminations.Middleware.ThreatGate",
+    "Elixir.ExCortex.Ruminations.Middleware.ToolErrorHandler"
+  ]
+
   def dangerous?(tool_name), do: tool_name in @dangerous_tools
 
   @doc "Returns true if the given tool list contains any write tools that modify files."
@@ -446,7 +455,8 @@ defmodule ExCortex.Ruminations.ImpulseRunner do
   # ---------------------------------------------------------------------------
 
   defp with_middleware(thought, input_text, opts, fun) do
-    middleware = Middleware.resolve(Map.get(thought, :middleware) || [])
+    names = Map.get(thought, :middleware) || @default_middleware
+    middleware = Middleware.resolve(names)
     context = ContextProvider.assemble(thought.context_providers || [], thought, input_text)
     augmented = if context == "", do: input_text, else: "#{context}\n\n#{input_text}"
 

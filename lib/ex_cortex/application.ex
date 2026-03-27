@@ -71,7 +71,8 @@ defmodule ExCortex.Application do
       {Task.Supervisor, name: ExCortex.SourceTaskSupervisor, max_children: 10},
       {Task.Supervisor, name: ExCortex.AsyncTaskSupervisor},
       ExCortex.AppTelemetry,
-      ExCortex.Ruminations.Debouncer
+      ExCortex.Ruminations.Debouncer,
+      ExCortex.Security.ThreatTracker
     ]
   end
 
@@ -88,8 +89,7 @@ defmodule ExCortex.Application do
       ExCortex.Memory.EngramTriggerRunner,
       ExCortex.Signals.TriggerRunner,
       ExCortex.Senses.Feedback,
-      ExCortex.Memory.ConversationSummarizer,
-      ExCortex.Security.ThreatTracker
+      ExCortex.Memory.ConversationSummarizer
     ]
   end
 
